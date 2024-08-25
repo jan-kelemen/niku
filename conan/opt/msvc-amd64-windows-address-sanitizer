@@ -1,0 +1,5 @@
+[conf]
+tools.build:cflags+=["/fsanitize=address", "/Zi", "/INCREMENTAL:NO"] 
+tools.build:cxxflags+=["/fsanitize=address", "/Zi", "/INCREMENTAL:NO"] 
+tools.build:sharedlinkflags+=["/INCREMENTAL:NO", "/DEBUG", "/IGNORE:4300"]
+tools.build:exelinkflags+=["/INCREMENTAL:NO", "/DEBUG", "/IGNORE:4300"]

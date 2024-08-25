@@ -1,0 +1,77 @@
+name: 'Setup Conan'
+description: 'Install Conan package manager'
+inputs:
+  profile:
+    description: 'Used profile'
+    required: true
+  shell:
+    description: 'Used shell for executing commands'
+    required: false
+    default: ${{ runner.os == 'Linux' && 'bash' || 'pwsh' }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Conan
+      shell: ${{ inputs.shell }}
+      run: pipx install conan
+    - name: Echo installed version
+      shell: ${{ inputs.shell }}
+      run: |
+        conan --version
+        echo "version=$(conan --version)" >> $GITHUB_OUTPUT
+
+    - name: Install Conan configuration files
+      shell: ${{ inputs.shell }}
+      run: |
+        conan config install conan/global.conf
+
+    - name: Set environment variables
+      if: ${{ runner.os == 'Linux' }}
+      shell: ${{ inputs.shell }}
+      run: |
+          echo "CONAN_CACHE_LOCATION=$(conan config home)" >> $GITHUB_ENV
+
+    - name: Set environment variables
+      if: ${{ runner.os == 'Windows' }}
+      shell: ${{ inputs.shell }}
+      run: |
+        echo "CONAN_CACHE_LOCATION=$(conan config home)" >> $env:GITHUB_ENV
+
+    - name: Cache Conan packages
+      id: cache-conan-packages
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.CONAN_CACHE_LOCATION }}/p
+        key: ${{ inputs.profile }}-${{ hashFiles('conanfile.py') }}
+        
+    - name: Detect default profile
+      shell: ${{ inputs.shell }}
+      run: |
+        conan profile detect --force
+
+    - name: Checkout private recipes repository
+      uses: actions/checkout@v4
+      with:
+        repository: jan-kelemen/conan-recipes
+        path: recipes
+
+    - name: Override Linux specific public Conan recipes
+      if: ${{ runner.os == 'Linux' }}
+      shell: ${{ inputs.shell }}
+      run: |
+        conan export recipes/recipes/pulseaudio/meson --version 17.0
+
+    - name: Override public Conan recipes
+      shell: ${{ inputs.shell }}
+      run: |
+        conan export recipes/recipes/freetype/meson --version 2.13.2
+        conan export recipes/recipes/sdl/all --version 2.30.6
+        conan export recipes/recipes/spdlog/all --version 1.14.1
+        conan export recipes/recipes/tinygltf/all --version 2.9.0
+        conan export recipes/recipes/vulkan-memory-allocator/all --version 3.1.0
+
+    - name: Build all dependencies
+      shell: ${{ inputs.shell }}
+      run: |
+        conan install . --build=missing --profile=ci/conan/${{ inputs.profile }}

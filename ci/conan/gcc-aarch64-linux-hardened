@@ -1,0 +1,7 @@
+include(../../conan/gcc-{{ os.getenv("GCC_VER") }}-aarch64-linux)
+include(../../conan/opt/gcc-aarch64-linux-hardening)
+include(../../conan/dependencies)
+
+[settings]
+build_type=Release
+

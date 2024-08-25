@@ -1,0 +1,28 @@
+name: 'Install Cppcheck'
+description: 'Install Cppcheck static analyzer'
+inputs:
+  version:
+    description: 'Version to install'
+    required: false
+    default: '2.14.2'
+runs:
+  using: 'composite'
+  steps:
+      - name: Checkout Cppcheck repository
+        uses: actions/checkout@v4
+        with:
+          repository: danmar/cppcheck
+          path: cppcheck 
+          ref: ${{ inputs.version }}
+
+      - name: Install 
+        shell: bash
+        run: |
+          cmake -S cppcheck -B cppcheck/build -DCMAKE_BUILD_TYPE=Release -Wno-dev 
+          cmake --build cppcheck/build -j4
+          sudo cmake --install cppcheck/build
+
+      - name: Cleanup
+        shell: bash
+        run: |
+          rm -rf cppcheck

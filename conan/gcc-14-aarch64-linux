@@ -1,0 +1,16 @@
+[settings]
+os=Linux
+arch=armv8
+compiler=gcc
+compiler.cppstd=23
+compiler.libcxx=libstdc++11
+compiler.version=14
+
+[buildenv]
+CC=aarch64-linux-gnu-gcc-14
+CXX=aarch64-linux-gnu-g++-14
+LD=aarch64-linux-gnu-ld
+
+[conf]
+tools.build:cflags+=["-mcpu=cortex-a76"]
+tools.build:cxxflags+=["-mcpu=cortex-a76"]

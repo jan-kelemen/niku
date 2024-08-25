@@ -1,0 +1,92 @@
+name: GitHub CI
+
+on:
+  push:
+    branches: [ '**' ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    
+    env:
+      GCC_VER: 14
+      CLANG_VER: 18
+      
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [gcc-amd64-linux-hardened, clang-libstdcxx-amd64-linux-hardened, clang-libcxx-amd64-linux-hardened]
+        
+    steps:
+      - name: Checkout repository from github
+        uses: actions/checkout@v4
+
+      - name: Install gcc-${{ env.GCC_VER }}
+        uses: ./.github/actions/install-gcc
+        with:
+          version: ${{ env.GCC_VER }}
+
+      - name: Install clang-${{ env.CLANG_VER }}
+        if: contains(matrix.profile, 'clang')
+        uses: ./.github/actions/install-clang 
+        with:
+          version: ${{ env.CLANG_VER }}
+
+      - name: Install APT packages
+        uses: ./.github/actions/install-apt-packages
+
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: ${{ matrix.profile }}
+
+      - name: Configure CMake
+        run: |
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON --preset release
+
+      - name: Build
+        run: |
+          cmake --build --preset=release
+      
+      - name: Test
+        run: |
+          ctest --preset release
+
+  windows:
+    runs-on: windows-2022
+
+    steps:
+      - name: Initialize
+        run: |
+          git config --global core.autocrlf input
+          
+      - name: Checkout repository from github
+        uses: actions/checkout@v4
+
+      - name: Install Vulkan SDK
+        uses: ./.github/actions/install-vulkan-sdk
+
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: msvc-amd64-windows-hardened
+
+      - name: Configure CMake
+        run: |
+          cmake --preset default
+          
+      - name: Build
+        run: |
+          cmake --build --preset=multi-release
+
+      - name: Test
+        run: |
+          ctest --preset multi-release
+

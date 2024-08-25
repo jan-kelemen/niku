@@ -1,0 +1,28 @@
+name: 'Install IWYU'
+description: 'Install include-what-you-use static analyzer'
+inputs:
+  version:
+    description: 'Version to install'
+    required: false
+    default: '18'
+runs:
+  using: 'composite'
+  steps:
+      - name: Checkout IWYU repository
+        uses: actions/checkout@v4
+        with:
+          repository: include-what-you-use/include-what-you-use
+          path: iwyu 
+          ref: clang_${{ inputs.version }}
+
+      - name: Install 
+        shell: bash
+        run: |
+          cmake -S iwyu -B iwyu/build -DCMAKE_PREFIX_PATH=/usr/lib/llvm-${{ inputs.version }} -DCMAKE_BUILD_TYPE=Release -Wno-dev
+          cmake --build iwyu/build -j4
+          sudo cmake --install iwyu/build
+
+      - name: Cleanup
+        shell: bash
+        run: |
+          rm -rf iwyu

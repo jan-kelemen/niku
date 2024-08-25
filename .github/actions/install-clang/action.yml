@@ -1,0 +1,35 @@
+name: 'Install Clang'
+description: 'Install Clang compilers and optional LLVM tools and dev packages'
+inputs:
+  version:
+    description: 'Version to install'
+    required: false
+    default: '18'
+  clang-tidy:
+    description: 'Install clang-tidy'
+    required: false
+  dev:
+    description: 'Install dev packages'
+    required: false
+runs:
+  using: 'composite'
+  steps:
+    - name: Install
+      shell: bash
+      run: |
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        . /etc/lsb-release
+        sudo add-apt-repository -y "deb http://apt.llvm.org/${DISTRIB_CODENAME}/ llvm-toolchain-${DISTRIB_CODENAME}-${{ inputs.version }} main"
+        sudo apt-get install -y clang-${{ inputs.version }} llvm-${{ inputs.version }} libc++-${{ inputs.version }}-dev libc++abi-${{ inputs.version }}-dev
+
+    - name: Install clang-tidy
+      shell: bash
+      if: ${{ inputs.clang-tidy }}
+      run: |
+        sudo apt-get install -y clang-tidy-${{ inputs.version }}
+
+    - name: Install LLVM dev packages
+      shell: bash
+      if: ${{ inputs.dev }}
+      run: |
+        sudo apt-get install -y llvm-${{ inputs.version }}-dev libclang-${{ inputs.version }}-dev

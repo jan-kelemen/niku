@@ -1,0 +1,5 @@
+[conf]
+tools.build:cflags+=["-fsanitize=undefined", "-g"]
+tools.build:cxxflags+=["-fsanitize=undefined", "-g"]
+tools.build:sharedlinkflags+=["-fsanitize=undefined", "-g"]
+tools.build:exelinkflags+=["-fsanitize=undefined", "-g"]

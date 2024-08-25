@@ -1,0 +1,6 @@
+* text eol=lf whitespace
+*.bin binary
+*.blend binary
+*.gltf text
+*.jpg binary
+*.png binary

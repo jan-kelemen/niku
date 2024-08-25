@@ -1,0 +1,6 @@
+include(linux-hardening)
+
+[conf]
+tools.build:cflags+=["-Wl,-z,relro,-z,now,-z,noexecstack"]
+tools.build:cxxflags+=["-Wl,-z,relro,-z,now,-z,noexecstack"]
+

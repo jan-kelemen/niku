@@ -1,0 +1,27 @@
+name: 'Install APT packages'
+description: 'Install required APT packages'
+runs:
+  using: 'composite'
+  steps:
+    - name: Add repositiories
+      shell: bash
+      run: |
+        wget -O - https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+        . /etc/lsb-release
+        sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${DISTRIB_CODENAME}.list http://packages.lunarg.com/vulkan/lunarg-vulkan-${DISTRIB_CODENAME}.list
+        sudo apt update
+
+    - name: Install xorg
+      shell: bash
+      run: |
+        sudo apt-get install -y libx11-dev libx11-xcb-dev libfontenc-dev libxaw7-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxinerama-dev libxmu-dev libxmuu-dev libxpm-dev libxrandr-dev libxres-dev libxss-dev libxtst-dev libxv-dev libxxf86vm-dev libxcb-glx0-dev libxcb-render-util0-dev libxcb-xkb-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-shape0-dev libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-dri3-dev libxcb-cursor-dev libxcb-dri2-0-dev libxcb-dri3-dev libxcb-present-dev libxcb-composite0-dev libxcb-ewmh-dev libxcb-res0-dev libxcb-util-dev libxkbfile-dev uuid-dev
+
+    - name: Install libegl-dev
+      shell: bash
+      run: |
+        sudo apt-get install -y libegl-dev
+
+    - name: Install Vulkan SDK
+      shell: bash
+      run: |
+        sudo apt-get install -y vulkan-sdk

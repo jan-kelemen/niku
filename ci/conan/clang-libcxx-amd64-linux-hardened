@@ -1,0 +1,7 @@
+include(../../conan/clang-{{ os.getenv("CLANG_VER") }}-libcxx-amd64-linux)
+include(../../conan/opt/clang-amd64-linux-hardening)
+include(../../conan/dependencies)
+
+[settings]
+build_type=Release
+

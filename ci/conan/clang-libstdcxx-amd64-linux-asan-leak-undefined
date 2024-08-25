@@ -1,0 +1,9 @@
+include(../../conan/clang-{{ os.getenv("CLANG_VER") }}-libstdcxx-amd64-linux)
+include(../../conan/opt/linux-address-sanitizer)
+include(../../conan/opt/linux-leak-sanitizer)
+include(../../conan/opt/linux-undefined-sanitizer)
+include(../../conan/dependencies)
+
+[settings]
+build_type=Release
+

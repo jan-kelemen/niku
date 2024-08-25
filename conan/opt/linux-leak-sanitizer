@@ -1,0 +1,5 @@
+[conf]
+tools.build:cflags+=["-fsanitize=leak", "-g"]
+tools.build:cxxflags+=["-fsanitize=leak", "-g"]
+tools.build:sharedlinkflags+=["-fsanitize=leak", "-g"]
+tools.build:exelinkflags+=["-fsanitize=leak", "-g"]

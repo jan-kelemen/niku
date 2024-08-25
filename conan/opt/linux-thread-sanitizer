@@ -1,0 +1,5 @@
+[conf]
+tools.build:cflags+=["-fsanitize=thread", "-g"]
+tools.build:cxxflags+=["-fsanitize=thread", "-g"]
+tools.build:sharedlinkflags+=["-fsanitize=thread", "-g"]
+tools.build:exelinkflags+=["-fsanitize=thread", "-g"]

@@ -1,0 +1,9 @@
+include(base/clang-18-linux)
+include(base/clang-libcxx)
+
+[settings]
+arch=armv8
+
+[conf]
+tools.build:cflags+=["--target=aarch64-linux-gnu", "-mcpu=cortex-a76", "-march=armv8-a"]
+tools.build:cxxflags+=["--target=aarch64-linux-gnu", "-mcpu=cortex-a76", "-march=armv8-a"]

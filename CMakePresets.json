@@ -1,0 +1,109 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "include": ["./ConanPresets.json"],
+    "configurePresets": [
+        {
+            "name": "clang-format",
+            "hidden": true,
+            "cacheVariables": {
+                "NIKU_ENABLE_CLANG_FORMAT": "ON"
+            }
+        },
+        {
+            "name": "clang-tidy",
+            "hidden": true,
+            "cacheVariables": {
+                "NIKU_ENABLE_CLANG_TIDY": "ON"
+            }
+        },
+        {
+            "name": "static-analysis",
+            "hidden": true,
+            "cacheVariables": {
+                "NIKU_ENABLE_COMPILER_STATIC_ANALYSIS": "ON"
+            }
+        },
+        {
+            "name": "cppcheck",
+            "hidden": true,
+            "cacheVariables": {
+                "NIKU_ENABLE_CPPCHECK": "ON"
+            }
+        },
+        {
+            "name": "iwyu",
+            "hidden": true,
+            "cacheVariables": {
+                "NIKU_ENABLE_IWYU": "ON"
+            }
+        },
+        {
+            "name": "default",
+            "inherits": "conan-default"
+        },
+        {
+            "name": "release",
+            "inherits": "conan-release"
+        },
+        {
+            "name": "debug",
+            "inherits": "conan-debug"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "multi-release",
+            "configurePreset": "default",
+            "configuration": "Release",
+            "inherits": "release"
+        },
+        {
+            "name": "multi-debug",
+            "configurePreset": "default",
+            "configuration": "Debug",
+            "inherits": "debug"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "common",
+            "output": {"outputOnFailure": true },
+            "hidden": true
+        },
+        {
+            "name": "release",
+            "configurePreset": "release",
+            "inherits": "common"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug",
+            "inherits": "common"
+        },
+        {
+            "name": "multi-release",
+            "configurePreset": "default",
+            "configuration": "Release",
+            "inherits": ["release", "common"]
+        },
+        {
+            "name": "multi-debug",
+            "configurePreset": "default",
+            "configuration": "Debug",
+            "inherits": ["debug", "common"]
+        }
+    ]
+}

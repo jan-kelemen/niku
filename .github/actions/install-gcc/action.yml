@@ -1,0 +1,30 @@
+name: 'Install GCC'
+description: 'Install GCC compilers'
+inputs:
+  version:
+    description: 'Version to install'
+    required: false
+    default: '14'
+  arch:
+    description: 'Target architecture'
+    required: false
+    default: 'x64'
+runs:
+  using: 'composite'
+  steps:
+    - name: Add ubuntu-toolchain-r/test repository
+      shell: bash
+      run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+        sudo apt-get update -y
+    - name: Install GCC x64
+      if: ${{ inputs.arch == 'x64' }}
+      shell: bash
+      run: |
+        sudo apt-get install -y gcc-${{ inputs.version }} g++-${{ inputs.version }}
+    - name: Install GCC aarch64
+      if: ${{ inputs.arch == 'aarch64' }}
+      shell: bash
+      run: |
+        sudo apt-get install -y gcc-${{ inputs.version }}-aarch64-linux-gnu g++-${{ inputs.version }}-aarch64-linux-gnu
+

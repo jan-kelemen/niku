@@ -1,0 +1,5 @@
+[conf]
+tools.build:cflags+=["/sdl", "/guard:cf"] 
+tools.build:cxxflags+=["/sdl", "/guard:cf"]
+tools.build:sharedlinkflags+=["/DYNAMICBASE", "/NXCOMPAT", "/CETCOMPAT"]
+tools.build:exelinkflags+=["/DYNAMICBASE", "/NXCOMPAT", "/CETCOMPAT"]

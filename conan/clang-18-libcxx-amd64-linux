@@ -1,0 +1,6 @@
+include(base/clang-18-linux)
+include(base/clang-libcxx)
+
+[settings]
+arch=x86_64
+

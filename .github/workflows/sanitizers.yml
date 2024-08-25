@@ -1,0 +1,117 @@
+name: Sanitizers
+
+on:
+  push:
+    branches: [ '**' ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  clang-asan-leak-undefined:
+    runs-on: ubuntu-24.04
+    
+    env:
+      GCC_VER: 14
+      CLANG_VER: 18
+        
+    steps:
+      - name: Checkout repository from github
+        uses: actions/checkout@v4
+
+      - name: Install gcc-${{ env.GCC_VER }}
+        uses: ./.github/actions/install-gcc
+
+      - name: Install clang-${{ env.CLANG_VER }}
+        uses: ./.github/actions/install-clang 
+
+      - name: Install APT packages
+        uses: ./.github/actions/install-apt-packages
+
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: clang-libstdcxx-amd64-linux-asan-leak-undefined
+
+      - name: Configure CMake
+        run: |
+          cmake --preset release
+
+      - name: Build
+        run: |
+          cmake --build --preset=release
+
+      - name: Test
+        run: |
+          ctest --preset release
+
+  gcc-tsan:
+    runs-on: ubuntu-24.04
+    
+    env:
+      GCC_VER: 14
+        
+    steps:
+      - name: Checkout repository from github
+        uses: actions/checkout@v4
+
+      - name: Install gcc-${{ env.GCC_VER }}
+        uses: ./.github/actions/install-gcc
+
+      - name: Install APT packages
+        uses: ./.github/actions/install-apt-packages
+
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: gcc-amd64-linux-tsan
+
+      - name: Configure CMake
+        run: |
+          cmake --preset release
+
+      - name: Build
+        run: |
+          cmake --build --preset=release
+
+      - name: Test
+        run: |
+          ctest --preset release
+
+  msvc-asan:
+    runs-on: windows-2022
+
+    steps:
+      - name: Initialize
+        run: |
+          git config --global core.autocrlf input
+          
+      - name: Checkout repository from github
+        uses: actions/checkout@v4
+
+      - name: Install Vulkan SDK
+        uses: ./.github/actions/install-vulkan-sdk
+
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: msvc-amd64-windows-asan
+
+      - name: Configure CMake
+        run: |
+          cmake --preset default
+          
+      - name: Build
+        run: |
+          cmake --build --preset=multi-release
+
+      - name: Test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
+          ctest --preset multi-release

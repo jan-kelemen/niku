@@ -1,0 +1,7 @@
+include(../../conan/msvc-2022-amd64-windows)
+include(../../conan/opt/msvc-amd64-windows-hardening)
+include(../../conan/dependencies)
+
+[settings]
+build_type=Release
+

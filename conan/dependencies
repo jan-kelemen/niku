@@ -1,0 +1,6 @@
+[options]
+boost*:header_only=True
+freetype*:with_bzip2=False
+sdl*:libunwind=False
+sdl*:wayland=False
+pulseaudio*:with_openssl=False
