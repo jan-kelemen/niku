@@ -26,3 +26,5 @@ set_property(TARGET gltfviewer
     PROPERTY 
         VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+set_target_properties(gltfviewer PROPERTIES FOLDER "demo")

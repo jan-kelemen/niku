@@ -22,3 +22,5 @@ set_source_files_properties(
     PROPERTIES
         SKIP_LINTING ON
 )
+
+set_target_properties(vma_impl PROPERTIES FOLDER "vendor")

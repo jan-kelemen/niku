@@ -44,3 +44,6 @@ set_source_files_properties(
     PROPERTIES
         SKIP_LINTING ON
 )
+
+set_target_properties(imgui_vulkan_impl PROPERTIES FOLDER "vendor")
+set_target_properties(imgui_sdl_impl PROPERTIES FOLDER "vendor")
