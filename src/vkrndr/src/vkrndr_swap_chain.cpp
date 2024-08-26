@@ -1,14 +1,14 @@
-#include <vkrndr_vulkan_swap_chain.hpp>
+#include <vkrndr_swap_chain.hpp>
 
+#include <vkrndr_context.hpp>
+#include <vkrndr_device.hpp>
 #include <vkrndr_global_data.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_queue.hpp>
 #include <vkrndr_render_settings.hpp>
-#include <vkrndr_vulkan_context.hpp>
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_image.hpp>
-#include <vkrndr_vulkan_queue.hpp>
-#include <vkrndr_vulkan_synchronization.hpp>
-#include <vkrndr_vulkan_utility.hpp>
-#include <vkrndr_vulkan_window.hpp>
+#include <vkrndr_synchronization.hpp>
+#include <vkrndr_utility.hpp>
+#include <vkrndr_window.hpp>
 
 #include <algorithm>
 #include <array>
@@ -24,7 +24,7 @@ namespace
 {
     [[nodiscard]] VkSurfaceFormatKHR choose_swap_surface_format(
         std::span<VkSurfaceFormatKHR const> available_formats,
-        vkrndr::render_settings const& settings)
+        vkrndr::render_settings_t const& settings)
     {
         if (auto const it{std::ranges::find_if(available_formats,
                 [&settings](VkSurfaceFormatKHR const& format)
@@ -43,7 +43,7 @@ namespace
 
     [[nodiscard]] VkPresentModeKHR choose_swap_present_mode(
         std::span<VkPresentModeKHR const> available_present_modes,
-        vkrndr::render_settings const& settings)
+        vkrndr::render_settings_t const& settings)
     {
         return std::ranges::find(available_present_modes,
                    settings.preferred_present_mode) !=
@@ -53,8 +53,8 @@ namespace
     }
 } // namespace
 
-void vkrndr::detail::destroy(vulkan_device const* const device,
-    swap_frame* const frame)
+void vkrndr::detail::destroy(device_t const* const device,
+    swap_frame_t* const frame)
 {
     vkDestroyImageView(device->logical, frame->image_view, nullptr);
     vkDestroySemaphore(device->logical, frame->image_available, nullptr);
@@ -62,10 +62,10 @@ void vkrndr::detail::destroy(vulkan_device const* const device,
     vkDestroyFence(device->logical, frame->in_flight, nullptr);
 }
 
-vkrndr::swap_chain_support
+vkrndr::swap_chain_support_t
 vkrndr::query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    vkrndr::swap_chain_support rv;
+    vkrndr::swap_chain_support_t rv;
 
     check_result(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device,
         surface,
@@ -102,10 +102,10 @@ vkrndr::query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
     return rv;
 }
 
-vkrndr::vulkan_swap_chain::vulkan_swap_chain(vulkan_window* const window,
-    vulkan_context* const context,
-    vulkan_device* const device,
-    render_settings const* const settings)
+vkrndr::swap_chain_t::swap_chain_t(window_t* const window,
+    context_t* const context,
+    device_t* const device,
+    render_settings_t const* const settings)
     : window_{window}
     , context_{context}
     , device_{device}
@@ -115,9 +115,9 @@ vkrndr::vulkan_swap_chain::vulkan_swap_chain(vulkan_window* const window,
     create_swap_frames();
 }
 
-vkrndr::vulkan_swap_chain::~vulkan_swap_chain() { cleanup(); }
+vkrndr::swap_chain_t::~swap_chain_t() { cleanup(); }
 
-bool vkrndr::vulkan_swap_chain::acquire_next_image(size_t const current_frame,
+bool vkrndr::swap_chain_t::acquire_next_image(size_t const current_frame,
     uint32_t& image_index)
 {
     constexpr auto timeout{std::numeric_limits<uint64_t>::max()};
@@ -147,7 +147,7 @@ bool vkrndr::vulkan_swap_chain::acquire_next_image(size_t const current_frame,
     return true;
 }
 
-void vkrndr::vulkan_swap_chain::submit_command_buffers(
+void vkrndr::swap_chain_t::submit_command_buffers(
     std::span<VkCommandBuffer const> command_buffers,
     size_t const current_frame,
     uint32_t const image_index)
@@ -190,13 +190,13 @@ void vkrndr::vulkan_swap_chain::submit_command_buffers(
     check_result(result);
 }
 
-void vkrndr::vulkan_swap_chain::recreate()
+void vkrndr::swap_chain_t::recreate()
 {
     cleanup();
     create_swap_frames();
 }
 
-void vkrndr::vulkan_swap_chain::create_swap_frames()
+void vkrndr::swap_chain_t::create_swap_frames()
 {
     auto swap_details{
         query_swap_chain_support(device_->physical, context_->surface)};
@@ -267,9 +267,9 @@ void vkrndr::vulkan_swap_chain::create_swap_frames()
     }
 }
 
-void vkrndr::vulkan_swap_chain::cleanup()
+void vkrndr::swap_chain_t::cleanup()
 {
-    for (detail::swap_frame& frame : frames_)
+    for (detail::swap_frame_t& frame : frames_)
     {
         destroy(device_, &frame);
     }

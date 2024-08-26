@@ -1,5 +1,5 @@
-#ifndef VKRNDR_VULKAN_MEMORY_INCLUDED
-#define VKRNDR_VULKAN_MEMORY_INCLUDED
+#ifndef VKRNDR_MEMORY_INCLUDED
+#define VKRNDR_MEMORY_INCLUDED
 
 #include <vma_impl.hpp>
 
@@ -9,19 +9,19 @@
 
 namespace vkrndr
 {
-    struct vulkan_device;
-    struct vulkan_buffer;
+    struct device_t;
+    struct buffer_t;
 } // namespace vkrndr
 
 namespace vkrndr
 {
-    struct [[nodiscard]] memory_region final
+    struct [[nodiscard]] memory_region_t final
     {
         VkDeviceSize offset{};
         VkDeviceSize size{};
     };
 
-    struct [[nodiscard]] mapped_memory final
+    struct [[nodiscard]] mapped_memory_t final
     {
         VmaAllocation allocation;
         void* mapped_memory;
@@ -46,10 +46,9 @@ namespace vkrndr
         }
     };
 
-    mapped_memory map_memory(vulkan_device const& device,
-        vulkan_buffer const& buffer);
+    mapped_memory_t map_memory(device_t const& device, buffer_t const& buffer);
 
-    void unmap_memory(vulkan_device const& device, mapped_memory* memory);
+    void unmap_memory(device_t const& device, mapped_memory_t* memory);
 } // namespace vkrndr
 
-#endif // !VKRNDR_VULKAN_MEMORY_INCLUDED
+#endif

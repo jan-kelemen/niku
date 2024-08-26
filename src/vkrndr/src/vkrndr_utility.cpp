@@ -1,4 +1,4 @@
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <spdlog/spdlog.h>
 

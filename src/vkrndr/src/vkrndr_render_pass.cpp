@@ -1,21 +1,22 @@
 #include <vkrndr_render_pass.hpp>
 
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <cassert>
 #include <utility>
 
-vkrndr::render_pass_guard::render_pass_guard(VkCommandBuffer command_buffer)
+vkrndr::render_pass_guard_t::render_pass_guard_t(VkCommandBuffer command_buffer)
     : command_buffer_{command_buffer}
 {
 }
 
-vkrndr::render_pass_guard::render_pass_guard(render_pass_guard&& other) noexcept
+vkrndr::render_pass_guard_t::render_pass_guard_t(
+    render_pass_guard_t&& other) noexcept
     : command_buffer_{std::exchange(other.command_buffer_, VK_NULL_HANDLE)}
 {
 }
 
-vkrndr::render_pass_guard::~render_pass_guard()
+vkrndr::render_pass_guard_t::~render_pass_guard_t()
 {
     if (command_buffer_ != VK_NULL_HANDLE)
     {
@@ -23,7 +24,7 @@ vkrndr::render_pass_guard::~render_pass_guard()
     }
 }
 
-vkrndr::render_pass_guard vkrndr::render_pass::begin(
+vkrndr::render_pass_guard_t vkrndr::render_pass_t::begin(
     VkCommandBuffer command_buffer,
     VkRect2D const& render_area) const
 {
@@ -46,10 +47,10 @@ vkrndr::render_pass_guard vkrndr::render_pass::begin(
 
     vkCmdBeginRendering(command_buffer, &render_info);
 
-    return render_pass_guard{command_buffer};
+    return render_pass_guard_t{command_buffer};
 }
 
-vkrndr::render_pass& vkrndr::render_pass::with_color_attachment(
+vkrndr::render_pass_t& vkrndr::render_pass_t::with_color_attachment(
     VkAttachmentLoadOp load_operation,
     VkAttachmentStoreOp store_operation,
     VkImageView color_image,
@@ -87,7 +88,7 @@ vkrndr::render_pass& vkrndr::render_pass::with_color_attachment(
     return *this;
 }
 
-vkrndr::render_pass& vkrndr::render_pass::with_depth_attachment(
+vkrndr::render_pass_t& vkrndr::render_pass_t::with_depth_attachment(
     VkAttachmentLoadOp load_operation,
     VkAttachmentStoreOp store_operation,
     VkImageView depth_image,
@@ -116,7 +117,7 @@ vkrndr::render_pass& vkrndr::render_pass::with_depth_attachment(
     return *this;
 }
 
-vkrndr::render_pass& vkrndr::render_pass::with_stencil_attachment(
+vkrndr::render_pass_t& vkrndr::render_pass_t::with_stencil_attachment(
     VkAttachmentLoadOp load_operation,
     VkAttachmentStoreOp store_operation,
     VkImageView stencil_image,

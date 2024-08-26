@@ -1,9 +1,9 @@
-#include <vkrndr_vulkan_descriptors.hpp>
+#include <vkrndr_descriptors.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_utility.hpp>
 
-void vkrndr::create_descriptor_sets(vulkan_device const* const device,
+void vkrndr::create_descriptor_sets(device_t const* const device,
     VkDescriptorSetLayout const layout,
     VkDescriptorPool const descriptor_pool,
     std::span<VkDescriptorSet> descriptor_sets)

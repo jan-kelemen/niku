@@ -6,19 +6,19 @@
 
 namespace niku
 {
-    class [[nodiscard]] camera
+    class [[nodiscard]] camera_t
     {
     public:
-        camera();
+        camera_t();
 
-        camera(glm::vec3 const& position, float aspect_ratio);
+        camera_t(glm::vec3 const& position, float aspect_ratio);
 
-        camera(camera const&) = default;
+        camera_t(camera_t const&) = default;
 
-        camera(camera&&) = default;
+        camera_t(camera_t&&) = default;
 
     public:
-        virtual ~camera() = default;
+        virtual ~camera_t() = default;
 
     public:
         virtual void update() = 0;
@@ -40,9 +40,9 @@ namespace niku
         [[nodiscard]] virtual glm::vec3 const& position() const;
 
     public:
-        camera& operator=(camera const&) = default;
+        camera_t& operator=(camera_t const&) = default;
 
-        camera& operator=(camera&&) noexcept = default;
+        camera_t& operator=(camera_t&&) noexcept = default;
 
     protected:
         glm::vec3 position_;

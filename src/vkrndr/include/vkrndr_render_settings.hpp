@@ -5,7 +5,7 @@
 
 namespace vkrndr
 {
-    struct [[nodiscard]] render_settings final
+    struct [[nodiscard]] render_settings_t final
     {
         VkFormat preferred_swapchain_format{VK_FORMAT_B8G8R8A8_SRGB};
         VkPresentModeKHR preferred_present_mode{VK_PRESENT_MODE_MAILBOX_KHR};

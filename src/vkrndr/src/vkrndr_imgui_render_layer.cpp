@@ -1,12 +1,12 @@
 #include <vkrndr_imgui_render_layer.hpp>
 
-#include <vkrndr_vulkan_commands.hpp>
-#include <vkrndr_vulkan_context.hpp>
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_queue.hpp>
-#include <vkrndr_vulkan_swap_chain.hpp>
-#include <vkrndr_vulkan_utility.hpp>
-#include <vkrndr_vulkan_window.hpp>
+#include <vkrndr_commands.hpp>
+#include <vkrndr_context.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_queue.hpp>
+#include <vkrndr_swap_chain.hpp>
+#include <vkrndr_utility.hpp>
+#include <vkrndr_window.hpp>
 
 #include <imgui_impl_vulkan.h>
 
@@ -22,7 +22,7 @@
 namespace
 {
     [[nodiscard]] VkDescriptorPool create_descriptor_pool(
-        vkrndr::vulkan_device const* const device)
+        vkrndr::device_t const* const device)
     {
         VkDescriptorPoolSize imgui_sampler_pool_size{};
         imgui_sampler_pool_size.type =
@@ -49,11 +49,11 @@ namespace
     }
 } // namespace
 
-vkrndr::imgui_render_layer::imgui_render_layer(
-    vkrndr::vulkan_window* const window,
-    vkrndr::vulkan_context* const context,
-    vkrndr::vulkan_device* const device,
-    vkrndr::vulkan_swap_chain* const swap_chain)
+vkrndr::imgui_render_layer_t::imgui_render_layer_t(
+    vkrndr::window_t* const window,
+    vkrndr::context_t* const context,
+    vkrndr::device_t* const device,
+    vkrndr::swap_chain_t* const swap_chain)
     : window_{window}
     , device_{device}
     , descriptor_pool_{create_descriptor_pool(device)}
@@ -102,7 +102,7 @@ vkrndr::imgui_render_layer::imgui_render_layer(
     ImGui_ImplVulkan_Init(&init_info);
 }
 
-vkrndr::imgui_render_layer::~imgui_render_layer()
+vkrndr::imgui_render_layer_t::~imgui_render_layer_t()
 {
     ImGui_ImplVulkan_Shutdown();
     window_->shutdown_imgui();
@@ -111,7 +111,7 @@ vkrndr::imgui_render_layer::~imgui_render_layer()
     vkDestroyDescriptorPool(device_->logical, descriptor_pool_, nullptr);
 }
 
-void vkrndr::imgui_render_layer::begin_frame()
+void vkrndr::imgui_render_layer_t::begin_frame()
 {
     assert(std::exchange(frame_rendered_, false));
 
@@ -120,7 +120,7 @@ void vkrndr::imgui_render_layer::begin_frame()
     ImGui::NewFrame();
 }
 
-void vkrndr::imgui_render_layer::draw(VkCommandBuffer command_buffer,
+void vkrndr::imgui_render_layer_t::draw(VkCommandBuffer command_buffer,
     VkImage target_image,
     VkImageView target_image_view,
     VkExtent2D extent)
@@ -160,7 +160,7 @@ void vkrndr::imgui_render_layer::draw(VkCommandBuffer command_buffer,
     check_result(vkEndCommandBuffer(command_buffer));
 }
 
-void vkrndr::imgui_render_layer::end_frame()
+void vkrndr::imgui_render_layer_t::end_frame()
 {
     if (!std::exchange(frame_rendered_, true))
     {
@@ -169,7 +169,7 @@ void vkrndr::imgui_render_layer::end_frame()
     }
 }
 
-void vkrndr::imgui_render_layer::render()
+void vkrndr::imgui_render_layer_t::render()
 {
     ImGui::Render();
     frame_rendered_ = true;

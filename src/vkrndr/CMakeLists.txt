@@ -2,50 +2,50 @@ add_library(vkrndr)
 
 target_sources(vkrndr
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_backend.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_buffer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_commands.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_context.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_depth_buffer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_descriptors.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_device.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_font.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_font_manager.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_gltf_manager.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_image.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_memory.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_queue.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_scene.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_settings.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_buffer.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_commands.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_context.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_depth_buffer.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_descriptors.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_device.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_font.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_image.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_memory.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_pipeline.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_queue.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_renderer.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_synchronization.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_utility.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_vulkan_window.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_scene.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_synchronization.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_utility.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_window.hpp
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_backend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_buffer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_commands.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_context.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_depth_buffer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_descriptors.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_device.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_font.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_font_manager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_gltf_manager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_image.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_imgui_render_layer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_imgui_render_layer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_memory.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_queue.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_buffer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_commands.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_context.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_depth_buffer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_descriptors.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_device.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_font.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_image.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_memory.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_pipeline.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_queue.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_renderer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_synchronization.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_swap_chain.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_swap_chain.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_vulkan_utility.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swap_chain.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swap_chain.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_synchronization.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_utility.cpp
 )
 
 target_include_directories(vkrndr

@@ -1,7 +1,7 @@
-#include <vkrndr_vulkan_context.hpp>
+#include <vkrndr_context.hpp>
 
-#include <vkrndr_vulkan_utility.hpp>
-#include <vkrndr_vulkan_window.hpp>
+#include <vkrndr_utility.hpp>
+#include <vkrndr_window.hpp>
 
 #include <vulkan/vk_platform.h>
 
@@ -150,11 +150,10 @@ namespace
     }
 } // namespace
 
-vkrndr::vulkan_context vkrndr::create_context(
-    vkrndr::vulkan_window const* const window,
+vkrndr::context_t vkrndr::create_context(vkrndr::window_t const* const window,
     bool const setup_validation_layers)
 {
-    vulkan_context rv;
+    context_t rv;
 
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -205,7 +204,7 @@ vkrndr::vulkan_context vkrndr::create_context(
     return rv;
 }
 
-void vkrndr::destroy(vulkan_context* const context)
+void vkrndr::destroy(context_t* const context)
 {
     if (context)
     {

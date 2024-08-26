@@ -7,8 +7,8 @@
 
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_scene.hpp>
-#include <vkrndr_vulkan_commands.hpp>
-#include <vkrndr_vulkan_renderer.hpp>
+#include <vkrndr_commands.hpp>
+#include <vkrndr_backend.hpp>
 
 #include <imgui.h>
 
@@ -23,24 +23,24 @@
 
 namespace gltfviewer
 {
-    class [[nodiscard]] scene final : public vkrndr::scene
+    class [[nodiscard]] scene_t final : public vkrndr::scene_t
     {
     public:
-        scene(vkrndr::vulkan_device* const device,
-            vkrndr::vulkan_renderer* const renderer,
+        scene_t(vkrndr::device_t* const device,
+            vkrndr::backend_t* const backend,
             VkExtent2D const extent)
             : device_{device}
-            , renderer_{renderer}
+            , backend_{backend}
         {
             create_color_image(extent);
         }
 
-        scene(scene const&) = delete;
+        scene_t(scene_t const&) = delete;
 
-        scene(scene&&) noexcept = delete;
+        scene_t(scene_t&&) noexcept = delete;
 
     public:
-        ~scene() override { destroy(device_, &color_image_); }
+        ~scene_t() override { destroy(device_, &color_image_); }
 
     public: // vkrndr::scene overrides
         void resize(VkExtent2D const extent) override
@@ -49,7 +49,7 @@ namespace gltfviewer
             create_color_image(extent);
         }
 
-        void draw(vkrndr::vulkan_image const& target_image,
+        void draw(vkrndr::image_t const& target_image,
             VkCommandBuffer command_buffer,
             VkExtent2D extent) override
         {
@@ -75,7 +75,7 @@ namespace gltfviewer
                 1);
 
             {
-                vkrndr::render_pass color_render_pass;
+                vkrndr::render_pass_t color_render_pass;
                 color_render_pass.with_color_attachment(
                     VK_ATTACHMENT_LOAD_OP_CLEAR,
                     VK_ATTACHMENT_STORE_OP_STORE,
@@ -140,9 +140,9 @@ namespace gltfviewer
         void draw_imgui() override { ImGui::ShowMetricsWindow(); }
 
     public:
-        scene& operator=(scene const&) = delete;
+        scene_t& operator=(scene_t const&) = delete;
 
-        scene& operator=(scene&&) = delete;
+        scene_t& operator=(scene_t&&) = delete;
 
     private:
         void create_color_image(VkExtent2D const extent)
@@ -151,7 +151,7 @@ namespace gltfviewer
                 extent,
                 1,
                 VK_SAMPLE_COUNT_1_BIT,
-                renderer_->image_format(),
+                backend_->image_format(),
                 VK_IMAGE_TILING_OPTIMAL,
                 VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -160,15 +160,15 @@ namespace gltfviewer
         }
 
     private:
-        vkrndr::vulkan_device* device_;
-        vkrndr::vulkan_renderer* renderer_;
+        vkrndr::device_t* device_;
+        vkrndr::backend_t* backend_;
 
-        vkrndr::vulkan_image color_image_;
+        vkrndr::image_t color_image_;
     };
 } // namespace gltfviewer
 
-gltfviewer::application::application(bool const debug)
-    : niku::application{niku::startup_params{
+gltfviewer::application_t::application_t(bool const debug)
+    : niku::application_t{niku::startup_params_t{
           .init_subsystems = {.video = true, .audio = false, .debug = debug},
           .title = "gltfviewer",
           .window_flags = static_cast<SDL_WindowFlags>(
@@ -177,21 +177,21 @@ gltfviewer::application::application(bool const debug)
           .width = 512,
           .height = 512,
           .render = {.preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR}}}
-    , scene_{std::make_unique<scene>(this->vulkan_device(),
-          this->vulkan_renderer(),
-          this->vulkan_renderer()->extent())}
+    , scene_{std::make_unique<scene_t>(this->vulkan_device(),
+          this->vulkan_backend(),
+          this->vulkan_backend()->extent())}
 {
-    this->vulkan_renderer()->imgui_layer(true);
+    this->vulkan_backend()->imgui_layer(true);
 }
 
-gltfviewer::application::~application() = default;
+gltfviewer::application_t::~application_t() = default;
 
-bool gltfviewer::application::handle_event(
+bool gltfviewer::application_t::handle_event(
     [[maybe_unused]] SDL_Event const& event)
 {
     return false;
 }
 
-void gltfviewer::application::update([[maybe_unused]] float delta_time) { }
+void gltfviewer::application_t::update([[maybe_unused]] float delta_time) { }
 
-vkrndr::scene* gltfviewer::application::render_scene() { return scene_.get(); }
+vkrndr::scene_t* gltfviewer::application_t::render_scene() { return scene_.get(); }

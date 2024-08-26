@@ -1,5 +1,5 @@
-#ifndef VKRNDR_VULKAN_IMAGE_INCLUDED
-#define VKRNDR_VULKAN_IMAGE_INCLUDED
+#ifndef VKRNDR_IMAGE_INCLUDED
+#define VKRNDR_IMAGE_INCLUDED
 
 #include <vma_impl.hpp>
 
@@ -9,12 +9,12 @@
 
 namespace vkrndr
 {
-    struct vulkan_device;
+    struct device_t;
 } // namespace vkrndr
 
 namespace vkrndr
 {
-    struct [[nodiscard]] vulkan_image final
+    struct [[nodiscard]] image_t final
     {
         VkImage image{VK_NULL_HANDLE};
         VmaAllocation allocation{VK_NULL_HANDLE};
@@ -25,9 +25,9 @@ namespace vkrndr
         VkExtent2D extent{};
     };
 
-    void destroy(vulkan_device const* device, vulkan_image* image);
+    void destroy(device_t const* device, image_t* image);
 
-    vulkan_image create_image(vulkan_device const& device,
+    image_t create_image(device_t const& device,
         VkExtent2D extent,
         uint32_t mip_levels,
         VkSampleCountFlagBits samples,
@@ -36,13 +36,13 @@ namespace vkrndr
         VkImageUsageFlags usage,
         VkMemoryPropertyFlags properties);
 
-    [[nodiscard]] VkImageView create_image_view(vulkan_device const& device,
+    [[nodiscard]] VkImageView create_image_view(device_t const& device,
         VkImage image,
         VkFormat format,
         VkImageAspectFlags aspect_flags,
         uint32_t mip_levels);
 
-    vulkan_image create_image_and_view(vulkan_device const& device,
+    image_t create_image_and_view(device_t const& device,
         VkExtent2D extent,
         uint32_t mip_levels,
         VkSampleCountFlagBits samples,

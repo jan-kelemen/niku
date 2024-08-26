@@ -1,21 +1,21 @@
-#include <vkrndr_vulkan_renderer.hpp>
+#include <vkrndr_backend.hpp>
 
+#include <vkrndr_buffer.hpp>
+#include <vkrndr_commands.hpp>
+#include <vkrndr_context.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_font.hpp>
 #include <vkrndr_font_manager.hpp>
 #include <vkrndr_global_data.hpp>
 #include <vkrndr_gltf_manager.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_imgui_render_layer.hpp>
+#include <vkrndr_memory.hpp>
+#include <vkrndr_queue.hpp>
 #include <vkrndr_scene.hpp>
-#include <vkrndr_vulkan_buffer.hpp>
-#include <vkrndr_vulkan_commands.hpp>
-#include <vkrndr_vulkan_context.hpp>
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_font.hpp>
-#include <vkrndr_vulkan_image.hpp>
-#include <vkrndr_vulkan_memory.hpp>
-#include <vkrndr_vulkan_queue.hpp>
-#include <vkrndr_vulkan_swap_chain.hpp>
-#include <vkrndr_vulkan_utility.hpp>
-#include <vkrndr_vulkan_window.hpp>
+#include <vkrndr_swap_chain.hpp>
+#include <vkrndr_utility.hpp>
+#include <vkrndr_window.hpp>
 
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
@@ -34,10 +34,10 @@
 
 namespace
 {
-    VkDescriptorPool create_descriptor_pool(vkrndr::vulkan_device const& device)
+    VkDescriptorPool create_descriptor_pool(vkrndr::device_t const& device)
     {
-        constexpr auto count{vkrndr::count_cast(
-            vkrndr::vulkan_swap_chain::max_frames_in_flight)};
+        constexpr auto count{
+            vkrndr::count_cast(vkrndr::swap_chain_t::max_frames_in_flight)};
 
         VkDescriptorPoolSize uniform_buffer_pool_size{};
         uniform_buffer_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -71,30 +71,30 @@ namespace
     }
 } // namespace
 
-vkrndr::vulkan_renderer::vulkan_renderer(vulkan_window* const window,
-    render_settings const& settings,
+vkrndr::backend_t::backend_t(window_t* const window,
+    render_settings_t const& settings,
     bool const debug)
     : render_settings_{settings}
     , window_{window}
     , context_{vkrndr::create_context(window, debug)}
     , device_{vkrndr::create_device(context_)}
-    , swap_chain_{std::make_unique<vulkan_swap_chain>(window_,
+    , swap_chain_{std::make_unique<swap_chain_t>(window_,
           &context_,
           &device_,
           &render_settings_)}
-    , frame_data_{vulkan_swap_chain::max_frames_in_flight,
-          vulkan_swap_chain::max_frames_in_flight}
+    , frame_data_{swap_chain_t::max_frames_in_flight,
+          swap_chain_t::max_frames_in_flight}
     , descriptor_pool_{create_descriptor_pool(device_)}
     , imgui_layer_enabled_{debug}
-    , font_manager_{std::make_unique<font_manager>()}
-    , gltf_manager_{std::make_unique<gltf_manager>(this)}
+    , font_manager_{std::make_unique<font_manager_t>()}
+    , gltf_manager_{std::make_unique<gltf_manager_t>(this)}
 {
     if (imgui_layer_enabled_)
     {
         imgui_layer(true);
     }
 
-    for (frame_data& fd : frame_data_.as_span())
+    for (frame_data_t& fd : frame_data_.as_span())
     {
         fd.present_queue = device_.present_queue;
         fd.present_command_pool =
@@ -114,11 +114,11 @@ vkrndr::vulkan_renderer::vulkan_renderer(vulkan_window* const window,
     }
 }
 
-vkrndr::vulkan_renderer::~vulkan_renderer()
+vkrndr::backend_t::~backend_t()
 {
     imgui_layer_.reset();
 
-    for (frame_data const& fd : frame_data_.as_span())
+    for (frame_data_t const& fd : frame_data_.as_span())
     {
         if (fd.present_queue != fd.transfer_queue)
         {
@@ -137,31 +137,25 @@ vkrndr::vulkan_renderer::~vulkan_renderer()
     destroy(&context_);
 }
 
-VkFormat vkrndr::vulkan_renderer::image_format() const
+VkFormat vkrndr::backend_t::image_format() const
 {
     return swap_chain_->image_format();
 }
 
-uint32_t vkrndr::vulkan_renderer::image_count() const
+uint32_t vkrndr::backend_t::image_count() const
 {
     return swap_chain_->image_count();
 }
 
-VkExtent2D vkrndr::vulkan_renderer::extent() const
-{
-    return swap_chain_->extent();
-}
+VkExtent2D vkrndr::backend_t::extent() const { return swap_chain_->extent(); }
 
-bool vkrndr::vulkan_renderer::imgui_layer() const
-{
-    return imgui_layer_enabled_;
-}
+bool vkrndr::backend_t::imgui_layer() const { return imgui_layer_enabled_; }
 
-void vkrndr::vulkan_renderer::imgui_layer(bool const state)
+void vkrndr::backend_t::imgui_layer(bool const state)
 {
     if (state && !imgui_layer_)
     {
-        imgui_layer_ = std::make_unique<imgui_render_layer>(window_,
+        imgui_layer_ = std::make_unique<imgui_render_layer_t>(window_,
             &context_,
             &device_,
             swap_chain_.get());
@@ -169,7 +163,7 @@ void vkrndr::vulkan_renderer::imgui_layer(bool const state)
     imgui_layer_enabled_ = state;
 }
 
-bool vkrndr::vulkan_renderer::begin_frame(scene* const scene)
+bool vkrndr::backend_t::begin_frame(scene_t* const scene)
 {
     if (swap_chain_refresh.load())
     {
@@ -206,7 +200,7 @@ bool vkrndr::vulkan_renderer::begin_frame(scene* const scene)
     return true;
 }
 
-void vkrndr::vulkan_renderer::end_frame()
+void vkrndr::backend_t::end_frame()
 {
     if (imgui_layer_enabled_)
     {
@@ -214,20 +208,20 @@ void vkrndr::vulkan_renderer::end_frame()
     }
 
     frame_data_.cycle(
-        [](frame_data& fd, frame_data const&)
+        [](frame_data_t& fd, frame_data_t const&)
         {
             fd.used_present_command_buffers_ = 0;
             fd.used_transfer_command_buffers = 0;
         });
 }
 
-void vkrndr::vulkan_renderer::draw(scene* const scene)
+void vkrndr::backend_t::draw(scene_t* const scene)
 {
     VkCommandBuffer command_buffer{
         frame_data_->present_command_buffers
             [frame_data_->used_present_command_buffers_ - 1]};
 
-    vulkan_image target_image{.image = swap_chain_->image(image_index_),
+    image_t target_image{.image = swap_chain_->image(image_index_),
         .allocation = VK_NULL_HANDLE,
         .view = swap_chain_->image_view(image_index_),
         .format = swap_chain_->image_format(),
@@ -256,7 +250,7 @@ void vkrndr::vulkan_renderer::draw(scene* const scene)
         image_index_);
 }
 
-vkrndr::vulkan_image vkrndr::vulkan_renderer::load_texture(
+vkrndr::image_t vkrndr::backend_t::load_texture(
     std::filesystem::path const& texture_path,
     VkFormat const format)
 {
@@ -280,7 +274,7 @@ vkrndr::vulkan_image vkrndr::vulkan_renderer::load_texture(
     auto const image_bytes{
         std::span{reinterpret_cast<std::byte const*>(pixels), image_size}};
     // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
-    vulkan_image rv{transfer_image(image_bytes,
+    image_t rv{transfer_image(image_bytes,
         {cppext::narrow<uint32_t>(width), cppext::narrow<uint32_t>(height)},
         format,
         max_mip_levels(width, height))};
@@ -290,23 +284,23 @@ vkrndr::vulkan_image vkrndr::vulkan_renderer::load_texture(
     return rv;
 }
 
-vkrndr::vulkan_image vkrndr::vulkan_renderer::transfer_image(
+vkrndr::image_t vkrndr::backend_t::transfer_image(
     std::span<std::byte const> image_data,
     VkExtent2D const extent,
     VkFormat const format,
     uint32_t const mip_levels)
 {
-    vulkan_buffer staging_buffer{create_buffer(device_,
+    buffer_t staging_buffer{create_buffer(device_,
         image_data.size(),
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
 
-    mapped_memory staging_map{map_memory(device_, staging_buffer)};
+    mapped_memory_t staging_map{map_memory(device_, staging_buffer)};
     memcpy(staging_map.mapped_memory, image_data.data(), image_data.size());
     unmap_memory(device_, &staging_map);
 
-    vulkan_image rv{
+    image_t rv{
         transfer_buffer_to_image(staging_buffer, extent, format, mip_levels)};
 
     destroy(&device_, &staging_buffer);
@@ -314,13 +308,13 @@ vkrndr::vulkan_image vkrndr::vulkan_renderer::transfer_image(
     return rv;
 }
 
-vkrndr::vulkan_image vkrndr::vulkan_renderer::transfer_buffer_to_image(
-    vkrndr::vulkan_buffer const& source,
+vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
+    vkrndr::buffer_t const& source,
     VkExtent2D const extent,
     VkFormat const format,
     uint32_t const mip_levels)
 {
-    vulkan_image image{create_image_and_view(device_,
+    image_t image{create_image_and_view(device_,
         extent,
         mip_levels,
         VK_SAMPLE_COUNT_1_BIT,
@@ -331,7 +325,7 @@ vkrndr::vulkan_image vkrndr::vulkan_renderer::transfer_buffer_to_image(
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT)};
 
-    vulkan_queue* const queue{frame_data_->present_queue};
+    queue_t* const queue{frame_data_->present_queue};
 
     VkCommandBuffer present_queue_buffer; // NOLINT
     begin_single_time_commands(device_,
@@ -368,10 +362,10 @@ vkrndr::vulkan_image vkrndr::vulkan_renderer::transfer_buffer_to_image(
     return image;
 }
 
-void vkrndr::vulkan_renderer::transfer_buffer(vulkan_buffer const& source,
-    vulkan_buffer const& target)
+void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
+    buffer_t const& target)
 {
-    vulkan_queue* const transfer_queue{frame_data_->transfer_queue};
+    queue_t* const transfer_queue{frame_data_->transfer_queue};
 
     VkCommandBuffer command_buffer; // NOLINT
     begin_single_time_commands(device_,
@@ -390,23 +384,23 @@ void vkrndr::vulkan_renderer::transfer_buffer(vulkan_buffer const& source,
         frame_data_->transfer_command_pool);
 }
 
-vkrndr::vulkan_font vkrndr::vulkan_renderer::load_font(
+vkrndr::font_t vkrndr::backend_t::load_font(
     std::filesystem::path const& font_path,
     uint32_t const font_size)
 {
-    font_bitmap font_bitmap{
+    font_bitmap_t font_bitmap{
         font_manager_->load_font_bitmap(font_path, font_size)};
 
     auto const image_size{static_cast<VkDeviceSize>(
         font_bitmap.bitmap_width * font_bitmap.bitmap_height)};
 
-    vulkan_buffer staging_buffer{create_buffer(device_,
+    buffer_t staging_buffer{create_buffer(device_,
         image_size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
 
-    mapped_memory staging_map{map_memory(device_, staging_buffer)};
+    mapped_memory_t staging_map{map_memory(device_, staging_buffer)};
     memcpy(staging_map.mapped_memory,
         font_bitmap.bitmap_data.data(),
         static_cast<size_t>(image_size));
@@ -414,7 +408,7 @@ vkrndr::vulkan_font vkrndr::vulkan_renderer::load_font(
 
     VkExtent2D const bitmap_extent{font_bitmap.bitmap_width,
         font_bitmap.bitmap_height};
-    vulkan_image const texture{create_image_and_view(device_,
+    image_t const texture{create_image_and_view(device_,
         bitmap_extent,
         1,
         VK_SAMPLE_COUNT_1_BIT,
@@ -424,7 +418,7 @@ vkrndr::vulkan_font vkrndr::vulkan_renderer::load_font(
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT)};
 
-    vulkan_queue* const queue{device_.present_queue};
+    queue_t* const queue{device_.present_queue};
 
     VkCommandBuffer present_queue_buffer; // NOLINT
     begin_single_time_commands(device_,
@@ -454,13 +448,13 @@ vkrndr::vulkan_font vkrndr::vulkan_renderer::load_font(
         texture};
 }
 
-std::unique_ptr<vkrndr::gltf_model> vkrndr::vulkan_renderer::load_model(
+std::unique_ptr<vkrndr::gltf_model_t> vkrndr::backend_t::load_model(
     std::filesystem::path const& model_path)
 {
     return gltf_manager_->load(model_path);
 }
 
-VkCommandBuffer vkrndr::vulkan_renderer::request_command_buffer(
+VkCommandBuffer vkrndr::backend_t::request_command_buffer(
     bool const transfer_only)
 {
     if (transfer_only &&

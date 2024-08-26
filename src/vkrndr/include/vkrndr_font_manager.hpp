@@ -1,7 +1,7 @@
 #ifndef VKRNDR_FONT_MANAGER_INCLUDED
 #define VKRNDR_FONT_MANAGER_INCLUDED
 
-#include <vkrndr_vulkan_font.hpp>
+#include <vkrndr_font.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H // IWYU pragma: keep
@@ -14,34 +14,34 @@
 
 namespace vkrndr
 {
-    struct [[nodiscard]] font_bitmap final
+    struct [[nodiscard]] font_bitmap_t final
     {
         uint32_t bitmap_width{};
         uint32_t bitmap_height{};
-        std::unordered_map<char, character_bitmap> bitmaps;
+        std::unordered_map<char, character_bitmap_t> bitmaps;
         std::vector<std::byte> bitmap_data;
     };
 
-    class [[nodiscard]] font_manager final
+    class [[nodiscard]] font_manager_t final
     {
     public: // Construction
-        font_manager();
+        font_manager_t();
 
-        font_manager(font_manager const&) = delete;
+        font_manager_t(font_manager_t const&) = delete;
 
-        font_manager(font_manager&&) noexcept = delete;
+        font_manager_t(font_manager_t&&) noexcept = delete;
 
     public: // Destruction
-        ~font_manager();
+        ~font_manager_t();
 
     public: // Interface
-        font_bitmap load_font_bitmap(std::filesystem::path const& font_file,
+        font_bitmap_t load_font_bitmap(std::filesystem::path const& font_file,
             uint32_t font_size);
 
     public: // Operators
-        font_manager& operator=(font_manager const&) = delete;
+        font_manager_t& operator=(font_manager_t const&) = delete;
 
-        font_manager& operator=(font_manager&&) noexcept = delete;
+        font_manager_t& operator=(font_manager_t&&) noexcept = delete;
 
     private: // Data
         FT_Library library_handle_{nullptr};

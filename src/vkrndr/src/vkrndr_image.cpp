@@ -1,11 +1,11 @@
-#include <vkrndr_vulkan_image.hpp>
+#include <vkrndr_image.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <vma_impl.hpp>
 
-void vkrndr::destroy(vulkan_device const* device, vulkan_image* const image)
+void vkrndr::destroy(device_t const* device, image_t* const image)
 {
     if (image)
     {
@@ -14,7 +14,7 @@ void vkrndr::destroy(vulkan_device const* device, vulkan_image* const image)
     }
 }
 
-vkrndr::vulkan_image vkrndr::create_image(vulkan_device const& device,
+vkrndr::image_t vkrndr::create_image(device_t const& device,
     VkExtent2D const extent,
     uint32_t const mip_levels,
     VkSampleCountFlagBits const samples,
@@ -23,7 +23,7 @@ vkrndr::vulkan_image vkrndr::create_image(vulkan_device const& device,
     VkImageUsageFlags const usage,
     VkMemoryPropertyFlags const properties)
 {
-    vulkan_image rv;
+    image_t rv;
     rv.format = format;
     rv.sample_count = samples;
     rv.mip_levels = mip_levels;
@@ -64,7 +64,7 @@ vkrndr::vulkan_image vkrndr::create_image(vulkan_device const& device,
 }
 
 [[nodiscard]]
-VkImageView vkrndr::create_image_view(vulkan_device const& device,
+VkImageView vkrndr::create_image_view(device_t const& device,
     VkImage const image,
     VkFormat const format,
     VkImageAspectFlags const aspect_flags,
@@ -87,7 +87,7 @@ VkImageView vkrndr::create_image_view(vulkan_device const& device,
     return imageView;
 }
 
-vkrndr::vulkan_image vkrndr::create_image_and_view(vulkan_device const& device,
+vkrndr::image_t vkrndr::create_image_and_view(device_t const& device,
     VkExtent2D const extent,
     uint32_t const mip_levels,
     VkSampleCountFlagBits const samples,
@@ -97,7 +97,7 @@ vkrndr::vulkan_image vkrndr::create_image_and_view(vulkan_device const& device,
     VkMemoryPropertyFlags const properties,
     VkImageAspectFlags const aspect_flags)
 {
-    vulkan_image rv{create_image(device,
+    image_t rv{create_image(device,
         extent,
         mip_levels,
         samples,

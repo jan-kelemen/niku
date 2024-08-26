@@ -68,8 +68,8 @@ RemoveParentheses: 'ReturnStatement'
 RemoveSemicolon: 'true'
 SeparateDefinitionBlocks: Always
 ShortNamespaceLines: '0'
-SortIncludes: 'true'
-SortUsingDeclarations: 'false'
+SortIncludes: CaseInsensitive
+SortUsingDeclarations: LexicographicNumeric
 SpaceAfterCStyleCast: 'true'
 SpaceAfterLogicalNot: 'false'
 SpaceAfterTemplateKeyword: 'false'

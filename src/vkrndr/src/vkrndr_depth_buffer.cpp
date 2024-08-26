@@ -1,7 +1,7 @@
-#include <vkrndr_vulkan_depth_buffer.hpp>
+#include <vkrndr_depth_buffer.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_image.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
 
 #include <vulkan/vulkan_core.h>
 
@@ -82,7 +82,7 @@ bool vkrndr::has_stencil_component(VkFormat format)
         format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-vkrndr::vulkan_image vkrndr::create_depth_buffer(vulkan_device const& device,
+vkrndr::image_t vkrndr::create_depth_buffer(device_t const& device,
     VkExtent2D const extent,
     bool const with_stencil_component)
 {

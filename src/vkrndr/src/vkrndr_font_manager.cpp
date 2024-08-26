@@ -1,6 +1,6 @@
 #include <vkrndr_font_manager.hpp>
 
-#include <vkrndr_vulkan_font.hpp>
+#include <vkrndr_font.hpp>
 
 #include <fmt/format.h>
 #include <fmt/std.h> // IWYU pragma: keep
@@ -14,7 +14,7 @@
 #include <tuple>
 #include <utility>
 
-vkrndr::font_manager::font_manager()
+vkrndr::font_manager_t::font_manager_t()
 {
     if (FT_Error const error{FT_Init_FreeType(&library_handle_)}; error)
     {
@@ -24,9 +24,9 @@ vkrndr::font_manager::font_manager()
     }
 }
 
-vkrndr::font_manager::~font_manager() { FT_Done_FreeType(library_handle_); }
+vkrndr::font_manager_t::~font_manager_t() { FT_Done_FreeType(library_handle_); }
 
-vkrndr::font_bitmap vkrndr::font_manager::load_font_bitmap(
+vkrndr::font_bitmap_t vkrndr::font_manager_t::load_font_bitmap(
     std::filesystem::path const& font_file,
     uint32_t const font_size)
 {
@@ -56,7 +56,7 @@ vkrndr::font_bitmap vkrndr::font_manager::load_font_bitmap(
                 error)};
     }
 
-    font_bitmap rv;
+    font_bitmap_t rv;
 
     uint32_t bitmap_width{};
     unsigned int bitmap_height{std::numeric_limits<unsigned int>::min()};

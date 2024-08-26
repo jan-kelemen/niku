@@ -5,19 +5,19 @@
 
 namespace niku
 {
-    class [[nodiscard]] mouse
+    class [[nodiscard]] mouse_t
     {
     public:
-        mouse();
+        mouse_t();
 
-        explicit mouse(bool capture);
+        explicit mouse_t(bool capture);
 
-        mouse(mouse const&) = delete;
+        mouse_t(mouse_t const&) = delete;
 
-        mouse(mouse&&) noexcept = delete;
+        mouse_t(mouse_t&&) noexcept = delete;
 
     public:
-        ~mouse() = default;
+        ~mouse_t() = default;
 
     public:
         [[nodiscard]] glm::ivec2 position() const;
@@ -29,9 +29,9 @@ namespace niku
         void set_capture(bool value);
 
     public:
-        mouse& operator=(mouse const&) = delete;
+        mouse_t& operator=(mouse_t const&) = delete;
 
-        mouse& operator=(mouse&&) noexcept = delete;
+        mouse_t& operator=(mouse_t&&) noexcept = delete;
 
     private:
         bool captured_;

@@ -4,8 +4,8 @@
 
 #include <cppext_numeric.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_renderer.hpp>
+#include <vkrndr_backend.hpp>
+#include <vkrndr_device.hpp>
 
 #include <imgui_impl_sdl2.h>
 
@@ -23,17 +23,17 @@
 namespace
 {
     [[nodiscard]] constexpr uint32_t to_init_flags(
-        niku::subsystems const& subsystems)
+        niku::subsystems_t const& subsystems)
     {
         return (subsystems.video ? SDL_INIT_VIDEO : 0) |
             (subsystems.audio ? SDL_INIT_AUDIO : 0);
     }
 } // namespace
 
-struct [[nodiscard]] niku::application::impl final
+struct [[nodiscard]] niku::application_t::impl final
 {
 public:
-    explicit impl(startup_params const& params);
+    explicit impl(startup_params_t const& params);
 
     impl(impl const&) = delete;
 
@@ -51,33 +51,33 @@ public:
     impl& operator=(impl&&) noexcept = delete;
 
 public:
-    sdl_guard guard;
-    sdl_window window;
+    sdl_guard_t guard;
+    sdl_window_t window;
 
-    std::unique_ptr<vkrndr::vulkan_renderer> renderer;
+    std::unique_ptr<vkrndr::backend_t> backend;
 
     std::optional<float> fixed_update_interval;
     uint64_t last_tick{};
     uint64_t last_fixed_tick{};
 };
 
-niku::application::impl::impl(startup_params const& params)
+niku::application_t::impl::impl(startup_params_t const& params)
     : guard{to_init_flags(params.init_subsystems)}
     , window{params.title,
           params.window_flags,
           params.centered,
           params.width,
           params.height}
-    , renderer{std::make_unique<vkrndr::vulkan_renderer>(&window,
+    , backend{std::make_unique<vkrndr::backend_t>(&window,
           params.render,
           params.init_subsystems.debug)}
 {
-    renderer->imgui_layer(params.init_subsystems.debug);
+    backend->imgui_layer(params.init_subsystems.debug);
 }
 
-niku::application::impl::~impl() { renderer.reset(); }
+niku::application_t::impl::~impl() { backend.reset(); }
 
-bool niku::application::impl::is_current_window_event(
+bool niku::application_t::impl::is_current_window_event(
     SDL_Event const& event) const
 {
     if (event.type == SDL_WINDOWEVENT)
@@ -88,14 +88,14 @@ bool niku::application::impl::is_current_window_event(
     return true;
 }
 
-niku::application::application(startup_params const& params)
+niku::application_t::application_t(startup_params_t const& params)
     : impl_{std::make_unique<impl>(params)}
 {
 }
 
-niku::application::~application() = default;
+niku::application_t::~application_t() = default;
 
-void niku::application::run()
+void niku::application_t::run()
 {
     on_startup();
 
@@ -157,22 +157,22 @@ void niku::application::run()
 
         update(delta);
 
-        if (vkrndr::scene* const scene{render_scene()};
-            impl_->renderer->begin_frame(scene))
+        if (vkrndr::scene_t* const scene{render_scene()};
+            impl_->backend->begin_frame(scene))
         {
-            impl_->renderer->draw(scene);
-            impl_->renderer->end_frame();
+            impl_->backend->draw(scene);
+            impl_->backend->end_frame();
         }
 
         end_frame();
     }
 
-    vkDeviceWaitIdle(impl_->renderer->device().logical);
+    vkDeviceWaitIdle(impl_->backend->device().logical);
 
     on_shutdown();
 }
 
-void niku::application::fixed_update_interval(float const delta_time)
+void niku::application_t::fixed_update_interval(float const delta_time)
 {
     if (delta_time != 0.0f)
     {
@@ -184,32 +184,32 @@ void niku::application::fixed_update_interval(float const delta_time)
     }
 }
 
-float niku::application::fixed_update_interval() const
+float niku::application_t::fixed_update_interval() const
 {
     return impl_->fixed_update_interval.value_or(0.0f);
 }
 
-void niku::application::debug_layer(bool const enable)
+void niku::application_t::debug_layer(bool const enable)
 {
-    impl_->renderer->imgui_layer(enable);
+    impl_->backend->imgui_layer(enable);
 }
 
-bool niku::application::debug_layer() const
+bool niku::application_t::debug_layer() const
 {
-    return impl_->renderer->imgui_layer();
+    return impl_->backend->imgui_layer();
 }
 
-vkrndr::vulkan_device* niku::application::vulkan_device()
+vkrndr::device_t* niku::application_t::vulkan_device()
 {
-    return &impl_->renderer->device();
+    return &impl_->backend->device();
 }
 
-vkrndr::vulkan_renderer* niku::application::vulkan_renderer()
+vkrndr::backend_t* niku::application_t::vulkan_backend()
 {
-    return impl_->renderer.get();
+    return impl_->backend.get();
 }
 
-bool niku::application::is_quit_event(SDL_Event const& event)
+bool niku::application_t::is_quit_event(SDL_Event const& event)
 {
     switch (event.type)
     {

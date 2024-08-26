@@ -1,7 +1,7 @@
-#include <vkrndr_vulkan_commands.hpp>
+#include <vkrndr_commands.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <cppext_numeric.hpp>
 
@@ -44,7 +44,7 @@ void vkrndr::transition_image(VkImage const image,
     vkCmdPipelineBarrier2(command_buffer, &dependency);
 }
 
-void vkrndr::create_command_buffers(vulkan_device const& device,
+void vkrndr::create_command_buffers(device_t const& device,
     VkCommandPool const command_pool,
     uint32_t const count,
     VkCommandBufferLevel const level,
@@ -62,7 +62,7 @@ void vkrndr::create_command_buffers(vulkan_device const& device,
         vkAllocateCommandBuffers(device.logical, &alloc_info, buffers.data()));
 }
 
-void vkrndr::begin_single_time_commands(vulkan_device const& device,
+void vkrndr::begin_single_time_commands(device_t const& device,
     VkCommandPool const command_pool,
     uint32_t const count,
     std::span<VkCommandBuffer> const buffers)
@@ -83,7 +83,7 @@ void vkrndr::begin_single_time_commands(vulkan_device const& device,
     }
 }
 
-void vkrndr::end_single_time_commands(vulkan_device const& device,
+void vkrndr::end_single_time_commands(device_t const& device,
     VkQueue const queue,
     std::span<VkCommandBuffer> const command_buffers,
     VkCommandPool const command_pool)
@@ -220,7 +220,7 @@ void vkrndr::wait_for_transfer_write_completed(VkImage image,
         mip_levels);
 }
 
-void vkrndr::generate_mipmaps(vulkan_device const& device,
+void vkrndr::generate_mipmaps(device_t const& device,
     VkImage image,
     VkCommandBuffer command_buffer,
     VkFormat const format,

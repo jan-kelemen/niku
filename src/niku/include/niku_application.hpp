@@ -11,23 +11,23 @@
 
 namespace vkrndr
 {
-    struct vulkan_device;
-    class vulkan_renderer;
-    class scene;
+    struct device_t;
+    class backend_t;
+    class scene_t;
 } // namespace vkrndr
 
 namespace niku
 {
-    struct [[nodiscard]] subsystems final
+    struct [[nodiscard]] subsystems_t final
     {
         bool video{true};
         bool audio{false};
         bool debug{false};
     };
 
-    struct [[nodiscard]] startup_params final
+    struct [[nodiscard]] startup_params_t final
     {
-        subsystems init_subsystems;
+        subsystems_t init_subsystems;
 
         std::string_view title;
 
@@ -36,20 +36,20 @@ namespace niku
         int width;
         int height;
 
-        vkrndr::render_settings render;
+        vkrndr::render_settings_t render;
     };
 
-    class [[nodiscard]] application
+    class [[nodiscard]] application_t
     {
     public:
-        explicit application(startup_params const& params);
+        explicit application_t(startup_params_t const& params);
 
-        application(application const&) = delete;
+        application_t(application_t const&) = delete;
 
-        application(application&&) noexcept = default;
+        application_t(application_t&&) noexcept = default;
 
     public:
-        virtual ~application();
+        virtual ~application_t();
 
     public:
         void run();
@@ -62,9 +62,9 @@ namespace niku
 
         [[nodiscard]] bool debug_layer() const;
 
-        [[nodiscard]] vkrndr::vulkan_device* vulkan_device();
+        [[nodiscard]] vkrndr::device_t* vulkan_device();
 
-        [[nodiscard]] vkrndr::vulkan_renderer* vulkan_renderer();
+        [[nodiscard]] vkrndr::backend_t* vulkan_backend();
 
     private: // Callback interface
         [[nodiscard]] virtual bool should_run() { return true; }
@@ -82,7 +82,7 @@ namespace niku
 
         virtual void update([[maybe_unused]] float const delta_time) { }
 
-        [[nodiscard]] virtual vkrndr::scene* render_scene() = 0;
+        [[nodiscard]] virtual vkrndr::scene_t* render_scene() = 0;
 
         virtual void end_frame() { }
 
@@ -91,9 +91,9 @@ namespace niku
         virtual void on_shutdown() { }
 
     public:
-        application& operator=(application const&) = delete;
+        application_t& operator=(application_t const&) = delete;
 
-        application& operator=(application&&) noexcept = delete;
+        application_t& operator=(application_t&&) noexcept = delete;
 
     private:
         struct impl;

@@ -1,11 +1,11 @@
-#include <vkrndr_vulkan_buffer.hpp>
+#include <vkrndr_buffer.hpp>
 
 #include <vma_impl.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_utility.hpp>
 
-void vkrndr::destroy(vulkan_device const* device, vulkan_buffer* const buffer)
+void vkrndr::destroy(device_t const* device, buffer_t* const buffer)
 {
     if (buffer)
     {
@@ -13,12 +13,12 @@ void vkrndr::destroy(vulkan_device const* device, vulkan_buffer* const buffer)
     }
 }
 
-vkrndr::vulkan_buffer vkrndr::create_buffer(vulkan_device const& device,
+vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
     VkDeviceSize const size,
     VkBufferCreateFlags const usage,
     VkMemoryPropertyFlags const memory_properties)
 {
-    vulkan_buffer rv{};
+    buffer_t rv{};
     rv.size = size;
 
     VkBufferCreateInfo buffer_info{};

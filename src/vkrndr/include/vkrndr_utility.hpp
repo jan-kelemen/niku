@@ -1,5 +1,5 @@
-#ifndef VKRNDR_VULKAN_UTILITY_INCLUDED
-#define VKRNDR_VULKAN_UTILITY_INCLUDED
+#ifndef VKRNDR_UTILITY_INCLUDED
+#define VKRNDR_UTILITY_INCLUDED
 
 #include <cppext_numeric.hpp>
 
@@ -52,4 +52,4 @@ namespace vkrndr
     }
 } // namespace vkrndr
 
-#endif // !VKRNDR_VULKAN_UTILITY_INCLUDED
+#endif

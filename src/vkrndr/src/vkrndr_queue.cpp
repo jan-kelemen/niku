@@ -1,15 +1,15 @@
-#include <vkrndr_vulkan_queue.hpp>
+#include <vkrndr_queue.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <vector>
 
-vkrndr::vulkan_queue vkrndr::create_queue(vulkan_device const* const device,
+vkrndr::queue_t vkrndr::create_queue(device_t const* const device,
     uint32_t const family,
     uint32_t const queue_index)
 {
-    vulkan_queue rv;
+    queue_t rv;
 
     rv.family = family;
     vkGetDeviceQueue(device->logical, family, queue_index, &rv.queue);
@@ -69,7 +69,7 @@ vkrndr::queue_families vkrndr::find_queue_families(
     return indices;
 }
 
-VkCommandPool vkrndr::create_command_pool(vulkan_device const& device,
+VkCommandPool vkrndr::create_command_pool(device_t const& device,
     uint32_t const queue_family)
 {
     VkCommandPoolCreateInfo pool_info{};

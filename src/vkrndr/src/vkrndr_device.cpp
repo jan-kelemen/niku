@@ -1,9 +1,9 @@
-#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_device.hpp>
 
-#include <vkrndr_vulkan_context.hpp>
-#include <vkrndr_vulkan_queue.hpp>
-#include <vkrndr_vulkan_swap_chain.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_context.hpp>
+#include <vkrndr_queue.hpp>
+#include <vkrndr_swap_chain.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <cppext_pragma_warning.hpp>
 
@@ -126,7 +126,7 @@ namespace
     }
 } // namespace
 
-vkrndr::vulkan_device vkrndr::create_device(vulkan_context const& context)
+vkrndr::device_t vkrndr::create_device(context_t const& context)
 {
     uint32_t count{};
     vkEnumeratePhysicalDevices(context.instance, &count, nullptr);
@@ -148,7 +148,7 @@ vkrndr::vulkan_device vkrndr::create_device(vulkan_context const& context)
         throw std::runtime_error{"failed to find a suitable GPU!"};
     }
 
-    vulkan_device rv;
+    device_t rv;
     rv.physical = *device_it;
     rv.max_msaa_samples = max_usable_sample_count(rv.physical);
 
@@ -210,7 +210,7 @@ vkrndr::vulkan_device vkrndr::create_device(vulkan_context const& context)
     return rv;
 }
 
-void vkrndr::destroy(vulkan_device* const device)
+void vkrndr::destroy(device_t* const device)
 {
     if (device)
     {

@@ -12,7 +12,7 @@
 namespace cppext
 {
     template<typename T, typename Container = std::vector<T>>
-    struct [[nodiscard]] cycled_buffer final
+    struct [[nodiscard]] cycled_buffer_t final
     {
     public:
         using container_type = Container;
@@ -22,16 +22,16 @@ namespace cppext
         using const_reference = typename Container::const_reference;
 
     public:
-        cycled_buffer() = default;
+        cycled_buffer_t() = default;
 
-        explicit cycled_buffer(size_type cycle, size_type size = {});
+        explicit cycled_buffer_t(size_type cycle, size_type size = {});
 
-        cycled_buffer(cycled_buffer const&) = default;
+        cycled_buffer_t(cycled_buffer_t const&) = default;
 
-        cycled_buffer(cycled_buffer&&) noexcept = default;
+        cycled_buffer_t(cycled_buffer_t&&) noexcept = default;
 
     public:
-        ~cycled_buffer() = default;
+        ~cycled_buffer_t() = default;
 
     public:
         [[nodiscard]] T& current();
@@ -57,7 +57,7 @@ namespace cppext
 
         void pop();
 
-        void swap(cycled_buffer& other) noexcept;
+        void swap(cycled_buffer_t& other) noexcept;
 
         [[nodiscard]] T* data();
 
@@ -78,9 +78,9 @@ namespace cppext
 
         [[nodiscard]] T const* operator->() const;
 
-        cycled_buffer& operator=(cycled_buffer const&) = default;
+        cycled_buffer_t& operator=(cycled_buffer_t const&) = default;
 
-        cycled_buffer& operator=(cycled_buffer&&) noexcept = default;
+        cycled_buffer_t& operator=(cycled_buffer_t&&) noexcept = default;
 
     private:
         [[nodiscard]] Container::size_type next_index() const;
@@ -92,7 +92,7 @@ namespace cppext
     };
 
     template<typename T, typename Container>
-    cycled_buffer<T, Container>::cycled_buffer(size_type const cycle,
+    cycled_buffer_t<T, Container>::cycled_buffer_t(size_type const cycle,
         size_type const size)
         : cycle_{cycle}
     {
@@ -100,39 +100,39 @@ namespace cppext
     }
 
     template<typename T, typename Container>
-    T& cycled_buffer<T, Container>::current()
+    T& cycled_buffer_t<T, Container>::current()
     {
         return data_[index_];
     }
 
     template<typename T, typename Container>
-    T const& cycled_buffer<T, Container>::current() const
+    T const& cycled_buffer_t<T, Container>::current() const
     {
         return data_[index_];
     }
 
     template<typename T, typename Container>
-    bool cycled_buffer<T, Container>::empty() const
+    bool cycled_buffer_t<T, Container>::empty() const
     {
         return data_.empty();
     }
 
     template<typename T, typename Container>
-    cycled_buffer<T, Container>::size_type
-    cycled_buffer<T, Container>::index() const
+    cycled_buffer_t<T, Container>::size_type
+    cycled_buffer_t<T, Container>::index() const
     {
         return index_;
     }
 
     template<typename T, typename Container>
-    void cycled_buffer<T, Container>::cycle()
+    void cycled_buffer_t<T, Container>::cycle()
     {
         index_ = next_index();
     }
 
     template<typename T, typename Container>
     template<typename Action>
-    auto cycled_buffer<T, Container>::cycle(
+    auto cycled_buffer_t<T, Container>::cycle(
         Action&& action) -> std::invoke_result_t<Action, T&, T&>
     {
         auto const next{next_index()};
@@ -155,26 +155,26 @@ namespace cppext
     }
 
     template<typename T, typename Container>
-    void cycled_buffer<T, Container>::push(value_type const& value)
+    void cycled_buffer_t<T, Container>::push(value_type const& value)
     {
         data_.push_back(value);
     }
 
     template<typename T, typename Container>
-    void cycled_buffer<T, Container>::push(value_type&& value)
+    void cycled_buffer_t<T, Container>::push(value_type&& value)
     {
         data_.push_back(std::move(value));
     }
 
     template<typename T, typename Container>
     template<class... Args>
-    decltype(auto) cycled_buffer<T, Container>::emplace(Args&&... args)
+    decltype(auto) cycled_buffer_t<T, Container>::emplace(Args&&... args)
     {
         return data_.emplace_back(std::forward<Args>(args)...);
     }
 
     template<typename T, typename Container>
-    void cycled_buffer<T, Container>::pop()
+    void cycled_buffer_t<T, Container>::pop()
     {
         auto const current_it{std::next(begin(data_),
             cppext::narrow<typename Container::difference_type>(index_))};
@@ -182,7 +182,7 @@ namespace cppext
     }
 
     template<typename T, typename Container>
-    void cycled_buffer<T, Container>::swap(cycled_buffer& other) noexcept
+    void cycled_buffer_t<T, Container>::swap(cycled_buffer_t& other) noexcept
     {
         using std::swap;
         swap(data_, other.data_);
@@ -191,55 +191,55 @@ namespace cppext
     }
 
     template<typename T, typename Container>
-    T* cycled_buffer<T, Container>::data()
+    T* cycled_buffer_t<T, Container>::data()
     {
         return data_.data();
     }
 
     template<typename T, typename Container>
-    T const* cycled_buffer<T, Container>::data() const
+    T const* cycled_buffer_t<T, Container>::data() const
     {
         return data_.data();
     }
 
     template<typename T, typename Container>
-    std::span<T> cycled_buffer<T, Container>::as_span()
+    std::span<T> cycled_buffer_t<T, Container>::as_span()
     {
         return data_;
     }
 
     template<typename T, typename Container>
-    std::span<T const> cycled_buffer<T, Container>::as_span() const
+    std::span<T const> cycled_buffer_t<T, Container>::as_span() const
     {
         return data_;
     }
 
     template<typename T, typename Container>
-    T& cycled_buffer<T, Container>::operator*()
+    T& cycled_buffer_t<T, Container>::operator*()
     {
         return data_[index_];
     }
 
     template<typename T, typename Container>
-    T const& cycled_buffer<T, Container>::operator*() const
+    T const& cycled_buffer_t<T, Container>::operator*() const
     {
         return data_[index_];
     }
 
     template<typename T, typename Container>
-    T* cycled_buffer<T, Container>::operator->()
+    T* cycled_buffer_t<T, Container>::operator->()
     {
         return &data_[index_];
     }
 
     template<typename T, typename Container>
-    T const* cycled_buffer<T, Container>::operator->() const
+    T const* cycled_buffer_t<T, Container>::operator->() const
     {
         return &data_[index_];
     }
 
     template<typename T, typename Container>
-    Container::size_type cycled_buffer<T, Container>::next_index() const
+    Container::size_type cycled_buffer_t<T, Container>::next_index() const
     {
         return (index_ + 1) % cycle_;
     }

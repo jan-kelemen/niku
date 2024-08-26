@@ -13,7 +13,7 @@ namespace
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
-    gltfviewer::application app{enable_validation_layers};
+    gltfviewer::application_t app{enable_validation_layers};
     app.run();
     return EXIT_SUCCESS;
 }

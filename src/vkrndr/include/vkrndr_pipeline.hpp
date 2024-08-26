@@ -1,5 +1,5 @@
-#ifndef VKRNDR_VULKAN_PIPELINE_INCLUDED
-#define VKRNDR_VULKAN_PIPELINE_INCLUDED
+#ifndef VKRNDR_PIPELINE_INCLUDED
+#define VKRNDR_PIPELINE_INCLUDED
 
 #include <vulkan/vulkan_core.h>
 
@@ -15,12 +15,12 @@
 
 namespace vkrndr
 {
-    struct vulkan_device;
+    struct device_t;
 } // namespace vkrndr
 
 namespace vkrndr
 {
-    struct [[nodiscard]] vulkan_pipeline final
+    struct [[nodiscard]] pipeline_t final
     {
         std::shared_ptr<VkPipelineLayout> layout;
         VkPipeline pipeline;
@@ -28,115 +28,112 @@ namespace vkrndr
     };
 
     void bind_pipeline(VkCommandBuffer command_buffer,
-        vulkan_pipeline const& pipeline,
+        pipeline_t const& pipeline,
         uint32_t first_set,
         std::span<VkDescriptorSet const> descriptor_sets);
 
     inline void bind_pipeline(VkCommandBuffer command_buffer,
-        vulkan_pipeline const& pipeline)
+        pipeline_t const& pipeline)
     {
         std::span<VkDescriptorSet const> const descriptor_sets;
         bind_pipeline(command_buffer, pipeline, 0, descriptor_sets);
     }
 
-    void destroy(vulkan_device* device, vulkan_pipeline* pipeline);
+    void destroy(device_t* device, pipeline_t* pipeline);
 
-    class [[nodiscard]] vulkan_pipeline_layout_builder final
+    class [[nodiscard]] pipeline_layout_builder_t final
     {
     public:
-        explicit vulkan_pipeline_layout_builder(vulkan_device* device);
+        explicit pipeline_layout_builder_t(device_t* device);
 
-        vulkan_pipeline_layout_builder(
-            vulkan_pipeline_layout_builder const&) = delete;
+        pipeline_layout_builder_t(pipeline_layout_builder_t const&) = delete;
 
-        vulkan_pipeline_layout_builder(
-            vulkan_pipeline_layout_builder&&) noexcept = delete;
+        pipeline_layout_builder_t(
+            pipeline_layout_builder_t&&) noexcept = delete;
 
     public:
-        ~vulkan_pipeline_layout_builder() = default;
+        ~pipeline_layout_builder_t() = default;
 
     public:
         [[nodiscard]] std::shared_ptr<VkPipelineLayout> build();
 
-        vulkan_pipeline_layout_builder& add_descriptor_set_layout(
+        pipeline_layout_builder_t& add_descriptor_set_layout(
             VkDescriptorSetLayout descriptor_set_layout);
 
-        vulkan_pipeline_layout_builder& add_push_constants(
+        pipeline_layout_builder_t& add_push_constants(
             VkPushConstantRange push_constant_range);
 
     public:
-        vulkan_pipeline_layout_builder& operator=(
-            vulkan_pipeline_layout_builder const&) = delete;
+        pipeline_layout_builder_t& operator=(
+            pipeline_layout_builder_t const&) = delete;
 
-        vulkan_pipeline_layout_builder& operator=(
-            vulkan_pipeline_layout_builder&&) = delete;
+        pipeline_layout_builder_t& operator=(
+            pipeline_layout_builder_t&&) = delete;
 
     private:
-        vulkan_device* device_;
+        device_t* device_;
         std::vector<VkDescriptorSetLayout> descriptor_set_layouts_;
         std::vector<VkPushConstantRange> push_constants_;
     };
 
-    class [[nodiscard]] vulkan_pipeline_builder final
+    class [[nodiscard]] pipeline_builder_t final
     {
     public: // Construction
-        vulkan_pipeline_builder(vulkan_device* device,
+        pipeline_builder_t(device_t* device,
             std::shared_ptr<VkPipelineLayout> pipeline_layout,
             VkFormat image_format);
 
-        vulkan_pipeline_builder(vulkan_pipeline_builder const&) = delete;
+        pipeline_builder_t(pipeline_builder_t const&) = delete;
 
-        vulkan_pipeline_builder(vulkan_pipeline_builder&&) noexcept = delete;
+        pipeline_builder_t(pipeline_builder_t&&) noexcept = delete;
 
     public: // Destruction
-        ~vulkan_pipeline_builder();
+        ~pipeline_builder_t();
 
     public: // Interface
-        [[nodiscard]] vulkan_pipeline build();
+        [[nodiscard]] pipeline_t build();
 
-        vulkan_pipeline_builder& add_shader(VkShaderStageFlagBits stage,
+        pipeline_builder_t& add_shader(VkShaderStageFlagBits stage,
             std::filesystem::path const& path,
             std::string_view entry_point);
 
-        vulkan_pipeline_builder& add_vertex_input(
+        pipeline_builder_t& add_vertex_input(
             std::span<VkVertexInputBindingDescription const>
                 binding_descriptions,
             std::span<VkVertexInputAttributeDescription const>
                 attribute_descriptions);
 
-        vulkan_pipeline_builder& with_rasterization_samples(
+        pipeline_builder_t& with_rasterization_samples(
             VkSampleCountFlagBits samples);
 
-        vulkan_pipeline_builder& with_culling(VkCullModeFlags cull_mode,
+        pipeline_builder_t& with_culling(VkCullModeFlags cull_mode,
             VkFrontFace front_face);
 
-        vulkan_pipeline_builder& with_primitive_topology(
+        pipeline_builder_t& with_primitive_topology(
             VkPrimitiveTopology primitive_topology);
 
-        vulkan_pipeline_builder& with_color_blending(
+        pipeline_builder_t& with_color_blending(
             VkPipelineColorBlendAttachmentState color_blending);
 
-        vulkan_pipeline_builder& with_depth_test(VkFormat depth_format,
+        pipeline_builder_t& with_depth_test(VkFormat depth_format,
             VkCompareOp compare = VK_COMPARE_OP_LESS);
 
-        vulkan_pipeline_builder& with_stencil_test(VkFormat depth_format,
+        pipeline_builder_t& with_stencil_test(VkFormat depth_format,
             VkStencilOpState front,
             VkStencilOpState back);
 
-        vulkan_pipeline_builder& with_dynamic_state(VkDynamicState state);
+        pipeline_builder_t& with_dynamic_state(VkDynamicState state);
 
     public: // Operators
-        vulkan_pipeline_builder& operator=(
-            vulkan_pipeline_builder const&) = delete;
+        pipeline_builder_t& operator=(pipeline_builder_t const&) = delete;
 
-        vulkan_pipeline_builder& operator=(
-            vulkan_pipeline_builder&&) noexcept = delete;
+        pipeline_builder_t& operator=(pipeline_builder_t&&) noexcept = delete;
 
     private: // Helpers
         void cleanup();
 
     private: // Data
-        vulkan_device* device_{};
+        device_t* device_{};
         std::shared_ptr<VkPipelineLayout> pipeline_layout_;
         VkPrimitiveTopology primitive_topology_{
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
@@ -155,44 +152,43 @@ namespace vkrndr
         std::vector<VkDynamicState> dynamic_states_;
     };
 
-    class [[nodiscard]] vulkan_compute_pipeline_builder final
+    class [[nodiscard]] compute_pipeline_builder_t final
     {
     public:
-        vulkan_compute_pipeline_builder(vulkan_device* device,
+        compute_pipeline_builder_t(device_t* device,
             std::shared_ptr<VkPipelineLayout> pipeline_layout);
 
-        vulkan_compute_pipeline_builder(
-            vulkan_compute_pipeline_builder const&) = delete;
+        compute_pipeline_builder_t(compute_pipeline_builder_t const&) = delete;
 
-        vulkan_compute_pipeline_builder(
-            vulkan_compute_pipeline_builder&&) noexcept = delete;
+        compute_pipeline_builder_t(
+            compute_pipeline_builder_t&&) noexcept = delete;
 
     public: // Destruction
-        ~vulkan_compute_pipeline_builder();
+        ~compute_pipeline_builder_t();
 
     public: // Interface
-        [[nodiscard]] vulkan_pipeline build();
+        [[nodiscard]] pipeline_t build();
 
-        vulkan_compute_pipeline_builder& with_shader(
+        compute_pipeline_builder_t& with_shader(
             std::filesystem::path const& path,
             std::string_view entry_point);
 
     public: // Operators
-        vulkan_compute_pipeline_builder& operator=(
-            vulkan_compute_pipeline_builder const&) = delete;
+        compute_pipeline_builder_t& operator=(
+            compute_pipeline_builder_t const&) = delete;
 
-        vulkan_compute_pipeline_builder& operator=(
-            vulkan_compute_pipeline_builder&&) noexcept = delete;
+        compute_pipeline_builder_t& operator=(
+            compute_pipeline_builder_t&&) noexcept = delete;
 
     private: // Helpers
         void cleanup();
 
     private: // Data
-        vulkan_device* device_{};
+        device_t* device_{};
         std::shared_ptr<VkPipelineLayout> pipeline_layout_;
         VkShaderModule shader_module_{VK_NULL_HANDLE};
         std::string shader_entry_point_;
     };
 } // namespace vkrndr
 
-#endif // !VKRNDR_VULKAN_PIPELINE_INCLUDED
+#endif

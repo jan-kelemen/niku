@@ -1,7 +1,7 @@
 #ifndef NIKU_SDL_WINDOW_INCLUDED
 #define NIKU_SDL_WINDOW_INCLUDED
 
-#include <vkrndr_vulkan_window.hpp>
+#include <vkrndr_window.hpp>
 
 #include <SDL2/SDL_video.h>
 
@@ -13,39 +13,39 @@
 
 namespace niku
 {
-    class [[nodiscard]] sdl_guard final
+    class [[nodiscard]] sdl_guard_t final
     {
     public: // Construction
-        explicit sdl_guard(uint32_t flags);
+        explicit sdl_guard_t(uint32_t flags);
 
-        sdl_guard(sdl_guard const&) = delete;
+        sdl_guard_t(sdl_guard_t const&) = delete;
 
-        sdl_guard(sdl_guard&&) noexcept = delete;
+        sdl_guard_t(sdl_guard_t&&) noexcept = delete;
 
     public: // Destruction
-        ~sdl_guard();
+        ~sdl_guard_t();
 
     public: // Operators
-        sdl_guard& operator=(sdl_guard const&) = delete;
+        sdl_guard_t& operator=(sdl_guard_t const&) = delete;
 
-        sdl_guard& operator=(sdl_guard&&) = delete;
+        sdl_guard_t& operator=(sdl_guard_t&&) = delete;
     };
 
-    class [[nodiscard]] sdl_window final : public vkrndr::vulkan_window
+    class [[nodiscard]] sdl_window_t final : public vkrndr::window_t
     {
     public: // Construction
-        sdl_window(std::string_view title,
+        sdl_window_t(std::string_view title,
             SDL_WindowFlags window_flags,
             bool centered,
             int width,
             int height);
 
-        sdl_window(sdl_window const&) = delete;
+        sdl_window_t(sdl_window_t const&) = delete;
 
-        sdl_window(sdl_window&&) noexcept = delete;
+        sdl_window_t(sdl_window_t&&) noexcept = delete;
 
     public: // Destruction
-        ~sdl_window() override;
+        ~sdl_window_t() override;
 
     public: // Interface
         [[nodiscard]] constexpr SDL_Window* native_handle() const noexcept;
@@ -69,9 +69,9 @@ namespace niku
         void shutdown_imgui() override;
 
     public: // Operators
-        sdl_window& operator=(sdl_window const&) = delete;
+        sdl_window_t& operator=(sdl_window_t const&) = delete;
 
-        sdl_window& operator=(sdl_window&&) noexcept = delete;
+        sdl_window_t& operator=(sdl_window_t&&) noexcept = delete;
 
     private: // Data
         SDL_Window* window_;
@@ -79,7 +79,7 @@ namespace niku
 } // namespace niku
 
 [[nodiscard]]
-constexpr SDL_Window* niku::sdl_window::native_handle() const noexcept
+constexpr SDL_Window* niku::sdl_window_t::native_handle() const noexcept
 {
     return window_;
 }

@@ -9,44 +9,44 @@
 
 namespace vkrndr
 {
-    class scene;
+    class scene_t;
 } // namespace vkrndr
 
 namespace gltfviewer
 {
-    class scene;
+    class scene_t;
 }
 
 namespace gltfviewer
 {
-    class [[nodiscard]] application final : public niku::application
+    class [[nodiscard]] application_t final : public niku::application_t
     {
     public:
-        explicit application(bool debug);
+        explicit application_t(bool debug);
 
-        application(application const&) = delete;
+        application_t(application_t const&) = delete;
 
-        application(application&&) noexcept = delete;
+        application_t(application_t&&) noexcept = delete;
 
     public:
-        ~application() override;
+        ~application_t() override;
 
     public:
         // cppcheck-suppress duplInheritedMember
-        application& operator=(application const&) = delete;
+        application_t& operator=(application_t const&) = delete;
 
         // cppcheck-suppress duplInheritedMember
-        application& operator=(application&&) noexcept = delete;
+        application_t& operator=(application_t&&) noexcept = delete;
 
     private: // niku::application callback interface
         bool handle_event(SDL_Event const& event) override;
 
         void update(float delta_time) override;
 
-        [[nodiscard]] vkrndr::scene* render_scene() override;
+        [[nodiscard]] vkrndr::scene_t* render_scene() override;
 
     private:
-        std::unique_ptr<scene> scene_;
+        std::unique_ptr<scene_t> scene_;
     };
 } // namespace beam
 #endif

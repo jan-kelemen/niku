@@ -1,9 +1,9 @@
-#include <vkrndr_vulkan_synchronization.hpp>
+#include <vkrndr_synchronization.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_utility.hpp>
 
-VkSemaphore vkrndr::create_semaphore(vulkan_device const* const device)
+VkSemaphore vkrndr::create_semaphore(device_t const* const device)
 {
     VkSemaphoreCreateInfo semaphore_info{};
     semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -15,7 +15,7 @@ VkSemaphore vkrndr::create_semaphore(vulkan_device const* const device)
     return rv;
 }
 
-VkFence vkrndr::create_fence(vulkan_device const* const device,
+VkFence vkrndr::create_fence(device_t const* const device,
     bool const set_signaled)
 {
     VkFenceCreateInfo fence_info{};

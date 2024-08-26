@@ -9,24 +9,24 @@
 
 namespace niku
 {
-    class [[nodiscard]] perspective_camera : public niku::camera
+    class [[nodiscard]] perspective_camera_t : public camera_t
     {
     public:
-        perspective_camera();
+        perspective_camera_t();
 
-        perspective_camera(glm::vec3 const& position,
+        perspective_camera_t(glm::vec3 const& position,
             float aspect_ratio,
             float fov,
             glm::vec3 const& world_up,
             glm::vec2 const& near_far_planes,
             glm::vec2 const& yaw_pitch);
 
-        perspective_camera(perspective_camera const&) = default;
+        perspective_camera_t(perspective_camera_t const&) = default;
 
-        perspective_camera(perspective_camera&&) noexcept = default;
+        perspective_camera_t(perspective_camera_t&&) noexcept = default;
 
     public:
-        ~perspective_camera() override = default;
+        ~perspective_camera_t() override = default;
 
     public:
         [[nodiscard]] glm::vec2 const& yaw_pitch() const;
@@ -51,9 +51,10 @@ namespace niku
         [[nodiscard]] glm::mat4 const& view_projection_matrix() const override;
 
     public:
-        perspective_camera& operator=(perspective_camera const&) = default;
+        perspective_camera_t& operator=(perspective_camera_t const&) = default;
 
-        perspective_camera& operator=(perspective_camera&&) noexcept = default;
+        perspective_camera_t& operator=(
+            perspective_camera_t&&) noexcept = default;
 
     private:
         void calculate_view_projection_matrices();

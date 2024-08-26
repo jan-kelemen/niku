@@ -1,7 +1,7 @@
-#include <vkrndr_vulkan_pipeline.hpp>
+#include <vkrndr_pipeline.hpp>
 
-#include <vkrndr_vulkan_device.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <cppext_pragma_warning.hpp>
 
@@ -65,7 +65,7 @@ namespace
 } // namespace
 
 void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,
-    vulkan_pipeline const& pipeline,
+    pipeline_t const& pipeline,
     uint32_t const first_set,
     std::span<VkDescriptorSet const> descriptor_sets)
 {
@@ -84,8 +84,7 @@ void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,
     vkCmdBindPipeline(command_buffer, pipeline.type, pipeline.pipeline);
 }
 
-void vkrndr::destroy(vulkan_device* const device,
-    vulkan_pipeline* const pipeline)
+void vkrndr::destroy(device_t* const device, pipeline_t* const pipeline)
 {
     if (pipeline)
     {
@@ -100,14 +99,13 @@ void vkrndr::destroy(vulkan_device* const device,
     }
 }
 
-vkrndr::vulkan_pipeline_layout_builder::vulkan_pipeline_layout_builder(
-    vulkan_device* const device)
+vkrndr::pipeline_layout_builder_t::pipeline_layout_builder_t(
+    device_t* const device)
     : device_{device}
 {
 }
 
-std::shared_ptr<VkPipelineLayout>
-vkrndr::vulkan_pipeline_layout_builder::build()
+std::shared_ptr<VkPipelineLayout> vkrndr::pipeline_layout_builder_t::build()
 {
     VkPipelineLayoutCreateInfo pipeline_layout_info{};
     pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -129,24 +127,23 @@ vkrndr::vulkan_pipeline_layout_builder::build()
     return std::make_shared<VkPipelineLayout>(rv);
 }
 
-vkrndr::vulkan_pipeline_layout_builder&
-vkrndr::vulkan_pipeline_layout_builder::add_descriptor_set_layout(
+vkrndr::pipeline_layout_builder_t&
+vkrndr::pipeline_layout_builder_t::add_descriptor_set_layout(
     VkDescriptorSetLayout descriptor_set_layout)
 {
     descriptor_set_layouts_.push_back(descriptor_set_layout);
     return *this;
 }
 
-vkrndr::vulkan_pipeline_layout_builder&
-vkrndr::vulkan_pipeline_layout_builder::add_push_constants(
+vkrndr::pipeline_layout_builder_t&
+vkrndr::pipeline_layout_builder_t::add_push_constants(
     VkPushConstantRange push_constant_range)
 {
     push_constants_.push_back(push_constant_range);
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder::vulkan_pipeline_builder(
-    vulkan_device* const device,
+vkrndr::pipeline_builder_t::pipeline_builder_t(device_t* const device,
     std::shared_ptr<VkPipelineLayout> pipeline_layout,
     VkFormat const image_format)
     : device_{device}
@@ -156,9 +153,9 @@ vkrndr::vulkan_pipeline_builder::vulkan_pipeline_builder(
 {
 }
 
-vkrndr::vulkan_pipeline_builder::~vulkan_pipeline_builder() { cleanup(); }
+vkrndr::pipeline_builder_t::~pipeline_builder_t() { cleanup(); }
 
-vkrndr::vulkan_pipeline vkrndr::vulkan_pipeline_builder::build()
+vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
 {
     std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
     shader_stages.reserve(shaders_.size());
@@ -278,16 +275,14 @@ vkrndr::vulkan_pipeline vkrndr::vulkan_pipeline_builder::build()
         nullptr,
         &pipeline));
 
-    vulkan_pipeline rv{pipeline_layout_,
-        pipeline,
-        VK_PIPELINE_BIND_POINT_GRAPHICS};
+    pipeline_t rv{pipeline_layout_, pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS};
 
     cleanup();
 
     return rv;
 }
 
-vkrndr::vulkan_pipeline_builder& vkrndr::vulkan_pipeline_builder::add_shader(
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_shader(
     VkShaderStageFlagBits const stage,
     std::filesystem::path const& path,
     std::string_view entry_point)
@@ -301,8 +296,7 @@ vkrndr::vulkan_pipeline_builder& vkrndr::vulkan_pipeline_builder::add_shader(
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder&
-vkrndr::vulkan_pipeline_builder::add_vertex_input(
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_vertex_input(
     std::span<VkVertexInputBindingDescription const> binding_descriptions,
     std::span<VkVertexInputAttributeDescription const> attribute_descriptions)
 {
@@ -320,15 +314,15 @@ vkrndr::vulkan_pipeline_builder::add_vertex_input(
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder&
-vkrndr::vulkan_pipeline_builder::with_rasterization_samples(
+vkrndr::pipeline_builder_t&
+vkrndr::pipeline_builder_t::with_rasterization_samples(
     VkSampleCountFlagBits const samples)
 {
     rasterization_samples_ = samples;
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder& vkrndr::vulkan_pipeline_builder::with_culling(
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_culling(
     VkCullModeFlags const cull_mode,
     VkFrontFace const front_face)
 {
@@ -338,8 +332,7 @@ vkrndr::vulkan_pipeline_builder& vkrndr::vulkan_pipeline_builder::with_culling(
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder&
-vkrndr::vulkan_pipeline_builder::with_primitive_topology(
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_primitive_topology(
     VkPrimitiveTopology const primitive_topology)
 {
     primitive_topology_ = primitive_topology;
@@ -347,8 +340,7 @@ vkrndr::vulkan_pipeline_builder::with_primitive_topology(
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder&
-vkrndr::vulkan_pipeline_builder::with_color_blending(
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_color_blending(
     VkPipelineColorBlendAttachmentState const color_blending)
 {
     color_blending_ = color_blending;
@@ -356,8 +348,8 @@ vkrndr::vulkan_pipeline_builder::with_color_blending(
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder&
-vkrndr::vulkan_pipeline_builder::with_depth_test(VkFormat const depth_format,
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_depth_test(
+    VkFormat const depth_format,
     VkCompareOp const compare)
 {
     assert(
@@ -391,8 +383,8 @@ vkrndr::vulkan_pipeline_builder::with_depth_test(VkFormat const depth_format,
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder&
-vkrndr::vulkan_pipeline_builder::with_stencil_test(VkFormat depth_format,
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_stencil_test(
+    VkFormat depth_format,
     VkStencilOpState front,
     VkStencilOpState back)
 {
@@ -429,8 +421,8 @@ vkrndr::vulkan_pipeline_builder::with_stencil_test(VkFormat depth_format,
     return *this;
 }
 
-vkrndr::vulkan_pipeline_builder&
-vkrndr::vulkan_pipeline_builder::with_dynamic_state(VkDynamicState state)
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_dynamic_state(
+    VkDynamicState state)
 {
     if (std::ranges::find(dynamic_states_, state) == std::cend(dynamic_states_))
     {
@@ -439,7 +431,7 @@ vkrndr::vulkan_pipeline_builder::with_dynamic_state(VkDynamicState state)
     return *this;
 }
 
-void vkrndr::vulkan_pipeline_builder::cleanup()
+void vkrndr::pipeline_builder_t::cleanup()
 {
     vertex_input_attributes_.clear();
     vertex_input_binding_.clear();
@@ -454,20 +446,17 @@ void vkrndr::vulkan_pipeline_builder::cleanup()
     pipeline_layout_.reset();
 }
 
-vkrndr::vulkan_compute_pipeline_builder::vulkan_compute_pipeline_builder(
-    vulkan_device* const device,
+vkrndr::compute_pipeline_builder_t::compute_pipeline_builder_t(
+    device_t* const device,
     std::shared_ptr<VkPipelineLayout> pipeline_layout)
     : device_{device}
     , pipeline_layout_{std::move(pipeline_layout)}
 {
 }
 
-vkrndr::vulkan_compute_pipeline_builder::~vulkan_compute_pipeline_builder()
-{
-    cleanup();
-}
+vkrndr::compute_pipeline_builder_t::~compute_pipeline_builder_t() { cleanup(); }
 
-vkrndr::vulkan_pipeline vkrndr::vulkan_compute_pipeline_builder::build()
+vkrndr::pipeline_t vkrndr::compute_pipeline_builder_t::build()
 {
     VkPipelineShaderStageCreateInfo stage_info{};
     stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -488,17 +477,15 @@ vkrndr::vulkan_pipeline vkrndr::vulkan_compute_pipeline_builder::build()
         nullptr,
         &pipeline));
 
-    vulkan_pipeline rv{pipeline_layout_,
-        pipeline,
-        VK_PIPELINE_BIND_POINT_COMPUTE};
+    pipeline_t rv{pipeline_layout_, pipeline, VK_PIPELINE_BIND_POINT_COMPUTE};
 
     cleanup();
 
     return rv;
 }
 
-vkrndr::vulkan_compute_pipeline_builder&
-vkrndr::vulkan_compute_pipeline_builder::with_shader(
+vkrndr::compute_pipeline_builder_t&
+vkrndr::compute_pipeline_builder_t::with_shader(
     std::filesystem::path const& path,
     std::string_view entry_point)
 {
@@ -508,7 +495,7 @@ vkrndr::vulkan_compute_pipeline_builder::with_shader(
     return *this;
 }
 
-void vkrndr::vulkan_compute_pipeline_builder::cleanup()
+void vkrndr::compute_pipeline_builder_t::cleanup()
 {
     vkDestroyShaderModule(device_->logical,
         std::exchange(shader_module_, VK_NULL_HANDLE),

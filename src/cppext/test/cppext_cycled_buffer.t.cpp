@@ -4,7 +4,7 @@
 
 TEST_CASE("cycled_buffer", "[cppext][container]")
 {
-    cppext::cycled_buffer<int> buffer(3);
+    cppext::cycled_buffer_t<int> buffer(3);
 
     CHECK(buffer.empty());
 
@@ -40,12 +40,12 @@ TEST_CASE("cycled_buffer", "[cppext][container]")
 
 TEST_CASE("cycled_buffer with user defined type", "[cppext][container]")
 {
-    struct user_type
+    struct user_type_t
     {
         int value;
     };
 
-    cppext::cycled_buffer<user_type> buffer(3);
+    cppext::cycled_buffer_t<user_type_t> buffer(3);
 
     CHECK(buffer.empty());
 
@@ -67,7 +67,7 @@ TEST_CASE("cycled_buffer with user defined type", "[cppext][container]")
 
 TEST_CASE("cycled_buffer with cycling action", "[cppext][container]")
 {
-    cppext::cycled_buffer<int> buffer(3);
+    cppext::cycled_buffer_t<int> buffer(3);
 
     CHECK(buffer.empty());
 

@@ -5,28 +5,28 @@
 
 namespace vkrndr
 {
-    class vulkan_window;
-    struct vulkan_device;
-    struct vulkan_context;
-    class vulkan_swap_chain;
+    class window_t;
+    struct device_t;
+    struct context_t;
+    class swap_chain_t;
 } // namespace vkrndr
 
 namespace vkrndr
 {
-    class [[nodiscard]] imgui_render_layer final
+    class [[nodiscard]] imgui_render_layer_t final
     {
     public: // Construction
-        imgui_render_layer(vulkan_window* window,
-            vulkan_context* context,
-            vulkan_device* device,
-            vulkan_swap_chain* swap_chain);
+        imgui_render_layer_t(window_t* window,
+            context_t* context,
+            device_t* device,
+            swap_chain_t* swap_chain);
 
-        imgui_render_layer(imgui_render_layer const&) = delete;
+        imgui_render_layer_t(imgui_render_layer_t const&) = delete;
 
-        imgui_render_layer(imgui_render_layer&&) noexcept = delete;
+        imgui_render_layer_t(imgui_render_layer_t&&) noexcept = delete;
 
     public: // Destruction
-        ~imgui_render_layer();
+        ~imgui_render_layer_t();
 
     public: // Interface
         void begin_frame();
@@ -39,16 +39,17 @@ namespace vkrndr
         void end_frame();
 
     public:
-        imgui_render_layer& operator=(imgui_render_layer const&) = delete;
+        imgui_render_layer_t& operator=(imgui_render_layer_t const&) = delete;
 
-        imgui_render_layer& operator=(imgui_render_layer&&) noexcept = delete;
+        imgui_render_layer_t& operator=(
+            imgui_render_layer_t&&) noexcept = delete;
 
     private:
         void render();
 
     private: // Data
-        vulkan_window* window_;
-        vulkan_device* device_;
+        window_t* window_;
+        device_t* device_;
 
         VkDescriptorPool descriptor_pool_;
 

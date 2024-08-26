@@ -1,9 +1,9 @@
-#ifndef VKRNDR_VULKAN_SWAP_CHAIN_INCLUDED
-#define VKRNDR_VULKAN_SWAP_CHAIN_INCLUDED
+#ifndef VKRNDR_SWAP_CHAIN_INCLUDED
+#define VKRNDR_SWAP_CHAIN_INCLUDED
 
 #include <vulkan/vulkan_core.h>
 
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -12,18 +12,18 @@
 
 namespace vkrndr
 {
-    struct render_settings;
-    struct vulkan_context;
-    struct vulkan_device;
-    struct vulkan_queue;
-    class vulkan_window;
+    struct render_settings_t;
+    struct context_t;
+    struct device_t;
+    struct queue_t;
+    class window_t;
 } // namespace vkrndr
 
 namespace vkrndr
 {
     namespace detail
     {
-        struct [[nodiscard]] swap_frame final
+        struct [[nodiscard]] swap_frame_t final
         {
             VkImage image;
             VkImageView image_view;
@@ -32,36 +32,36 @@ namespace vkrndr
             VkFence in_flight;
         };
 
-        void destroy(vulkan_device const* device, swap_frame* frame);
+        void destroy(device_t const* device, swap_frame_t* frame);
     } // namespace detail
 
-    struct [[nodiscard]] swap_chain_support final
+    struct [[nodiscard]] swap_chain_support_t final
     {
         VkSurfaceCapabilitiesKHR capabilities{};
         std::vector<VkSurfaceFormatKHR> surface_formats;
         std::vector<VkPresentModeKHR> present_modes;
     };
 
-    swap_chain_support query_swap_chain_support(VkPhysicalDevice device,
+    swap_chain_support_t query_swap_chain_support(VkPhysicalDevice device,
         VkSurfaceKHR surface);
 
-    class [[nodiscard]] vulkan_swap_chain final
+    class [[nodiscard]] swap_chain_t final
     {
     public: // Constants
         static constexpr int max_frames_in_flight{2};
 
     public: // Construction
-        vulkan_swap_chain(vulkan_window* window,
-            vulkan_context* context,
-            vulkan_device* device,
-            render_settings const* settings);
+        swap_chain_t(window_t* window,
+            context_t* context,
+            device_t* device,
+            render_settings_t const* settings);
 
-        vulkan_swap_chain(vulkan_swap_chain const&) = delete;
+        swap_chain_t(swap_chain_t const&) = delete;
 
-        vulkan_swap_chain(vulkan_swap_chain&& other) noexcept = delete;
+        swap_chain_t(swap_chain_t&& other) noexcept = delete;
 
     public: // Destruction
-        ~vulkan_swap_chain();
+        ~swap_chain_t();
 
     public: // Interface
         [[nodiscard]] constexpr VkExtent2D extent() const noexcept;
@@ -91,10 +91,9 @@ namespace vkrndr
         void recreate();
 
     public: // Operators
-        vulkan_swap_chain& operator=(vulkan_swap_chain const&) = delete;
+        swap_chain_t& operator=(swap_chain_t const&) = delete;
 
-        vulkan_swap_chain& operator=(
-            vulkan_swap_chain&& other) noexcept = delete;
+        swap_chain_t& operator=(swap_chain_t&& other) noexcept = delete;
 
     private: // Helpers
         void create_swap_frames();
@@ -102,52 +101,52 @@ namespace vkrndr
         void cleanup();
 
     private:
-        vulkan_window* window_{};
-        vulkan_context* context_{};
-        vulkan_device* device_{};
-        render_settings const* settings_{};
-        vulkan_queue* present_queue_{};
+        window_t* window_{};
+        context_t* context_{};
+        device_t* device_{};
+        render_settings_t const* settings_{};
+        queue_t* present_queue_{};
         VkFormat image_format_{};
         uint32_t min_image_count_{};
         VkExtent2D extent_{};
         VkSwapchainKHR chain_{};
-        std::vector<detail::swap_frame> frames_;
+        std::vector<detail::swap_frame_t> frames_;
     };
 
 } // namespace vkrndr
 
-constexpr VkExtent2D vkrndr::vulkan_swap_chain::extent() const noexcept
+constexpr VkExtent2D vkrndr::swap_chain_t::extent() const noexcept
 {
     return extent_;
 }
 
-constexpr VkSwapchainKHR vkrndr::vulkan_swap_chain::swap_chain() const noexcept
+constexpr VkSwapchainKHR vkrndr::swap_chain_t::swap_chain() const noexcept
 {
     return chain_;
 }
 
-constexpr VkFormat vkrndr::vulkan_swap_chain::image_format() const noexcept
+constexpr VkFormat vkrndr::swap_chain_t::image_format() const noexcept
 {
     return image_format_;
 }
 
-constexpr uint32_t vkrndr::vulkan_swap_chain::min_image_count() const noexcept
+constexpr uint32_t vkrndr::swap_chain_t::min_image_count() const noexcept
 {
     return min_image_count_;
 }
 
-constexpr uint32_t vkrndr::vulkan_swap_chain::image_count() const noexcept
+constexpr uint32_t vkrndr::swap_chain_t::image_count() const noexcept
 {
     return vkrndr::count_cast(frames_.size());
 }
 
-constexpr VkImage vkrndr::vulkan_swap_chain::image(
+constexpr VkImage vkrndr::swap_chain_t::image(
     uint32_t const image_index) const noexcept
 {
     return frames_[image_index].image;
 }
 
-constexpr VkImageView vkrndr::vulkan_swap_chain::image_view(
+constexpr VkImageView vkrndr::swap_chain_t::image_view(
     uint32_t const image_index) const noexcept
 {
     return frames_[image_index].image_view;

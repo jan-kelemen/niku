@@ -1,5 +1,5 @@
-#ifndef VKRNDR_VULKAN_DESCRIPTORS_INCLUDED
-#define VKRNDR_VULKAN_DESCRIPTORS_INCLUDED
+#ifndef VKRNDR_DESCRIPTORS_INCLUDED
+#define VKRNDR_DESCRIPTORS_INCLUDED
 
 #include <vulkan/vulkan_core.h>
 
@@ -7,12 +7,12 @@
 
 namespace vkrndr
 {
-    struct vulkan_device;
+    struct device_t;
 } // namespace vkrndr
 
 namespace vkrndr
 {
-    void create_descriptor_sets(vulkan_device const* device,
+    void create_descriptor_sets(device_t const* device,
         VkDescriptorSetLayout layout,
         VkDescriptorPool descriptor_pool,
         std::span<VkDescriptorSet> descriptor_sets);

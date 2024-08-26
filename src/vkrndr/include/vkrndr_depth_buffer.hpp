@@ -1,18 +1,18 @@
-#ifndef VKRNDR_VULKAN_DEPTH_BUFFER_INCLUDED
-#define VKRNDR_VULKAN_DEPTH_BUFFER_INCLUDED
+#ifndef VKRNDR_DEPTH_BUFFER_INCLUDED
+#define VKRNDR_DEPTH_BUFFER_INCLUDED
 
-#include <vkrndr_vulkan_image.hpp>
+#include <vkrndr_image.hpp>
 
 #include <vulkan/vulkan_core.h>
 
 namespace vkrndr
 {
-    struct vulkan_device;
+    struct device_t;
 } // namespace vkrndr
 
 namespace vkrndr
 {
-    vulkan_image create_depth_buffer(vulkan_device const& device,
+    image_t create_depth_buffer(device_t const& device,
         VkExtent2D extent,
         bool with_stencil_component);
 

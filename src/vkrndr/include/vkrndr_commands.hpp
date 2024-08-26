@@ -1,5 +1,5 @@
-#ifndef VKRNDR_VULKAN_COMMANDS_INCLUDED
-#define VKRNDR_VULKAN_COMMANDS_INCLUDED
+#ifndef VKRNDR_COMMANDS_INCLUDED
+#define VKRNDR_COMMANDS_INCLUDED
 
 #include <vulkan/vulkan_core.h>
 
@@ -8,7 +8,7 @@
 
 namespace vkrndr
 {
-    struct vulkan_device;
+    struct device_t;
 } // namespace vkrndr
 
 namespace vkrndr
@@ -23,18 +23,18 @@ namespace vkrndr
         VkAccessFlags2 dst_access_mask,
         uint32_t mip_levels);
 
-    void create_command_buffers(vkrndr::vulkan_device const& device,
+    void create_command_buffers(vkrndr::device_t const& device,
         VkCommandPool command_pool,
         uint32_t count,
         VkCommandBufferLevel level,
         std::span<VkCommandBuffer> buffers);
 
-    void begin_single_time_commands(vulkan_device const& device,
+    void begin_single_time_commands(device_t const& device,
         VkCommandPool command_pool,
         uint32_t count,
         std::span<VkCommandBuffer> buffers);
 
-    void end_single_time_commands(vulkan_device const& device,
+    void end_single_time_commands(device_t const& device,
         VkQueue queue,
         std::span<VkCommandBuffer> command_buffers,
         VkCommandPool command_pool);
@@ -66,7 +66,7 @@ namespace vkrndr
         VkCommandBuffer command_buffer,
         uint32_t mip_levels);
 
-    void generate_mipmaps(vulkan_device const& device,
+    void generate_mipmaps(device_t const& device,
         VkImage image,
         VkCommandBuffer command_buffer,
         VkFormat format,
@@ -75,4 +75,4 @@ namespace vkrndr
 
 } // namespace vkrndr
 
-#endif // !VKRNDR_VULKAN_COMMANDS_INCLUDED
+#endif

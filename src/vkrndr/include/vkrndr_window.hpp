@@ -1,5 +1,5 @@
-#ifndef VKRNDR_VULKAN_WINDOW_INCLUDED
-#define VKRNDR_VULKAN_WINDOW_INCLUDED
+#ifndef VKRNDR_WINDOW_INCLUDED
+#define VKRNDR_WINDOW_INCLUDED
 
 #include <vulkan/vulkan_core.h>
 
@@ -8,10 +8,10 @@
 namespace vkrndr
 {
     // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
-    class [[nodiscard]] vulkan_window
+    class [[nodiscard]] window_t
     {
     public: // Destruction
-        virtual ~vulkan_window() = default;
+        virtual ~window_t() = default;
 
     public: // Interface
         [[nodiscard]] virtual std::vector<char const*>

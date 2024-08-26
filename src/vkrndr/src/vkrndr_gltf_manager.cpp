@@ -1,8 +1,8 @@
 #include <vkrndr_gltf_manager.hpp>
 
-#include <vkrndr_vulkan_image.hpp>
-#include <vkrndr_vulkan_renderer.hpp>
-#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_backend.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
@@ -41,7 +41,7 @@ namespace
     }
 
     // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-    struct [[nodiscard]] primitive_data final
+    struct [[nodiscard]] primitive_data_t final
     {
         tinygltf::Accessor const& accessor;
         tinygltf::Buffer const& buffer;
@@ -50,7 +50,7 @@ namespace
 
     // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
-    constexpr primitive_data data_for(tinygltf::Model const& model,
+    constexpr primitive_data_t data_for(tinygltf::Model const& model,
         int const accessor_index)
     {
         tinygltf::Accessor const& accessor{
@@ -65,7 +65,7 @@ namespace
     }
 
     template<typename TargetType>
-    struct [[nodiscard]] primitive_buffer final
+    struct [[nodiscard]] primitive_buffer_t final
     {
         TargetType const* ptr{};
         size_t stride{};
@@ -78,14 +78,14 @@ namespace
     };
 
     template<typename TargetType>
-    constexpr primitive_buffer<TargetType> buffer_for(
+    constexpr primitive_buffer_t<TargetType> buffer_for(
         tinygltf::Model const& model,
         int const accessor_index,
         uint32_t type = TINYGLTF_TYPE_VEC3)
     {
         auto const& [accessor, buffer, view] = data_for(model, accessor_index);
 
-        primitive_buffer<TargetType> rv;
+        primitive_buffer_t<TargetType> rv;
 
         // NOLINTNEXTLINE
         rv.ptr = reinterpret_cast<TargetType const*>(
@@ -102,10 +102,11 @@ namespace
         return rv;
     }
 
-    std::vector<vkrndr::gltf_vertex> load_vertices(tinygltf::Model const& model,
+    std::vector<vkrndr::gltf_vertex_t> load_vertices(
+        tinygltf::Model const& model,
         tinygltf::Primitive const& primitive)
     {
-        std::vector<vkrndr::gltf_vertex> rv;
+        std::vector<vkrndr::gltf_vertex_t> rv;
 
         float const* position_buffer{nullptr};
         float const* normal_buffer{nullptr};
@@ -143,7 +144,7 @@ namespace
 
         for (size_t vertex{}; vertex != vertex_count; ++vertex)
         {
-            vkrndr::gltf_vertex const vert{
+            vkrndr::gltf_vertex_t const vert{
                 .position =
                     glm::make_vec3(&position_buffer[vertex * position_stride]),
                 .normal = glm::normalize(normal_buffer
@@ -153,7 +154,7 @@ namespace
                     ? glm::make_vec2(&texture_buffer[vertex * texture_stride])
                     : glm::fvec2(0.0f)};
 
-            static_assert(std::is_trivial_v<vkrndr::gltf_vertex>);
+            static_assert(std::is_trivial_v<vkrndr::gltf_vertex_t>);
             rv.push_back(vert);
         }
         return rv;
@@ -212,7 +213,7 @@ namespace
         return rv;
     }
 
-    std::optional<vkrndr::gltf_bounding_box> load_bounding_box(
+    std::optional<vkrndr::gltf_bounding_box_t> load_bounding_box(
         tinygltf::Model const& model,
         tinygltf::Primitive const& primitive)
     {
@@ -222,13 +223,15 @@ namespace
             auto const& [accessor, buffer, view] = data_for(model, it->second);
             auto const& min{accessor.minValues};
             auto const& max{accessor.maxValues};
-            return vkrndr::gltf_bounding_box{glm::fvec3{min[0], min[1], min[2]},
+            return vkrndr::gltf_bounding_box_t{
+                glm::fvec3{min[0], min[1], min[2]},
                 glm::fvec3{max[0], max[1], max[2]}};
         }
         return std::nullopt;
     }
 
-    void load_transform(tinygltf::Node const& node, vkrndr::gltf_node& new_node)
+    void load_transform(tinygltf::Node const& node,
+        vkrndr::gltf_node_t& new_node)
     {
         if (node.translation.size() == 3)
         {
@@ -252,17 +255,17 @@ namespace
         }
     }
 
-    void load_textures(vkrndr::vulkan_renderer* renderer,
+    void load_textures(vkrndr::backend_t* backend,
         tinygltf::Model& model,
-        vkrndr::gltf_model& new_model)
+        vkrndr::gltf_model_t& new_model)
     {
         for (tinygltf::Texture const& tex : model.textures)
         {
             auto const source{size_cast(tex.source)};
             tinygltf::Image const& image{model.images[source]};
 
-            vkrndr::vulkan_image const texture_image{
-                renderer->transfer_image(vkrndr::as_bytes(image.image),
+            vkrndr::image_t const texture_image{
+                backend->transfer_image(vkrndr::as_bytes(image.image),
                     {cppext::narrow<uint32_t>(image.width),
                         cppext::narrow<uint32_t>(image.height)},
                     VK_FORMAT_R8G8B8A8_SRGB,
@@ -273,11 +276,11 @@ namespace
     }
 
     void load_materials(tinygltf::Model const& model,
-        vkrndr::gltf_model& new_model)
+        vkrndr::gltf_model_t& new_model)
     {
         for (tinygltf::Material const& material : model.materials)
         {
-            vkrndr::gltf_material new_material;
+            vkrndr::gltf_material_t new_material;
 
             tinygltf::TextureInfo const& texture{
                 material.pbrMetallicRoughness.baseColorTexture};
@@ -298,12 +301,11 @@ namespace
     }
 } // namespace
 
-vkrndr::gltf_manager::gltf_manager(vulkan_renderer* renderer)
-    : renderer_{renderer}
+vkrndr::gltf_manager_t::gltf_manager_t(backend_t* backend) : backend_{backend}
 {
 }
 
-std::unique_ptr<vkrndr::gltf_model> vkrndr::gltf_manager::load(
+std::unique_ptr<vkrndr::gltf_model_t> vkrndr::gltf_manager_t::load(
     std::filesystem::path const& path)
 {
     tinygltf::TinyGLTF context;
@@ -323,16 +325,16 @@ std::unique_ptr<vkrndr::gltf_model> vkrndr::gltf_manager::load(
             fmt::format("Model at path {} not loaded", path)};
     }
 
-    auto rv{std::make_unique<gltf_model>()};
+    auto rv{std::make_unique<gltf_model_t>()};
 
-    load_textures(renderer_, model, *rv);
+    load_textures(backend_, model, *rv);
     load_materials(model, *rv);
 
     for (tinygltf::Node const& node : model.nodes)
     {
         DISABLE_WARNING_PUSH
         DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
-        gltf_node new_node{.name = node.name};
+        gltf_node_t new_node{.name = node.name};
         DISABLE_WARNING_POP
 
         load_transform(node, new_node);
@@ -341,14 +343,14 @@ std::unique_ptr<vkrndr::gltf_model> vkrndr::gltf_manager::load(
         {
             tinygltf::Mesh const& mesh{model.meshes[size_cast(node.mesh)]};
 
-            gltf_mesh new_mesh;
+            gltf_mesh_t new_mesh;
             new_mesh.name = mesh.name;
 
             auto& mesh_bounding_box{new_mesh.bounding_box};
 
             for (tinygltf::Primitive const& primitive : mesh.primitives)
             {
-                gltf_primitive new_primitive{
+                gltf_primitive_t new_primitive{
                     .vertices = load_vertices(model, primitive),
                     .indices = load_indices(model, primitive),
                     .bounding_box = load_bounding_box(model, primitive),
@@ -405,7 +407,7 @@ std::unique_ptr<vkrndr::gltf_model> vkrndr::gltf_manager::load(
     return rv;
 }
 
-vkrndr::gltf_bounding_box vkrndr::get_aabb(gltf_bounding_box const& box,
+vkrndr::gltf_bounding_box_t vkrndr::get_aabb(gltf_bounding_box_t const& box,
     glm::fmat4 const& local_matrix)
 {
     glm::fvec3 min{glm::vec3{local_matrix[3]}};
@@ -432,7 +434,7 @@ vkrndr::gltf_bounding_box vkrndr::get_aabb(gltf_bounding_box const& box,
     return {min, max};
 }
 
-glm::fmat4 vkrndr::local_matrix(gltf_node const& node)
+glm::fmat4 vkrndr::local_matrix(gltf_node_t const& node)
 {
     return glm::translate(glm::mat4(1.0f), node.translation) *
         glm::mat4(node.rotation) * glm::scale(glm::mat4(1.0f), node.scale) *
