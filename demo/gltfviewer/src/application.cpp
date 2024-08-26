@@ -7,8 +7,8 @@
 
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_scene.hpp>
-#include <vulkan_commands.hpp>
-#include <vulkan_renderer.hpp>
+#include <vkrndr_vulkan_commands.hpp>
+#include <vkrndr_vulkan_renderer.hpp>
 
 #include <imgui.h>
 

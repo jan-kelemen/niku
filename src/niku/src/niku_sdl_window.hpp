@@ -1,7 +1,7 @@
 #ifndef NIKU_SDL_WINDOW_INCLUDED
 #define NIKU_SDL_WINDOW_INCLUDED
 
-#include <vulkan_window.hpp>
+#include <vkrndr_vulkan_window.hpp>
 
 #include <SDL2/SDL_video.h>
 

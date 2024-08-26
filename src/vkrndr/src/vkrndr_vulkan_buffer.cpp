@@ -1,9 +1,9 @@
-#include <vulkan_buffer.hpp>
+#include <vkrndr_vulkan_buffer.hpp>
 
 #include <vma_impl.hpp>
 
-#include <vulkan_device.hpp>
-#include <vulkan_utility.hpp>
+#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_vulkan_utility.hpp>
 
 void vkrndr::destroy(vulkan_device const* device, vulkan_buffer* const buffer)
 {

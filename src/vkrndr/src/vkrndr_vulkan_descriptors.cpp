@@ -1,7 +1,7 @@
-#include <vulkan_descriptors.hpp>
+#include <vkrndr_vulkan_descriptors.hpp>
 
-#include <vulkan_device.hpp>
-#include <vulkan_utility.hpp>
+#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_vulkan_utility.hpp>
 
 void vkrndr::create_descriptor_sets(vulkan_device const* const device,
     VkDescriptorSetLayout const layout,

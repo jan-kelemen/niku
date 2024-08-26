@@ -1,7 +1,7 @@
-#include <vulkan_synchronization.hpp>
+#include <vkrndr_vulkan_synchronization.hpp>
 
-#include <vulkan_device.hpp>
-#include <vulkan_utility.hpp>
+#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_vulkan_utility.hpp>
 
 VkSemaphore vkrndr::create_semaphore(vulkan_device const* const device)
 {

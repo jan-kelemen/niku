@@ -1,17 +1,16 @@
 #ifndef VKRNDR_VULKAN_RENDERER_INCLUDED
 #define VKRNDR_VULKAN_RENDERER_INCLUDED
 
+#include <vkrndr_gltf_manager.hpp>
 #include <vkrndr_render_settings.hpp>
-#include <vulkan_context.hpp>
-#include <vulkan_device.hpp>
+#include <vkrndr_vulkan_context.hpp>
+#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_vulkan_font.hpp>
+#include <vkrndr_vulkan_image.hpp>
 
 #include <cppext_cycled_buffer.hpp>
 
 #include <vulkan/vulkan_core.h>
-
-#include <gltf_manager.hpp>
-#include <vulkan_font.hpp>
-#include <vulkan_image.hpp>
 
 #include <cstddef>
 #include <cstdint>

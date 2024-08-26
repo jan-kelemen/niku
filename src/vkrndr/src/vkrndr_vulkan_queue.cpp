@@ -1,7 +1,7 @@
-#include <vulkan_queue.hpp>
+#include <vkrndr_vulkan_queue.hpp>
 
-#include <vulkan_device.hpp>
-#include <vulkan_utility.hpp>
+#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_vulkan_utility.hpp>
 
 #include <vector>
 

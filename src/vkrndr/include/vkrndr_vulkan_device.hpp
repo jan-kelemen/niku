@@ -1,7 +1,7 @@
 #ifndef VKRNDR_VULKAN_DEVICE_INCLUDED
 #define VKRNDR_VULKAN_DEVICE_INCLUDED
 
-#include <vulkan_queue.hpp>
+#include <vkrndr_vulkan_queue.hpp>
 
 #include <vma_impl.hpp>
 

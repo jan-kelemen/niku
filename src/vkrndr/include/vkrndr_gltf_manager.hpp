@@ -1,7 +1,7 @@
 #ifndef VKRNDR_GLTF_MANAGER_INCLUDED
 #define VKRNDR_GLTF_MANAGER_INCLUDED
 
-#include <vulkan_image.hpp>
+#include <vkrndr_vulkan_image.hpp>
 
 #include <glm/fwd.hpp>
 #include <glm/gtc/quaternion.hpp> // IWYU pragma: keep

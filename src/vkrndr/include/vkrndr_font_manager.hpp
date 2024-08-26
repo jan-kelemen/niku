@@ -1,7 +1,7 @@
 #ifndef VKRNDR_FONT_MANAGER_INCLUDED
 #define VKRNDR_FONT_MANAGER_INCLUDED
 
-#include <vulkan_font.hpp>
+#include <vkrndr_vulkan_font.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H // IWYU pragma: keep

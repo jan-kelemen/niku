@@ -1,8 +1,8 @@
-#include <vulkan_memory.hpp>
+#include <vkrndr_vulkan_memory.hpp>
 
-#include <vulkan_buffer.hpp>
-#include <vulkan_device.hpp>
-#include <vulkan_utility.hpp>
+#include <vkrndr_vulkan_buffer.hpp>
+#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_vulkan_utility.hpp>
 
 #include <vma_impl.hpp>
 

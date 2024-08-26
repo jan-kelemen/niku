@@ -1,6 +1,6 @@
-#include <vulkan_font.hpp>
+#include <vkrndr_vulkan_font.hpp>
 
-#include <vulkan_image.hpp>
+#include <vkrndr_vulkan_image.hpp>
 
 void vkrndr::destroy(vulkan_device const* device, vulkan_font* const font)
 {

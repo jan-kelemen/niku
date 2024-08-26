@@ -1,7 +1,7 @@
 #ifndef VKRNDR_VULKAN_FONT_INCLUDED
 #define VKRNDR_VULKAN_FONT_INCLUDED
 
-#include <vulkan_image.hpp>
+#include <vkrndr_vulkan_image.hpp>
 
 #include <glm/vec2.hpp>
 

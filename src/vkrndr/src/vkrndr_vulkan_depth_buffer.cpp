@@ -1,7 +1,7 @@
-#include <vulkan_depth_buffer.hpp>
+#include <vkrndr_vulkan_depth_buffer.hpp>
 
-#include <vulkan_device.hpp>
-#include <vulkan_image.hpp>
+#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_vulkan_image.hpp>
 
 #include <vulkan/vulkan_core.h>
 

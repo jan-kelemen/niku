@@ -1,8 +1,8 @@
-#include <gltf_manager.hpp>
+#include <vkrndr_gltf_manager.hpp>
 
-#include <vulkan_image.hpp>
-#include <vulkan_renderer.hpp>
-#include <vulkan_utility.hpp>
+#include <vkrndr_vulkan_image.hpp>
+#include <vkrndr_vulkan_renderer.hpp>
+#include <vkrndr_vulkan_utility.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>

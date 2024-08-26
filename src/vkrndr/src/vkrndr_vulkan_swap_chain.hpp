@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include <vulkan_utility.hpp>
+#include <vkrndr_vulkan_utility.hpp>
 
 #include <cstddef>
 #include <cstdint>

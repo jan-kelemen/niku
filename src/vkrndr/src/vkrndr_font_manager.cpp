@@ -1,6 +1,6 @@
-#include <font_manager.hpp>
+#include <vkrndr_font_manager.hpp>
 
-#include <vulkan_font.hpp>
+#include <vkrndr_vulkan_font.hpp>
 
 #include <fmt/format.h>
 #include <fmt/std.h> // IWYU pragma: keep

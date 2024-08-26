@@ -1,7 +1,7 @@
 #ifndef VKRNDR_VULKAN_DEPTH_BUFFER_INCLUDED
 #define VKRNDR_VULKAN_DEPTH_BUFFER_INCLUDED
 
-#include <vulkan_image.hpp>
+#include <vkrndr_vulkan_image.hpp>
 
 #include <vulkan/vulkan_core.h>
 

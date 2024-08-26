@@ -1,7 +1,7 @@
-#include <vulkan_context.hpp>
+#include <vkrndr_vulkan_context.hpp>
 
-#include <vulkan_utility.hpp>
-#include <vulkan_window.hpp>
+#include <vkrndr_vulkan_utility.hpp>
+#include <vkrndr_vulkan_window.hpp>
 
 #include <vulkan/vk_platform.h>
 

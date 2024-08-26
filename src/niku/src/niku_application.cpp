@@ -4,8 +4,8 @@
 
 #include <cppext_numeric.hpp>
 
-#include <vulkan_device.hpp>
-#include <vulkan_renderer.hpp>
+#include <vkrndr_vulkan_device.hpp>
+#include <vkrndr_vulkan_renderer.hpp>
 
 #include <imgui_impl_sdl2.h>
 
