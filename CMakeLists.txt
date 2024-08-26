@@ -12,6 +12,8 @@ option(NIKU_ENABLE_COMPILER_STATIC_ANALYSIS "Enable static analysis provided by 
 option(NIKU_ENABLE_CPPCHECK "Enable cppcheck in build" OFF)
 option(NIKU_ENABLE_IWYU "Enable include-what-you-use in build" OFF)
 
+option(NIKU_BUILD_DEMOS "Building demo examples" ON)
+
 find_package(Boost REQUIRED)
 find_package(Bullet REQUIRED)
 find_package(EnTT REQUIRED)
@@ -57,6 +59,7 @@ include(${PROJECT_SOURCE_DIR}/cmake/glslc.cmake)
 add_subdirectory(src)
 add_subdirectory(vendor)
 
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
-    PROPERTY 
-        VS_STARTUP_PROJECT niku)
+if (NIKU_BUILD_DEMOS)
+    add_subdirectory(demo)
+endif()
+

@@ -18,6 +18,9 @@ cmake --preset release
 cmake --build --preset=release
 ```
 
+### Configuration options
+* `NIKU_BUILD_DEMOS` - build engine demo examples, ON by default
+
 Note: Override packages from Conan Center with updated ones from [jan-kelemen/conan-recipes](https://github.com/jan-kelemen/conan-recipes), this is mostly due to hardening or sanitizer options being incompatible with packages on Conan Center.
 ```
 git clone git@github.com:jan-kelemen/conan-recipes.git

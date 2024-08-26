@@ -1,0 +1,28 @@
+add_executable(gltfviewer)
+
+target_sources(gltfviewer
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gltfviewer.m.cpp
+)
+
+target_include_directories(gltfviewer
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(gltfviewer
+    PRIVATE
+        Vulkan::Loader
+    PRIVATE
+        niku
+    PRIVATE
+        project-options
+)
+
+set_property(TARGET gltfviewer 
+    PROPERTY 
+        VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
