@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <memory>
 #include <span>
+#include <variant>
 #include <vector>
 
 namespace vkrndr
@@ -32,6 +33,9 @@ namespace vkrndr
 
 namespace vkrndr
 {
+    using swapchain_acquire_t =
+        std::variant<std::monostate, image_t, VkExtent2D>;
+
     class [[nodiscard]] backend_t final
     {
     public: // Construction
@@ -64,11 +68,11 @@ namespace vkrndr
 
         void imgui_layer(bool state);
 
-        [[nodiscard]] bool begin_frame(scene_t* scene);
+        [[nodiscard]] swapchain_acquire_t begin_frame();
 
         void end_frame();
 
-        void draw(scene_t* scene);
+        void draw(scene_t& scene, image_t const& target_image);
 
         [[nodiscard]] image_t load_texture(
             std::filesystem::path const& texture_path,

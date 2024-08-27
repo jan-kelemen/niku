@@ -163,25 +163,24 @@ void vkrndr::backend_t::imgui_layer(bool const state)
     imgui_layer_enabled_ = state;
 }
 
-bool vkrndr::backend_t::begin_frame(scene_t* const scene)
+vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
 {
+    if (window_->is_minimized())
+    {
+        return {};
+    }
+
     if (swap_chain_refresh.load())
     {
-        if (window_->is_minimized())
-        {
-            return false;
-        }
-
         vkDeviceWaitIdle(device_.logical);
         swap_chain_->recreate();
-        scene->resize(extent());
         swap_chain_refresh.store(false);
-        return false;
+        return {extent()};
     }
 
     if (!swap_chain_->acquire_next_image(frame_data_.index(), image_index_))
     {
-        return false;
+        return {};
     }
 
     VkCommandBuffer primary_buffer{request_command_buffer(false)};
@@ -197,7 +196,13 @@ bool vkrndr::backend_t::begin_frame(scene_t* const scene)
         imgui_layer_->begin_frame();
     }
 
-    return true;
+    return image_t{.image = swap_chain_->image(image_index_),
+        .allocation = VK_NULL_HANDLE,
+        .view = swap_chain_->image_view(image_index_),
+        .format = swap_chain_->image_format(),
+        .sample_count = VK_SAMPLE_COUNT_1_BIT,
+        .mip_levels = 0,
+        .extent = extent()};
 }
 
 void vkrndr::backend_t::end_frame()
@@ -215,25 +220,17 @@ void vkrndr::backend_t::end_frame()
         });
 }
 
-void vkrndr::backend_t::draw(scene_t* const scene)
+void vkrndr::backend_t::draw(scene_t& scene, image_t const& target_image)
 {
     VkCommandBuffer command_buffer{
         frame_data_->present_command_buffers
             [frame_data_->used_present_command_buffers_ - 1]};
 
-    image_t target_image{.image = swap_chain_->image(image_index_),
-        .allocation = VK_NULL_HANDLE,
-        .view = swap_chain_->image_view(image_index_),
-        .format = swap_chain_->image_format(),
-        .sample_count = VK_SAMPLE_COUNT_1_BIT,
-        .mip_levels = 0,
-        .extent = extent()};
-
-    scene->draw(target_image, command_buffer, extent());
+    scene.draw(target_image, command_buffer, extent());
 
     if (imgui_layer_enabled_)
     {
-        scene->draw_imgui();
+        scene.draw_imgui();
         VkCommandBuffer imgui_command_buffer{request_command_buffer(false)};
         imgui_layer_->draw(imgui_command_buffer,
             swap_chain_->image(image_index_),

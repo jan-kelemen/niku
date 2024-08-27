@@ -42,13 +42,14 @@ namespace gltfviewer
     public:
         ~scene_t() override { destroy(device_, &color_image_); }
 
-    public: // vkrndr::scene overrides
-        void resize(VkExtent2D const extent) override
+    public:
+        void resize(VkExtent2D const extent) 
         {
             destroy(device_, &color_image_);
             create_color_image(extent);
         }
 
+    public: // vkrndr::scene overrides
         void draw(vkrndr::image_t const& target_image,
             VkCommandBuffer command_buffer,
             VkExtent2D extent) override
@@ -195,3 +196,7 @@ bool gltfviewer::application_t::handle_event(
 void gltfviewer::application_t::update([[maybe_unused]] float delta_time) { }
 
 vkrndr::scene_t* gltfviewer::application_t::render_scene() { return scene_.get(); }
+
+void gltfviewer::application_t::on_resize(uint32_t width, uint32_t height) {
+    scene_->resize({width, height});
+}

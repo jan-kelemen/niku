@@ -3,9 +3,11 @@
 #include <niku_sdl_window.hpp>
 
 #include <cppext_numeric.hpp>
+#include <cppext_overloaded.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_scene.hpp>
 
 #include <imgui_impl_sdl2.h>
 
@@ -157,12 +159,18 @@ void niku::application_t::run()
 
         update(delta);
 
-        if (vkrndr::scene_t* const scene{render_scene()};
-            impl_->backend->begin_frame(scene))
-        {
-            impl_->backend->draw(scene);
-            impl_->backend->end_frame();
-        }
+        // clang-format off
+        std::visit(cppext::overloaded{
+            [this](vkrndr::image_t const& target_image)
+            {
+                vkrndr::scene_t* const scene{render_scene()};
+                impl_->backend->draw(*scene, target_image);
+                impl_->backend->end_frame();
+            },
+            [this](VkExtent2D const extent) { on_resize(extent.width, extent.height); },
+            [](auto) {}},
+            impl_->backend->begin_frame());
+        // clang-format on
 
         end_frame();
     }

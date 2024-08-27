@@ -6,6 +6,7 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_video.h>
 
+#include <cstdint>
 #include <memory>
 #include <string_view>
 
@@ -89,6 +90,11 @@ namespace niku
         virtual void on_startup() { }
 
         virtual void on_shutdown() { }
+
+        virtual void on_resize([[maybe_unused]] uint32_t width,
+            [[maybe_unused]] uint32_t height)
+        {
+        }
 
     public:
         application_t& operator=(application_t const&) = delete;

@@ -45,6 +45,8 @@ namespace gltfviewer
 
         [[nodiscard]] vkrndr::scene_t* render_scene() override;
 
+        void on_resize(uint32_t width, uint32_t height) override;
+
     private:
         std::unique_ptr<scene_t> scene_;
     };
