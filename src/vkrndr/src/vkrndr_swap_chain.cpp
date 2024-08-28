@@ -4,7 +4,6 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_queue.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
@@ -169,8 +168,7 @@ void vkrndr::swap_chain_t::submit_command_buffers(
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
-    check_result(
-        vkQueueSubmit(present_queue_->queue, 1, &submit_info, frame.in_flight));
+    present_queue_->submit(std::span{&submit_info, 1}, frame.in_flight);
 
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -180,8 +178,7 @@ void vkrndr::swap_chain_t::submit_command_buffers(
     present_info.pSwapchains = &chain_;
     present_info.pImageIndices = &image_index;
 
-    VkResult const result{
-        vkQueuePresentKHR(present_queue_->queue, &present_info)};
+    VkResult const result{present_queue_->present(present_info)};
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
         swap_chain_refresh.store(true);

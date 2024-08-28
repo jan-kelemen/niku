@@ -1,11 +1,12 @@
 #include <vkrndr_device.hpp>
 
 #include <vkrndr_context.hpp>
-#include <vkrndr_queue.hpp>
 #include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cppext_pragma_warning.hpp>
+
+#include <spdlog/spdlog.h>
 
 #include <vma_impl.hpp>
 
@@ -63,19 +64,99 @@ namespace
         return required_extensions.empty();
     }
 
-    [[nodiscard]] bool is_device_suitable(VkPhysicalDevice device,
-        VkSurfaceKHR surface,
-        vkrndr::queue_families& indices)
+    struct [[nodiscard]] queue_family_t final
+    {
+        uint32_t index;
+        VkQueueFamilyProperties properties;
+        bool supports_present;
+    };
+
+    [[nodiscard]] std::vector<queue_family_t> get_queue_families(
+        VkPhysicalDevice const device,
+        VkSurfaceKHR const surface = VK_NULL_HANDLE)
+    {
+        uint32_t count{};
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
+
+        std::vector<VkQueueFamilyProperties> family_properties{count};
+        vkGetPhysicalDeviceQueueFamilyProperties(device,
+            &count,
+            family_properties.data());
+
+        std::vector<queue_family_t> rv;
+
+        uint32_t index{};
+        for (auto const& properties : family_properties)
+        {
+            rv.emplace_back(index, properties, false);
+
+            if (surface != VK_NULL_HANDLE)
+            {
+                VkBool32 present_support{VK_FALSE};
+                vkrndr::check_result(
+                    vkGetPhysicalDeviceSurfaceSupportKHR(device,
+                        index,
+                        surface,
+                        &present_support));
+
+                rv.back().supports_present = present_support == VK_TRUE;
+            }
+
+            ++index;
+        }
+
+        return rv;
+    }
+
+    struct [[nodiscard]] device_families_t final
+    {
+        queue_family_t present_and_graphics;
+        std::optional<queue_family_t> transfer;
+    };
+
+    [[nodiscard]] std::optional<device_families_t>
+    is_device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface)
     {
         if (!extensions_supported(device))
         {
-            return false;
+            spdlog::info("Device doesn't support required extensions");
+            return std::nullopt;
         }
 
-        auto families{vkrndr::find_queue_families(device, surface)};
-        if (!families.present_family.has_value())
+        auto families{get_queue_families(device, surface)};
+
+        device_families_t rv;
+
+        auto const present_and_graphics{std::ranges::find_if(families,
+            [](queue_family_t const& f)
+            {
+                return f.supports_present &&
+                    vkrndr::supports_flags(f.properties.queueFlags,
+                        VK_QUEUE_GRAPHICS_BIT);
+            })};
+        if (present_and_graphics != families.cend())
         {
-            return false;
+            rv.present_and_graphics = *present_and_graphics;
+        }
+        else
+        {
+            spdlog::info("Device doesn't have present queue");
+            return std::nullopt;
+        }
+
+        auto const transfer{std::ranges::find_if(families,
+            [](queue_family_t const& f)
+            {
+                return vkrndr::supports_flags(f.properties.queueFlags,
+                           VK_QUEUE_TRANSFER_BIT) &&
+                    !vkrndr::supports_flags(f.properties.queueFlags,
+                        VK_QUEUE_GRAPHICS_BIT) &&
+                    !vkrndr::supports_flags(f.properties.queueFlags,
+                        VK_QUEUE_COMPUTE_BIT);
+            })};
+        if (transfer != families.cend())
+        {
+            rv.transfer = *transfer;
         }
 
         auto const swap_chain{
@@ -84,7 +165,8 @@ namespace
             !swap_chain.present_modes.empty()};
         if (!swap_chain_adequate)
         {
-            return false;
+            spdlog::info("Device doesn't have adequate swap chain support");
+            return std::nullopt;
         }
 
         VkPhysicalDeviceFeatures supported_features; // NOLINT
@@ -93,12 +175,11 @@ namespace
             supported_features.samplerAnisotropy == VK_TRUE};
         if (!features_adequate)
         {
-            return false;
+            spdlog::info("Device doesn't support required features");
+            return std::nullopt;
         }
 
-        indices = families;
-
-        return true;
+        return rv;
     }
 
     [[nodiscard]] VkSampleCountFlagBits max_usable_sample_count(
@@ -138,10 +219,18 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
     std::vector<VkPhysicalDevice> devices{count};
     vkEnumeratePhysicalDevices(context.instance, &count, devices.data());
 
-    queue_families device_indices;
+    device_families_t device_families;
     auto const device_it{std::ranges::find_if(devices,
-        [&context, &device_indices](auto const& device) mutable {
-            return is_device_suitable(device, context.surface, device_indices);
+        [&context, &device_families](auto const& device) mutable
+        {
+            if (auto const families{
+                    is_device_suitable(device, context.surface)})
+            {
+                device_families = *families;
+                return true;
+            }
+
+            return false;
         })};
     if (device_it == devices.cend())
     {
@@ -152,18 +241,20 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
     rv.physical = *device_it;
     rv.max_msaa_samples = max_usable_sample_count(rv.physical);
 
-    auto const present_family{device_indices.present_family.value_or(0)};
-    auto const transfer_family{
-        device_indices.dedicated_transfer_family.value_or(present_family)};
-
     auto const priority{1.0f};
-    std::set<uint32_t> const unique_families{present_family, transfer_family};
+    std::vector<queue_family_t> unique_families{
+        device_families.present_and_graphics};
+    if (device_families.transfer)
+    {
+        unique_families.push_back(*device_families.transfer);
+    }
+
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-    for (uint32_t const family : unique_families)
+    for (auto const& family : unique_families)
     {
         VkDeviceQueueCreateInfo queue_create_info{};
         queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queue_create_info.queueFamilyIndex = family;
+        queue_create_info.queueFamilyIndex = family.index;
         queue_create_info.queueCount = 1;
         queue_create_info.pQueuePriorities = &priority;
 
@@ -191,19 +282,23 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
 
     check_result(vmaCreateAllocator(&allocator_info, &rv.allocator));
 
-    rv.queues.reserve(unique_families.size());
-    for (uint32_t const family : unique_families)
+    rv.execution_ports.reserve(unique_families.size());
+    for (auto const& family : unique_families)
     {
-        auto& queue{rv.queues.emplace_back(create_queue(&rv, family, 0))};
+        auto& port{rv.execution_ports.emplace_back(rv.logical,
+            family.properties.queueFlags,
+            family.index,
+            0)};
 
-        if (queue.family == present_family)
+        if (port.queue_family() == device_families.present_and_graphics.index)
         {
-            rv.present_queue = &queue;
+            rv.present_queue = &port;
         }
 
-        if (queue.family == transfer_family)
+        if (device_families.transfer &&
+            device_families.transfer->index == port.queue_family())
         {
-            rv.transfer_queue = &queue;
+            rv.transfer_queue = &port;
         }
     }
 
@@ -217,4 +312,18 @@ void vkrndr::destroy(device_t* const device)
         vmaDestroyAllocator(device->allocator);
         vkDestroyDevice(device->logical, nullptr);
     }
+}
+
+VkCommandPool vkrndr::create_command_pool(device_t const& device,
+    uint32_t const queue_family)
+{
+    VkCommandPoolCreateInfo pool_info{};
+    pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+    pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+    pool_info.queueFamilyIndex = queue_family;
+
+    VkCommandPool rv; // NOLINT
+    check_result(vkCreateCommandPool(device.logical, &pool_info, nullptr, &rv));
+
+    return rv;
 }

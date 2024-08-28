@@ -9,13 +9,13 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_depth_buffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_descriptors.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_device.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_execution_port.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_font.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_font_manager.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_gltf_manager.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_image.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_queue.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_settings.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_scene.hpp
@@ -30,6 +30,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_depth_buffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_descriptors.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_device.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_execution_port.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_font.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_font_manager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_gltf_manager.cpp
@@ -40,7 +41,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_imgui_render_layer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_memory.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_queue.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swap_chain.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swap_chain.hpp

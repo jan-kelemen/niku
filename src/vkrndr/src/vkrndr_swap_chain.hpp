@@ -15,7 +15,7 @@ namespace vkrndr
     struct render_settings_t;
     struct context_t;
     struct device_t;
-    struct queue_t;
+    class execution_port_t;
     class window_t;
 } // namespace vkrndr
 
@@ -105,7 +105,7 @@ namespace vkrndr
         context_t* context_{};
         device_t* device_{};
         render_settings_t const* settings_{};
-        queue_t* present_queue_{};
+        execution_port_t* present_queue_{};
         VkFormat image_format_{};
         uint32_t min_image_count_{};
         VkExtent2D extent_{};

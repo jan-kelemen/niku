@@ -28,7 +28,7 @@ namespace vkrndr
     class scene_t;
     class swap_chain_t;
     class window_t;
-    struct queue_t;
+    class execution_port_t;
 } // namespace vkrndr
 
 namespace vkrndr
@@ -106,12 +106,12 @@ namespace vkrndr
     private: // Types
         struct [[nodiscard]] frame_data_t final
         {
-            queue_t* present_queue{};
+            execution_port_t* present_queue{};
             VkCommandPool present_command_pool{VK_NULL_HANDLE};
             std::vector<VkCommandBuffer> present_command_buffers;
             size_t used_present_command_buffers_{};
 
-            queue_t* transfer_queue{};
+            execution_port_t* transfer_queue{};
             VkCommandPool transfer_command_pool{VK_NULL_HANDLE};
             std::vector<VkCommandBuffer> transfer_command_buffers;
             size_t used_transfer_command_buffers{};

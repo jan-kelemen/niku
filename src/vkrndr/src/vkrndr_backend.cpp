@@ -11,7 +11,6 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_imgui_render_layer.hpp>
 #include <vkrndr_memory.hpp>
-#include <vkrndr_queue.hpp>
 #include <vkrndr_scene.hpp>
 #include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
@@ -98,7 +97,7 @@ vkrndr::backend_t::backend_t(window_t* const window,
     {
         fd.present_queue = device_.present_queue;
         fd.present_command_pool =
-            create_command_pool(device_, fd.present_queue->family);
+            create_command_pool(device_, fd.present_queue->queue_family());
 
         if (device_.present_queue == device_.transfer_queue)
         {
@@ -109,7 +108,7 @@ vkrndr::backend_t::backend_t(window_t* const window,
         {
             fd.transfer_queue = device_.transfer_queue;
             fd.transfer_command_pool =
-                create_command_pool(device_, fd.transfer_queue->family);
+                create_command_pool(device_, fd.transfer_queue->queue_family());
         }
     }
 }
@@ -322,7 +321,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT)};
 
-    queue_t* const queue{frame_data_->present_queue};
+    execution_port_t* const queue{frame_data_->present_queue};
 
     VkCommandBuffer present_queue_buffer; // NOLINT
     begin_single_time_commands(device_,
@@ -352,7 +351,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
     }
 
     end_single_time_commands(device_,
-        queue->queue,
+        queue->queue(),
         std::span{&present_queue_buffer, 1},
         frame_data_->present_command_pool);
 
@@ -362,7 +361,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
 void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
     buffer_t const& target)
 {
-    queue_t* const transfer_queue{frame_data_->transfer_queue};
+    execution_port_t* const transfer_queue{frame_data_->transfer_queue};
 
     VkCommandBuffer command_buffer; // NOLINT
     begin_single_time_commands(device_,
@@ -376,7 +375,7 @@ void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
         target.buffer);
 
     end_single_time_commands(device_,
-        transfer_queue->queue,
+        transfer_queue->queue(),
         std::span{&command_buffer, 1},
         frame_data_->transfer_command_pool);
 }
@@ -415,7 +414,7 @@ vkrndr::font_t vkrndr::backend_t::load_font(
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT)};
 
-    queue_t* const queue{device_.present_queue};
+    execution_port_t* const queue{device_.present_queue};
 
     VkCommandBuffer present_queue_buffer; // NOLINT
     begin_single_time_commands(device_,
@@ -433,7 +432,7 @@ vkrndr::font_t vkrndr::backend_t::load_font(
     wait_for_transfer_write_completed(texture.image, present_queue_buffer, 1);
 
     end_single_time_commands(device_,
-        queue->queue,
+        queue->queue(),
         std::span{&present_queue_buffer, 1},
         frame_data_->present_command_pool);
 

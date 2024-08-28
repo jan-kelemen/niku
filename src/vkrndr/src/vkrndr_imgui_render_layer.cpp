@@ -3,7 +3,6 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
-#include <vkrndr_queue.hpp>
 #include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
@@ -86,8 +85,8 @@ vkrndr::imgui_render_layer_t::imgui_render_layer_t(
     init_info.Instance = context->instance;
     init_info.PhysicalDevice = device->physical;
     init_info.Device = device->logical;
-    init_info.QueueFamily = device->present_queue->family;
-    init_info.Queue = device->present_queue->queue;
+    init_info.QueueFamily = device->present_queue->queue_family();
+    init_info.Queue = device->present_queue->queue();
     init_info.PipelineCache = VK_NULL_HANDLE;
     init_info.DescriptorPool = descriptor_pool_;
     init_info.RenderPass = VK_NULL_HANDLE;
