@@ -20,7 +20,7 @@ namespace vkrndr
 
         command_pool_t(device_t& device,
             uint32_t family,
-            VkCommandPoolCreateFlags flags);
+            VkCommandPoolCreateFlags flags = 0);
 
         command_pool_t(command_pool_t const&) = delete;
 

@@ -65,6 +65,9 @@ namespace vkrndr
 
         void end_frame();
 
+        [[nodiscard]] VkCommandBuffer request_command_buffer(
+            bool transfer_only);
+
         void draw(scene_t& scene, image_t const& target_image);
 
         [[nodiscard]] image_t load_texture(
@@ -103,10 +106,6 @@ namespace vkrndr
             std::vector<VkCommandBuffer> transfer_command_buffers;
             size_t used_transfer_command_buffers{};
         };
-
-    private:
-        [[nodiscard]] VkCommandBuffer request_command_buffer(
-            bool transfer_only);
 
     private: // Data
         render_settings_t render_settings_;

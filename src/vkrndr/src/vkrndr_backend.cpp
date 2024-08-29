@@ -85,15 +85,13 @@ vkrndr::backend_t::backend_t(window_t* const window,
     {
         fd.present_queue = device_.present_queue;
         fd.present_command_pool = std::make_unique<command_pool_t>(device_,
-            fd.present_queue->queue_family(),
-            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+            fd.present_queue->queue_family());
 
         if (device_.transfer_queue)
         {
             fd.transfer_queue = device_.transfer_queue;
             fd.transfer_command_pool = std::make_unique<command_pool_t>(device_,
-                fd.transfer_queue->queue_family(),
-                VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+                fd.transfer_queue->queue_family());
         }
     };
 }
@@ -146,9 +144,13 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
         return {};
     }
 
-    VkCommandBuffer primary_buffer{request_command_buffer(false)};
+    frame_data_->present_command_pool->reset();
+    if (frame_data_->transfer_queue)
+    {
+        frame_data_->transfer_command_pool->reset();
+    }
 
-    check_result(vkResetCommandBuffer(primary_buffer, 0));
+    VkCommandBuffer primary_buffer{request_command_buffer(false)};
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -171,6 +173,44 @@ void vkrndr::backend_t::end_frame()
             fd.used_present_command_buffers = 0;
             fd.used_transfer_command_buffers = 0;
         });
+}
+
+VkCommandBuffer vkrndr::backend_t::request_command_buffer(
+    bool const transfer_only)
+{
+    if (transfer_only &&
+        frame_data_->present_queue != frame_data_->transfer_queue)
+    {
+        if (frame_data_->used_transfer_command_buffers ==
+            frame_data_->transfer_command_buffers.size())
+        {
+            frame_data_->transfer_command_buffers.resize(
+                frame_data_->transfer_command_buffers.size() + 1);
+
+            frame_data_->transfer_command_pool->allocate_command_buffers(true,
+                1,
+                std::span{&frame_data_->transfer_command_buffers.back(), 1});
+        }
+
+        VkCommandBuffer rv{frame_data_->transfer_command_buffers
+                               [frame_data_->used_transfer_command_buffers++]};
+        return rv;
+    }
+
+    if (frame_data_->used_present_command_buffers ==
+        frame_data_->present_command_buffers.size())
+    {
+        frame_data_->present_command_buffers.resize(
+            frame_data_->present_command_buffers.size() + 1);
+
+        frame_data_->present_command_pool->allocate_command_buffers(true,
+            1,
+            std::span{&frame_data_->present_command_buffers.back(), 1});
+    }
+
+    VkCommandBuffer rv{frame_data_->present_command_buffers
+                           [frame_data_->used_present_command_buffers++]};
+    return rv;
 }
 
 void vkrndr::backend_t::draw(scene_t& scene, image_t const& target_image)
@@ -318,44 +358,4 @@ void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
     end_single_time_commands(*frame_data_->transfer_command_pool,
         *transfer_queue,
         std::span{&command_buffer, 1});
-}
-
-VkCommandBuffer vkrndr::backend_t::request_command_buffer(
-    bool const transfer_only)
-{
-    if (transfer_only &&
-        frame_data_->present_queue != frame_data_->transfer_queue)
-    {
-        if (frame_data_->used_transfer_command_buffers ==
-            frame_data_->transfer_command_buffers.size())
-        {
-            frame_data_->transfer_command_buffers.resize(
-                frame_data_->transfer_command_buffers.size() + 1);
-
-            frame_data_->transfer_command_pool->allocate_command_buffers(true,
-                1,
-                std::span{&frame_data_->transfer_command_buffers.back(), 1});
-        }
-
-        VkCommandBuffer rv{frame_data_->transfer_command_buffers
-                               [frame_data_->used_transfer_command_buffers++]};
-        check_result(vkResetCommandBuffer(rv, 0));
-        return rv;
-    }
-
-    if (frame_data_->used_present_command_buffers ==
-        frame_data_->present_command_buffers.size())
-    {
-        frame_data_->present_command_buffers.resize(
-            frame_data_->present_command_buffers.size() + 1);
-
-        frame_data_->present_command_pool->allocate_command_buffers(true,
-            1,
-            std::span{&frame_data_->present_command_buffers.back(), 1});
-    }
-
-    VkCommandBuffer rv{frame_data_->present_command_buffers
-                           [frame_data_->used_present_command_buffers++]};
-    check_result(vkResetCommandBuffer(rv, 0));
-    return rv;
 }
