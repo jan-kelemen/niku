@@ -9,8 +9,6 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_scene.hpp>
 
-#include <imgui_impl_sdl2.h>
-
 #include <vulkan/vulkan_core.h>
 
 #include <SDL2/SDL.h>
@@ -74,7 +72,6 @@ niku::application_t::impl::impl(startup_params_t const& params)
           params.render,
           params.init_subsystems.debug)}
 {
-    backend->imgui_layer(params.init_subsystems.debug);
 }
 
 niku::application_t::impl::~impl() { backend.reset(); }
@@ -110,11 +107,6 @@ void niku::application_t::run()
         SDL_Event event;
         while (SDL_PollEvent(&event) != 0)
         {
-            if (debug_layer())
-            {
-                ImGui_ImplSDL2_ProcessEvent(&event);
-            }
-
             if (impl_->is_current_window_event(event))
             {
                 if (is_quit_event(event))
@@ -195,16 +187,6 @@ void niku::application_t::fixed_update_interval(float const delta_time)
 float niku::application_t::fixed_update_interval() const
 {
     return impl_->fixed_update_interval.value_or(0.0f);
-}
-
-void niku::application_t::debug_layer(bool const enable)
-{
-    impl_->backend->imgui_layer(enable);
-}
-
-bool niku::application_t::debug_layer() const
-{
-    return impl_->backend->imgui_layer();
 }
 
 vkrndr::device_t* niku::application_t::vulkan_device()

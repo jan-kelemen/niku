@@ -62,12 +62,6 @@ namespace niku
 
         [[nodiscard]] bool is_minimized() const override;
 
-        void init_imgui() override;
-
-        void new_imgui_frame() override;
-
-        void shutdown_imgui() override;
-
     public: // Operators
         sdl_window_t& operator=(sdl_window_t const&) = delete;
 

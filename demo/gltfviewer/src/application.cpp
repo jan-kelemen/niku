@@ -10,8 +10,6 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_backend.hpp>
 
-#include <imgui.h>
-
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>
 #include <SDL2/SDL_video.h>
@@ -138,7 +136,8 @@ namespace gltfviewer
                 1);
         }
 
-        void draw_imgui() override { ImGui::ShowMetricsWindow(); }
+        void draw_imgui() override { // ImGui::ShowMetricsWindow(); 
+        }
 
     public:
         scene_t& operator=(scene_t const&) = delete;
@@ -182,7 +181,6 @@ gltfviewer::application_t::application_t(bool const debug)
           this->vulkan_backend(),
           this->vulkan_backend()->extent())}
 {
-    this->vulkan_backend()->imgui_layer(true);
 }
 
 gltfviewer::application_t::~application_t() = default;

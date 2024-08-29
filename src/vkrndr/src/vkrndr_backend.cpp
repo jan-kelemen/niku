@@ -4,12 +4,8 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
-#include <vkrndr_font.hpp>
-#include <vkrndr_font_manager.hpp>
 #include <vkrndr_global_data.hpp>
-#include <vkrndr_gltf_manager.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_imgui_render_layer.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_scene.hpp>
 #include <vkrndr_swap_chain.hpp>
@@ -84,15 +80,7 @@ vkrndr::backend_t::backend_t(window_t* const window,
     , frame_data_{swap_chain_t::max_frames_in_flight,
           swap_chain_t::max_frames_in_flight}
     , descriptor_pool_{create_descriptor_pool(device_)}
-    , imgui_layer_enabled_{debug}
-    , font_manager_{std::make_unique<font_manager_t>()}
-    , gltf_manager_{std::make_unique<gltf_manager_t>(this)}
 {
-    if (imgui_layer_enabled_)
-    {
-        imgui_layer(true);
-    }
-
     for (frame_data_t& fd : frame_data_.as_span())
     {
         fd.present_queue = device_.present_queue;
@@ -112,8 +100,6 @@ vkrndr::backend_t::backend_t(window_t* const window,
 
 vkrndr::backend_t::~backend_t()
 {
-    imgui_layer_.reset();
-
     for (frame_data_t& fd : frame_data_.as_span())
     {
         fd.present_command_pool.reset();
@@ -139,20 +125,6 @@ uint32_t vkrndr::backend_t::image_count() const
 }
 
 VkExtent2D vkrndr::backend_t::extent() const { return swap_chain_->extent(); }
-
-bool vkrndr::backend_t::imgui_layer() const { return imgui_layer_enabled_; }
-
-void vkrndr::backend_t::imgui_layer(bool const state)
-{
-    if (state && !imgui_layer_)
-    {
-        imgui_layer_ = std::make_unique<imgui_render_layer_t>(window_,
-            &context_,
-            &device_,
-            swap_chain_.get());
-    }
-    imgui_layer_enabled_ = state;
-}
 
 vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
 {
@@ -182,11 +154,6 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     check_result(vkBeginCommandBuffer(primary_buffer, &begin_info));
 
-    if (imgui_layer_enabled_)
-    {
-        imgui_layer_->begin_frame();
-    }
-
     return image_t{.image = swap_chain_->image(image_index_),
         .allocation = VK_NULL_HANDLE,
         .view = swap_chain_->image_view(image_index_),
@@ -198,11 +165,6 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
 
 void vkrndr::backend_t::end_frame()
 {
-    if (imgui_layer_enabled_)
-    {
-        imgui_layer_->end_frame();
-    }
-
     frame_data_.cycle(
         [](frame_data_t& fd, frame_data_t const&)
         {
@@ -218,16 +180,6 @@ void vkrndr::backend_t::draw(scene_t& scene, image_t const& target_image)
             [frame_data_->used_present_command_buffers - 1]};
 
     scene.draw(target_image, command_buffer, extent());
-
-    if (imgui_layer_enabled_)
-    {
-        scene.draw_imgui();
-        VkCommandBuffer imgui_command_buffer{request_command_buffer(false)};
-        imgui_layer_->draw(imgui_command_buffer,
-            swap_chain_->image(image_index_),
-            swap_chain_->image_view(image_index_),
-            extent());
-    }
 
     check_result(vkEndCommandBuffer(command_buffer));
 
@@ -366,74 +318,6 @@ void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
     end_single_time_commands(*frame_data_->transfer_command_pool,
         *transfer_queue,
         std::span{&command_buffer, 1});
-}
-
-vkrndr::font_t vkrndr::backend_t::load_font(
-    std::filesystem::path const& font_path,
-    uint32_t const font_size)
-{
-    font_bitmap_t font_bitmap{
-        font_manager_->load_font_bitmap(font_path, font_size)};
-
-    auto const image_size{static_cast<VkDeviceSize>(
-        font_bitmap.bitmap_width * font_bitmap.bitmap_height)};
-
-    buffer_t staging_buffer{create_buffer(device_,
-        image_size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
-
-    mapped_memory_t staging_map{map_memory(device_, staging_buffer)};
-    memcpy(staging_map.mapped_memory,
-        font_bitmap.bitmap_data.data(),
-        static_cast<size_t>(image_size));
-    unmap_memory(device_, &staging_map);
-
-    VkExtent2D const bitmap_extent{font_bitmap.bitmap_width,
-        font_bitmap.bitmap_height};
-    image_t const texture{create_image_and_view(device_,
-        bitmap_extent,
-        1,
-        VK_SAMPLE_COUNT_1_BIT,
-        VK_FORMAT_R8_UNORM,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT)};
-
-    execution_port_t* const queue{device_.present_queue};
-
-    VkCommandBuffer present_queue_buffer; // NOLINT
-    begin_single_time_commands(*frame_data_->present_command_pool,
-        1,
-        std::span{&present_queue_buffer, 1});
-
-    wait_for_transfer_write(texture.image, present_queue_buffer, 1);
-
-    copy_buffer_to_image(present_queue_buffer,
-        staging_buffer.buffer,
-        texture.image,
-        bitmap_extent);
-
-    wait_for_transfer_write_completed(texture.image, present_queue_buffer, 1);
-
-    end_single_time_commands(*frame_data_->present_command_pool,
-        *queue,
-        std::span{&present_queue_buffer, 1});
-
-    destroy(&device_, &staging_buffer);
-
-    return {std::move(font_bitmap.bitmaps),
-        font_bitmap.bitmap_width,
-        font_bitmap.bitmap_height,
-        texture};
-}
-
-std::unique_ptr<vkrndr::gltf_model_t> vkrndr::backend_t::load_model(
-    std::filesystem::path const& model_path)
-{
-    return gltf_manager_->load(model_path);
 }
 
 VkCommandBuffer vkrndr::backend_t::request_command_buffer(

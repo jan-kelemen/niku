@@ -11,9 +11,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_descriptors.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_device.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_execution_port.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_font.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_font_manager.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_gltf_manager.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_image.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
@@ -33,14 +30,9 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_descriptors.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_device.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_execution_port.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_font.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_font_manager.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_gltf_manager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_image.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_imgui_render_layer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_imgui_render_layer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_memory.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
@@ -62,16 +54,11 @@ target_link_libraries(vkrndr
         cppext
         vma_impl
     PUBLIC
-		Freetype::Freetype
-        imgui::imgui
         glm::glm
         vulkan-headers::vulkan-headers
         vulkan-memory-allocator::vulkan-memory-allocator
-        TinyGLTF::TinyGLTF
     PRIVATE
         stb_impl
-        imgui_vulkan_impl
-        tinygltf_impl
     PRIVATE
         fmt::fmt
         spdlog::spdlog

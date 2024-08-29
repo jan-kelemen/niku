@@ -29,8 +29,6 @@ target_link_libraries(niku
     PUBLIC
         SDL2::SDL2
     PRIVATE
-        imgui_sdl_impl
-    PRIVATE
         project-options
 )
 

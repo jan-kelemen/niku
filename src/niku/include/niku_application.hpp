@@ -59,10 +59,6 @@ namespace niku
 
         [[nodiscard]] float fixed_update_interval() const;
 
-        void debug_layer(bool enable);
-
-        [[nodiscard]] bool debug_layer() const;
-
         [[nodiscard]] vkrndr::device_t* vulkan_device();
 
         [[nodiscard]] vkrndr::backend_t* vulkan_backend();

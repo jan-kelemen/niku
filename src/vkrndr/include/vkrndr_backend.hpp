@@ -4,8 +4,6 @@
 #include <vkrndr_command_pool.hpp>
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
-#include <vkrndr_font.hpp>
-#include <vkrndr_gltf_manager.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
 
@@ -23,8 +21,6 @@
 
 namespace vkrndr
 {
-    class font_manager_t;
-    class imgui_render_layer_t;
     struct buffer_t;
     class scene_t;
     class swap_chain_t;
@@ -65,10 +61,6 @@ namespace vkrndr
 
         [[nodiscard]] VkExtent2D extent() const;
 
-        [[nodiscard]] bool imgui_layer() const;
-
-        void imgui_layer(bool state);
-
         [[nodiscard]] swapchain_acquire_t begin_frame();
 
         void end_frame();
@@ -92,12 +84,6 @@ namespace vkrndr
             uint32_t mip_levels);
 
         void transfer_buffer(buffer_t const& source, buffer_t const& target);
-
-        [[nodiscard]] font_t load_font(std::filesystem::path const& font_path,
-            uint32_t font_size);
-
-        [[nodiscard]] std::unique_ptr<vkrndr::gltf_model_t> load_model(
-            std::filesystem::path const& model_path);
 
     public: // Operators
         backend_t& operator=(backend_t const&) = delete;
@@ -134,11 +120,6 @@ namespace vkrndr
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
 
         VkDescriptorPool descriptor_pool_{};
-
-        bool imgui_layer_enabled_;
-        std::unique_ptr<imgui_render_layer_t> imgui_layer_;
-        std::unique_ptr<font_manager_t> font_manager_;
-        std::unique_ptr<gltf_manager_t> gltf_manager_;
 
         uint32_t image_index_{};
     };

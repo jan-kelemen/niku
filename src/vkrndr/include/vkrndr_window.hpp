@@ -24,12 +24,6 @@ namespace vkrndr
             VkSurfaceCapabilitiesKHR const& capabilities) const = 0;
 
         [[nodiscard]] virtual bool is_minimized() const = 0;
-
-        virtual void init_imgui() = 0;
-
-        virtual void new_imgui_frame() = 0;
-
-        virtual void shutdown_imgui() = 0;
     };
 
 } // namespace vkrndr

@@ -1,7 +1,5 @@
 #include <niku_sdl_window.hpp>
 
-#include <imgui_impl_sdl2.h>
-
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_error.h>
 #include <SDL2/SDL_hints.h>
@@ -96,9 +94,3 @@ bool niku::sdl_window_t::is_minimized() const
 {
     return (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED) != 0;
 }
-
-void niku::sdl_window_t::init_imgui() { ImGui_ImplSDL2_InitForVulkan(window_); }
-
-void niku::sdl_window_t::new_imgui_frame() { ImGui_ImplSDL2_NewFrame(); }
-
-void niku::sdl_window_t::shutdown_imgui() { ImGui_ImplSDL2_Shutdown(); }
