@@ -313,17 +313,3 @@ void vkrndr::destroy(device_t* const device)
         vkDestroyDevice(device->logical, nullptr);
     }
 }
-
-VkCommandPool vkrndr::create_command_pool(device_t const& device,
-    uint32_t const queue_family)
-{
-    VkCommandPoolCreateInfo pool_info{};
-    pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-    pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-    pool_info.queueFamilyIndex = queue_family;
-
-    VkCommandPool rv; // NOLINT
-    check_result(vkCreateCommandPool(device.logical, &pool_info, nullptr, &rv));
-
-    return rv;
-}

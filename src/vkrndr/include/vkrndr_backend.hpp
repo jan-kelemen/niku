@@ -1,6 +1,7 @@
 #ifndef VKRNDR_BACKEND_INCLUDED
 #define VKRNDR_BACKEND_INCLUDED
 
+#include <vkrndr_command_pool.hpp>
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_font.hpp>
@@ -107,12 +108,12 @@ namespace vkrndr
         struct [[nodiscard]] frame_data_t final
         {
             execution_port_t* present_queue{};
-            VkCommandPool present_command_pool{VK_NULL_HANDLE};
+            std::unique_ptr<command_pool_t> present_command_pool{};
             std::vector<VkCommandBuffer> present_command_buffers;
-            size_t used_present_command_buffers_{};
+            size_t used_present_command_buffers{};
 
             execution_port_t* transfer_queue{};
-            VkCommandPool transfer_command_pool{VK_NULL_HANDLE};
+            std::unique_ptr<command_pool_t> transfer_command_pool{};
             std::vector<VkCommandBuffer> transfer_command_buffers;
             size_t used_transfer_command_buffers{};
         };

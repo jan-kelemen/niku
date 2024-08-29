@@ -1,6 +1,8 @@
 #include <vkrndr_commands.hpp>
 
+#include <vkrndr_command_pool.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_execution_port.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cppext_numeric.hpp>
@@ -44,34 +46,11 @@ void vkrndr::transition_image(VkImage const image,
     vkCmdPipelineBarrier2(command_buffer, &dependency);
 }
 
-void vkrndr::create_command_buffers(device_t const& device,
-    VkCommandPool const command_pool,
-    uint32_t const count,
-    VkCommandBufferLevel const level,
-    std::span<VkCommandBuffer> const buffers)
+void vkrndr::begin_single_time_commands(command_pool_t& pool,
+    uint32_t count,
+    std::span<VkCommandBuffer> buffers)
 {
-    assert(buffers.size() >= count);
-
-    VkCommandBufferAllocateInfo alloc_info{};
-    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    alloc_info.commandPool = command_pool;
-    alloc_info.level = level;
-    alloc_info.commandBufferCount = count;
-
-    check_result(
-        vkAllocateCommandBuffers(device.logical, &alloc_info, buffers.data()));
-}
-
-void vkrndr::begin_single_time_commands(device_t const& device,
-    VkCommandPool const command_pool,
-    uint32_t const count,
-    std::span<VkCommandBuffer> const buffers)
-{
-    create_command_buffers(device,
-        command_pool,
-        count,
-        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        buffers);
+    pool.allocate_command_buffers(true, count, buffers);
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -83,10 +62,9 @@ void vkrndr::begin_single_time_commands(device_t const& device,
     }
 }
 
-void vkrndr::end_single_time_commands(device_t const& device,
-    VkQueue const queue,
-    std::span<VkCommandBuffer> const command_buffers,
-    VkCommandPool const command_pool)
+void vkrndr::end_single_time_commands(command_pool_t& pool,
+    execution_port_t& port,
+    std::span<VkCommandBuffer const> const& command_buffers)
 {
     for (VkCommandBuffer buffer : command_buffers)
     {
@@ -98,14 +76,10 @@ void vkrndr::end_single_time_commands(device_t const& device,
     submit_info.commandBufferCount = count_cast(command_buffers.size());
     submit_info.pCommandBuffers = command_buffers.data();
 
-    // TODO-JK: Use fence instead of waiting to for idle
-    check_result(vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE));
-    check_result(vkQueueWaitIdle(queue));
+    port.submit(std::span{&submit_info, 1});
+    port.wait_idle();
 
-    vkFreeCommandBuffers(device.logical,
-        command_pool,
-        submit_info.commandBufferCount,
-        submit_info.pCommandBuffers);
+    pool.free_command_buffers(command_buffers);
 }
 
 void vkrndr::copy_buffer_to_image(VkCommandBuffer const command_buffer,

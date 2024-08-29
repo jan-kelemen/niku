@@ -9,6 +9,8 @@
 namespace vkrndr
 {
     struct device_t;
+    class command_pool_t;
+    class execution_port_t;
 } // namespace vkrndr
 
 namespace vkrndr
@@ -23,21 +25,13 @@ namespace vkrndr
         VkAccessFlags2 dst_access_mask,
         uint32_t mip_levels);
 
-    void create_command_buffers(vkrndr::device_t const& device,
-        VkCommandPool command_pool,
-        uint32_t count,
-        VkCommandBufferLevel level,
-        std::span<VkCommandBuffer> buffers);
-
-    void begin_single_time_commands(device_t const& device,
-        VkCommandPool command_pool,
+    void begin_single_time_commands(command_pool_t& pool,
         uint32_t count,
         std::span<VkCommandBuffer> buffers);
 
-    void end_single_time_commands(device_t const& device,
-        VkQueue queue,
-        std::span<VkCommandBuffer> command_buffers,
-        VkCommandPool command_pool);
+    void end_single_time_commands(command_pool_t& pool,
+        execution_port_t& port,
+        std::span<VkCommandBuffer const> const& command_buffers);
 
     void copy_buffer_to_image(VkCommandBuffer command_buffer,
         VkBuffer buffer,

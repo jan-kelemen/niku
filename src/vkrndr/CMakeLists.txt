@@ -4,6 +4,7 @@ target_sources(vkrndr
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_backend.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_buffer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_command_pool.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_commands.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_context.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_depth_buffer.hpp
@@ -25,6 +26,7 @@ target_sources(vkrndr
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_backend.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_buffer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_command_pool.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_commands.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_context.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_depth_buffer.cpp

@@ -32,9 +32,6 @@ namespace vkrndr
     device_t create_device(context_t const& context);
 
     void destroy(device_t* device);
-
-    [[nodiscard]] VkCommandPool create_command_pool(device_t const& device,
-        uint32_t queue_family);
 } // namespace vkrndr
 
 #endif

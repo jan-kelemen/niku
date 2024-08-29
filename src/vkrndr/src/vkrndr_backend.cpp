@@ -96,37 +96,29 @@ vkrndr::backend_t::backend_t(window_t* const window,
     for (frame_data_t& fd : frame_data_.as_span())
     {
         fd.present_queue = device_.present_queue;
-        fd.present_command_pool =
-            create_command_pool(device_, fd.present_queue->queue_family());
+        fd.present_command_pool = std::make_unique<command_pool_t>(device_,
+            fd.present_queue->queue_family(),
+            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 
-        if (device_.present_queue == device_.transfer_queue)
-        {
-            fd.transfer_queue = fd.present_queue;
-            fd.transfer_command_pool = fd.present_command_pool;
-        }
-        else
+        if (device_.transfer_queue)
         {
             fd.transfer_queue = device_.transfer_queue;
-            fd.transfer_command_pool =
-                create_command_pool(device_, fd.transfer_queue->queue_family());
+            fd.transfer_command_pool = std::make_unique<command_pool_t>(device_,
+                fd.transfer_queue->queue_family(),
+                VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
         }
-    }
+    };
 }
 
 vkrndr::backend_t::~backend_t()
 {
     imgui_layer_.reset();
 
-    for (frame_data_t const& fd : frame_data_.as_span())
+    for (frame_data_t& fd : frame_data_.as_span())
     {
-        if (fd.present_queue != fd.transfer_queue)
-        {
-            vkDestroyCommandPool(device_.logical,
-                fd.transfer_command_pool,
-                nullptr);
-        }
-        vkDestroyCommandPool(device_.logical, fd.present_command_pool, nullptr);
-    }
+        fd.present_command_pool.reset();
+        fd.transfer_command_pool.reset();
+    };
 
     vkDestroyDescriptorPool(device_.logical, descriptor_pool_, nullptr);
 
@@ -214,7 +206,7 @@ void vkrndr::backend_t::end_frame()
     frame_data_.cycle(
         [](frame_data_t& fd, frame_data_t const&)
         {
-            fd.used_present_command_buffers_ = 0;
+            fd.used_present_command_buffers = 0;
             fd.used_transfer_command_buffers = 0;
         });
 }
@@ -223,7 +215,7 @@ void vkrndr::backend_t::draw(scene_t& scene, image_t const& target_image)
 {
     VkCommandBuffer command_buffer{
         frame_data_->present_command_buffers
-            [frame_data_->used_present_command_buffers_ - 1]};
+            [frame_data_->used_present_command_buffers - 1]};
 
     scene.draw(target_image, command_buffer, extent());
 
@@ -241,7 +233,7 @@ void vkrndr::backend_t::draw(scene_t& scene, image_t const& target_image)
 
     swap_chain_->submit_command_buffers(
         std::span{frame_data_->present_command_buffers.data(),
-            frame_data_->used_present_command_buffers_},
+            frame_data_->used_present_command_buffers},
         frame_data_.index(),
         image_index_);
 }
@@ -324,8 +316,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
     execution_port_t* const queue{frame_data_->present_queue};
 
     VkCommandBuffer present_queue_buffer; // NOLINT
-    begin_single_time_commands(device_,
-        frame_data_->present_command_pool,
+    begin_single_time_commands(*frame_data_->present_command_pool,
         1,
         std::span{&present_queue_buffer, 1});
 
@@ -350,10 +341,9 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
             mip_levels);
     }
 
-    end_single_time_commands(device_,
-        queue->queue(),
-        std::span{&present_queue_buffer, 1},
-        frame_data_->present_command_pool);
+    end_single_time_commands(*frame_data_->present_command_pool,
+        *queue,
+        std::span{&present_queue_buffer, 1});
 
     return image;
 }
@@ -364,8 +354,7 @@ void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
     execution_port_t* const transfer_queue{frame_data_->transfer_queue};
 
     VkCommandBuffer command_buffer; // NOLINT
-    begin_single_time_commands(device_,
-        frame_data_->transfer_command_pool,
+    begin_single_time_commands(*frame_data_->transfer_command_pool,
         1,
         std::span{&command_buffer, 1});
 
@@ -374,10 +363,9 @@ void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
         source.size,
         target.buffer);
 
-    end_single_time_commands(device_,
-        transfer_queue->queue(),
-        std::span{&command_buffer, 1},
-        frame_data_->transfer_command_pool);
+    end_single_time_commands(*frame_data_->transfer_command_pool,
+        *transfer_queue,
+        std::span{&command_buffer, 1});
 }
 
 vkrndr::font_t vkrndr::backend_t::load_font(
@@ -417,8 +405,7 @@ vkrndr::font_t vkrndr::backend_t::load_font(
     execution_port_t* const queue{device_.present_queue};
 
     VkCommandBuffer present_queue_buffer; // NOLINT
-    begin_single_time_commands(device_,
-        frame_data_->present_command_pool,
+    begin_single_time_commands(*frame_data_->present_command_pool,
         1,
         std::span{&present_queue_buffer, 1});
 
@@ -431,10 +418,9 @@ vkrndr::font_t vkrndr::backend_t::load_font(
 
     wait_for_transfer_write_completed(texture.image, present_queue_buffer, 1);
 
-    end_single_time_commands(device_,
-        queue->queue(),
-        std::span{&present_queue_buffer, 1},
-        frame_data_->present_command_pool);
+    end_single_time_commands(*frame_data_->present_command_pool,
+        *queue,
+        std::span{&present_queue_buffer, 1});
 
     destroy(&device_, &staging_buffer);
 
@@ -462,10 +448,8 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer(
             frame_data_->transfer_command_buffers.resize(
                 frame_data_->transfer_command_buffers.size() + 1);
 
-            create_command_buffers(device_,
-                frame_data_->transfer_command_pool,
+            frame_data_->transfer_command_pool->allocate_command_buffers(true,
                 1,
-                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 std::span{&frame_data_->transfer_command_buffers.back(), 1});
         }
 
@@ -475,21 +459,19 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer(
         return rv;
     }
 
-    if (frame_data_->used_present_command_buffers_ ==
+    if (frame_data_->used_present_command_buffers ==
         frame_data_->present_command_buffers.size())
     {
         frame_data_->present_command_buffers.resize(
             frame_data_->present_command_buffers.size() + 1);
 
-        create_command_buffers(device_,
-            frame_data_->present_command_pool,
+        frame_data_->present_command_pool->allocate_command_buffers(true,
             1,
-            VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             std::span{&frame_data_->present_command_buffers.back(), 1});
     }
 
     VkCommandBuffer rv{frame_data_->present_command_buffers
-                           [frame_data_->used_present_command_buffers_++]};
+                           [frame_data_->used_present_command_buffers++]};
     check_result(vkResetCommandBuffer(rv, 0));
     return rv;
 }
