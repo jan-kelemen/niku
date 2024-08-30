@@ -7,6 +7,7 @@
 #include <SDL2/SDL_video.h>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string_view>
 
@@ -14,8 +15,14 @@ namespace vkrndr
 {
     struct device_t;
     class backend_t;
+    struct image_t;
     class scene_t;
 } // namespace vkrndr
+
+namespace niku
+{
+    class imgui_layer_t;
+} // namespace niku
 
 namespace niku
 {

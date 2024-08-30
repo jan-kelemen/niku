@@ -10,6 +10,8 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_backend.hpp>
 
+#include <imgui.h>
+
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>
 #include <SDL2/SDL_video.h>
@@ -79,7 +81,7 @@ namespace gltfviewer
                     VK_ATTACHMENT_LOAD_OP_CLEAR,
                     VK_ATTACHMENT_STORE_OP_STORE,
                     color_image_.view,
-                    VkClearValue{.color = {1.0f, 0.5f, 0.5f}});
+                    VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
 
                 auto guard{
                     color_render_pass.begin(command_buffer, {{0, 0}, extent})};
@@ -136,7 +138,7 @@ namespace gltfviewer
                 1);
         }
 
-        void draw_imgui() override { // ImGui::ShowMetricsWindow(); 
+        void draw_imgui() override { ImGui::ShowMetricsWindow(); 
         }
 
     public:
@@ -198,3 +200,4 @@ vkrndr::scene_t* gltfviewer::application_t::render_scene() { return scene_.get()
 void gltfviewer::application_t::on_resize(uint32_t width, uint32_t height) {
     scene_->resize({width, height});
 }
+

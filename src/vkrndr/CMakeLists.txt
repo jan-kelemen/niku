@@ -17,6 +17,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_settings.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_scene.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_swap_chain.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_synchronization.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_utility.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_window.hpp
@@ -37,7 +38,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swap_chain.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swap_chain.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_synchronization.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_utility.cpp
 )

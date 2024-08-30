@@ -1,6 +1,7 @@
 #ifndef VKRNDR_BACKEND_INCLUDED
 #define VKRNDR_BACKEND_INCLUDED
 
+#include <functional>
 #include <vkrndr_command_pool.hpp>
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
@@ -51,9 +52,17 @@ namespace vkrndr
         [[nodiscard]] constexpr VkDescriptorPool
         descriptor_pool() const noexcept;
 
+        [[nodiscard]] constexpr context_t& context() noexcept;
+
+        [[nodiscard]] constexpr context_t const& context() const noexcept;
+
         [[nodiscard]] constexpr device_t& device() noexcept;
 
         [[nodiscard]] constexpr device_t const& device() const noexcept;
+
+        [[nodiscard]] constexpr swap_chain_t& swap_chain() noexcept;
+
+        [[nodiscard]] constexpr swap_chain_t& swap_chain() const noexcept;
 
         [[nodiscard]] VkFormat image_format() const;
 
@@ -68,7 +77,10 @@ namespace vkrndr
         [[nodiscard]] VkCommandBuffer request_command_buffer(
             bool transfer_only);
 
-        void draw(scene_t& scene, image_t const& target_image);
+        void draw(scene_t& scene,
+            image_t const& target_image,
+            std::function<void(VkCommandBuffer, image_t const&)> const&
+                layer_cb);
 
         [[nodiscard]] image_t load_texture(
             std::filesystem::path const& texture_path,
@@ -129,15 +141,34 @@ constexpr VkDescriptorPool vkrndr::backend_t::descriptor_pool() const noexcept
     return descriptor_pool_;
 }
 
-[[nodiscard]] constexpr vkrndr::device_t& vkrndr::backend_t::device() noexcept
+constexpr vkrndr::context_t& vkrndr::backend_t::context() noexcept
+{
+    return context_;
+}
+
+constexpr vkrndr::context_t const& vkrndr::backend_t::context() const noexcept
+{
+    return context_;
+}
+
+constexpr vkrndr::device_t& vkrndr::backend_t::device() noexcept
 {
     return device_;
 }
 
-[[nodiscard]] constexpr vkrndr::device_t const&
-vkrndr::backend_t::device() const noexcept
+constexpr vkrndr::device_t const& vkrndr::backend_t::device() const noexcept
 {
     return device_;
+}
+
+constexpr vkrndr::swap_chain_t& vkrndr::backend_t::swap_chain() noexcept
+{
+    return *swap_chain_;
+}
+
+constexpr vkrndr::swap_chain_t& vkrndr::backend_t::swap_chain() const noexcept
+{
+    return *swap_chain_;
 }
 
 #endif

@@ -15,9 +15,10 @@ target_include_directories(gltfviewer
 
 target_link_libraries(gltfviewer
     PRIVATE
-        Vulkan::Loader
-    PRIVATE
         niku
+    PRIVATE
+        imgui::imgui
+        Vulkan::Loader
     PRIVATE
         project-options
 )

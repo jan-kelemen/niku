@@ -213,13 +213,18 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer(
     return rv;
 }
 
-void vkrndr::backend_t::draw(scene_t& scene, image_t const& target_image)
+void vkrndr::backend_t::draw(scene_t& scene,
+    image_t const& target_image,
+    std::function<void(VkCommandBuffer, image_t const&)> const& layer_cb)
 {
     VkCommandBuffer command_buffer{
         frame_data_->present_command_buffers
             [frame_data_->used_present_command_buffers - 1]};
 
     scene.draw(target_image, command_buffer, extent());
+    scene.draw_imgui();
+
+    layer_cb(command_buffer, target_image);
 
     check_result(vkEndCommandBuffer(command_buffer));
 

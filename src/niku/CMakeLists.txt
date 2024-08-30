@@ -10,6 +10,8 @@ target_sources(niku
         ${CMAKE_CURRENT_SOURCE_DIR}/src/niku_application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/niku_application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/niku_camera.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/niku_imgui_layer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/niku_imgui_layer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/niku_mouse.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/niku_perspective_camera.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/niku_sdl_window.hpp
@@ -28,6 +30,12 @@ target_link_libraries(niku
         vkrndr
     PUBLIC
         SDL2::SDL2
+    PRIVATE
+        imgui::imgui
+        spdlog::spdlog
+    PRIVATE
+        imgui_sdl_impl
+        imgui_vulkan_impl
     PRIVATE
         project-options
 )
