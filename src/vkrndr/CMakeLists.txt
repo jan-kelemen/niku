@@ -55,8 +55,6 @@ target_link_libraries(vkrndr
     PUBLIC
         vulkan-headers::vulkan-headers
     PRIVATE
-        stb_impl
-    PRIVATE
         fmt::fmt
         spdlog::spdlog
     PRIVATE

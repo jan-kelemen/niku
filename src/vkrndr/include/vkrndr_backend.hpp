@@ -13,7 +13,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <span>
 #include <variant>
@@ -22,9 +21,9 @@
 namespace vkrndr
 {
     struct buffer_t;
+    class execution_port_t;
     class swap_chain_t;
     class window_t;
-    class execution_port_t;
 } // namespace vkrndr
 
 namespace vkrndr
@@ -59,7 +58,7 @@ namespace vkrndr
 
         [[nodiscard]] constexpr swap_chain_t& swap_chain() noexcept;
 
-        [[nodiscard]] constexpr swap_chain_t& swap_chain() const noexcept;
+        [[nodiscard]] constexpr swap_chain_t const& swap_chain() const noexcept;
 
         [[nodiscard]] VkFormat image_format() const;
 
@@ -78,12 +77,8 @@ namespace vkrndr
 
         void draw();
 
-        [[nodiscard]] image_t load_texture(
-            std::filesystem::path const& texture_path,
-            VkFormat format);
-
         [[nodiscard]] image_t transfer_image(
-            std::span<std::byte const> image_data,
+            std::span<std::byte const> const& image_data,
             VkExtent2D extent,
             VkFormat format,
             uint32_t mip_levels);
@@ -121,7 +116,6 @@ namespace vkrndr
         window_t const* window_;
         context_t context_;
         device_t device_;
-
         std::unique_ptr<swap_chain_t> swap_chain_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
@@ -162,7 +156,8 @@ constexpr vkrndr::swap_chain_t& vkrndr::backend_t::swap_chain() noexcept
     return *swap_chain_;
 }
 
-constexpr vkrndr::swap_chain_t& vkrndr::backend_t::swap_chain() const noexcept
+constexpr vkrndr::swap_chain_t const&
+vkrndr::backend_t::swap_chain() const noexcept
 {
     return *swap_chain_;
 }

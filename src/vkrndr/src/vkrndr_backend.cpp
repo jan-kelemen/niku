@@ -14,14 +14,10 @@
 #include <vkrndr_window.hpp>
 
 #include <cppext_cycled_buffer.hpp>
-#include <cppext_numeric.hpp>
-
-#include <stb_image.h>
 
 #include <array>
 #include <cstring>
 #include <span>
-#include <stdexcept>
 #include <vector>
 
 namespace vkrndr
@@ -145,7 +141,6 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
     if (window_->is_minimized())
     {
         return false;
-        ;
     }
 
     if (swap_chain_refresh.load())
@@ -153,7 +148,7 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
         vkDeviceWaitIdle(device_.logical);
         swap_chain_->recreate();
         swap_chain_refresh.store(false);
-        return {extent()};
+        return {swap_chain_->extent()};
     }
 
     if (!swap_chain_->acquire_next_image(frame_data_.index(), image_index_))
@@ -242,42 +237,8 @@ void vkrndr::backend_t::draw()
         image_index_);
 }
 
-vkrndr::image_t vkrndr::backend_t::load_texture(
-    std::filesystem::path const& texture_path,
-    VkFormat const format)
-{
-    int width; // NOLINT
-    int height; // NOLINT
-    int channels; // NOLINT
-    stbi_uc* const pixels{stbi_load(texture_path.string().c_str(),
-        &width,
-        &height,
-        &channels,
-        STBI_rgb_alpha)};
-
-    auto const image_size{static_cast<VkDeviceSize>(width * height * 4)};
-
-    if (!pixels)
-    {
-        throw std::runtime_error{"failed to load texture image!"};
-    }
-
-    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto const image_bytes{
-        std::span{reinterpret_cast<std::byte const*>(pixels), image_size}};
-    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
-    image_t rv{transfer_image(image_bytes,
-        {cppext::narrow<uint32_t>(width), cppext::narrow<uint32_t>(height)},
-        format,
-        max_mip_levels(width, height))};
-
-    stbi_image_free(pixels);
-
-    return rv;
-}
-
 vkrndr::image_t vkrndr::backend_t::transfer_image(
-    std::span<std::byte const> image_data,
+    std::span<std::byte const> const& image_data,
     VkExtent2D const extent,
     VkFormat const format,
     uint32_t const mip_levels)
