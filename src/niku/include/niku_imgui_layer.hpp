@@ -36,7 +36,7 @@ namespace niku
         ~imgui_layer_t();
 
     public:
-        [[nodiscard]] bool handle_event(SDL_Event const& event);
+        [[nodiscard]] bool handle_event(SDL_Event const& event) const;
 
         void begin_frame();
 

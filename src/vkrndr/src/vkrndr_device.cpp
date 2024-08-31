@@ -1,6 +1,7 @@
 #include <vkrndr_device.hpp>
 
 #include <vkrndr_context.hpp>
+#include <vkrndr_execution_port.hpp>
 #include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -110,7 +111,7 @@ namespace
 
     struct [[nodiscard]] device_families_t final
     {
-        queue_family_t present_and_graphics;
+        queue_family_t present_and_graphics{};
         std::optional<queue_family_t> transfer;
     };
 

@@ -8,7 +8,6 @@
 #include <cppext_numeric.hpp>
 
 #include <algorithm>
-#include <cassert>
 #include <stdexcept>
 
 void vkrndr::transition_image(VkImage const image,

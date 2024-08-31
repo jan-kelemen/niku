@@ -16,7 +16,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_settings.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_scene.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_swap_chain.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_synchronization.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_utility.hpp

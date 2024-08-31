@@ -14,7 +14,11 @@
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
 
+#include <imgui.h>
+
 #include <spdlog/spdlog.h>
+
+#include <utility>
 
 namespace
 {
@@ -105,7 +109,7 @@ niku::imgui_layer_t::~imgui_layer_t()
     vkDestroyDescriptorPool(device_->logical, descriptor_pool_, nullptr);
 }
 
-bool niku::imgui_layer_t::handle_event(SDL_Event const& event)
+bool niku::imgui_layer_t::handle_event(SDL_Event const& event) const
 {
     if (enabled_)
     {

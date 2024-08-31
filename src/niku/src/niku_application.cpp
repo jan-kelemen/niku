@@ -1,17 +1,8 @@
-#include "niku_sdl_window.hpp"
 #include <niku_application.hpp>
 
-#include <niku_imgui_layer.hpp>
 #include <niku_sdl_window.hpp>
 
 #include <cppext_numeric.hpp>
-#include <cppext_overloaded.hpp>
-
-#include <vkrndr_backend.hpp>
-#include <vkrndr_device.hpp>
-#include <vkrndr_scene.hpp>
-
-#include <vulkan/vulkan_core.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>

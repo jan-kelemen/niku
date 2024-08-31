@@ -5,24 +5,26 @@
 
 #include <niku_application.hpp>
 #include <niku_imgui_layer.hpp>
-#include <niku_mouse.hpp>
-#include <niku_sdl_window.hpp>
+#include <niku_sdl_window.hpp> // IWYU pragma: keep
 
+#include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_render_settings.hpp>
 #include <vkrndr_render_pass.hpp>
-#include <vkrndr_scene.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_backend.hpp>
 
 #include <imgui.h>
 
 #include <SDL2/SDL_events.h>
-#include <SDL2/SDL_scancode.h>
 #include <SDL2/SDL_video.h>
 
 #include <vulkan/vulkan_core.h>
 
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <variant>
 
 namespace 
 {
@@ -126,7 +128,7 @@ void gltfviewer::application_t::draw()
             color_image_.view,
             VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
 
-        auto guard{
+        [[maybe_unused]] auto guard{
             color_render_pass.begin(command_buffer, {{0, 0}, target_image.extent})};
     }
 
@@ -152,7 +154,7 @@ void gltfviewer::application_t::draw()
         VK_ACCESS_2_TRANSFER_WRITE_BIT,
         1);
 
-    VkOffset3D size{.x = cppext::narrow<int32_t>(target_image.extent.width),
+    VkOffset3D const size{.x = cppext::narrow<int32_t>(target_image.extent.width),
         .y = cppext::narrow<int32_t>(target_image.extent.height),
         .z = 1};
     VkImageBlit region{};

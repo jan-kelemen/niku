@@ -1,13 +1,14 @@
 #include <vkrndr_backend.hpp>
 
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_command_pool.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_execution_port.hpp>
 #include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
-#include <vkrndr_scene.hpp>
 #include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
@@ -21,8 +22,12 @@
 #include <cstring>
 #include <span>
 #include <stdexcept>
-#include <utility>
 #include <vector>
+
+namespace vkrndr
+{
+    struct render_settings_t;
+} // namespace vkrndr
 
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <unordered_map>
@@ -224,7 +229,7 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer(
 
 void vkrndr::backend_t::draw()
 {
-    std::span buffers{frame_data_->present_command_buffers.data(),
+    std::span const buffers{frame_data_->present_command_buffers.data(),
         frame_data_->used_present_command_buffers};
 
     for (VkCommandBuffer const buffer : buffers)

@@ -1,7 +1,6 @@
 #ifndef VKRNDR_BACKEND_INCLUDED
 #define VKRNDR_BACKEND_INCLUDED
 
-#include <functional>
 #include <vkrndr_command_pool.hpp>
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
@@ -23,7 +22,6 @@
 namespace vkrndr
 {
     struct buffer_t;
-    class scene_t;
     class swap_chain_t;
     class window_t;
     class execution_port_t;
