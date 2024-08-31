@@ -101,7 +101,7 @@ vkrndr::query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
     return rv;
 }
 
-vkrndr::swap_chain_t::swap_chain_t(window_t* const window,
+vkrndr::swap_chain_t::swap_chain_t(window_t const* const window,
     context_t* const context,
     device_t* const device,
     render_settings_t const* const settings)

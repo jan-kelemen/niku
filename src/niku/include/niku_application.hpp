@@ -1,27 +1,16 @@
 #ifndef NIKU_APPLICATION_INCLUDED
 #define NIKU_APPLICATION_INCLUDED
 
-#include <vkrndr_render_settings.hpp>
-
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_video.h>
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <string_view>
 
-namespace vkrndr
-{
-    struct device_t;
-    class backend_t;
-    struct image_t;
-    class scene_t;
-} // namespace vkrndr
-
 namespace niku
 {
-    class imgui_layer_t;
+    class sdl_window_t;
 } // namespace niku
 
 namespace niku
@@ -43,8 +32,6 @@ namespace niku
         bool centered{true};
         int width;
         int height;
-
-        vkrndr::render_settings_t render;
     };
 
     class [[nodiscard]] application_t
@@ -66,9 +53,7 @@ namespace niku
 
         [[nodiscard]] float fixed_update_interval() const;
 
-        [[nodiscard]] vkrndr::device_t* vulkan_device();
-
-        [[nodiscard]] vkrndr::backend_t* vulkan_backend();
+        [[nodiscard]] sdl_window_t* window();
 
     private: // Callback interface
         [[nodiscard]] virtual bool should_run() { return true; }
@@ -86,7 +71,11 @@ namespace niku
 
         virtual void update([[maybe_unused]] float const delta_time) { }
 
-        [[nodiscard]] virtual vkrndr::scene_t* render_scene() = 0;
+        [[nodiscard]] virtual bool begin_draw() { return false; }
+
+        virtual void draw() { }
+
+        virtual void end_draw() { }
 
         virtual void end_frame() { }
 

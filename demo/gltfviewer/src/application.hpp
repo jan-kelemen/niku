@@ -3,18 +3,20 @@
 
 #include <niku_application.hpp>
 
+#include <vkrndr_image.hpp>
+
 #include <SDL2/SDL_events.h>
 
 #include <memory>
 
+namespace niku
+{
+    class imgui_layer_t;
+}
+
 namespace vkrndr
 {
-    class scene_t;
-} // namespace vkrndr
-
-namespace gltfviewer
-{
-    class scene_t;
+    class backend_t;
 }
 
 namespace gltfviewer
@@ -41,14 +43,27 @@ namespace gltfviewer
     private: // niku::application callback interface
         bool handle_event(SDL_Event const& event) override;
 
+        void begin_frame() override;
+        
         void update(float delta_time) override;
 
-        [[nodiscard]] vkrndr::scene_t* render_scene() override;
+        bool begin_draw() override;
+
+        void draw() override;
+
+        void end_draw() override;
+
+        void end_frame() override;
+
+        void on_shutdown() override;
 
         void on_resize(uint32_t width, uint32_t height) override;
 
     private:
-        std::unique_ptr<scene_t> scene_;
+        std::unique_ptr<vkrndr::backend_t> backend_;
+        std::unique_ptr<niku::imgui_layer_t> imgui_;
+
+        vkrndr::image_t color_image_;
     };
 } // namespace beam
 #endif

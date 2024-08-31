@@ -51,7 +51,7 @@ namespace vkrndr
         static constexpr int max_frames_in_flight{2};
 
     public: // Construction
-        swap_chain_t(window_t* window,
+        swap_chain_t(window_t const* window,
             context_t* context,
             device_t* device,
             render_settings_t const* settings);
@@ -101,7 +101,7 @@ namespace vkrndr
         void cleanup();
 
     private:
-        window_t* window_{};
+        window_t const* window_{};
         context_t* context_{};
         device_t* device_{};
         render_settings_t const* settings_{};

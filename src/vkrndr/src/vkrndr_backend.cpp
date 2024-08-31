@@ -66,12 +66,12 @@ namespace
     }
 } // namespace
 
-vkrndr::backend_t::backend_t(window_t* const window,
+vkrndr::backend_t::backend_t(window_t const& window,
     render_settings_t const& settings,
     bool const debug)
     : render_settings_{settings}
-    , window_{window}
-    , context_{vkrndr::create_context(window, debug)}
+    , window_{&window}
+    , context_{vkrndr::create_context(&window, debug)}
     , device_{vkrndr::create_device(context_)}
     , swap_chain_{std::make_unique<swap_chain_t>(window_,
           &context_,
@@ -124,11 +124,23 @@ uint32_t vkrndr::backend_t::image_count() const
 
 VkExtent2D vkrndr::backend_t::extent() const { return swap_chain_->extent(); }
 
+vkrndr::image_t vkrndr::backend_t::swapchain_image()
+{
+    return {.image = swap_chain_->image(image_index_),
+        .allocation = VK_NULL_HANDLE,
+        .view = swap_chain_->image_view(image_index_),
+        .format = swap_chain_->image_format(),
+        .sample_count = VK_SAMPLE_COUNT_1_BIT,
+        .mip_levels = 0,
+        .extent = swap_chain_->extent()};
+}
+
 vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
 {
     if (window_->is_minimized())
     {
-        return {};
+        return false;
+        ;
     }
 
     if (swap_chain_refresh.load())
@@ -141,7 +153,7 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
 
     if (!swap_chain_->acquire_next_image(frame_data_.index(), image_index_))
     {
-        return {};
+        return false;
     }
 
     frame_data_->present_command_pool->reset();
@@ -150,19 +162,7 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
         frame_data_->transfer_command_pool->reset();
     }
 
-    VkCommandBuffer primary_buffer{request_command_buffer(false)};
-
-    VkCommandBufferBeginInfo begin_info{};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    check_result(vkBeginCommandBuffer(primary_buffer, &begin_info));
-
-    return image_t{.image = swap_chain_->image(image_index_),
-        .allocation = VK_NULL_HANDLE,
-        .view = swap_chain_->image_view(image_index_),
-        .format = swap_chain_->image_format(),
-        .sample_count = VK_SAMPLE_COUNT_1_BIT,
-        .mip_levels = 0,
-        .extent = extent()};
+    return true;
 }
 
 void vkrndr::backend_t::end_frame()
@@ -194,6 +194,11 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer(
 
         VkCommandBuffer rv{frame_data_->transfer_command_buffers
                                [frame_data_->used_transfer_command_buffers++]};
+
+        VkCommandBufferBeginInfo begin_info{};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        check_result(vkBeginCommandBuffer(rv, &begin_info));
+
         return rv;
     }
 
@@ -210,27 +215,24 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer(
 
     VkCommandBuffer rv{frame_data_->present_command_buffers
                            [frame_data_->used_present_command_buffers++]};
+
+    VkCommandBufferBeginInfo begin_info{};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    check_result(vkBeginCommandBuffer(rv, &begin_info));
     return rv;
 }
 
-void vkrndr::backend_t::draw(scene_t& scene,
-    image_t const& target_image,
-    std::function<void(VkCommandBuffer, image_t const&)> const& layer_cb)
+void vkrndr::backend_t::draw()
 {
-    VkCommandBuffer command_buffer{
-        frame_data_->present_command_buffers
-            [frame_data_->used_present_command_buffers - 1]};
+    std::span buffers{frame_data_->present_command_buffers.data(),
+        frame_data_->used_present_command_buffers};
 
-    scene.draw(target_image, command_buffer, extent());
-    scene.draw_imgui();
+    for (VkCommandBuffer const buffer : buffers)
+    {
+        check_result(vkEndCommandBuffer(buffer));
+    }
 
-    layer_cb(command_buffer, target_image);
-
-    check_result(vkEndCommandBuffer(command_buffer));
-
-    swap_chain_->submit_command_buffers(
-        std::span{frame_data_->present_command_buffers.data(),
-            frame_data_->used_present_command_buffers},
+    swap_chain_->submit_command_buffers(buffers,
         frame_data_.index(),
         image_index_);
 }

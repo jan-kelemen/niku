@@ -11,7 +11,6 @@ namespace vkrndr
     struct context_t;
     struct device_t;
     class swap_chain_t;
-    class execution_port_t;
 } // namespace vkrndr
 
 namespace niku
@@ -48,7 +47,7 @@ namespace niku
 
         [[nodiscard]] constexpr bool enabled() const;
 
-        void set_enabled(bool state);
+        constexpr void set_enabled(bool state);
 
     public:
         imgui_layer_t& operator=(imgui_layer_t const&) = delete;
@@ -63,6 +62,11 @@ namespace niku
     };
 } // namespace niku
 
-bool constexpr niku::imgui_layer_t::enabled() const { return enabled_; }
+constexpr bool niku::imgui_layer_t::enabled() const { return enabled_; }
+
+constexpr void niku::imgui_layer_t::set_enabled(bool const state)
+{
+    enabled_ = state;
+}
 
 #endif

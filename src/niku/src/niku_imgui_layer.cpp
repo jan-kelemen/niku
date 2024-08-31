@@ -161,5 +161,3 @@ void niku::imgui_layer_t::end_frame()
         ImGui::EndFrame();
     }
 }
-
-void niku::imgui_layer_t::set_enabled(bool const state) { enabled_ = state; }

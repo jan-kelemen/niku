@@ -1,3 +1,4 @@
+#include "niku_sdl_window.hpp"
 #include <niku_application.hpp>
 
 #include <niku_imgui_layer.hpp>
@@ -55,10 +56,6 @@ public:
     sdl_guard_t guard;
     sdl_window_t window;
 
-    std::unique_ptr<vkrndr::backend_t> backend;
-
-    std::unique_ptr<niku::imgui_layer_t> imgui;
-
     std::optional<float> fixed_update_interval;
     uint64_t last_tick{};
     uint64_t last_fixed_tick{};
@@ -71,22 +68,10 @@ niku::application_t::impl::impl(startup_params_t const& params)
           params.centered,
           params.width,
           params.height}
-    , backend{std::make_unique<vkrndr::backend_t>(&window,
-          params.render,
-          params.init_subsystems.debug)}
-    , imgui{std::make_unique<imgui_layer_t>(window,
-          backend->context(),
-          backend->device(),
-          backend->swap_chain())}
 {
-    imgui->set_enabled(params.init_subsystems.debug);
 }
 
-niku::application_t::impl::~impl()
-{
-    imgui.reset();
-    backend.reset();
-}
+niku::application_t::impl::~impl() = default;
 
 bool niku::application_t::impl::is_current_window_event(
     SDL_Event const& event) const
@@ -154,7 +139,6 @@ void niku::application_t::run()
         last_tick = current_tick;
 
         begin_frame();
-        impl_->imgui->begin_frame();
 
         if (do_fixed_update)
         {
@@ -164,27 +148,14 @@ void niku::application_t::run()
 
         update(delta);
 
-        // clang-format off
-        std::visit(cppext::overloaded{
-            [this](vkrndr::image_t const& target_image)
-            {
-                vkrndr::scene_t* const scene{render_scene()};
-                impl_->backend->draw(*scene, target_image, 
-                        [this](VkCommandBuffer cb, vkrndr::image_t const& img) {
-                            impl_->imgui->render(cb, img);
-                    });
-                impl_->backend->end_frame();
-            },
-            [this](VkExtent2D const extent) { on_resize(extent.width, extent.height); },
-            [](auto) {}},
-            impl_->backend->begin_frame());
+        if (begin_draw())
+        {
+            draw();
+            end_draw();
+        }
 
-        // clang-format on
-        impl_->imgui->end_frame();
         end_frame();
     }
-
-    vkDeviceWaitIdle(impl_->backend->device().logical);
 
     on_shutdown();
 }
@@ -206,15 +177,7 @@ float niku::application_t::fixed_update_interval() const
     return impl_->fixed_update_interval.value_or(0.0f);
 }
 
-vkrndr::device_t* niku::application_t::vulkan_device()
-{
-    return &impl_->backend->device();
-}
-
-vkrndr::backend_t* niku::application_t::vulkan_backend()
-{
-    return impl_->backend.get();
-}
+niku::sdl_window_t* niku::application_t::window() { return &impl_->window; }
 
 bool niku::application_t::is_quit_event(SDL_Event const& event)
 {

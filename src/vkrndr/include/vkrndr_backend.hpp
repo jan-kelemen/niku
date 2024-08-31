@@ -31,13 +31,12 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    using swapchain_acquire_t =
-        std::variant<std::monostate, image_t, VkExtent2D>;
+    using swapchain_acquire_t = std::variant<bool, VkExtent2D>;
 
     class [[nodiscard]] backend_t final
     {
     public: // Construction
-        backend_t(window_t* window,
+        backend_t(window_t const& window,
             render_settings_t const& settings,
             bool debug);
 
@@ -70,6 +69,8 @@ namespace vkrndr
 
         [[nodiscard]] VkExtent2D extent() const;
 
+        [[nodiscard]] image_t swapchain_image();
+
         [[nodiscard]] swapchain_acquire_t begin_frame();
 
         void end_frame();
@@ -77,10 +78,7 @@ namespace vkrndr
         [[nodiscard]] VkCommandBuffer request_command_buffer(
             bool transfer_only);
 
-        void draw(scene_t& scene,
-            image_t const& target_image,
-            std::function<void(VkCommandBuffer, image_t const&)> const&
-                layer_cb);
+        void draw();
 
         [[nodiscard]] image_t load_texture(
             std::filesystem::path const& texture_path,
@@ -109,12 +107,12 @@ namespace vkrndr
         struct [[nodiscard]] frame_data_t final
         {
             execution_port_t* present_queue{};
-            std::unique_ptr<command_pool_t> present_command_pool{};
+            std::unique_ptr<command_pool_t> present_command_pool;
             std::vector<VkCommandBuffer> present_command_buffers;
             size_t used_present_command_buffers{};
 
             execution_port_t* transfer_queue{};
-            std::unique_ptr<command_pool_t> transfer_command_pool{};
+            std::unique_ptr<command_pool_t> transfer_command_pool;
             std::vector<VkCommandBuffer> transfer_command_buffers;
             size_t used_transfer_command_buffers{};
         };
@@ -122,7 +120,7 @@ namespace vkrndr
     private: // Data
         render_settings_t render_settings_;
 
-        window_t* window_;
+        window_t const* window_;
         context_t context_;
         device_t device_;
 
