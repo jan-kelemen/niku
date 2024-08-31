@@ -53,9 +53,7 @@ target_link_libraries(vkrndr
         cppext
         vma_impl
     PUBLIC
-        glm::glm
         vulkan-headers::vulkan-headers
-        vulkan-memory-allocator::vulkan-memory-allocator
     PRIVATE
         stb_impl
     PRIVATE

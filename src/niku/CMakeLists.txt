@@ -28,6 +28,7 @@ target_link_libraries(niku
     PUBLIC
         vkrndr
     PUBLIC
+        glm::glm
         SDL2::SDL2
     PRIVATE
         imgui::imgui
