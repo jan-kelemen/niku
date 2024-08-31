@@ -13,12 +13,12 @@
 namespace niku
 {
     class imgui_layer_t;
-}
+} // namespace niku
 
 namespace vkrndr
 {
     class backend_t;
-}
+} // namespace vkrndr
 
 namespace gltfviewer
 {
@@ -45,7 +45,7 @@ namespace gltfviewer
         bool handle_event(SDL_Event const& event) override;
 
         void begin_frame() override;
-        
+
         void update(float delta_time) override;
 
         bool begin_draw() override;
@@ -66,5 +66,5 @@ namespace gltfviewer
 
         vkrndr::image_t color_image_;
     };
-} // namespace beam
+} // namespace gltfviewer
 #endif

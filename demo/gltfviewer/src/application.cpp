@@ -7,12 +7,12 @@
 #include <niku_imgui_layer.hpp>
 #include <niku_sdl_window.hpp> // IWYU pragma: keep
 
+#include <vkrndr_backend.hpp>
+#include <vkrndr_commands.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_render_settings.hpp>
 #include <vkrndr_render_pass.hpp>
-#include <vkrndr_commands.hpp>
-#include <vkrndr_backend.hpp>
+#include <vkrndr_render_settings.hpp>
 
 #include <imgui.h>
 
@@ -26,23 +26,22 @@
 #include <optional>
 #include <variant>
 
-namespace 
+namespace
 {
-    vkrndr::image_t create_color_image(
-            vkrndr::backend_t const& backend)
+    vkrndr::image_t create_color_image(vkrndr::backend_t const& backend)
     {
         return vkrndr::create_image_and_view(backend.device(),
-                backend.extent(),
-                        1,
-                        VK_SAMPLE_COUNT_1_BIT,
-                        backend.image_format(),
-                        VK_IMAGE_TILING_OPTIMAL,
-                        VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                        VK_IMAGE_ASPECT_COLOR_BIT);
+            backend.extent(),
+            1,
+            VK_SAMPLE_COUNT_1_BIT,
+            backend.image_format(),
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT);
     }
-} 
+} // namespace
 
 gltfviewer::application_t::application_t(bool const debug)
     : niku::application_t{niku::startup_params_t{
@@ -53,13 +52,14 @@ gltfviewer::application_t::application_t(bool const debug)
           .centered = true,
           .width = 512,
           .height = 512}}
-    , backend_{std::make_unique<vkrndr::backend_t>(*window(), 
-            vkrndr::render_settings_t{.preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
-            debug)}
+    , backend_{std::make_unique<vkrndr::backend_t>(*window(),
+          vkrndr::render_settings_t{
+              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
+          debug)}
     , imgui_{std::make_unique<niku::imgui_layer_t>(*window(),
-            backend_->context(),
-            backend_->device(),
-            backend_->swap_chain())}
+          backend_->context(),
+          backend_->device(),
+          backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
 {
 }
@@ -74,22 +74,17 @@ bool gltfviewer::application_t::handle_event(
 
 void gltfviewer::application_t::update([[maybe_unused]] float delta_time) { }
 
-void gltfviewer::application_t::begin_frame()
-{
-    imgui_->begin_frame();
-}
+void gltfviewer::application_t::begin_frame() { imgui_->begin_frame(); }
 
 bool gltfviewer::application_t::begin_draw()
 {
-    return std::visit(cppext::overloaded{
-        [](bool const acquired)
-        {
-            return acquired;
-        },
-        [this](VkExtent2D const extent) { 
-            on_resize(extent.width, extent.height);
-            return false;
-        }},
+    return std::visit(
+        cppext::overloaded{[](bool const acquired) { return acquired; },
+            [this](VkExtent2D const extent)
+            {
+                on_resize(extent.width, extent.height);
+                return false;
+            }},
         backend_->begin_frame());
 }
 
@@ -122,14 +117,13 @@ void gltfviewer::application_t::draw()
 
     {
         vkrndr::render_pass_t color_render_pass;
-        color_render_pass.with_color_attachment(
-            VK_ATTACHMENT_LOAD_OP_CLEAR,
+        color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
             color_image_.view,
             VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
 
-        [[maybe_unused]] auto guard{
-            color_render_pass.begin(command_buffer, {{0, 0}, target_image.extent})};
+        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
+            {{0, 0}, target_image.extent})};
     }
 
     ImGui::ShowMetricsWindow();
@@ -154,7 +148,8 @@ void gltfviewer::application_t::draw()
         VK_ACCESS_2_TRANSFER_WRITE_BIT,
         1);
 
-    VkOffset3D const size{.x = cppext::narrow<int32_t>(target_image.extent.width),
+    VkOffset3D const size{
+        .x = cppext::narrow<int32_t>(target_image.extent.width),
         .y = cppext::narrow<int32_t>(target_image.extent.height),
         .z = 1};
     VkImageBlit region{};
@@ -184,37 +179,29 @@ void gltfviewer::application_t::draw()
         VK_ACCESS_2_NONE,
         1);
 
-
     imgui_->render(command_buffer, target_image);
 
     backend_->draw();
 }
 
-void gltfviewer::application_t::end_draw()
-{
-    backend_->end_frame();
-}
+void gltfviewer::application_t::end_draw() { backend_->end_frame(); }
 
-void gltfviewer::application_t::end_frame()
-{
-    imgui_->end_frame();
-}
+void gltfviewer::application_t::end_frame() { imgui_->end_frame(); }
 
 void gltfviewer::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device().logical);
 
-    destroy(&backend_->device(),
-            &color_image_);
+    destroy(&backend_->device(), &color_image_);
 
     imgui_.reset();
 
     backend_.reset();
 }
 
-void gltfviewer::application_t::on_resize([[maybe_unused]] uint32_t width, [[maybe_unused]] uint32_t height) {
-    destroy(&backend_->device(),
-            &color_image_);
+void gltfviewer::application_t::on_resize([[maybe_unused]] uint32_t width,
+    [[maybe_unused]] uint32_t height)
+{
+    destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_);
 }
-

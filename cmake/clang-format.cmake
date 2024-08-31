@@ -1,7 +1,12 @@
 find_program(CLANG_FORMAT_EXE NAMES clang-format-18 clang-format REQUIRED)
 message(STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
 
-file(GLOB_RECURSE ALL_SOURCE_FILES src/*.h src/*.c src/*.hpp src/*.cpp)
+file(GLOB_RECURSE ALL_SOURCE_FILES 
+    src/*.h src/*.c 
+    src/*.hpp src/*.cpp 
+    demo/*.h demo/*.c 
+    demo/*.hpp demo/*.cpp
+)
 
 add_custom_target(clang-format 
     COMMAND 
