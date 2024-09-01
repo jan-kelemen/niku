@@ -17,6 +17,7 @@ target_link_libraries(gltfviewer
     PRIVATE
         niku
     PRIVATE
+        fastgltf::fastgltf
         imgui::imgui
         Vulkan::Loader
     PRIVATE
