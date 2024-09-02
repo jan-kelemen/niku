@@ -1,5 +1,7 @@
 #include <application.hpp>
 
+#include <model_selector.hpp>
+
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 
@@ -14,17 +16,24 @@
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 
+#include <fmt/std.h> // IWYU pragma: keep
+
 #include <imgui.h>
 
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_video.h>
 
+#include <spdlog/spdlog.h>
+
 #include <vulkan/vulkan_core.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <variant>
+
+// IWYU pragma: no_include <fmt/base.h>
 
 namespace
 {
@@ -74,7 +83,15 @@ bool gltfviewer::application_t::handle_event(
 
 void gltfviewer::application_t::update([[maybe_unused]] float delta_time) { }
 
-void gltfviewer::application_t::begin_frame() { imgui_->begin_frame(); }
+void gltfviewer::application_t::begin_frame()
+{
+    imgui_->begin_frame();
+    if (should_reload_model_)
+    {
+        spdlog::info("Start loading: {}", selector_.selected_model());
+        should_reload_model_ = false;
+    }
+}
 
 bool gltfviewer::application_t::begin_draw()
 {
@@ -127,6 +144,11 @@ void gltfviewer::application_t::draw()
     }
 
     ImGui::ShowMetricsWindow();
+
+    if (selector_.draw_imgui())
+    {
+        should_reload_model_ = true;
+    }
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,

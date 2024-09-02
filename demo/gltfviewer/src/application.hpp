@@ -1,6 +1,8 @@
 #ifndef BEAM_APPLICATION_INCLUDED
 #define BEAM_APPLICATION_INCLUDED
 
+#include <model_selector.hpp>
+
 #include <niku_application.hpp>
 
 #include <vkrndr_image.hpp>
@@ -65,6 +67,9 @@ namespace gltfviewer
         std::unique_ptr<niku::imgui_layer_t> imgui_;
 
         vkrndr::image_t color_image_;
+
+        model_selector_t selector_;
+        bool should_reload_model_{};
     };
 } // namespace gltfviewer
 #endif

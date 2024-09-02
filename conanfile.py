@@ -21,6 +21,7 @@ class NikuConan(ConanFile):
         self.requires("imgui/1.91.0-docking")
         self.requires("perlinnoise/3.0.0")
         self.requires("sdl/2.30.6")
+        self.requires("simdjson/3.10.0")
         self.requires("spdlog/1.14.1")
         self.requires("stb/cci.20240531")
         self.requires("vulkan-headers/1.3.268.0")
