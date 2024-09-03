@@ -5,6 +5,8 @@
 
 #include <niku_application.hpp>
 
+#include <vkgltf_loader.hpp>
+
 #include <vkrndr_image.hpp>
 
 #include <SDL2/SDL_events.h>
@@ -69,7 +71,7 @@ namespace gltfviewer
         vkrndr::image_t color_image_;
 
         model_selector_t selector_;
-        bool should_reload_model_{};
+        vkgltf::loader_t gltf_loader_;
     };
 } // namespace gltfviewer
 #endif

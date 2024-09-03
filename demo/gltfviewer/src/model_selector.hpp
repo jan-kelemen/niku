@@ -48,7 +48,7 @@ namespace gltfviewer
         ~model_selector_t() = default;
 
     public:
-        [[nodiscard]] bool draw_imgui();
+        [[nodiscard]] bool select_model();
 
         [[nodiscard]] std::filesystem::path selected_model();
 

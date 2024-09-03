@@ -18,8 +18,8 @@ target_include_directories(gltfviewer
 target_link_libraries(gltfviewer
     PRIVATE
         niku
+        vkgltf
     PRIVATE
-        fastgltf::fastgltf
         fmt::fmt
         imgui::imgui
         simdjson::simdjson

@@ -9,6 +9,8 @@
 #include <niku_imgui_layer.hpp>
 #include <niku_sdl_window.hpp> // IWYU pragma: keep
 
+#include <vkgltf_loader.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_device.hpp>
@@ -70,6 +72,7 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->device(),
           backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
+    , gltf_loader_{backend_.get()}
 {
 }
 
@@ -86,10 +89,19 @@ void gltfviewer::application_t::update([[maybe_unused]] float delta_time) { }
 void gltfviewer::application_t::begin_frame()
 {
     imgui_->begin_frame();
-    if (should_reload_model_)
+    if (selector_.select_model())
     {
-        spdlog::info("Start loading: {}", selector_.selected_model());
-        should_reload_model_ = false;
+        std::filesystem::path const model_path{selector_.selected_model()};
+        spdlog::info("Start loading: {}", model_path);
+
+        auto model{gltf_loader_.load(model_path)};
+        if (!model.has_value())
+        {
+            spdlog::error("Failed to load model: {}. Reason: {}",
+                model_path,
+                model.error().message());
+        }
+        spdlog::info("End loading: {}", model_path);
     }
 }
 
@@ -144,11 +156,6 @@ void gltfviewer::application_t::draw()
     }
 
     ImGui::ShowMetricsWindow();
-
-    if (selector_.draw_imgui())
-    {
-        should_reload_model_ = true;
-    }
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,

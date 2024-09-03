@@ -29,13 +29,11 @@ gltfviewer::model_selector_t::model_selector_t() : index_path_buffer_{}
         std::iterator_traits<decltype(str)::iterator>::difference_type;
     std::ranges::copy_n(std::begin(str),
         cppext::narrow<diff_t>(
-            std::min(
-                std::size(str),
-            std::size(index_path_buffer_))),
+            std::min(std::size(str), std::size(index_path_buffer_))),
         std::begin(index_path_buffer_));
 }
 
-bool gltfviewer::model_selector_t::draw_imgui()
+bool gltfviewer::model_selector_t::select_model()
 {
     if (ImGui::InputText("model-index.json path",
             index_path_buffer_.data(),
@@ -155,6 +153,7 @@ std::filesystem::path gltfviewer::model_selector_t::selected_model()
 
     std::filesystem::path rv{std::string_view{index_path_buffer_}};
     rv.remove_filename();
+    rv /= sample.name;
     rv /= variant.name;
     rv /= variant.file;
 
