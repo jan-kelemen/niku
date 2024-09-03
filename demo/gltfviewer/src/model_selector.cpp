@@ -14,7 +14,6 @@
 #include <cstddef>
 #include <filesystem>
 #include <iterator>
-#include <ranges>
 #include <string_view>
 #include <utility>
 
@@ -90,15 +89,14 @@ bool gltfviewer::model_selector_t::select_model()
 
     if (ImGui::BeginCombo("Model", model_preview_value, 0))
     {
-        for (auto const& [i, sample] : std::views::enumerate(samples_))
+        int i{};
+        for (auto const& sample : samples_)
         {
             auto const selected{selected_sample_ == i};
 
-            if (ImGui::Selectable(
-                    samples_[cppext::narrow<size_t>(i)].label.c_str(),
-                    selected))
+            if (ImGui::Selectable(sample.label.c_str(), selected))
             {
-                selected_sample_ = cppext::narrow<int>(i);
+                selected_sample_ = i;
                 selected_variant_ = 0;
             }
 
@@ -106,6 +104,8 @@ bool gltfviewer::model_selector_t::select_model()
             {
                 ImGui::SetItemDefaultFocus();
             }
+
+            ++i;
         }
         ImGui::EndCombo();
     }
@@ -121,23 +121,22 @@ bool gltfviewer::model_selector_t::select_model()
 
     if (ImGui::BeginCombo("Variant", variant_preview, 0))
     {
-        for (auto const& [i, variant] :
-            std::views::enumerate(current_sample.variants))
+        int i{};
+        for (auto const& variant : current_sample.variants)
         {
             auto const selected{selected_variant_ == i};
 
-            if (ImGui::Selectable(
-                    current_sample.variants[cppext::narrow<size_t>(i)]
-                        .name.c_str(),
-                    selected))
+            if (ImGui::Selectable(variant.name.c_str(), selected))
             {
-                selected_variant_ = cppext::narrow<int>(i);
+                selected_variant_ = i;
             }
 
             if (selected)
             {
                 ImGui::SetItemDefaultFocus();
             }
+
+            ++i;
         }
         ImGui::EndCombo();
     }
