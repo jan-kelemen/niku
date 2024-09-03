@@ -10,3 +10,6 @@ compile_commands.json
 .vs/
 .idea/
 .cache/
+
+# ImGui window layout
+imgui.ini
