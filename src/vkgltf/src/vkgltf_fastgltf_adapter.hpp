@@ -7,6 +7,10 @@
 
 #include <fmt/base.h>
 
+#include <vulkan/vulkan_core.h>
+
+#include <cassert>
+
 namespace vkgltf
 {
     [[nodiscard]] constexpr error_t translate_error(fastgltf::Error const err)
@@ -19,10 +23,10 @@ namespace vkgltf
             return error_t::none;
         case Error::InvalidPath: // Invalid directory passed to load*GLTF
             return error_t::invalid_file;
-        case Error::MissingExtensions: // fastgltf::Parser doesn't enable
-                                       // required extensions
-        case Error::UnknownRequiredExtension: // glTF file requires unsupported
-                                              // extensions
+        // fastgltf::Parser doesn't enable required extensions
+        case Error::MissingExtensions:
+        // glTF file requires unsupported extensions
+        case Error::UnknownRequiredExtension:
         case Error::InvalidJson:
         case Error::InvalidGltf:
         case Error::InvalidOrMissingAssetField:
@@ -41,6 +45,41 @@ namespace vkgltf
             return error_t::unknown;
         }
     }
+
+    [[nodiscard]] constexpr VkPrimitiveTopology to_vulkan(
+        fastgltf::PrimitiveType t)
+    {
+        using fastgltf::PrimitiveType;
+
+        // NOLINTBEGIN(bugprone-branch-clone)
+        switch (t)
+        {
+        case PrimitiveType::Points:
+            return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        case PrimitiveType::Lines:
+            return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        case PrimitiveType::LineLoop:
+            // TODO-JK: This is wrong, LineLoop should connect first and last
+            // vertex A different question is if there is any need to support it
+            // actually
+            return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        case PrimitiveType::LineStrip:
+            return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+        case PrimitiveType::Triangles:
+            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        case PrimitiveType::TriangleStrip:
+            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        case PrimitiveType::TriangleFan:
+            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+        default:
+            assert(false);
+            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        }
+        // NOLINTEND(bugprone-branch-clone)
+
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    }
+
 } // namespace vkgltf
 
 template<>

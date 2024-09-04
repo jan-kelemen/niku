@@ -39,7 +39,8 @@
 
 namespace
 {
-    vkrndr::image_t create_color_image(vkrndr::backend_t const& backend)
+    [[nodiscard]] vkrndr::image_t create_color_image(
+        vkrndr::backend_t const& backend)
     {
         return vkrndr::create_image_and_view(backend.device(),
             backend.extent(),
@@ -100,6 +101,22 @@ void gltfviewer::application_t::begin_frame()
             spdlog::error("Failed to load model: {}. Reason: {}",
                 model_path,
                 model.error().message());
+        }
+
+        spdlog::info("Loaded {} meshes", model->meshes.size());
+        for (auto const& mesh : model->meshes)
+        {
+            spdlog::info("Mesh '{}' primitives {}",
+                mesh.name,
+                mesh.primitives.size());
+            for (auto const& primitive : mesh.primitives)
+            {
+                spdlog::info("positions {} normals {} tangents {} uvs {}",
+                    primitive.positions.size(),
+                    primitive.normals.size(),
+                    primitive.tangents.size(),
+                    primitive.uvs.size());
+            }
         }
         spdlog::info("End loading: {}", model_path);
     }
