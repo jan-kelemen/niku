@@ -2,6 +2,7 @@
 #define BEAM_APPLICATION_INCLUDED
 
 #include <model_selector.hpp>
+#include <pbr_renderer.hpp>
 
 #include <niku_application.hpp>
 
@@ -72,6 +73,8 @@ namespace gltfviewer
 
         model_selector_t selector_;
         vkgltf::loader_t gltf_loader_;
+
+        std::unique_ptr<pbr_renderer_t> pbr_renderer_;
     };
 } // namespace gltfviewer
 #endif

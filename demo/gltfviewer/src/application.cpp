@@ -1,6 +1,7 @@
 #include <application.hpp>
 
 #include <model_selector.hpp>
+#include <pbr_renderer.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
@@ -15,7 +16,6 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 
 #include <fmt/std.h> // IWYU pragma: keep
@@ -74,6 +74,7 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
     , gltf_loader_{backend_.get()}
+    , pbr_renderer_{std::make_unique<pbr_renderer_t>(backend_.get())}
 {
 }
 
@@ -118,6 +119,9 @@ void gltfviewer::application_t::begin_frame()
                     primitive.uvs.size());
             }
         }
+
+        pbr_renderer_->load_model(*model);
+
         spdlog::info("End loading: {}", model_path);
     }
 }
@@ -151,26 +155,7 @@ void gltfviewer::application_t::draw()
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    vkrndr::transition_image(color_image_.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_PIPELINE_STAGE_2_BLIT_BIT,
-        VK_ACCESS_2_TRANSFER_READ_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        1);
-
-    {
-        vkrndr::render_pass_t color_render_pass;
-        color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            color_image_.view,
-            VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
-
-        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, target_image.extent})};
-    }
+    pbr_renderer_->draw(command_buffer, color_image_);
 
     ImGui::ShowMetricsWindow();
 
@@ -237,6 +222,8 @@ void gltfviewer::application_t::end_frame() { imgui_->end_frame(); }
 void gltfviewer::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device().logical);
+
+    pbr_renderer_.reset();
 
     destroy(&backend_->device(), &color_image_);
 
