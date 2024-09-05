@@ -55,6 +55,8 @@ namespace vkgltf
             std::vector<uint16_t>,
             std::vector<uint32_t>>
             buffer;
+
+        [[nodiscard]] uint32_t count() const;
     };
 
     struct [[nodiscard]] primitive_t final

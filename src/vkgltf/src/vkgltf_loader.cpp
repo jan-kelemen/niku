@@ -68,7 +68,7 @@ namespace
         {
             std::vector<uint16_t> data;
             data.resize(accessor.count);
-            fastgltf::copyFromAccessor<uint8_t>(asset, accessor, data.data());
+            fastgltf::copyFromAccessor<uint16_t>(asset, accessor, data.data());
             return vkgltf::index_buffer_t{.buffer = std::move(data)};
         }
 
@@ -76,7 +76,7 @@ namespace
         {
             std::vector<uint32_t> data;
             data.resize(accessor.count);
-            fastgltf::copyFromAccessor<uint8_t>(asset, accessor, data.data());
+            fastgltf::copyFromAccessor<uint32_t>(asset, accessor, data.data());
             return vkgltf::index_buffer_t{.buffer = std::move(data)};
         }
 
@@ -103,7 +103,7 @@ namespace
             for (fastgltf::Primitive const& primitive : mesh.primitives)
             {
                 vkgltf::primitive_t p{
-                    p.topology = vkgltf::to_vulkan(primitive.type)};
+                    .topology = vkgltf::to_vulkan(primitive.type)};
 
                 copy_attribute(asset,
                     primitive,
