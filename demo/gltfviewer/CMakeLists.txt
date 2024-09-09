@@ -3,10 +3,12 @@ add_executable(gltfviewer)
 target_sources(gltfviewer
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gltfviewer.m.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.cpp
@@ -21,6 +23,7 @@ target_link_libraries(gltfviewer
     PRIVATE
         niku
         vkgltf
+        vkrndr
     PRIVATE
         fmt::fmt
         glm::glm

@@ -1,10 +1,13 @@
 #ifndef BEAM_APPLICATION_INCLUDED
 #define BEAM_APPLICATION_INCLUDED
 
+#include <camera_controller.hpp>
 #include <model_selector.hpp>
 #include <pbr_renderer.hpp>
 
 #include <niku_application.hpp>
+#include <niku_mouse.hpp>
+#include <niku_perspective_camera.hpp>
 
 #include <vkgltf_loader.hpp>
 
@@ -66,15 +69,18 @@ namespace gltfviewer
         void on_resize(uint32_t width, uint32_t height) override;
 
     private:
+        niku::mouse_t mouse_;
+        niku::perspective_camera_t camera_;
+
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<niku::imgui_layer_t> imgui_;
-
         vkrndr::image_t color_image_;
+        std::unique_ptr<pbr_renderer_t> pbr_renderer_;
+
+        camera_controller_t camera_controller_;
 
         model_selector_t selector_;
         vkgltf::loader_t gltf_loader_;
-
-        std::unique_ptr<pbr_renderer_t> pbr_renderer_;
     };
 } // namespace gltfviewer
 #endif

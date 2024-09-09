@@ -1,20 +1,29 @@
-#include "vkrndr_memory.hpp"
-#include <algorithm>
 #include <pbr_renderer.hpp>
 
+#include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
+
+#include <niku_camera.hpp>
 
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_descriptors.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
+#include <vkrndr_utility.hpp>
 
+#include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
+#include <vulkan/vulkan_core.h>
+
+#include <algorithm>
+#include <array>
 #include <ranges>
 
 namespace
@@ -44,13 +53,71 @@ namespace
 
         return descriptions;
     }
+
+    struct [[nodiscard]] camera_uniform_t final
+    {
+        glm::mat4 view;
+        glm::mat4 projection;
+    };
+
+    [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
+        vkrndr::device_t const& device)
+    {
+        VkDescriptorSetLayoutBinding camera_uniform_binding{};
+        camera_uniform_binding.binding = 0;
+        camera_uniform_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        camera_uniform_binding.descriptorCount = 1;
+        camera_uniform_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        std::array const bindings{camera_uniform_binding};
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.bindingCount = vkrndr::count_cast(bindings.size());
+        layout_info.pBindings = bindings.data();
+
+        VkDescriptorSetLayout rv; // NOLINT
+        vkrndr::check_result(vkCreateDescriptorSetLayout(device.logical,
+            &layout_info,
+            nullptr,
+            &rv));
+
+        return rv;
+    }
+
+    void bind_descriptor_set(vkrndr::device_t const& device,
+        VkDescriptorSet const descriptor_set,
+        VkDescriptorBufferInfo const camera_uniform_info)
+    {
+        VkWriteDescriptorSet camera_uniform_write{};
+        camera_uniform_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        camera_uniform_write.dstSet = descriptor_set;
+        camera_uniform_write.dstBinding = 0;
+        camera_uniform_write.dstArrayElement = 0;
+        camera_uniform_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        camera_uniform_write.descriptorCount = 1;
+        camera_uniform_write.pBufferInfo = &camera_uniform_info;
+
+        std::array const descriptor_writes{camera_uniform_write};
+
+        vkUpdateDescriptorSets(device.logical,
+            vkrndr::count_cast(descriptor_writes.size()),
+            descriptor_writes.data(),
+            0,
+            nullptr);
+    }
+
 } // namespace
 
 gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
     : backend_{backend}
+    , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
     , pipeline_{
           vkrndr::pipeline_builder_t{&backend_->device(),
-              vkrndr::pipeline_layout_builder_t{&backend_->device()}.build(),
+              vkrndr::pipeline_layout_builder_t{&backend_->device()}
+                  .add_descriptor_set_layout(descriptor_set_layout_)
+                  .build(),
               backend_->image_format()}
               .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
               .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
@@ -59,10 +126,49 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
               .add_vertex_input(binding_description(), attribute_descriptions())
               .build()}
 {
+    frame_data_ = cppext::cycled_buffer_t<frame_data_t>{backend_->image_count(),
+        backend_->image_count()};
+
+    for (auto& data : frame_data_.as_span())
+    {
+        auto const camera_uniform_buffer_size{sizeof(camera_uniform_t)};
+        data.camera_uniform = create_buffer(backend_->device(),
+            camera_uniform_buffer_size,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        data.camera_uniform_map =
+            vkrndr::map_memory(backend_->device(), data.camera_uniform);
+
+        vkrndr::create_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            std::span{&descriptor_set_layout_, 1},
+            std::span{&data.descriptor_set, 1});
+
+        bind_descriptor_set(backend_->device(),
+            data.descriptor_set,
+            VkDescriptorBufferInfo{.buffer = data.camera_uniform.buffer,
+                .offset = 0,
+                .range = camera_uniform_buffer_size});
+    }
 }
 
 gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 {
+    for (auto& data : frame_data_.as_span())
+    {
+        unmap_memory(backend_->device(), &data.camera_uniform_map);
+        destroy(&backend_->device(), &data.camera_uniform);
+
+        vkrndr::free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            std::span{&data.descriptor_set, 1});
+    }
+
+    vkDestroyDescriptorSetLayout(backend_->device().logical,
+        descriptor_set_layout_,
+        nullptr);
+
     destroy(&backend_->device(), &pipeline_);
     destroy(&backend_->device(), &vertex_buffer_);
     destroy(&backend_->device(), &index_buffer_);
@@ -153,6 +259,16 @@ void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t const& model)
     index_count_ = index_count;
 }
 
+void gltfviewer::pbr_renderer_t::update(niku::camera_t const& camera)
+{
+    frame_data_.cycle();
+
+    auto* const camera_uniform{
+        frame_data_->camera_uniform_map.as<camera_uniform_t>()};
+    camera_uniform->view = camera.view_matrix();
+    camera_uniform->projection = camera.projection_matrix();
+}
+
 void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& target_image)
 {
@@ -181,7 +297,10 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             return;
         }
 
-        vkrndr::bind_pipeline(command_buffer, pipeline_);
+        vkrndr::bind_pipeline(command_buffer,
+            pipeline_,
+            0,
+            std::span{&frame_data_->descriptor_set, 1});
 
         VkDeviceSize const zero_offset{};
         vkCmdBindVertexBuffers(command_buffer,

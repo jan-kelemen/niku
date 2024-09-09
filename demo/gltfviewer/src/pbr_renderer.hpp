@@ -1,12 +1,20 @@
 #ifndef GLTFVIEWER_PBR_RENDERER_INCLUDED
 #define GLTFVIEWER_PBR_RENDERER_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <cppext_cycled_buffer.hpp>
 
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 
+#include <vulkan/vulkan_core.h>
+
 #include <cstdint>
+
+namespace niku
+{
+    class camera_t;
+} // namespace niku
 
 namespace vkgltf
 {
@@ -36,6 +44,8 @@ namespace gltfviewer
     public:
         void load_model(vkgltf::model_t const& model);
 
+        void update(niku::camera_t const& camera);
+
         void draw(VkCommandBuffer command_buffer,
             vkrndr::image_t const& target_image);
 
@@ -45,6 +55,14 @@ namespace gltfviewer
         pbr_renderer_t& operator=(pbr_renderer_t&&) noexcept = delete;
 
     private:
+        struct [[nodiscard]] frame_data_t final
+        {
+            vkrndr::buffer_t camera_uniform;
+            vkrndr::mapped_memory_t camera_uniform_map;
+            VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
+        };
+
+    private:
         vkrndr::backend_t* backend_;
 
         vkrndr::buffer_t vertex_buffer_;
@@ -52,7 +70,10 @@ namespace gltfviewer
         vkrndr::buffer_t index_buffer_;
         uint32_t index_count_{};
 
+        VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t pipeline_;
+
+        cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };
 } // namespace gltfviewer
 #endif

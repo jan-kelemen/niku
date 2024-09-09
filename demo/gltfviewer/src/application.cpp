@@ -75,18 +75,25 @@ gltfviewer::application_t::application_t(bool const debug)
     , color_image_{create_color_image(*backend_)}
     , gltf_loader_{backend_.get()}
     , pbr_renderer_{std::make_unique<pbr_renderer_t>(backend_.get())}
+    , camera_controller_{camera_, mouse_}
 {
 }
 
 gltfviewer::application_t::~application_t() = default;
 
-bool gltfviewer::application_t::handle_event(
-    [[maybe_unused]] SDL_Event const& event)
+bool gltfviewer::application_t::handle_event(SDL_Event const& event)
 {
-    return imgui_->handle_event(event);
+    camera_controller_.handle_event(event);
+
+    [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
+
+    return true;
 }
 
-void gltfviewer::application_t::update([[maybe_unused]] float delta_time) { }
+void gltfviewer::application_t::update(float delta_time)
+{
+    camera_controller_.update(delta_time);
+}
 
 void gltfviewer::application_t::begin_frame()
 {
@@ -128,18 +135,29 @@ void gltfviewer::application_t::begin_frame()
 
 bool gltfviewer::application_t::begin_draw()
 {
-    return std::visit(
+    auto const rv{std::visit(
         cppext::overloaded{[](bool const acquired) { return acquired; },
             [this](VkExtent2D const extent)
             {
                 on_resize(extent.width, extent.height);
                 return false;
             }},
-        backend_->begin_frame());
+        backend_->begin_frame())};
+
+    if (rv)
+    {
+        pbr_renderer_->update(camera_);
+    }
+
+    return rv;
 }
 
 void gltfviewer::application_t::draw()
 {
+    ImGui::ShowMetricsWindow();
+
+    camera_controller_.draw_imgui();
+
     auto target_image{backend_->swapchain_image()};
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer(false)};
@@ -156,8 +174,6 @@ void gltfviewer::application_t::draw()
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     pbr_renderer_->draw(command_buffer, color_image_);
-
-    ImGui::ShowMetricsWindow();
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,
