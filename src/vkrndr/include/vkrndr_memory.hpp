@@ -23,8 +23,8 @@ namespace vkrndr
 
     struct [[nodiscard]] mapped_memory_t final
     {
-        VmaAllocation allocation;
-        void* mapped_memory;
+        VmaAllocation allocation{VK_NULL_HANDLE};
+        void* mapped_memory{nullptr};
 
         template<typename T>
         [[nodiscard]] T* as(size_t offset = 0)

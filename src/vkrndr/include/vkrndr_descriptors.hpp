@@ -12,8 +12,12 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    void create_descriptor_sets(device_t const* device,
-        VkDescriptorSetLayout layout,
+    void create_descriptor_sets(device_t const& device,
+        VkDescriptorPool descriptor_pool,
+        std::span<VkDescriptorSetLayout const> const& layouts,
+        std::span<VkDescriptorSet> descriptor_sets);
+
+    void free_descriptor_sets(device_t const& device,
         VkDescriptorPool descriptor_pool,
         std::span<VkDescriptorSet> descriptor_sets);
 } // namespace vkrndr
