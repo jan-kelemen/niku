@@ -7,9 +7,12 @@
 
 #include <fmt/base.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <vulkan/vulkan_core.h>
 
 #include <cassert>
+#include <cstddef>
 
 namespace vkgltf
 {
@@ -78,6 +81,102 @@ namespace vkgltf
         // NOLINTEND(bugprone-branch-clone)
 
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    }
+
+    template<typename T, size_t N>
+    [[nodiscard]] constexpr glm::vec<N, T> to_glm(
+        fastgltf::math::vec<T, N> const& vec)
+    {
+        if constexpr (N == 2)
+        {
+            return glm::make_vec2(vec.data());
+        }
+        else if constexpr (N == 3)
+        {
+            return glm::make_vec3(vec.data());
+        }
+        else if constexpr (N == 4)
+        {
+            return glm::make_vec4(vec.data());
+        }
+        else
+        {
+            static_assert(false);
+        }
+    }
+
+    template<typename T>
+    [[nodiscard]] constexpr glm::tquat<T> to_glm(
+        fastgltf::math::quat<T> const& quat)
+    {
+        return glm::make_quat(quat.value_ptr());
+    }
+
+    template<typename T, size_t N, size_t M>
+    [[nodiscard]] constexpr glm::mat<N, M, T> to_glm(
+        fastgltf::math::mat<T, N, M> const& mat)
+    {
+        if constexpr (N == 2)
+        {
+            if constexpr (N == 2)
+            {
+                return glm::make_mat2x2(mat.data());
+            }
+            else if constexpr (N == 3)
+            {
+                return glm::make_mat2x3(mat.data());
+            }
+            else if constexpr (N == 4)
+            {
+                return glm::make_mat2x4(mat.data());
+            }
+            else
+            {
+                static_assert(false);
+            }
+        }
+        else if constexpr (N == 3)
+        {
+            if constexpr (N == 2)
+            {
+                return glm::make_mat3x2(mat.data());
+            }
+            else if constexpr (N == 3)
+            {
+                return glm::make_mat3x3(mat.data());
+            }
+            else if constexpr (N == 4)
+            {
+                return glm::make_mat3x4(mat.data());
+            }
+            else
+            {
+                static_assert(false);
+            }
+        }
+        else if constexpr (N == 4)
+        {
+            if constexpr (N == 2)
+            {
+                return glm::make_mat4x2(mat.data());
+            }
+            else if constexpr (N == 3)
+            {
+                return glm::make_mat4x3(mat.data());
+            }
+            else if constexpr (N == 4)
+            {
+                return glm::make_mat4x4(mat.data());
+            }
+            else
+            {
+                static_assert(false);
+            }
+        }
+        else
+        {
+            static_assert(false);
+        }
     }
 
 } // namespace vkgltf

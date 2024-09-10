@@ -1,7 +1,6 @@
-#include <optional>
-#include <utility>
 #include <vkgltf_loader.hpp>
 
+#include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
 
 #include <vkgltf_error.hpp>
@@ -15,11 +14,16 @@
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <spdlog/spdlog.h>
 
 #include <tl/expected.hpp>
 
+#include <optional>
 #include <system_error>
+#include <utility>
+#include <variant>
 
 namespace
 {
@@ -99,7 +103,7 @@ namespace
         model.meshes.reserve(asset.meshes.size());
         for (fastgltf::Mesh const& mesh : asset.meshes)
         {
-            vkgltf::mesh_t m{.name{mesh.name}};
+            vkgltf::mesh_t m{.name = std::string{mesh.name}};
             for (fastgltf::Primitive const& primitive : mesh.primitives)
             {
                 vkgltf::primitive_t p{
@@ -119,6 +123,50 @@ namespace
             }
 
             model.meshes.push_back(std::move(m));
+        }
+    }
+
+    void load_nodes(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    {
+        for (fastgltf::Node const& node : asset.nodes)
+        {
+            vkgltf::node_t n{.name = std::string{node.name}};
+
+            if (node.meshIndex)
+            {
+                n.mesh = *node.meshIndex;
+            }
+
+            n.matrix = std::visit(
+                cppext::overloaded{[](fastgltf::TRS const& trs)
+                    {
+                        return glm::translate(glm::mat4{1.0f},
+                                   vkgltf::to_glm(trs.translation)) *
+                            glm::mat4_cast(vkgltf::to_glm(trs.rotation)) *
+                            glm::scale(glm::mat4{1.0f},
+                                vkgltf::to_glm(trs.scale));
+                    },
+                    [](fastgltf::math::fmat4x4 const& mat)
+                    { return vkgltf::to_glm(mat); }},
+                node.transform);
+
+            n.children.reserve(node.children.size());
+            std::ranges::copy(node.children, std::back_inserter(n.children));
+
+            model.nodes.push_back(std::move(n));
+        }
+    }
+
+    void load_scenes(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    {
+        for (fastgltf::Scene const& scene : asset.scenes)
+        {
+            vkgltf::scene_t s{.name = std::string{scene.name}};
+
+            s.nodes.reserve(scene.nodeIndices.size());
+            std::ranges::copy(scene.nodeIndices, std::back_inserter(s.nodes));
+
+            model.scenes.push_back(std::move(s));
         }
     }
 
@@ -169,6 +217,8 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     try
     {
         load_meshes(asset.get(), rv);
+        load_nodes(asset.get(), rv);
+        load_scenes(asset.get(), rv);
     }
     catch (std::exception const& ex)
     {
