@@ -84,14 +84,15 @@ bool vkrndr::has_stencil_component(VkFormat format)
 
 vkrndr::image_t vkrndr::create_depth_buffer(device_t const& device,
     VkExtent2D const extent,
-    bool const with_stencil_component)
+    bool const with_stencil_component,
+    std::optional<VkSampleCountFlagBits> sample_count)
 {
     VkFormat const depth_format{
         find_depth_format(device.physical, with_stencil_component)};
     return create_image_and_view(device,
         extent,
         1,
-        device.max_msaa_samples,
+        sample_count.value_or(device.max_msaa_samples),
         depth_format,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
