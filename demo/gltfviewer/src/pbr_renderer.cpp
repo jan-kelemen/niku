@@ -28,16 +28,11 @@
 
 namespace
 {
-    struct [[nodiscard]] vertex_t final
-    {
-        glm::vec3 position;
-    };
-
     consteval auto binding_description()
     {
         constexpr std::array descriptions{
             VkVertexInputBindingDescription{.binding = 0,
-                .stride = sizeof(vertex_t),
+                .stride = sizeof(vkgltf::vertex_t),
                 .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
 
         return descriptions;
@@ -49,7 +44,7 @@ namespace
             VkVertexInputAttributeDescription{.location = 0,
                 .binding = 0,
                 .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(vertex_t, position)}};
+                .offset = offsetof(vkgltf::vertex_t, position)}};
 
         return descriptions;
     }
@@ -143,10 +138,10 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
             std::span{&descriptor_set_layout_, 1},
-            std::span{&data.descriptor_set, 1});
+            std::span{&data.camera_descriptor_set, 1});
 
         bind_descriptor_set(backend_->device(),
-            data.descriptor_set,
+            data.camera_descriptor_set,
             VkDescriptorBufferInfo{.buffer = data.camera_uniform.buffer,
                 .offset = 0,
                 .range = camera_uniform_buffer_size});
@@ -162,7 +157,7 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.descriptor_set, 1});
+            std::span{&data.camera_descriptor_set, 1});
     }
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
@@ -170,93 +165,29 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
         nullptr);
 
     destroy(&backend_->device(), &pipeline_);
-    destroy(&backend_->device(), &vertex_buffer_);
-    destroy(&backend_->device(), &index_buffer_);
+    destroy(&backend_->device(), &model_);
 }
 
-void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t const& model)
+void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
 {
-    uint32_t vertex_count{};
-    uint32_t index_count{};
-
-    auto const indexed = [](vkgltf::primitive_t const& primitive)
-    { return primitive.indices.has_value(); };
-
-    for (auto const& mesh : model.meshes)
-    {
-        // TODO-JK: Handle correctly mixture of indexed and nonindexed primitves
-        for (auto const& primitive :
-            mesh.primitives | std::views::filter(indexed))
-        {
-            vertex_count +=
-                cppext::narrow<uint32_t>(primitive.positions.size());
-
-            index_count += primitive.indices->count();
-        }
-    }
-
-    vkrndr::buffer_t vtx_staging_buffer{create_buffer(backend_->device(),
-        vertex_count * sizeof(vertex_t),
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
-    vkrndr::buffer_t idx_staging_buffer{create_buffer(backend_->device(),
-        index_count * sizeof(uint32_t),
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
-    {
-        auto vtx_map{
-            vkrndr::map_memory(backend_->device(), vtx_staging_buffer)};
-        auto idx_map{
-            vkrndr::map_memory(backend_->device(), idx_staging_buffer)};
-
-        vertex_t* vertices{vtx_map.as<vertex_t>()};
-        uint32_t* indices{idx_map.as<uint32_t>()};
-
-        for (auto const& mesh : model.meshes)
-        {
-            for (auto const& primitive :
-                mesh.primitives | std::views::filter(indexed))
-            {
-                vertices = std::ranges::transform(primitive.positions,
-                    vertices,
-                    [](glm::vec3 const& pos) {
-                        return vertex_t{.position = pos};
-                    }).out;
-                indices = std::visit(
-                    [&indices](auto const& buff) mutable
-                    {
-                        return std::ranges::transform(buff,
-                            indices,
-                            [](uint32_t idx) { return idx; })
-                            .out;
-                    },
-                    primitive.indices->buffer);
-            }
-        }
-
-        vkrndr::unmap_memory(backend_->device(), &vtx_map);
-        vkrndr::unmap_memory(backend_->device(), &idx_map);
-    }
-
-    vertex_buffer_ = create_buffer(backend_->device(),
-        vtx_staging_buffer.size,
+    auto real_vertex_buffer{create_buffer(backend_->device(),
+        model.vertex_buffer.size,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    index_buffer_ = create_buffer(backend_->device(),
-        idx_staging_buffer.size,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+    auto real_index_buffer{create_buffer(backend_->device(),
+        model.index_buffer.size,
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
 
-    backend_->transfer_buffer(vtx_staging_buffer, vertex_buffer_);
-    backend_->transfer_buffer(idx_staging_buffer, index_buffer_);
+    backend_->transfer_buffer(model.vertex_buffer, real_vertex_buffer);
+    backend_->transfer_buffer(model.index_buffer, real_index_buffer);
 
-    destroy(&backend_->device(), &vtx_staging_buffer);
-    destroy(&backend_->device(), &idx_staging_buffer);
+    destroy(&backend_->device(), &model.vertex_buffer);
+    destroy(&backend_->device(), &model.index_buffer);
 
-    vertex_count_ = vertex_count;
-    index_count_ = index_count;
+    model_ = std::move(model);
+    model_.vertex_buffer = real_vertex_buffer;
+    model_.index_buffer = real_index_buffer;
 }
 
 void gltfviewer::pbr_renderer_t::update(niku::camera_t const& camera)
@@ -292,7 +223,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
             {{0, 0}, target_image.extent})};
 
-        if (!vertex_count_)
+        if (!model_.vertex_count)
         {
             return;
         }
@@ -300,20 +231,42 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         vkrndr::bind_pipeline(command_buffer,
             pipeline_,
             0,
-            std::span{&frame_data_->descriptor_set, 1});
+            std::span{&frame_data_->camera_descriptor_set, 1});
 
         VkDeviceSize const zero_offset{};
         vkCmdBindVertexBuffers(command_buffer,
             0,
             1,
-            &vertex_buffer_.buffer,
+            &model_.vertex_buffer.buffer,
             &zero_offset);
 
         vkCmdBindIndexBuffer(command_buffer,
-            index_buffer_.buffer,
+            model_.index_buffer.buffer,
             0,
             VK_INDEX_TYPE_UINT32);
 
-        vkCmdDrawIndexed(command_buffer, index_count_, 1, 0, 0, 0);
+        for (auto const& mesh : model_.meshes)
+        {
+            for (auto const& primitive : mesh.primitives)
+            {
+                if (primitive.is_indexed)
+                {
+                    vkCmdDrawIndexed(command_buffer,
+                        primitive.count,
+                        1,
+                        primitive.first,
+                        primitive.vertex_offset,
+                        0);
+                }
+                else
+                {
+                    vkCmdDraw(command_buffer,
+                        primitive.count,
+                        1,
+                        primitive.first,
+                        0);
+                }
+            }
+        }
     }
 }

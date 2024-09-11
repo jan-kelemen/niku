@@ -3,6 +3,8 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <vkgltf_model.hpp>
+
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -42,7 +44,7 @@ namespace gltfviewer
         ~pbr_renderer_t();
 
     public:
-        void load_model(vkgltf::model_t const& model);
+        void load_model(vkgltf::model_t&& model);
 
         void update(niku::camera_t const& camera);
 
@@ -59,16 +61,13 @@ namespace gltfviewer
         {
             vkrndr::buffer_t camera_uniform;
             vkrndr::mapped_memory_t camera_uniform_map;
-            VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
+            VkDescriptorSet camera_descriptor_set{VK_NULL_HANDLE};
         };
 
     private:
         vkrndr::backend_t* backend_;
 
-        vkrndr::buffer_t vertex_buffer_;
-        uint32_t vertex_count_{};
-        vkrndr::buffer_t index_buffer_;
-        uint32_t index_count_{};
+        vkgltf::model_t model_;
 
         VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t pipeline_;

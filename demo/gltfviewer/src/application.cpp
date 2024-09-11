@@ -111,23 +111,12 @@ void gltfviewer::application_t::begin_frame()
                 model.error().message());
         }
 
-        spdlog::info("Loaded {} meshes", model->meshes.size());
-        for (auto const& mesh : model->meshes)
-        {
-            spdlog::info("Mesh '{}' primitives {}",
-                mesh.name,
-                mesh.primitives.size());
-            for (auto const& primitive : mesh.primitives)
-            {
-                spdlog::info("positions {} normals {} tangents {} uvs {}",
-                    primitive.positions.size(),
-                    primitive.normals.size(),
-                    primitive.tangents.size(),
-                    primitive.uvs.size());
-            }
-        }
+        spdlog::info("Loaded {} meshes, {} vertices, {} indices",
+            model->meshes.size(),
+            model->vertex_count,
+            model->index_count);
 
-        pbr_renderer_->load_model(*model);
+        pbr_renderer_->load_model(std::move(model).value());
 
         spdlog::info("End loading: {}", model_path);
     }
