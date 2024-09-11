@@ -10,6 +10,7 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
@@ -107,6 +108,10 @@ namespace
 
 gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
     : backend_{backend}
+    , depth_buffer_{vkrndr::create_depth_buffer(backend_->device(),
+          backend_->extent(),
+          false,
+          VK_SAMPLE_COUNT_1_BIT)}
     , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
     , pipeline_{
           vkrndr::pipeline_builder_t{&backend_->device(),
@@ -118,8 +123,10 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
               .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
               .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
               .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
+              .with_depth_test(depth_buffer_.format)
               .add_vertex_input(binding_description(), attribute_descriptions())
               .build()}
+
 {
     frame_data_ = cppext::cycled_buffer_t<frame_data_t>{backend_->image_count(),
         backend_->image_count()};
@@ -166,6 +173,7 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 
     destroy(&backend_->device(), &pipeline_);
     destroy(&backend_->device(), &model_);
+    destroy(&backend_->device(), &depth_buffer_);
 }
 
 void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
@@ -219,6 +227,10 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             VK_ATTACHMENT_STORE_OP_STORE,
             target_image.view,
             VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
+        color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            depth_buffer_.view,
+            VkClearValue{.depthStencil = {1.0f, 0}});
 
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
             {{0, 0}, target_image.extent})};
@@ -269,4 +281,13 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             }
         }
     }
+}
+
+void gltfviewer::pbr_renderer_t::resize(uint32_t width, uint32_t height)
+{
+    destroy(&backend_->device(), &depth_buffer_);
+    depth_buffer_ = vkrndr::create_depth_buffer(backend_->device(),
+        VkExtent2D{width, height},
+        false,
+        VK_SAMPLE_COUNT_1_BIT);
 }

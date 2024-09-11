@@ -242,4 +242,6 @@ void gltfviewer::application_t::on_resize([[maybe_unused]] uint32_t width,
 {
     destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_);
+
+    pbr_renderer_->resize(width, height);
 }

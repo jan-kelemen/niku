@@ -5,7 +5,7 @@
 
 #include <vkgltf_model.hpp>
 
-#include <vkrndr_buffer.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 
@@ -51,6 +51,8 @@ namespace gltfviewer
         void draw(VkCommandBuffer command_buffer,
             vkrndr::image_t const& target_image);
 
+        void resize(uint32_t width, uint32_t height);
+
     public:
         pbr_renderer_t& operator=(pbr_renderer_t const&) = delete;
 
@@ -66,6 +68,7 @@ namespace gltfviewer
 
     private:
         vkrndr::backend_t* backend_;
+        vkrndr::image_t depth_buffer_;
 
         vkgltf::model_t model_;
 

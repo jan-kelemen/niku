@@ -11,5 +11,5 @@ layout(location = 0) out vec3 outColor;
 
 void main() {
     gl_Position = camera.projection * camera.view * vec4(inPosition / 2, 1.0);
-    outColor = vec3(0);
+    outColor = inPosition;
 }
