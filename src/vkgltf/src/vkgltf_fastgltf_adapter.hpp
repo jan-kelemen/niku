@@ -79,8 +79,6 @@ namespace vkgltf
             return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         }
         // NOLINTEND(bugprone-branch-clone)
-
-        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     }
 
     template<typename T, size_t N>

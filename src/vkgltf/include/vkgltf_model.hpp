@@ -85,32 +85,30 @@ namespace vkgltf
     };
 
     void destroy(vkrndr::device_t* device, model_t* model);
-
-    constexpr auto vkgltf::node_t::children(model_t& model)
-    {
-        return std::views::transform(child_indices,
-            [&model](size_t const child) mutable
-            { return model.nodes[child]; });
-    }
-
-    constexpr auto vkgltf::node_t::children(model_t const& model) const
-    {
-        return std::views::transform(child_indices,
-            [&model](size_t const child) { return model.nodes[child]; });
-    }
-
-    constexpr auto vkgltf::scene_graph_t::roots(model_t& model)
-    {
-        return std::views::transform(root_indices,
-            [&model](size_t const root) mutable { return model.nodes[root]; });
-    }
-
-    constexpr auto vkgltf::scene_graph_t::roots(model_t const& model) const
-    {
-        return std::views::transform(root_indices,
-            [&model](size_t const root) { return model.nodes[root]; });
-    }
-
 } // namespace vkgltf
+
+constexpr auto vkgltf::node_t::children(vkgltf::model_t& model)
+{
+    return std::views::transform(child_indices,
+        [&model](size_t const child) mutable { return model.nodes[child]; });
+}
+
+constexpr auto vkgltf::node_t::children(vkgltf::model_t const& model) const
+{
+    return std::views::transform(child_indices,
+        [&model](size_t const child) { return model.nodes[child]; });
+}
+
+constexpr auto vkgltf::scene_graph_t::roots(vkgltf::model_t& model)
+{
+    return std::views::transform(root_indices,
+        [&model](size_t const root) mutable { return model.nodes[root]; });
+}
+
+constexpr auto vkgltf::scene_graph_t::roots(vkgltf::model_t const& model) const
+{
+    return std::views::transform(root_indices,
+        [&model](size_t const root) { return model.nodes[root]; });
+}
 
 #endif

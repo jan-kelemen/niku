@@ -47,7 +47,7 @@ namespace
 
             fastgltf::iterateAccessorWithIndex<T>(asset, accessor, transform);
 
-            return accessor.count;
+            return cppext::narrow<uint32_t>(accessor.count);
         }
 
         return 0;
@@ -130,23 +130,58 @@ namespace
                 p.is_indexed = index_count != 0;
                 if (p.is_indexed)
                 {
-                    p.count = index_count;
-                    p.first = running_index_count;
-                    p.vertex_offset = running_vertex_count;
+                    p.count = cppext::narrow<uint32_t>(index_count);
+                    p.first = cppext::narrow<uint32_t>(running_index_count);
+                    p.vertex_offset = cppext::narrow<int32_t>(running_vertex_count);
                 }
                 else
                 {
-                    p.count = vertex_count;
-                    p.first = running_vertex_count;
+                    p.count = cppext::narrow<uint32_t>(vertex_count);
+                    p.first = cppext::narrow<uint32_t>(running_vertex_count);
                 }
 
-                running_vertex_count += vertex_count;
-                running_index_count += index_count;
+                running_vertex_count += cppext::narrow<int32_t>(vertex_count);
+                running_index_count += cppext::narrow<uint32_t>(index_count);
 
                 m.primitives.push_back(std::move(p));
             }
 
             model.meshes.push_back(std::move(m));
+        }
+    }
+
+    void load_nodes(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    {
+        for (fastgltf::Node const& node : asset.nodes)
+        {
+            vkgltf::node_t n{.name = std::string{node.name}};
+
+            if (node.meshIndex)
+            {
+                n.mesh = &model.meshes[*node.meshIndex];
+            }
+
+            n.matrix = vkgltf::to_glm(fastgltf::getTransformMatrix(node));
+
+            n.child_indices.reserve(node.children.size());
+            std::ranges::copy(node.children,
+                std::back_inserter(n.child_indices));
+
+            model.nodes.push_back(std::move(n));
+        }
+    }
+
+    void load_scenes(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    {
+        for (fastgltf::Scene const& scene : asset.scenes)
+        {
+            vkgltf::scene_graph_t s{.name = std::string{scene.name}};
+
+            s.root_indices.reserve(scene.nodeIndices.size());
+            std::ranges::copy(scene.nodeIndices,
+                std::back_inserter(s.root_indices));
+
+            model.scenes.push_back(std::move(s));
         }
     }
 
@@ -165,14 +200,14 @@ namespace
                 {
                     auto const& accessor{
                         asset.accessors[attribute->accessorIndex]};
-                    model.vertex_count += accessor.count;
+                    model.vertex_count += cppext::narrow<uint32_t>(accessor.count);
                 }
 
                 if (primitive.indicesAccessor.has_value())
                 {
                     auto const& accessor{
                         asset.accessors[*primitive.indicesAccessor]};
-                    model.index_count += accessor.count;
+                    model.index_count += cppext::narrow<uint32_t>(accessor.count);
                 }
             }
         }
@@ -245,11 +280,15 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     try
     {
         load_meshes(asset.get(), rv, vertices, indices);
+        
         unmap_memory(backend_->device(), &vertex_map);
         if (indices)
         {
             unmap_memory(backend_->device(), &index_map);
         }
+
+        load_nodes(asset.get(), rv);
+        load_scenes(asset.get(), rv);
     }
     catch (std::exception const& ex)
     {
