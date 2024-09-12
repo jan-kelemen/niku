@@ -29,6 +29,16 @@
 
 namespace
 {
+    struct [[nodiscard]] push_constants_t final
+    {
+        uint32_t transform_index;
+    };
+
+    struct [[nodiscard]] transform_t final
+    {
+        glm::mat4 model;
+    };
+
     consteval auto binding_description()
     {
         constexpr std::array descriptions{
@@ -56,7 +66,7 @@ namespace
         glm::mat4 projection;
     };
 
-    [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
+    [[nodiscard]] VkDescriptorSetLayout create_camera_descriptor_set_layout(
         vkrndr::device_t const& device)
     {
         VkDescriptorSetLayoutBinding camera_uniform_binding{};
@@ -82,7 +92,33 @@ namespace
         return rv;
     }
 
-    void bind_descriptor_set(vkrndr::device_t const& device,
+    [[nodiscard]] VkDescriptorSetLayout create_transform_descriptor_set_layout(
+        vkrndr::device_t const& device)
+    {
+        VkDescriptorSetLayoutBinding transform_uniform_binding{};
+        transform_uniform_binding.binding = 0;
+        transform_uniform_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        transform_uniform_binding.descriptorCount = 1;
+        transform_uniform_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        std::array const bindings{transform_uniform_binding};
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.bindingCount = vkrndr::count_cast(bindings.size());
+        layout_info.pBindings = bindings.data();
+
+        VkDescriptorSetLayout rv; // NOLINT
+        vkrndr::check_result(vkCreateDescriptorSetLayout(device.logical,
+            &layout_info,
+            nullptr,
+            &rv));
+
+        return rv;
+    }
+
+    void bind_camera_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
         VkDescriptorBufferInfo const camera_uniform_info)
     {
@@ -104,6 +140,131 @@ namespace
             nullptr);
     }
 
+    void bind_transform_descriptor_set(vkrndr::device_t const& device,
+        VkDescriptorSet const descriptor_set,
+        VkDescriptorBufferInfo const transform_uniform_info)
+    {
+        VkWriteDescriptorSet transform_storage_write{};
+        transform_storage_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        transform_storage_write.dstSet = descriptor_set;
+        transform_storage_write.dstBinding = 0;
+        transform_storage_write.dstArrayElement = 0;
+        transform_storage_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        transform_storage_write.descriptorCount = 1;
+        transform_storage_write.pBufferInfo = &transform_uniform_info;
+
+        std::array const descriptor_writes{transform_storage_write};
+
+        vkUpdateDescriptorSets(device.logical,
+            vkrndr::count_cast(descriptor_writes.size()),
+            descriptor_writes.data(),
+            0,
+            nullptr);
+    }
+
+    [[nodiscard]] uint32_t nodes_with_mesh(vkgltf::node_t const& node,
+        vkgltf::model_t const& model)
+    {
+        uint32_t rv{node.mesh != nullptr};
+        for (auto const& child : node.children(model))
+        {
+            rv += nodes_with_mesh(child, model);
+        }
+        return rv;
+    }
+
+    [[nodiscard]] uint32_t required_transforms(vkgltf::model_t const& model)
+    {
+        uint32_t rv{};
+        for (auto const& graph : model.scenes)
+        {
+            for (auto const& root : graph.roots(model))
+            {
+                rv += nodes_with_mesh(root, model);
+            }
+        }
+        return rv;
+    }
+
+    [[nodiscard]] uint32_t draw_node(vkgltf::model_t const& model, vkgltf::node_t const& node,
+        glm::mat4 const& transform,
+        VkPipelineLayout const layout,
+        VkCommandBuffer command_buffer, transform_t* transforms, uint32_t const index)
+    {
+        auto const node_transform{transform * node.matrix};
+
+        uint32_t drawn{0};
+        if (node.mesh)
+        {
+            push_constants_t pc{.transform_index = index};
+            vkCmdPushConstants(command_buffer,
+                layout,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                0,
+                sizeof(pc),
+                &pc);
+
+            transforms[index].model = node_transform;
+
+            for (auto const& primitive : node.mesh->primitives)
+            {
+                if (primitive.is_indexed)
+                {
+                    vkCmdDrawIndexed(command_buffer,
+                        primitive.count,
+                        1,
+                        primitive.first,
+                        primitive.vertex_offset,
+                        0);
+                }
+                else
+                {
+                    vkCmdDraw(command_buffer,
+                        primitive.count,
+                        1,
+                        primitive.first,
+                        0);
+                }
+            }
+
+            ++drawn;
+        }
+
+        for (auto const& child : node.children(model))
+        {
+            drawn += draw_node(model,
+                child,
+                node_transform,
+                layout,
+                command_buffer,
+                transforms,
+                index + drawn);
+        }
+
+        return drawn;
+    }
+
+    [[nodiscard]] void draw(vkgltf::model_t const& model,
+        VkPipelineLayout const layout,
+        VkCommandBuffer command_buffer,
+        transform_t* transforms)
+    {
+        uint32_t drawn{0};
+        for (auto const& graph : model.scenes)
+        {
+            for (auto const& root : graph.roots(model))
+            {
+                drawn += draw_node(model,
+                    root,
+                    glm::mat4{1.0f},
+                    layout,
+                    command_buffer,
+                    transforms,
+                    drawn);
+            }
+        }
+    }
+
 } // namespace
 
 gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
@@ -112,11 +273,19 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
           backend_->extent(),
           false,
           VK_SAMPLE_COUNT_1_BIT)}
-    , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
+    , camera_descriptor_set_layout_{create_camera_descriptor_set_layout(
+          backend_->device())}
+    , transform_descriptor_set_layout_{create_transform_descriptor_set_layout(
+          backend_->device())}
     , pipeline_{
           vkrndr::pipeline_builder_t{&backend_->device(),
               vkrndr::pipeline_layout_builder_t{&backend_->device()}
-                  .add_descriptor_set_layout(descriptor_set_layout_)
+                  .add_descriptor_set_layout(camera_descriptor_set_layout_)
+                  .add_descriptor_set_layout(transform_descriptor_set_layout_)
+                  .add_push_constants(VkPushConstantRange{
+                      .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                      .offset = 0,
+                      .size = sizeof(push_constants_t)})
                   .build(),
               backend_->image_format()}
               .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
@@ -144,14 +313,19 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_set_layout_, 1},
+            std::span{&camera_descriptor_set_layout_, 1},
             std::span{&data.camera_descriptor_set, 1});
 
-        bind_descriptor_set(backend_->device(),
+        bind_camera_descriptor_set(backend_->device(),
             data.camera_descriptor_set,
             VkDescriptorBufferInfo{.buffer = data.camera_uniform.buffer,
                 .offset = 0,
                 .range = camera_uniform_buffer_size});
+
+        vkrndr::create_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            std::span{&transform_descriptor_set_layout_, 1},
+            std::span{&data.transform_descriptor_set, 1});
     }
 }
 
@@ -159,16 +333,30 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 {
     for (auto& data : frame_data_.as_span())
     {
-        unmap_memory(backend_->device(), &data.camera_uniform_map);
-        destroy(&backend_->device(), &data.camera_uniform);
+        vkrndr::free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            std::span{&data.transform_descriptor_set, 1});
+
+        if (data.transform_uniform_map.allocation != VK_NULL_HANDLE)
+        {
+            unmap_memory(backend_->device(), &data.transform_uniform_map);
+            destroy(&backend_->device(), &data.transform_uniform);
+        }
 
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
             std::span{&data.camera_descriptor_set, 1});
+
+        unmap_memory(backend_->device(), &data.camera_uniform_map);
+        destroy(&backend_->device(), &data.camera_uniform);
     }
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
-        descriptor_set_layout_,
+        transform_descriptor_set_layout_,
+        nullptr);
+
+    vkDestroyDescriptorSetLayout(backend_->device().logical,
+        camera_descriptor_set_layout_,
         nullptr);
 
     destroy(&backend_->device(), &pipeline_);
@@ -178,6 +366,32 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 
 void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
 {
+    uint32_t const transform_count{required_transforms(model)};
+    VkDeviceSize const transform_buffer_size{
+        transform_count * sizeof(transform_t)};
+    for (auto& data : frame_data_.as_span())
+    {
+        if (data.transform_uniform_map.allocation != VK_NULL_HANDLE)
+        {
+            unmap_memory(backend_->device(), &data.transform_uniform_map);
+            destroy(&backend_->device(), &data.transform_uniform);
+        }
+
+        data.transform_uniform = create_buffer(backend_->device(),
+            transform_buffer_size,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        data.transform_uniform_map =
+            map_memory(backend_->device(), data.transform_uniform);
+
+        bind_transform_descriptor_set(backend_->device(),
+            data.transform_descriptor_set,
+            VkDescriptorBufferInfo{.buffer = data.transform_uniform.buffer,
+                .offset = 0,
+                .range = transform_buffer_size});
+    }
+
     auto real_vertex_buffer{create_buffer(backend_->device(),
         model.vertex_buffer.size,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -192,6 +406,8 @@ void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
 
     destroy(&backend_->device(), &model.vertex_buffer);
     destroy(&backend_->device(), &model.index_buffer);
+
+    destroy(&backend_->device(), &model_);
 
     model_ = std::move(model);
     model_.vertex_buffer = real_vertex_buffer;
@@ -240,10 +456,11 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             return;
         }
 
+        std::array const descriptor_sets{frame_data_->camera_descriptor_set,
+            frame_data_->transform_descriptor_set};
+
         vkrndr::bind_pipeline(command_buffer,
-            pipeline_,
-            0,
-            std::span{&frame_data_->camera_descriptor_set, 1});
+            pipeline_, 0, descriptor_sets);
 
         VkDeviceSize const zero_offset{};
         vkCmdBindVertexBuffers(command_buffer,
@@ -257,29 +474,10 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             0,
             VK_INDEX_TYPE_UINT32);
 
-        for (auto const& mesh : model_.meshes)
-        {
-            for (auto const& primitive : mesh.primitives)
-            {
-                if (primitive.is_indexed)
-                {
-                    vkCmdDrawIndexed(command_buffer,
-                        primitive.count,
-                        1,
-                        primitive.first,
-                        primitive.vertex_offset,
-                        0);
-                }
-                else
-                {
-                    vkCmdDraw(command_buffer,
-                        primitive.count,
-                        1,
-                        primitive.first,
-                        0);
-                }
-            }
-        }
+        ::draw(model_,
+            *pipeline_.layout,
+            command_buffer,
+            frame_data_->transform_uniform_map.as<transform_t>());
     }
 }
 

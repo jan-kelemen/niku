@@ -64,6 +64,10 @@ namespace gltfviewer
             vkrndr::buffer_t camera_uniform;
             vkrndr::mapped_memory_t camera_uniform_map;
             VkDescriptorSet camera_descriptor_set{VK_NULL_HANDLE};
+
+            vkrndr::buffer_t transform_uniform;
+            vkrndr::mapped_memory_t transform_uniform_map;
+            VkDescriptorSet transform_descriptor_set{VK_NULL_HANDLE};
         };
 
     private:
@@ -72,7 +76,8 @@ namespace gltfviewer
 
         vkgltf::model_t model_;
 
-        VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};
+        VkDescriptorSetLayout camera_descriptor_set_layout_{VK_NULL_HANDLE};
+        VkDescriptorSetLayout transform_descriptor_set_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;

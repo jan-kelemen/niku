@@ -109,12 +109,15 @@ void gltfviewer::application_t::begin_frame()
             spdlog::error("Failed to load model: {}. Reason: {}",
                 model_path,
                 model.error().message());
+            return;
         }
 
         spdlog::info("Loaded {} meshes, {} vertices, {} indices",
             model->meshes.size(),
             model->vertex_count,
             model->index_count);
+
+        vkDeviceWaitIdle(backend_->device().logical);
 
         pbr_renderer_->load_model(std::move(model).value());
 
