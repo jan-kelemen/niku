@@ -88,12 +88,9 @@ vkrndr::backend_t::backend_t(window_t const& window,
         fd.present_command_pool = std::make_unique<command_pool_t>(device_,
             fd.present_queue->queue_family());
 
-        if (device_.transfer_queue)
-        {
-            fd.transfer_queue = device_.transfer_queue;
-            fd.transfer_command_pool = std::make_unique<command_pool_t>(device_,
-                fd.transfer_queue->queue_family());
-        }
+        fd.transfer_queue = device_.transfer_queue;
+        fd.transfer_command_pool = std::make_unique<command_pool_t>(device_,
+            fd.transfer_queue->queue_family());
     };
 }
 
@@ -157,10 +154,7 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
     }
 
     frame_data_->present_command_pool->reset();
-    if (frame_data_->transfer_queue)
-    {
-        frame_data_->transfer_command_pool->reset();
-    }
+    frame_data_->transfer_command_pool->reset();
 
     return true;
 }
@@ -178,8 +172,7 @@ void vkrndr::backend_t::end_frame()
 VkCommandBuffer vkrndr::backend_t::request_command_buffer(
     bool const transfer_only)
 {
-    if (transfer_only &&
-        frame_data_->present_queue != frame_data_->transfer_queue)
+    if (transfer_only)
     {
         if (frame_data_->used_transfer_command_buffers ==
             frame_data_->transfer_command_buffers.size())

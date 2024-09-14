@@ -132,7 +132,8 @@ namespace
                 {
                     p.count = cppext::narrow<uint32_t>(index_count);
                     p.first = cppext::narrow<uint32_t>(running_index_count);
-                    p.vertex_offset = cppext::narrow<int32_t>(running_vertex_count);
+                    p.vertex_offset =
+                        cppext::narrow<int32_t>(running_vertex_count);
                 }
                 else
                 {
@@ -200,14 +201,16 @@ namespace
                 {
                     auto const& accessor{
                         asset.accessors[attribute->accessorIndex]};
-                    model.vertex_count += cppext::narrow<uint32_t>(accessor.count);
+                    model.vertex_count +=
+                        cppext::narrow<uint32_t>(accessor.count);
                 }
 
                 if (primitive.indicesAccessor.has_value())
                 {
                     auto const& accessor{
                         asset.accessors[*primitive.indicesAccessor]};
-                    model.index_count += cppext::narrow<uint32_t>(accessor.count);
+                    model.index_count +=
+                        cppext::narrow<uint32_t>(accessor.count);
                 }
             }
         }
@@ -280,7 +283,7 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     try
     {
         load_meshes(asset.get(), rv, vertices, indices);
-        
+
         unmap_memory(backend_->device(), &vertex_map);
         if (indices)
         {

@@ -297,10 +297,15 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
         }
 
         if (device_families.transfer &&
-            device_families.transfer->index == port.queue_family())
+            port.queue_family() == device_families.transfer->index)
         {
             rv.transfer_queue = &port;
         }
+    }
+
+    if (!rv.transfer_queue)
+    {
+        rv.transfer_queue = rv.present_queue;
     }
 
     return rv;
