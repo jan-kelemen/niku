@@ -71,12 +71,20 @@ namespace gltfviewer
         };
 
     private:
+        void recreate_pipeline();
+
+    private:
         vkrndr::backend_t* backend_;
         vkrndr::image_t depth_buffer_;
 
         vkgltf::model_t model_;
 
+        std::vector<VkSampler> samplers_;
+        vkrndr::buffer_t material_uniform_;
+        VkDescriptorSet material_descriptor_set_{VK_NULL_HANDLE};
+
         VkDescriptorSetLayout camera_descriptor_set_layout_{VK_NULL_HANDLE};
+        VkDescriptorSetLayout material_descriptor_set_layout_{VK_NULL_HANDLE};
         VkDescriptorSetLayout transform_descriptor_set_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t pipeline_;
 

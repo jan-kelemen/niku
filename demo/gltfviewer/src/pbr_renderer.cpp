@@ -2,6 +2,7 @@
 
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <niku_camera.hpp>
 
@@ -32,6 +33,7 @@ namespace
     struct [[nodiscard]] push_constants_t final
     {
         uint32_t transform_index;
+        uint32_t material_index;
     };
 
     struct [[nodiscard]] transform_t final
@@ -39,12 +41,19 @@ namespace
         glm::mat4 model;
     };
 
+    struct [[nodiscard]] material_t final
+    {
+        uint32_t texture_index;
+        uint32_t sampler_index;
+    };
+
     consteval auto binding_description()
     {
         constexpr std::array descriptions{
             VkVertexInputBindingDescription{.binding = 0,
                 .stride = sizeof(vkgltf::vertex_t),
-                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
+                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+        };
 
         return descriptions;
     }
@@ -55,7 +64,12 @@ namespace
             VkVertexInputAttributeDescription{.location = 0,
                 .binding = 0,
                 .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(vkgltf::vertex_t, position)}};
+                .offset = offsetof(vkgltf::vertex_t, position)},
+            VkVertexInputAttributeDescription{.location = 1,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32_SFLOAT,
+                .offset = offsetof(vkgltf::vertex_t, uv)},
+        };
 
         return descriptions;
     }
@@ -77,6 +91,51 @@ namespace
         camera_uniform_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
         std::array const bindings{camera_uniform_binding};
+
+        VkDescriptorSetLayoutCreateInfo layout_info{};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.bindingCount = vkrndr::count_cast(bindings.size());
+        layout_info.pBindings = bindings.data();
+
+        VkDescriptorSetLayout rv; // NOLINT
+        vkrndr::check_result(vkCreateDescriptorSetLayout(device.logical,
+            &layout_info,
+            nullptr,
+            &rv));
+
+        return rv;
+    }
+
+    [[nodiscard]] VkDescriptorSetLayout create_material_descriptor_set_layout(
+        vkrndr::device_t const& device,
+        size_t const images,
+        size_t const samplers)
+    {
+        VkDescriptorSetLayoutBinding texture_uniform_binding{};
+        texture_uniform_binding.binding = 0;
+        texture_uniform_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        texture_uniform_binding.descriptorCount =
+            cppext::narrow<uint32_t>(images);
+        texture_uniform_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutBinding sampler_uniform_binding{};
+        sampler_uniform_binding.binding = 1;
+        sampler_uniform_binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        sampler_uniform_binding.descriptorCount =
+            cppext::narrow<uint32_t>(samplers);
+        sampler_uniform_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutBinding material_uniform_binding{};
+        material_uniform_binding.binding = 2;
+        material_uniform_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        material_uniform_binding.descriptorCount = 1;
+        material_uniform_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array const bindings{texture_uniform_binding,
+            sampler_uniform_binding,
+            material_uniform_binding};
 
         VkDescriptorSetLayoutCreateInfo layout_info{};
         layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -140,6 +199,53 @@ namespace
             nullptr);
     }
 
+    void bind_material_descriptor_set(vkrndr::device_t const& device,
+        VkDescriptorSet const descriptor_set,
+        std::span<VkDescriptorImageInfo const> const& textures_info,
+        std::span<VkDescriptorImageInfo const> const& samplers_info,
+        VkDescriptorBufferInfo const material_info)
+    {
+        VkWriteDescriptorSet texture_uniform_write{};
+        texture_uniform_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        texture_uniform_write.dstSet = descriptor_set;
+        texture_uniform_write.dstBinding = 0;
+        texture_uniform_write.dstArrayElement = 0;
+        texture_uniform_write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        texture_uniform_write.descriptorCount =
+            cppext::narrow<uint32_t>(textures_info.size());
+        texture_uniform_write.pImageInfo = textures_info.data();
+
+        VkWriteDescriptorSet sampler_uniform_write{};
+        sampler_uniform_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        sampler_uniform_write.dstSet = descriptor_set;
+        sampler_uniform_write.dstBinding = 1;
+        sampler_uniform_write.dstArrayElement = 0;
+        sampler_uniform_write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        sampler_uniform_write.descriptorCount =
+            cppext::narrow<uint32_t>(samplers_info.size());
+        sampler_uniform_write.pImageInfo = samplers_info.data();
+
+        VkWriteDescriptorSet material_uniform_write{};
+        material_uniform_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        material_uniform_write.dstSet = descriptor_set;
+        material_uniform_write.dstBinding = 2;
+        material_uniform_write.dstArrayElement = 0;
+        material_uniform_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        material_uniform_write.descriptorCount = 1;
+        material_uniform_write.pBufferInfo = &material_info;
+
+        std::array const descriptor_writes{texture_uniform_write,
+            sampler_uniform_write,
+            material_uniform_write};
+
+        vkUpdateDescriptorSets(device.logical,
+            vkrndr::count_cast(descriptor_writes.size()),
+            descriptor_writes.data(),
+            0,
+            nullptr);
+    }
+
     void bind_transform_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
         VkDescriptorBufferInfo const transform_uniform_info)
@@ -149,7 +255,8 @@ namespace
         transform_storage_write.dstSet = descriptor_set;
         transform_storage_write.dstBinding = 0;
         transform_storage_write.dstArrayElement = 0;
-        transform_storage_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        transform_storage_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         transform_storage_write.descriptorCount = 1;
         transform_storage_write.pBufferInfo = &transform_uniform_info;
 
@@ -160,6 +267,38 @@ namespace
             descriptor_writes.data(),
             0,
             nullptr);
+    }
+
+    [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device,
+        vkgltf::sampler_info_t const& info,
+        uint32_t const mip_levels)
+    {
+        VkPhysicalDeviceProperties properties; // NOLINT
+        vkGetPhysicalDeviceProperties(device.physical, &properties);
+
+        VkSamplerCreateInfo sampler_info{};
+        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_info.magFilter = info.mag_filter;
+        sampler_info.minFilter = info.min_filter;
+        sampler_info.addressModeU = info.warp_u;
+        sampler_info.addressModeV = info.warp_v;
+        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.anisotropyEnable = VK_TRUE;
+        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+        sampler_info.unnormalizedCoordinates = VK_FALSE;
+        sampler_info.compareEnable = VK_FALSE;
+        sampler_info.compareOp = VK_COMPARE_OP_NEVER;
+        sampler_info.mipmapMode = info.mipmap_mode;
+        sampler_info.mipLodBias = 0.0f;
+        sampler_info.minLod = 0.0f;
+        sampler_info.maxLod = cppext::as_fp(mip_levels);
+
+        VkSampler rv; // NOLINT
+        vkrndr::check_result(
+            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+
+        return rv;
     }
 
     [[nodiscard]] uint32_t nodes_with_mesh(vkgltf::node_t const& node,
@@ -186,28 +325,134 @@ namespace
         return rv;
     }
 
-    [[nodiscard]] uint32_t draw_node(vkgltf::model_t const& model, vkgltf::node_t const& node,
+    struct [[nodiscard]] materials_transfer_t final
+    {
+        vkrndr::buffer_t buffer;
+        std::vector<VkSampler> samplers;
+        VkDescriptorSetLayout descriptor_layout{VK_NULL_HANDLE};
+        VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
+    };
+
+    materials_transfer_t transfer_materials(vkrndr::backend_t& backend,
+        vkgltf::model_t const& model)
+    {
+        materials_transfer_t rv;
+        {
+            vkrndr::buffer_t staging_buffer{create_buffer(backend.device(),
+                sizeof(material_t) * model.materials.size(),
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
+            vkrndr::mapped_memory_t staging_buffer_map{
+                map_memory(backend.device(), staging_buffer)};
+            material_t* const materials{staging_buffer_map.as<material_t>()};
+
+            std::ranges::transform(model.materials,
+                materials,
+                [&model](vkgltf::material_t const& m)
+                {
+                    return material_t{.texture_index = cppext::narrow<uint32_t>(
+                                          m.pbr_metallic_roughness
+                                              .base_color_texture->image_index),
+                        .sampler_index = cppext::narrow<uint32_t>(
+                            m.pbr_metallic_roughness.base_color_texture
+                                ->sampler_index)};
+                });
+
+            rv.buffer = create_buffer(backend.device(),
+                staging_buffer.size,
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            unmap_memory(backend.device(), &staging_buffer_map);
+
+            backend.transfer_buffer(staging_buffer, rv.buffer);
+
+            destroy(&backend.device(), &staging_buffer);
+        }
+
+        // clang-format off
+        uint32_t const max_mip_levels{std::ranges::max(model.images,
+            std::less{},
+            &vkrndr::image_t::mip_levels).mip_levels};
+        // clang-format on
+
+        for (auto const& sampler : model.samplers)
+        {
+            rv.samplers.push_back(
+                create_sampler(backend.device(), sampler, max_mip_levels));
+        }
+
+        rv.descriptor_layout =
+            create_material_descriptor_set_layout(backend.device(),
+                model.images.size(),
+                model.samplers.size());
+
+        vkrndr::create_descriptor_sets(backend.device(),
+            backend.descriptor_pool(),
+            std::span{&rv.descriptor_layout, 1},
+            std::span{&rv.descriptor_set, 1});
+
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
+        std::vector<VkDescriptorImageInfo> image_descriptors;
+        image_descriptors.reserve(model.images.size());
+        std::ranges::transform(
+            model.images,
+            std::back_inserter(image_descriptors),
+            [](VkImageView view)
+            {
+                return VkDescriptorImageInfo{.imageView = view,
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+            },
+            &vkrndr::image_t::view);
+
+        std::vector<VkDescriptorImageInfo> sampler_descriptors;
+        sampler_descriptors.reserve(model.samplers.size());
+        std::ranges::transform(rv.samplers,
+            std::back_inserter(sampler_descriptors),
+            [](VkSampler sampler)
+            { return VkDescriptorImageInfo{.sampler = sampler}; });
+        DISABLE_WARNING_POP
+
+        bind_material_descriptor_set(backend.device(),
+            rv.descriptor_set,
+            image_descriptors,
+            sampler_descriptors,
+            VkDescriptorBufferInfo{.buffer = rv.buffer.buffer,
+                .offset = 0,
+                .range = rv.buffer.size});
+
+        return rv;
+    }
+
+    [[nodiscard]] uint32_t draw_node(vkgltf::model_t const& model,
+        vkgltf::node_t const& node,
         glm::mat4 const& transform,
         VkPipelineLayout const layout,
-        VkCommandBuffer command_buffer, transform_t* transforms, uint32_t const index)
+        VkCommandBuffer command_buffer,
+        transform_t* transforms,
+        uint32_t const index)
     {
         auto const node_transform{transform * node.matrix};
 
         uint32_t drawn{0};
         if (node.mesh)
         {
-            push_constants_t pc{.transform_index = index};
-            vkCmdPushConstants(command_buffer,
-                layout,
-                VK_SHADER_STAGE_VERTEX_BIT,
-                0,
-                sizeof(pc),
-                &pc);
-
             transforms[index].model = node_transform;
 
             for (auto const& primitive : node.mesh->primitives)
             {
+                push_constants_t pc{.transform_index = index,
+                    .material_index =
+                        cppext::narrow<uint32_t>(primitive.material_index)};
+
+                vkCmdPushConstants(command_buffer,
+                    layout,
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    0,
+                    sizeof(pc),
+                    &pc);
                 if (primitive.is_indexed)
                 {
                     vkCmdDrawIndexed(command_buffer,
@@ -275,27 +520,8 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
           VK_SAMPLE_COUNT_1_BIT)}
     , camera_descriptor_set_layout_{create_camera_descriptor_set_layout(
           backend_->device())}
-    , transform_descriptor_set_layout_{create_transform_descriptor_set_layout(
-          backend_->device())}
-    , pipeline_{
-          vkrndr::pipeline_builder_t{&backend_->device(),
-              vkrndr::pipeline_layout_builder_t{&backend_->device()}
-                  .add_descriptor_set_layout(camera_descriptor_set_layout_)
-                  .add_descriptor_set_layout(transform_descriptor_set_layout_)
-                  .add_push_constants(VkPushConstantRange{
-                      .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                      .offset = 0,
-                      .size = sizeof(push_constants_t)})
-                  .build(),
-              backend_->image_format()}
-              .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
-              .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
-              .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-              .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
-              .with_depth_test(depth_buffer_.format)
-              .add_vertex_input(binding_description(), attribute_descriptions())
-              .build()}
-
+    , transform_descriptor_set_layout_{
+          create_transform_descriptor_set_layout(backend_->device())}
 {
     frame_data_ = cppext::cycled_buffer_t<frame_data_t>{backend_->image_count(),
         backend_->image_count()};
@@ -351,8 +577,22 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
         destroy(&backend_->device(), &data.camera_uniform);
     }
 
+    destroy(&backend_->device(), &material_uniform_);
+    for (VkSampler sampler : samplers_)
+    {
+        vkDestroySampler(backend_->device().logical, sampler, nullptr);
+    }
+
+    vkrndr::free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        std::span{&material_descriptor_set_, 1});
+
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         transform_descriptor_set_layout_,
+        nullptr);
+
+    vkDestroyDescriptorSetLayout(backend_->device().logical,
+        material_descriptor_set_layout_,
         nullptr);
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
@@ -366,7 +606,58 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 
 void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
 {
-    uint32_t const transform_count{required_transforms(model)};
+    auto real_vertex_buffer{create_buffer(backend_->device(),
+        model.vertex_buffer.size,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+    auto real_index_buffer{create_buffer(backend_->device(),
+        model.index_buffer.size,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+
+    backend_->transfer_buffer(model.vertex_buffer, real_vertex_buffer);
+    backend_->transfer_buffer(model.index_buffer, real_index_buffer);
+
+    destroy(&backend_->device(), &model.vertex_buffer);
+    destroy(&backend_->device(), &model.index_buffer);
+    model.vertex_buffer = real_vertex_buffer;
+    model.index_buffer = real_index_buffer;
+
+    destroy(&backend_->device(), &model_);
+
+    materials_transfer_t materials_transfer{
+        transfer_materials(*backend_, model)};
+
+    for (VkSampler sampler : samplers_)
+    {
+        vkDestroySampler(backend_->device().logical, sampler, nullptr);
+    }
+    samplers_ = std::move(materials_transfer.samplers);
+
+    if (material_descriptor_set_ != VK_NULL_HANDLE)
+    {
+        vkrndr::free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            std::span{&material_descriptor_set_, 1});
+    }
+    if (material_descriptor_set_layout_ != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorSetLayout(backend_->device().logical,
+            material_descriptor_set_layout_,
+            nullptr);
+    }
+    material_descriptor_set_layout_ = materials_transfer.descriptor_layout;
+    material_descriptor_set_ = materials_transfer.descriptor_set;
+
+    if (material_uniform_.allocation != VK_NULL_HANDLE)
+    {
+        destroy(&backend_->device(), &material_uniform_);
+    }
+    material_uniform_ = materials_transfer.buffer;
+
+    model_ = std::move(model);
+
+    uint32_t const transform_count{required_transforms(model_)};
     VkDeviceSize const transform_buffer_size{
         transform_count * sizeof(transform_t)};
     for (auto& data : frame_data_.as_span())
@@ -392,26 +683,7 @@ void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
                 .range = transform_buffer_size});
     }
 
-    auto real_vertex_buffer{create_buffer(backend_->device(),
-        model.vertex_buffer.size,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
-    auto real_index_buffer{create_buffer(backend_->device(),
-        model.index_buffer.size,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
-
-    backend_->transfer_buffer(model.vertex_buffer, real_vertex_buffer);
-    backend_->transfer_buffer(model.index_buffer, real_index_buffer);
-
-    destroy(&backend_->device(), &model.vertex_buffer);
-    destroy(&backend_->device(), &model.index_buffer);
-
-    destroy(&backend_->device(), &model_);
-
-    model_ = std::move(model);
-    model_.vertex_buffer = real_vertex_buffer;
-    model_.index_buffer = real_index_buffer;
+    recreate_pipeline();
 }
 
 void gltfviewer::pbr_renderer_t::update(niku::camera_t const& camera)
@@ -457,10 +729,10 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         }
 
         std::array const descriptor_sets{frame_data_->camera_descriptor_set,
+            material_descriptor_set_,
             frame_data_->transform_descriptor_set};
 
-        vkrndr::bind_pipeline(command_buffer,
-            pipeline_, 0, descriptor_sets);
+        vkrndr::bind_pipeline(command_buffer, pipeline_, 0, descriptor_sets);
 
         VkDeviceSize const zero_offset{};
         vkCmdBindVertexBuffers(command_buffer,
@@ -488,4 +760,33 @@ void gltfviewer::pbr_renderer_t::resize(uint32_t width, uint32_t height)
         VkExtent2D{width, height},
         false,
         VK_SAMPLE_COUNT_1_BIT);
+}
+
+void gltfviewer::pbr_renderer_t::recreate_pipeline()
+{
+    if (pipeline_.pipeline != VK_NULL_HANDLE)
+    {
+        destroy(&backend_->device(), &pipeline_);
+    }
+
+    pipeline_ =
+        vkrndr::pipeline_builder_t{&backend_->device(),
+            vkrndr::pipeline_layout_builder_t{&backend_->device()}
+                .add_descriptor_set_layout(camera_descriptor_set_layout_)
+                .add_descriptor_set_layout(material_descriptor_set_layout_)
+                .add_descriptor_set_layout(transform_descriptor_set_layout_)
+                .add_push_constants(VkPushConstantRange{
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                        VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .offset = 0,
+                    .size = sizeof(push_constants_t)})
+                .build(),
+            backend_->image_format()}
+            .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
+            .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
+            .with_depth_test(depth_buffer_.format)
+            .add_vertex_input(binding_description(), attribute_descriptions())
+            .build();
 }
