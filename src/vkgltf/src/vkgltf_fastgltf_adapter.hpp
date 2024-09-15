@@ -50,7 +50,7 @@ namespace vkgltf
     }
 
     [[nodiscard]] constexpr VkPrimitiveTopology to_vulkan(
-        fastgltf::PrimitiveType t)
+        fastgltf::PrimitiveType const t)
     {
         using fastgltf::PrimitiveType;
 
@@ -79,6 +79,66 @@ namespace vkgltf
             return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         }
         // NOLINTEND(bugprone-branch-clone)
+    }
+
+    [[nodiscard]] constexpr VkFilter to_vulkan(fastgltf::Filter const f)
+    {
+        using fastgltf::Filter;
+
+        switch (f)
+        {
+        case Filter::Linear:
+        case Filter::LinearMipMapNearest:
+        case Filter::LinearMipMapLinear:
+            return VK_FILTER_LINEAR;
+        case Filter::NearestMipMapNearest:
+        case Filter::NearestMipMapLinear:
+        case Filter::Nearest:
+            return VK_FILTER_NEAREST;
+        default:
+            assert(false);
+            return VK_FILTER_NEAREST;
+        }
+    }
+
+    [[nodiscard]] constexpr VkSamplerMipmapMode to_vulkan_mipmap(
+        fastgltf::Filter const f)
+    {
+        using fastgltf::Filter;
+
+        switch (f)
+        {
+        case Filter::Linear:
+        case Filter::LinearMipMapLinear:
+        case Filter::NearestMipMapLinear:
+            return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        case Filter::Nearest:
+        case Filter::LinearMipMapNearest:
+        case Filter::NearestMipMapNearest:
+            return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        default:
+            assert(false);
+            return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        }
+    }
+
+    [[nodiscard]] constexpr VkSamplerAddressMode to_vulkan(
+        fastgltf::Wrap const w)
+    {
+        using fastgltf::Wrap;
+
+        switch (w)
+        {
+        case Wrap::Repeat:
+            return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case Wrap::MirroredRepeat:
+            return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case Wrap::ClampToEdge:
+            return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        default:
+            assert(false);
+            return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        }
     }
 
     template<typename T, size_t N>

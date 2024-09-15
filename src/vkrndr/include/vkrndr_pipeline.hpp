@@ -23,7 +23,7 @@ namespace vkrndr
     struct [[nodiscard]] pipeline_t final
     {
         std::shared_ptr<VkPipelineLayout> layout;
-        VkPipeline pipeline;
+        VkPipeline pipeline{VK_NULL_HANDLE};
         VkPipelineBindPoint type;
     };
 

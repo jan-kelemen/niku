@@ -1,5 +1,6 @@
 #include <vkgltf_loader.hpp>
 
+#include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
 
@@ -9,6 +10,9 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_utility.hpp>
+
+#include <stb_image.h>
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp> // IWYU pragma: keep
@@ -22,6 +26,7 @@
 #include <tl/expected.hpp>
 
 #include <optional>
+#include <span>
 #include <system_error>
 #include <utility>
 #include <variant>
@@ -29,6 +34,7 @@
 namespace
 {
     constexpr auto position_attribute{"POSITION"};
+    constexpr auto texcoord_0_attribute{"TEXCOORD_0"};
 
     template<typename T>
     [[nodiscard]] uint32_t copy_attribute(fastgltf::Asset const& asset,
@@ -94,8 +100,171 @@ namespace
         return 0;
     }
 
+    [[nodiscard]] tl::expected<vkrndr::image_t, std::error_code> load_image(
+        vkrndr::backend_t* const backend,
+        std::filesystem::path const& parent_path,
+        fastgltf::Asset const& asset,
+        fastgltf::Image const& image)
+    {
+        auto const transfer_image = [backend](int const width,
+                                        int const height,
+                                        stbi_uc const* const data)
+            -> tl::expected<vkrndr::image_t, std::error_code>
+        {
+            if (data)
+            {
+                VkExtent2D const extent{cppext::narrow<uint32_t>(width),
+                    cppext::narrow<uint32_t>(height)};
+                std::span<std::byte const> image_data{
+                    reinterpret_cast<std::byte const*>(data),
+                    size_t{extent.width} * extent.height * 4};
+
+                return backend->transfer_image(image_data,
+                    extent,
+                    VK_FORMAT_R8G8B8A8_UNORM,
+                    vkrndr::max_mip_levels(width, height));
+            }
+
+            return tl::make_unexpected(
+                make_error_code(vkgltf::error_t::invalid_file));
+        };
+
+        auto const load_from_vector =
+            [&](fastgltf::sources::Vector const& vector)
+        {
+            int width;
+            int height;
+            int channels;
+            stbi_uc* const data{stbi_load_from_memory(
+                reinterpret_cast<stbi_uc const*>(vector.bytes.data()),
+                cppext::narrow<int>(vector.bytes.size()),
+                &width,
+                &height,
+                &channels,
+                4)};
+            return transfer_image(width, height, data);
+        };
+
+        auto const unsupported_variant = []([[maybe_unused]] auto&& arg)
+            -> tl::expected<vkrndr::image_t, std::error_code>
+        {
+            spdlog::error("Unsupported variant during image load");
+            return tl::make_unexpected(
+                make_error_code(vkgltf::error_t::unknown));
+        };
+
+        return std::visit(
+            cppext::overloaded{[&transfer_image, &parent_path](
+                                   fastgltf::sources::URI const& filePath)
+                {
+                    // No offsets in file
+                    assert(filePath.fileByteOffset == 0);
+                    // Only local files
+                    assert(filePath.uri.isLocalPath());
+
+                    std::filesystem::path path{filePath.uri.fspath()};
+                    if (path.is_relative())
+                    {
+                        path = parent_path / path;
+                    }
+
+                    int width;
+                    int height;
+                    int channels;
+                    stbi_uc* const data{stbi_load(path.string().c_str(),
+                        &width,
+                        &height,
+                        &channels,
+                        4)};
+                    return transfer_image(width, height, data);
+                },
+                load_from_vector,
+                [&unsupported_variant, &load_from_vector, &asset](
+                    fastgltf::sources::BufferView const& view)
+                {
+                    auto& bufferView = asset.bufferViews[view.bufferViewIndex];
+                    auto& buffer = asset.buffers[bufferView.bufferIndex];
+
+                    return std::visit(cppext::overloaded{unsupported_variant,
+                                          load_from_vector},
+                        buffer.data);
+                },
+                unsupported_variant},
+            image.data);
+    }
+
+    void load_images(vkrndr::backend_t* const backend,
+        std::filesystem::path const& parent_path,
+        fastgltf::Asset const& asset,
+        vkgltf::model_t& model)
+    {
+        for (fastgltf::Image const& image : asset.images)
+        {
+            auto load_result{load_image(backend, parent_path, asset, image)};
+            if (!load_result)
+            {
+                throw std::system_error{load_result.error()};
+            }
+
+            model.images.push_back(std::move(load_result).value());
+        }
+    }
+
+    void load_samplers(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    {
+        model.samplers.reserve(asset.samplers.size() + 1);
+        for (fastgltf::Sampler const& sampler : asset.samplers)
+        {
+            model.samplers.emplace_back(
+                vkgltf::to_vulkan(
+                    sampler.magFilter.value_or(fastgltf::Filter::Nearest)),
+                vkgltf::to_vulkan(
+                    sampler.minFilter.value_or(fastgltf::Filter::Nearest)),
+                vkgltf::to_vulkan(sampler.wrapS),
+                vkgltf::to_vulkan(sampler.wrapT),
+                vkgltf::to_vulkan_mipmap(
+                    sampler.minFilter.value_or(fastgltf::Filter::Nearest)));
+        }
+
+        model.samplers.emplace_back(); // Add default sampler to the end
+    }
+
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
+
+    void load_textures(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    {
+        for (fastgltf::Texture const& texture : asset.textures)
+        {
+            vkgltf::texture_t t{.name = std::string{texture.name}};
+
+            assert(texture.imageIndex);
+            t.image_index = *texture.imageIndex;
+
+            t.sampler_index =
+                texture.samplerIndex.value_or(model.samplers.size() - 1);
+
+            model.textures.push_back(std::move(t));
+        }
+    }
+
+    void load_materials(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    {
+        for (fastgltf::Material const& material : asset.materials)
+        {
+            vkgltf::material_t m{.name = std::string{material.name}};
+            m.pbr_metallic_roughness.base_color_factor =
+                vkgltf::to_glm(material.pbrData.baseColorFactor);
+            if (material.pbrData.baseColorTexture)
+            {
+                m.pbr_metallic_roughness.base_color_texture =
+                    &model.textures[material.pbrData.baseColorTexture
+                                        ->textureIndex];
+            }
+
+            model.materials.push_back(std::move(m));
+        }
+    }
 
     void load_meshes(fastgltf::Asset const& asset,
         vkgltf::model_t& model,
@@ -105,8 +274,13 @@ namespace
         uint32_t running_index_count{};
         int32_t running_vertex_count{};
 
-        auto vertex_transform = [&vertices](glm::vec3 const v, size_t const idx)
+        auto const vertex_transform =
+            [&vertices](glm::vec3 const v, size_t const idx)
         { vertices[idx] = {.position = v}; };
+
+        auto const texcoord_transform =
+            [&vertices](glm::vec2 const v, size_t const idx)
+        { vertices[idx].uv = v; };
 
         model.meshes.reserve(asset.meshes.size());
         for (fastgltf::Mesh const& mesh : asset.meshes)
@@ -117,14 +291,20 @@ namespace
                 vkgltf::primitive_t p{
                     .topology = vkgltf::to_vulkan(primitive.type)};
 
-                size_t const vertex_count = copy_attribute<glm::vec3>(asset,
+                size_t const vertex_count{copy_attribute<glm::vec3>(asset,
                     primitive,
                     position_attribute,
-                    vertex_transform);
+                    vertex_transform)};
+                [[maybe_unused]] auto const texcoord_count{
+                    copy_attribute<glm::vec2>(asset,
+                        primitive,
+                        texcoord_0_attribute,
+                        texcoord_transform)};
+                assert(texcoord_count == vertex_count);
                 vertices += vertex_count;
 
-                size_t const index_count =
-                    load_indices(asset, primitive, indices);
+                size_t const index_count{
+                    load_indices(asset, primitive, indices)};
                 indices += index_count;
 
                 p.is_indexed = index_count != 0;
@@ -143,6 +323,11 @@ namespace
 
                 running_vertex_count += cppext::narrow<int32_t>(vertex_count);
                 running_index_count += cppext::narrow<uint32_t>(index_count);
+
+                if (primitive.materialIndex)
+                {
+                    p.material_index = *primitive.materialIndex;
+                }
 
                 m.primitives.push_back(std::move(p));
             }
@@ -247,8 +432,9 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
             make_error_code(translate_error(data.error())));
     }
 
+    auto const parent_path{path.parent_path()};
     auto asset{parser.loadGltf(data.get(),
-        path.parent_path(),
+        parent_path,
         fastgltf::Options::LoadExternalBuffers)};
     if (asset.error() != fastgltf::Error::None)
     {
@@ -282,8 +468,12 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
 
     try
     {
-        load_meshes(asset.get(), rv, vertices, indices);
+        load_images(backend_, parent_path, asset.get(), rv);
+        load_samplers(asset.get(), rv);
+        load_textures(asset.get(), rv);
+        load_materials(asset.get(), rv);
 
+        load_meshes(asset.get(), rv, vertices, indices);
         unmap_memory(backend_->device(), &vertex_map);
         if (indices)
         {

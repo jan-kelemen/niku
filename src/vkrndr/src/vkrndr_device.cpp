@@ -36,6 +36,10 @@ namespace
         .wideLines = VK_TRUE,
         .samplerAnisotropy = VK_TRUE};
 
+    constexpr VkPhysicalDeviceVulkan12Features device_12_features{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .runtimeDescriptorArray = VK_TRUE};
+
     constexpr VkPhysicalDeviceVulkan13Features device_13_features{
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
         .synchronization2 = VK_TRUE,
@@ -270,7 +274,11 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
     create_info.enabledExtensionCount = count_cast(device_extensions.size());
     create_info.ppEnabledExtensionNames = device_extensions.data();
     create_info.pEnabledFeatures = &device_features;
-    create_info.pNext = &device_13_features;
+
+    VkPhysicalDeviceVulkan13Features next_13_features{device_13_features};
+    VkPhysicalDeviceVulkan12Features next_12_features{device_12_features};
+    next_12_features.pNext = &next_13_features;
+    create_info.pNext = &next_12_features;
 
     check_result(
         vkCreateDevice(*device_it, &create_info, nullptr, &rv.logical));

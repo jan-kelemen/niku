@@ -2,6 +2,7 @@
 #define VKGLTF_MODEL_INCLUDED
 
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_image.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
@@ -25,7 +26,36 @@ namespace vkgltf
 
     struct [[nodiscard]] vertex_t final
     {
-        glm::vec3 position;
+        alignas(16) glm::vec3 position;
+        glm::vec2 uv;
+    };
+
+    struct [[nodiscard]] sampler_info_t final
+    {
+        VkFilter mag_filter{VK_FILTER_NEAREST};
+        VkFilter min_filter{VK_FILTER_NEAREST};
+        VkSamplerAddressMode warp_u{VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        VkSamplerAddressMode warp_v{VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        VkSamplerMipmapMode mipmap_mode{VK_SAMPLER_MIPMAP_MODE_NEAREST};
+    };
+
+    struct [[nodiscard]] texture_t final
+    {
+        std::string name;
+        size_t image_index;
+        size_t sampler_index;
+    };
+
+    struct [[nodiscard]] pbr_metallic_roughness_t final
+    {
+        glm::vec4 base_color_factor{1.0f};
+        texture_t* base_color_texture;
+    };
+
+    struct [[nodiscard]] material_t final
+    {
+        std::string name;
+        pbr_metallic_roughness_t pbr_metallic_roughness;
     };
 
     struct [[nodiscard]] primitive_t final
@@ -37,6 +67,8 @@ namespace vkgltf
 
         bool is_indexed;
         int32_t vertex_offset{};
+
+        size_t material_index;
     };
 
     struct [[nodiscard]] mesh_t final
@@ -78,6 +110,12 @@ namespace vkgltf
 
         vkrndr::buffer_t index_buffer;
         uint32_t index_count{};
+
+        std::vector<vkrndr::image_t> images;
+        std::vector<sampler_info_t> samplers;
+
+        std::vector<texture_t> textures;
+        std::vector<material_t> materials;
 
         std::vector<mesh_t> meshes;
         std::vector<node_t> nodes;

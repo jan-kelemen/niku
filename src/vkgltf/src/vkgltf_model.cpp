@@ -7,6 +7,11 @@ void vkgltf::destroy(vkrndr::device_t* const device, model_t* const model)
 {
     if (model)
     {
+        for (auto& image : model->images)
+        {
+            destroy(device, &image);
+        }
+
         destroy(device, &model->index_buffer);
         destroy(device, &model->vertex_buffer);
     }

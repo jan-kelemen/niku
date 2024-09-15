@@ -28,6 +28,7 @@ target_link_libraries(vkgltf
         tl::expected
     PRIVATE
         cppext
+        stb_impl
     PRIVATE
         fastgltf::fastgltf
         fmt::fmt
