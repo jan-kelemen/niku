@@ -1,7 +1,7 @@
 #ifndef VKRNDR_WINDOW_INCLUDED
 #define VKRNDR_WINDOW_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <vector>
 

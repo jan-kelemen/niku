@@ -8,6 +8,8 @@
 #define NOMINMAX
 #endif
 
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include <vk_mem_alloc.h> // IWYU pragma: export
 
 #if defined(_MSC_VER)

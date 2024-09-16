@@ -11,9 +11,9 @@
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_scancode.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <algorithm>
 
 gltfviewer::camera_controller_t::camera_controller_t(
     niku::perspective_camera_t& camera,

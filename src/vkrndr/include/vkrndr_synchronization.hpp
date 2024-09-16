@@ -1,7 +1,7 @@
 #ifndef VKRNDR_SYNCHRONIZATION_INCLUDED
 #define VKRNDR_SYNCHRONIZATION_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 namespace vkrndr
 {

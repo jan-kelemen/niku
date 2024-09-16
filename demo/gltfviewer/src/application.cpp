@@ -32,15 +32,15 @@
 
 #include <tl/expected.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <system_error>
-#include <memory>
-#include <variant>
 #include <utility>
+#include <variant>
 #include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
@@ -84,7 +84,6 @@ gltfviewer::application_t::application_t(bool const debug)
     , pbr_renderer_{std::make_unique<pbr_renderer_t>(backend_.get())}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{backend_.get()}
-    
 {
 }
 

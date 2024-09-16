@@ -1,7 +1,7 @@
 #ifndef VKRNDR_SWAP_CHAIN_INCLUDED
 #define VKRNDR_SWAP_CHAIN_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <vkrndr_utility.hpp>
 

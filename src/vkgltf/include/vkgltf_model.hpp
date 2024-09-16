@@ -9,7 +9,7 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <cstddef>
 #include <cstdint>

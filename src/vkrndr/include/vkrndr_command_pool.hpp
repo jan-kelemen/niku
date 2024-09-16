@@ -1,7 +1,7 @@
 #ifndef VKRNDR_COMMAND_POOL_INCLUDED
 #define VKRNDR_COMMAND_POOL_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <cstdint>
 #include <span>

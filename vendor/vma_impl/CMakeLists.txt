@@ -23,4 +23,9 @@ set_source_files_properties(
         SKIP_LINTING ON
 )
 
+target_compile_definitions(vma_impl
+    PUBLIC
+        VK_NO_PROTOTYPES
+)
+
 set_target_properties(vma_impl PROPERTIES FOLDER "vendor")

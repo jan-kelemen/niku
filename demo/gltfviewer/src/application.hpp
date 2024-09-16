@@ -30,7 +30,7 @@ namespace vkrndr
 namespace gltfviewer
 {
     class pbr_renderer_t;
-}
+} // namespace gltfviewer
 
 namespace gltfviewer
 {

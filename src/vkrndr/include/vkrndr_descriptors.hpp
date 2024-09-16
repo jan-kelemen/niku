@@ -1,7 +1,7 @@
 #ifndef VKRNDR_DESCRIPTORS_INCLUDED
 #define VKRNDR_DESCRIPTORS_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <span>
 

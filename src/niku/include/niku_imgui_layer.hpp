@@ -1,7 +1,7 @@
 #ifndef NIKU_IMGUI_LAYER_INCLUDED
 #define NIKU_IMGUI_LAYER_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 union SDL_Event;
 

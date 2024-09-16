@@ -1,7 +1,7 @@
 #ifndef VKRNDR_PIPELINE_INCLUDED
 #define VKRNDR_PIPELINE_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <cstdint>
 #include <filesystem>

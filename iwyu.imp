@@ -80,11 +80,14 @@
   { symbol: [ "glm::mat4", private, "<glm/mat4x4.hpp>", public ] },
 
   # bullet3 aliases
-  { symbol: ["btScalar", private, "<LinearMath/btScalar.h>", public] },
+  { symbol: [ "btScalar", private, "<LinearMath/btScalar.h>", public] },
 
   # EnTT aliases
-  { include: ["@<entt/.*>", private, "<entt/entt.hpp>", public] },
+  { include: [ "@<entt/.*>", private, "<entt/entt.hpp>", public] },
 
   # freetype aliases
-  { include: ["@<freetype/.*>", private, "<ft2build.h>", public] },
+  { include: [ "@<freetype/.*>", private, "<ft2build.h>", public] },
+
+  # vulkan aliases
+  { include: [ "@<vulkan/.*>", private, "<volk.h>", public] },
 ]

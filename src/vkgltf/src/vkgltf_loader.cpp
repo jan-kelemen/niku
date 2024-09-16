@@ -29,7 +29,7 @@
 
 #include <tl/expected.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <algorithm>
 #include <cassert>
@@ -329,7 +329,7 @@ namespace
                 {
                     assert(texcoord_count == vertex_count);
                 }
-                
+
                 vertices += *vertex_count;
 
                 size_t const index_count{

@@ -1,7 +1,7 @@
 #ifndef VKRNDR_RENDER_PASS_INCLUDED
 #define VKRNDR_RENDER_PASS_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <optional>
 #include <vector>

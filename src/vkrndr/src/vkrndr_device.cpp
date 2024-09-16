@@ -11,6 +11,8 @@
 
 #include <vma_impl.hpp>
 
+#include <volk.h>
+
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -282,12 +284,18 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
 
     check_result(
         vkCreateDevice(*device_it, &create_info, nullptr, &rv.logical));
+    volkLoadDevice(rv.logical);
+
+    VmaVulkanFunctions vma_vulkan_functions{};
+    vma_vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+    vma_vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
     VmaAllocatorCreateInfo allocator_info{};
     allocator_info.instance = context.instance;
     allocator_info.physicalDevice = rv.physical;
     allocator_info.device = rv.logical;
     allocator_info.vulkanApiVersion = VK_API_VERSION_1_3;
+    allocator_info.pVulkanFunctions = &vma_vulkan_functions;
 
     check_result(vmaCreateAllocator(&allocator_info, &rv.allocator));
 

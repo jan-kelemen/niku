@@ -53,7 +53,7 @@ target_link_libraries(vkrndr
         cppext
         vma_impl
     PUBLIC
-        vulkan-headers::vulkan-headers
+        volk::volk
     PRIVATE
         fmt::fmt
         spdlog::spdlog
@@ -61,3 +61,7 @@ target_link_libraries(vkrndr
         project-options
 )
 
+target_compile_definitions(vkrndr
+    PUBLIC
+        VK_NO_PROTOTYPES
+)

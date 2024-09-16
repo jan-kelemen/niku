@@ -3,7 +3,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <array>
 #include <optional>

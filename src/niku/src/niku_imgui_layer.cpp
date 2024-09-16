@@ -18,6 +18,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cassert>
 #include <utility>
 
 namespace
@@ -47,6 +48,13 @@ namespace
     {
         vkrndr::check_result(result);
     }
+
+    PFN_vkVoidFunction load_vulkan_function(char const* const function,
+        void* const user_data)
+    {
+        return vkGetInstanceProcAddr(static_cast<VkInstance>(user_data),
+            function);
+    }
 } // namespace
 
 niku::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
@@ -71,7 +79,13 @@ niku::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] =
         ImVec4(0.32f, 0.32f, 0.63f, 1.00f);
 
-    ImGui_ImplSDL2_InitForVulkan(window.native_handle());
+    [[maybe_unused]] bool const init_sdl{
+        ImGui_ImplSDL2_InitForVulkan(window.native_handle())};
+    assert(init_sdl);
+
+    [[maybe_unused]] bool const load_functions{
+        ImGui_ImplVulkan_LoadFunctions(load_vulkan_function, context.instance)};
+    assert(load_functions);
 
     VkPipelineRenderingCreateInfoKHR rendering_create_info{};
     rendering_create_info.sType =
@@ -97,7 +111,8 @@ niku::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     init_info.CheckVkResultFn = imgui_vulkan_result_callback;
     init_info.UseDynamicRendering = true;
     init_info.PipelineRenderingCreateInfo = rendering_create_info;
-    ImGui_ImplVulkan_Init(&init_info);
+    [[maybe_unused]] bool const init_vulkan{ImGui_ImplVulkan_Init(&init_info)};
+    assert(init_vulkan);
 }
 
 niku::imgui_layer_t::~imgui_layer_t()

@@ -5,7 +5,7 @@
 
 #include <SDL2/SDL_video.h>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <cstdint>
 #include <string_view>

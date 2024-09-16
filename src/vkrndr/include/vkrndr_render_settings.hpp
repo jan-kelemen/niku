@@ -1,7 +1,7 @@
 #ifndef VKRNDR_RENDER_SETTINGS_INCLUDED
 #define VKRNDR_RENDER_SETTINGS_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 namespace vkrndr
 {

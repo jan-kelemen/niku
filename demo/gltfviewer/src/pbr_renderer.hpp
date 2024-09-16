@@ -10,7 +10,7 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <cstdint>
 #include <vector>

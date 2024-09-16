@@ -3,7 +3,7 @@
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
 
-#include <vulkan/vk_platform.h>
+#include <volk.h>
 
 #include <spdlog/spdlog.h>
 
@@ -104,46 +104,13 @@ namespace
         info.pfnUserCallback = debug_callback;
     }
 
-    [[nodiscard]] VkResult create_debug_utils_messenger_ext(
-        VkInstance const instance,
-        VkDebugUtilsMessengerCreateInfoEXT const* const create_info,
-        VkAllocationCallbacks const* const allocator,
-        VkDebugUtilsMessengerEXT* const debug_messenger)
-    {
-        // NOLINTNEXTLINE
-        auto const func{reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"))};
-
-        if (func != nullptr)
-        {
-            return func(instance, create_info, allocator, debug_messenger);
-        }
-
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-
-    void destroy_debug_utils_messenger_ext(VkInstance const instance,
-        VkDebugUtilsMessengerEXT const debug_messenger,
-        VkAllocationCallbacks const* allocator)
-    {
-        // NOLINTNEXTLINE
-        auto const func{reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(instance,
-                "vkDestroyDebugUtilsMessengerEXT"))};
-
-        if (func != nullptr)
-        {
-            func(instance, debug_messenger, allocator);
-        }
-    }
-
     [[nodiscard]] VkResult create_debug_messenger(VkInstance const instance,
         VkDebugUtilsMessengerEXT& debug_messenger)
     {
         VkDebugUtilsMessengerCreateInfoEXT create_info{};
         populate_debug_messenger_create_info(create_info);
 
-        return create_debug_utils_messenger_ext(instance,
+        return vkCreateDebugUtilsMessengerEXT(instance,
             &create_info,
             nullptr,
             &debug_messenger);
@@ -154,6 +121,8 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const* const window,
     bool const setup_validation_layers)
 {
     context_t rv;
+
+    check_result(volkInitialize());
 
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -194,6 +163,8 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const* const window,
 
     check_result(vkCreateInstance(&create_info, nullptr, &rv.instance));
 
+    volkLoadInstance(rv.instance);
+
     if (has_debug_utils_extension)
     {
         check_result(create_debug_messenger(rv.instance, rv.debug_messenger));
@@ -210,9 +181,12 @@ void vkrndr::destroy(context_t* const context)
     {
         vkDestroySurfaceKHR(context->instance, context->surface, nullptr);
 
-        destroy_debug_utils_messenger_ext(context->instance,
-            context->debug_messenger,
-            nullptr);
+        if (context->debug_messenger)
+        {
+            vkDestroyDebugUtilsMessengerEXT(context->instance,
+                context->debug_messenger,
+                nullptr);
+        }
 
         vkDestroyInstance(context->instance, nullptr);
     }

@@ -1,7 +1,7 @@
 #ifndef VKRNDR_CONTEXT_INCLUDED
 #define VKRNDR_CONTEXT_INCLUDED
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 namespace vkrndr
 {

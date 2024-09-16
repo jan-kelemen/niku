@@ -3,7 +3,7 @@
 
 #include <cppext_numeric.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <algorithm> // IWYU pragma: keep
 #include <cmath>

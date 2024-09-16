@@ -9,7 +9,7 @@
 
 #include <cppext_cycled_buffer.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <cstddef>
 #include <cstdint>

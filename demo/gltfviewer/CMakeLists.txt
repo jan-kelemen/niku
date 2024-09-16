@@ -30,7 +30,6 @@ target_link_libraries(gltfviewer
         imgui::imgui
         simdjson::simdjson
         spdlog::spdlog
-        Vulkan::Loader
     PRIVATE
         project-options
 )

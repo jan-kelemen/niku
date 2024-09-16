@@ -15,7 +15,13 @@ target_include_directories(imgui_vulkan_impl SYSTEM
 target_link_libraries(imgui_vulkan_impl
     PUBLIC
         imgui::imgui
-        vulkan-headers::vulkan-headers
+        volk::volk
+)
+
+target_compile_definitions(imgui_vulkan_impl
+    PUBLIC
+        IMGUI_IMPL_VULKAN_USE_VOLK
+        VK_NO_PROTOTYPES
 )
 
 add_library(imgui_sdl_impl)

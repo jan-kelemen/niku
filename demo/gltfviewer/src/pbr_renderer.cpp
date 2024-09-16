@@ -22,7 +22,7 @@
 
 #include <glm/mat4x4.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <algorithm>
 #include <cstddef>

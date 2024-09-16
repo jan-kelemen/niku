@@ -5,7 +5,7 @@
 
 #include <vma_impl.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 
 #include <vector>
 
