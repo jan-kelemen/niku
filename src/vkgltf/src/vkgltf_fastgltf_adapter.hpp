@@ -4,6 +4,7 @@
 #include <vkgltf_error.hpp>
 
 #include <fastgltf/core.hpp>
+#include <fastgltf/math.hpp>
 #include <fastgltf/types.hpp>
 
 #include <fmt/base.h>

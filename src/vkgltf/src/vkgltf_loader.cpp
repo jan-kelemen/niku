@@ -32,19 +32,19 @@
 #include <vulkan/vulkan_core.h>
 
 #include <algorithm>
-#include <cstddef>
-#include <exception>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <iterator>
-#include <string>
-#include <string_view>
-#include <vector>
 #include <optional>
 #include <span>
+#include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <variant>
+#include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
@@ -56,7 +56,8 @@ namespace
     constexpr auto texcoord_0_attribute{"TEXCOORD_0"};
 
     template<typename T>
-    [[nodiscard]] uint32_t copy_attribute(fastgltf::Asset const& asset,
+    [[nodiscard]] std::optional<uint32_t> copy_attribute(
+        fastgltf::Asset const& asset,
         fastgltf::Primitive const& primitive,
         std::string_view attribute_name,
         auto&& transform)
@@ -67,7 +68,7 @@ namespace
             auto const& accessor{asset.accessors[attr->accessorIndex]};
             if (!accessor.bufferViewIndex.has_value())
             {
-                return 0;
+                return std::nullopt;
             }
 
             fastgltf::iterateAccessorWithIndex<T>(asset, accessor, transform);
@@ -75,7 +76,7 @@ namespace
             return cppext::narrow<uint32_t>(accessor.count);
         }
 
-        return 0;
+        return std::nullopt;
     }
 
     [[nodiscard]] size_t load_indices(fastgltf::Asset const& asset,
@@ -156,6 +157,7 @@ namespace
             int width; // NOLINT
             int height; // NOLINT
             int channels; // NOLINT
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             stbi_uc* const data{stbi_load_from_memory(
                 reinterpret_cast<stbi_uc const*>(vector.bytes.data()),
                 cppext::narrow<int>(vector.bytes.size()),
@@ -163,6 +165,7 @@ namespace
                 &height,
                 &channels,
                 4)};
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             return transfer_image(width, height, data);
         };
 
@@ -203,8 +206,9 @@ namespace
                 [&unsupported_variant, &load_from_vector, &asset](
                     fastgltf::sources::BufferView const& view)
                 {
-                    auto const& bufferView = asset.bufferViews[view.bufferViewIndex];
-                    auto& buffer = asset.buffers[bufferView.bufferIndex];
+                    auto const& bufferView =
+                        asset.bufferViews[view.bufferViewIndex];
+                    auto const& buffer = asset.buffers[bufferView.bufferIndex];
 
                     return std::visit(cppext::overloaded{unsupported_variant,
                                           load_from_vector},
@@ -312,17 +316,21 @@ namespace
                 vkgltf::primitive_t p{
                     .topology = vkgltf::to_vulkan(primitive.type)};
 
-                size_t const vertex_count{copy_attribute<glm::vec3>(asset,
+                auto const vertex_count{copy_attribute<glm::vec3>(asset,
                     primitive,
                     position_attribute,
                     vertex_transform)};
-                [[maybe_unused]] auto const texcoord_count{
-                    copy_attribute<glm::vec2>(asset,
+                assert(vertex_count);
+
+                if (auto const texcoord_count{copy_attribute<glm::vec2>(asset,
                         primitive,
                         texcoord_0_attribute,
-                        texcoord_transform)};
-                assert(texcoord_count == vertex_count);
-                vertices += vertex_count;
+                        texcoord_transform)})
+                {
+                    assert(texcoord_count == vertex_count);
+                }
+                
+                vertices += *vertex_count;
 
                 size_t const index_count{
                     load_indices(asset, primitive, indices)};
@@ -338,11 +346,11 @@ namespace
                 }
                 else
                 {
-                    p.count = cppext::narrow<uint32_t>(vertex_count);
+                    p.count = cppext::narrow<uint32_t>(*vertex_count);
                     p.first = cppext::narrow<uint32_t>(running_vertex_count);
                 }
 
-                running_vertex_count += cppext::narrow<int32_t>(vertex_count);
+                running_vertex_count += cppext::narrow<int32_t>(*vertex_count);
                 running_index_count += cppext::narrow<uint32_t>(index_count);
 
                 if (primitive.materialIndex)
