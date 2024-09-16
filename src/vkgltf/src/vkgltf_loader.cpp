@@ -142,7 +142,7 @@ namespace
 
                 return backend->transfer_image(image_data,
                     extent,
-                    VK_FORMAT_R8G8B8A8_UNORM,
+                    VK_FORMAT_R8G8B8A8_SRGB,
                     vkrndr::max_mip_levels(width, height));
             }
 
