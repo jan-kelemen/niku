@@ -24,8 +24,19 @@ layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer {
 
 layout(location = 0) out vec4 outColor;
 
-void main() {
+const uint UINT_MAX = ~0;
+
+vec4 baseColor() {
     Material m = materials.v[pc.materialIndex];
 
-    outColor = m.baseColorFactor * texture(nonuniformEXT(sampler2D(textures[m.baseColorTextureIndex], samplers[m.baseColorSamplerIndex])), inUV);
+    vec4 color = vec4(1);
+    if (m.baseColorTextureIndex != UINT_MAX) {
+        color = texture(nonuniformEXT(sampler2D(textures[m.baseColorTextureIndex], samplers[m.baseColorSamplerIndex])), inUV);
+    }
+
+    return m.baseColorFactor * color;
+}
+
+void main() {
+    outColor = baseColor();
 }

@@ -51,12 +51,17 @@ namespace
         glm::mat4 model;
     };
 
-    struct [[nodiscard]] material_t final
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_STRUCTURE_WAS_PADDED_DUE_TO_ALIGNMENT_SPECIFIER
+
+    struct [[nodiscard]] alignas(32) material_t final
     {
         glm::vec4 base_color_factor;
         uint32_t base_color_texture_index;
         uint32_t base_color_sampler_index;
     };
+
+    DISABLE_WARNING_POP
 
     consteval auto binding_description()
     {
@@ -366,15 +371,28 @@ namespace
                 materials,
                 [](vkgltf::material_t const& m)
                 {
-                    return material_t{
-                        .base_color_factor =
-                            m.pbr_metallic_roughness.base_color_factor,
-                        .base_color_texture_index = cppext::narrow<uint32_t>(
+                    material_t rv{};
+                    rv.base_color_factor =
+                        m.pbr_metallic_roughness.base_color_factor;
+                    if (auto const* const texture{
+                            m.pbr_metallic_roughness.base_color_texture})
+                    {
+                        rv.base_color_texture_index = cppext::narrow<uint32_t>(
                             m.pbr_metallic_roughness.base_color_texture
-                                ->image_index),
-                        .base_color_sampler_index = cppext::narrow<uint32_t>(
+                                ->image_index);
+                        rv.base_color_sampler_index = cppext::narrow<uint32_t>(
                             m.pbr_metallic_roughness.base_color_texture
-                                ->sampler_index)};
+                                ->sampler_index);
+                    }
+                    else
+                    {
+                        rv.base_color_texture_index =
+                            std::numeric_limits<uint32_t>::max();
+                        rv.base_color_sampler_index =
+                            std::numeric_limits<uint32_t>::max();
+                    }
+
+                    return rv;
                 });
 
             rv.buffer = create_buffer(backend.device(),
@@ -495,6 +513,7 @@ namespace
             ++drawn;
         }
 
+        // cppcheck-suppress-begin useStlAlgorithm
         for (auto const& child : node.children(model))
         {
             drawn += draw_node(model,
@@ -505,6 +524,7 @@ namespace
                 transforms,
                 index + drawn);
         }
+        // cppcheck-suppress-end useStlAlgorithm
 
         return drawn;
     }
@@ -630,18 +650,26 @@ void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
         model.vertex_buffer.size,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
-    auto real_index_buffer{create_buffer(backend_->device(),
-        model.index_buffer.size,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+
+    std::optional<vkrndr::buffer_t> real_index_buffer;
+    if (model.index_buffer.size > 0)
+    {
+        real_index_buffer = create_buffer(backend_->device(),
+            model.index_buffer.size,
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    }
 
     backend_->transfer_buffer(model.vertex_buffer, real_vertex_buffer);
-    backend_->transfer_buffer(model.index_buffer, real_index_buffer);
+    if (real_index_buffer)
+    {
+        backend_->transfer_buffer(model.index_buffer, *real_index_buffer);
+    }
 
     destroy(&backend_->device(), &model.vertex_buffer);
     destroy(&backend_->device(), &model.index_buffer);
     model.vertex_buffer = real_vertex_buffer;
-    model.index_buffer = real_index_buffer;
+    model.index_buffer = real_index_buffer.value_or(vkrndr::buffer_t{});
 
     destroy(&backend_->device(), &model_);
 
@@ -761,10 +789,13 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             &model_.vertex_buffer.buffer,
             &zero_offset);
 
-        vkCmdBindIndexBuffer(command_buffer,
-            model_.index_buffer.buffer,
-            0,
-            VK_INDEX_TYPE_UINT32);
+        if (model_.index_buffer.buffer != VK_NULL_HANDLE)
+        {
+            vkCmdBindIndexBuffer(command_buffer,
+                model_.index_buffer.buffer,
+                0,
+                VK_INDEX_TYPE_UINT32);
+        }
 
         ::draw(model_,
             *pipeline_.layout,
