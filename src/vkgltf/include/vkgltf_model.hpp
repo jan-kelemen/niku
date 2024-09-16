@@ -5,7 +5,9 @@
 #include <vkrndr_image.hpp>
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 #include <vulkan/vulkan_core.h>
 
@@ -15,6 +17,7 @@
 #include <string>
 #include <vector>
 
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
 namespace vkrndr
 {
     struct device_t;
@@ -62,13 +65,13 @@ namespace vkgltf
     {
         VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
 
-        uint32_t count;
-        uint32_t first;
+        uint32_t count{};
+        uint32_t first{};
 
-        bool is_indexed;
+        bool is_indexed{};
         int32_t vertex_offset{};
 
-        size_t material_index;
+        size_t material_index{};
     };
 
     struct [[nodiscard]] mesh_t final

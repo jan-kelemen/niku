@@ -1,5 +1,6 @@
 #include <application.hpp>
 
+#include <camera_controller.hpp>
 #include <model_selector.hpp>
 #include <pbr_renderer.hpp>
 
@@ -8,9 +9,11 @@
 
 #include <niku_application.hpp>
 #include <niku_imgui_layer.hpp>
+#include <niku_perspective_camera.hpp>
 #include <niku_sdl_window.hpp> // IWYU pragma: keep
 
 #include <vkgltf_loader.hpp>
+#include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -27,13 +30,18 @@
 
 #include <spdlog/spdlog.h>
 
+#include <tl/expected.hpp>
+
 #include <vulkan/vulkan_core.h>
 
 #include <cstdint>
 #include <filesystem>
+#include <string>
+#include <system_error>
 #include <memory>
-#include <optional>
 #include <variant>
+#include <utility>
+#include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
 
@@ -73,9 +81,10 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->device(),
           backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
-    , gltf_loader_{backend_.get()}
     , pbr_renderer_{std::make_unique<pbr_renderer_t>(backend_.get())}
     , camera_controller_{camera_, mouse_}
+    , gltf_loader_{backend_.get()}
+    
 {
 }
 

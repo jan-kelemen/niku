@@ -3,7 +3,6 @@
 
 #include <camera_controller.hpp>
 #include <model_selector.hpp>
-#include <pbr_renderer.hpp>
 
 #include <niku_application.hpp>
 #include <niku_mouse.hpp>
@@ -27,6 +26,11 @@ namespace vkrndr
 {
     class backend_t;
 } // namespace vkrndr
+
+namespace gltfviewer
+{
+    class pbr_renderer_t;
+}
 
 namespace gltfviewer
 {

@@ -39,8 +39,8 @@ namespace gltfviewer
         camera_controller_t& operator=(camera_controller_t&&) noexcept = delete;
 
     private:
-        niku::mouse_t* mouse_;
         niku::perspective_camera_t* camera_;
+        niku::mouse_t* mouse_;
 
         glm::vec3 velocity_{};
         bool update_needed_{false};

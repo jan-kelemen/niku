@@ -5,6 +5,7 @@
 
 #include <vkgltf_model.hpp>
 
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -12,21 +13,16 @@
 #include <vulkan/vulkan_core.h>
 
 #include <cstdint>
+#include <vector>
 
 namespace niku
 {
     class camera_t;
 } // namespace niku
 
-namespace vkgltf
-{
-    struct model_t;
-} // namespace vkgltf
-
 namespace vkrndr
 {
     class backend_t;
-    struct image_t;
 } // namespace vkrndr
 
 namespace gltfviewer
@@ -34,7 +30,7 @@ namespace gltfviewer
     class [[nodiscard]] pbr_renderer_t final
     {
     public:
-        pbr_renderer_t(vkrndr::backend_t* backend);
+        explicit pbr_renderer_t(vkrndr::backend_t* backend);
 
         pbr_renderer_t(pbr_renderer_t const&) = delete;
 

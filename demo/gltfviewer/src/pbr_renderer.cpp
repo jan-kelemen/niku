@@ -11,6 +11,7 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_device.hpp>
 #include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_image.hpp>
@@ -20,13 +21,22 @@
 #include <vkrndr_utility.hpp>
 
 #include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
 
 #include <vulkan/vulkan_core.h>
 
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+
+#include <iterator>
 #include <array>
 #include <ranges>
+#include <span>
+#include <utility>
+
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <optional>
 
 namespace
 {
@@ -304,17 +314,20 @@ namespace
     [[nodiscard]] uint32_t nodes_with_mesh(vkgltf::node_t const& node,
         vkgltf::model_t const& model)
     {
-        uint32_t rv{node.mesh != nullptr};
+        auto rv{static_cast<uint32_t>(node.mesh != nullptr)};
+        // cppcheck-suppress-begin useStlAlgorithm
         for (auto const& child : node.children(model))
         {
             rv += nodes_with_mesh(child, model);
         }
+        // cppcheck-suppress-end useStlAlgorithm
         return rv;
     }
 
     [[nodiscard]] uint32_t required_transforms(vkgltf::model_t const& model)
     {
         uint32_t rv{};
+        // cppcheck-suppress-begin useStlAlgorithm
         for (auto const& graph : model.scenes)
         {
             for (auto const& root : graph.roots(model))
@@ -322,6 +335,7 @@ namespace
                 rv += nodes_with_mesh(root, model);
             }
         }
+        // cppcheck-suppress-end useStlAlgorithm
         return rv;
     }
 
@@ -349,7 +363,7 @@ namespace
 
             std::ranges::transform(model.materials,
                 materials,
-                [&model](vkgltf::material_t const& m)
+                [](vkgltf::material_t const& m)
                 {
                     return material_t{.texture_index = cppext::narrow<uint32_t>(
                                           m.pbr_metallic_roughness
@@ -441,6 +455,7 @@ namespace
         {
             transforms[index].model = node_transform;
 
+            // cppcheck-suppress-begin useStlAlgorithm
             for (auto const& primitive : node.mesh->primitives)
             {
                 push_constants_t pc{.transform_index = index,
@@ -471,6 +486,7 @@ namespace
                         0);
                 }
             }
+            // cppcheck-suppress-end useStlAlgorithm
 
             ++drawn;
         }
@@ -489,7 +505,7 @@ namespace
         return drawn;
     }
 
-    [[nodiscard]] void draw(vkgltf::model_t const& model,
+    void draw(vkgltf::model_t const& model,
         VkPipelineLayout const layout,
         VkCommandBuffer command_buffer,
         transform_t* transforms)

@@ -24,7 +24,7 @@ namespace vkrndr
     {
         std::shared_ptr<VkPipelineLayout> layout;
         VkPipeline pipeline{VK_NULL_HANDLE};
-        VkPipelineBindPoint type;
+        VkPipelineBindPoint type{VK_PIPELINE_BIND_POINT_GRAPHICS};
     };
 
     void bind_pipeline(VkCommandBuffer command_buffer,

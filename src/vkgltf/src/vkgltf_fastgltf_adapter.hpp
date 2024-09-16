@@ -4,15 +4,19 @@
 #include <vkgltf_error.hpp>
 
 #include <fastgltf/core.hpp>
+#include <fastgltf/types.hpp>
 
 #include <fmt/base.h>
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <vulkan/vulkan_core.h>
 
 #include <cassert>
 #include <cstddef>
+
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
 namespace vkgltf
 {
@@ -176,15 +180,15 @@ namespace vkgltf
     {
         if constexpr (N == 2)
         {
-            if constexpr (N == 2)
+            if constexpr (M == 2)
             {
                 return glm::make_mat2x2(mat.data());
             }
-            else if constexpr (N == 3)
+            else if constexpr (M == 3)
             {
                 return glm::make_mat2x3(mat.data());
             }
-            else if constexpr (N == 4)
+            else if constexpr (M == 4)
             {
                 return glm::make_mat2x4(mat.data());
             }
@@ -195,15 +199,15 @@ namespace vkgltf
         }
         else if constexpr (N == 3)
         {
-            if constexpr (N == 2)
+            if constexpr (M == 2)
             {
                 return glm::make_mat3x2(mat.data());
             }
-            else if constexpr (N == 3)
+            else if constexpr (M == 3)
             {
                 return glm::make_mat3x3(mat.data());
             }
-            else if constexpr (N == 4)
+            else if constexpr (M == 4)
             {
                 return glm::make_mat3x4(mat.data());
             }
@@ -214,15 +218,15 @@ namespace vkgltf
         }
         else if constexpr (N == 4)
         {
-            if constexpr (N == 2)
+            if constexpr (M == 2)
             {
                 return glm::make_mat4x2(mat.data());
             }
-            else if constexpr (N == 3)
+            else if constexpr (M == 3)
             {
                 return glm::make_mat4x3(mat.data());
             }
-            else if constexpr (N == 4)
+            else if constexpr (M == 4)
             {
                 return glm::make_mat4x4(mat.data());
             }

@@ -8,7 +8,11 @@
 #include <imgui.h>
 
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_keyboard.h>
+#include <SDL2/SDL_scancode.h>
 
+#include <cmath>
+#include <cstdint>
 #include <algorithm>
 
 gltfviewer::camera_controller_t::camera_controller_t(

@@ -1,7 +1,7 @@
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
 
 void vkgltf::destroy(vkrndr::device_t* const device, model_t* const model)
 {

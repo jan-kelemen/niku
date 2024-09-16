@@ -9,6 +9,8 @@
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_buffer.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -16,20 +18,37 @@
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp> // IWYU pragma: keep
+#include <fastgltf/math.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
 #include <spdlog/spdlog.h>
 
 #include <tl/expected.hpp>
 
+#include <vulkan/vulkan_core.h>
+
+#include <algorithm>
+#include <cstddef>
+#include <exception>
+#include <cassert>
+#include <cstdint>
+#include <iterator>
+#include <string>
+#include <string_view>
+#include <vector>
 #include <optional>
 #include <span>
 #include <system_error>
 #include <utility>
 #include <variant>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <functional>
 
 namespace
 {
@@ -115,9 +134,11 @@ namespace
             {
                 VkExtent2D const extent{cppext::narrow<uint32_t>(width),
                     cppext::narrow<uint32_t>(height)};
-                std::span<std::byte const> image_data{
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+                std::span<std::byte const> const image_data{
                     reinterpret_cast<std::byte const*>(data),
                     size_t{extent.width} * extent.height * 4};
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
                 return backend->transfer_image(image_data,
                     extent,
@@ -132,9 +153,9 @@ namespace
         auto const load_from_vector =
             [&](fastgltf::sources::Vector const& vector)
         {
-            int width;
-            int height;
-            int channels;
+            int width; // NOLINT
+            int height; // NOLINT
+            int channels; // NOLINT
             stbi_uc* const data{stbi_load_from_memory(
                 reinterpret_cast<stbi_uc const*>(vector.bytes.data()),
                 cppext::narrow<int>(vector.bytes.size()),
@@ -168,9 +189,9 @@ namespace
                         path = parent_path / path;
                     }
 
-                    int width;
-                    int height;
-                    int channels;
+                    int width; // NOLINT
+                    int height; // NOLINT
+                    int channels; // NOLINT
                     stbi_uc* const data{stbi_load(path.string().c_str(),
                         &width,
                         &height,
@@ -182,7 +203,7 @@ namespace
                 [&unsupported_variant, &load_from_vector, &asset](
                     fastgltf::sources::BufferView const& view)
                 {
-                    auto& bufferView = asset.bufferViews[view.bufferViewIndex];
+                    auto const& bufferView = asset.bufferViews[view.bufferViewIndex];
                     auto& buffer = asset.buffers[bufferView.bufferIndex];
 
                     return std::visit(cppext::overloaded{unsupported_variant,
@@ -206,7 +227,7 @@ namespace
                 throw std::system_error{load_result.error()};
             }
 
-            model.images.push_back(std::move(load_result).value());
+            model.images.push_back(load_result.value());
         }
     }
 
@@ -329,7 +350,7 @@ namespace
                     p.material_index = *primitive.materialIndex;
                 }
 
-                m.primitives.push_back(std::move(p));
+                m.primitives.push_back(p);
             }
 
             model.meshes.push_back(std::move(m));
