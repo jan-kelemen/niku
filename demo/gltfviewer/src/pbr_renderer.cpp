@@ -11,9 +11,9 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
-#include <vkrndr_device.hpp>
 #include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
+#include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -28,8 +28,8 @@
 #include <cstddef>
 #include <functional>
 
-#include <iterator>
 #include <array>
+#include <iterator>
 #include <ranges>
 #include <span>
 #include <utility>
@@ -53,8 +53,9 @@ namespace
 
     struct [[nodiscard]] material_t final
     {
-        uint32_t texture_index;
-        uint32_t sampler_index;
+        glm::vec4 base_color_factor;
+        uint32_t base_color_texture_index;
+        uint32_t base_color_sampler_index;
     };
 
     consteval auto binding_description()
@@ -365,10 +366,13 @@ namespace
                 materials,
                 [](vkgltf::material_t const& m)
                 {
-                    return material_t{.texture_index = cppext::narrow<uint32_t>(
-                                          m.pbr_metallic_roughness
-                                              .base_color_texture->image_index),
-                        .sampler_index = cppext::narrow<uint32_t>(
+                    return material_t{
+                        .base_color_factor =
+                            m.pbr_metallic_roughness.base_color_factor,
+                        .base_color_texture_index = cppext::narrow<uint32_t>(
+                            m.pbr_metallic_roughness.base_color_texture
+                                ->image_index),
+                        .base_color_sampler_index = cppext::narrow<uint32_t>(
                             m.pbr_metallic_roughness.base_color_texture
                                 ->sampler_index)};
                 });

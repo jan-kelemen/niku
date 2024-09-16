@@ -4,8 +4,8 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 inUV;
 
 layout(push_constant) uniform PushConsts {
-    uint model_index;
-	uint material_index;
+    uint modelIndex;
+    uint materialIndex;
 } pc;
 
 layout(set = 0, binding = 0) uniform Camera {
@@ -20,7 +20,7 @@ layout(std140, set = 2, binding = 0) readonly buffer Transform {
 layout(location = 0) out vec2 outUV;
 
 void main() {
-    gl_Position = camera.projection * camera.view * transforms.model[pc.model_index] * vec4(inPosition, 1.0);
+    gl_Position = camera.projection * camera.view * transforms.model[pc.modelIndex] * vec4(inPosition, 1.0);
 
     outUV = inUV;
 }

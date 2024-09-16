@@ -5,16 +5,17 @@
 layout(location = 0) in vec2 inUV;
 
 layout(push_constant) uniform PushConsts {
-    uint model_index;
-	uint material_index;
+    uint modelIndex;
+    uint materialIndex;
 } pc;
 
 layout(set = 1, binding = 0) uniform texture2D textures[];
 layout(set = 1, binding = 1) uniform sampler samplers[];
 
 struct Material {
-    uint texture_index;
-    uint sampler_index;
+    vec4 baseColorFactor;
+    uint baseColorTextureIndex;
+    uint baseColorSamplerIndex;
 };
 
 layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer {
@@ -24,7 +25,7 @@ layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer {
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    Material m = materials.v[pc.material_index];
+    Material m = materials.v[pc.materialIndex];
 
-    outColor = texture(nonuniformEXT(sampler2D(textures[m.texture_index], samplers[m.sampler_index])), inUV);
+    outColor = m.baseColorFactor * texture(nonuniformEXT(sampler2D(textures[m.baseColorTextureIndex], samplers[m.baseColorSamplerIndex])), inUV);
 }
