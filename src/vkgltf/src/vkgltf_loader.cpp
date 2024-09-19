@@ -178,8 +178,10 @@ namespace
         };
 
         return std::visit(
-            cppext::overloaded{[&transfer_image, &parent_path](
-                                   fastgltf::sources::URI const& filePath)
+            cppext::overloaded{
+                [&transfer_image, &parent_path](
+                    fastgltf::sources::URI const& filePath)
+                    -> tl::expected<vkrndr::image_t, std::error_code>
                 {
                     // No offsets in file
                     assert(filePath.fileByteOffset == 0);
@@ -200,7 +202,17 @@ namespace
                         &height,
                         &channels,
                         4)};
-                    return transfer_image(width, height, data);
+                    if (data == nullptr)
+                    {
+                        return tl::make_unexpected(
+                            make_error_code(vkgltf::error_t::unknown));
+                    }
+
+                    auto rv{transfer_image(width, height, data)};
+
+                    stbi_image_free(data);
+
+                    return rv;
                 },
                 load_from_vector,
                 [&unsupported_variant, &load_from_vector, &asset](
