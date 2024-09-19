@@ -30,6 +30,7 @@ namespace vkgltf
     struct [[nodiscard]] vertex_t final
     {
         alignas(16) glm::vec3 position;
+        alignas(16) glm::vec3 normal;
         glm::vec2 uv;
     };
 

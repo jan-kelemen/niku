@@ -53,6 +53,7 @@
 namespace
 {
     constexpr auto position_attribute{"POSITION"};
+    constexpr auto normal_attribute{"NORMAL"};
     constexpr auto texcoord_0_attribute{"TEXCOORD_0"};
 
     template<typename T>
@@ -316,6 +317,10 @@ namespace
             [&vertices](glm::vec3 const v, size_t const idx)
         { vertices[idx] = {.position = v}; };
 
+        auto const normal_transform =
+            [&vertices](glm::vec3 const n, size_t const idx)
+        { vertices[idx].normal = n; };
+
         auto const texcoord_transform =
             [&vertices](glm::vec2 const v, size_t const idx)
         { vertices[idx].uv = v; };
@@ -334,6 +339,14 @@ namespace
                     position_attribute,
                     vertex_transform)};
                 assert(vertex_count);
+
+                if (auto const normal_count{copy_attribute<glm::vec3>(asset,
+                        primitive,
+                        normal_attribute,
+                        normal_transform)})
+                {
+                    assert(normal_count == vertex_count);
+                }
 
                 if (auto const texcoord_count{copy_attribute<glm::vec2>(asset,
                         primitive,
