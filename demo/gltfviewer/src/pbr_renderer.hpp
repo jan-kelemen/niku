@@ -10,6 +10,8 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 
+#include <glm/vec3.hpp>
+
 #include <volk.h>
 
 #include <cstdint>
@@ -87,6 +89,9 @@ namespace gltfviewer
         vkrndr::pipeline_t culling_pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
+
+        glm::vec3 light_position_{};
+        glm::vec3 light_color_{1.0f};
     };
 } // namespace gltfviewer
 #endif

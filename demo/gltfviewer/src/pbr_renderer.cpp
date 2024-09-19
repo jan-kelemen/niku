@@ -20,8 +20,11 @@
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec4.hpp>
+
+#include <imgui.h>
 
 #include <volk.h>
 
@@ -85,6 +88,10 @@ namespace
                 .offset = offsetof(vkgltf::vertex_t, position)},
             VkVertexInputAttributeDescription{.location = 1,
                 .binding = 0,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(vkgltf::vertex_t, normal)},
+            VkVertexInputAttributeDescription{.location = 2,
+                .binding = 0,
                 .format = VK_FORMAT_R32G32_SFLOAT,
                 .offset = offsetof(vkgltf::vertex_t, uv)},
         };
@@ -96,6 +103,10 @@ namespace
     {
         glm::mat4 view;
         glm::mat4 projection;
+        alignas(16) glm::vec3 camera_position;
+        alignas(
+            16) glm::vec3 light_position; // TODO-JK: Remove lights from this
+        alignas(16) glm::vec3 light_color;
     };
 
     [[nodiscard]] VkDescriptorSetLayout create_camera_descriptor_set_layout(
@@ -106,7 +117,8 @@ namespace
         camera_uniform_binding.descriptorType =
             VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         camera_uniform_binding.descriptorCount = 1;
-        camera_uniform_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        camera_uniform_binding.stageFlags =
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
         std::array const bindings{camera_uniform_binding};
 
@@ -749,10 +761,22 @@ void gltfviewer::pbr_renderer_t::update(niku::camera_t const& camera)
 {
     frame_data_.cycle();
 
+    // TODO-JK: TEMP
+    ImGui::Begin("Light");
+    ImGui::SliderFloat3("Position",
+        glm::value_ptr(light_position_),
+        -500.0f,
+        500.0f);
+    ImGui::SliderFloat3("Color", glm::value_ptr(light_color_), 0.0f, 1.0f);
+    ImGui::End();
+
     auto* const camera_uniform{
         frame_data_->camera_uniform_map.as<camera_uniform_t>()};
     camera_uniform->view = camera.view_matrix();
     camera_uniform->projection = camera.projection_matrix();
+    camera_uniform->camera_position = camera.position();
+    camera_uniform->light_position = light_position_;
+    camera_uniform->light_color = light_color_;
 }
 
 void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
