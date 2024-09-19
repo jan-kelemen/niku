@@ -94,8 +94,8 @@ void vkrndr::destroy(device_t* const device, pipeline_t* const pipeline)
             vkDestroyPipelineLayout(device->logical,
                 *pipeline->layout,
                 nullptr);
-            pipeline->layout.reset();
         }
+        pipeline->layout.reset();
     }
 }
 
