@@ -6,6 +6,7 @@
 
 #include <niku_camera.hpp>
 
+#include <vector>
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -469,7 +470,8 @@ namespace
         VkPipelineLayout const layout,
         VkCommandBuffer command_buffer,
         transform_t* transforms,
-        uint32_t const index)
+        uint32_t const index,
+        auto& switch_pipeline)
     {
         auto const node_transform{transform * node.matrix};
 
@@ -484,6 +486,10 @@ namespace
                 push_constants_t pc{.transform_index = index,
                     .material_index =
                         cppext::narrow<uint32_t>(primitive.material_index)};
+
+                switch_pipeline(
+                    model.materials[primitive.material_index].double_sided,
+                    command_buffer);
 
                 vkCmdPushConstants(command_buffer,
                     layout,
@@ -523,7 +529,8 @@ namespace
                 layout,
                 command_buffer,
                 transforms,
-                index + drawn);
+                index + drawn,
+                switch_pipeline);
         }
         // cppcheck-suppress-end useStlAlgorithm
 
@@ -533,7 +540,8 @@ namespace
     void draw(vkgltf::model_t const& model,
         VkPipelineLayout const layout,
         VkCommandBuffer command_buffer,
-        transform_t* transforms)
+        transform_t* transforms,
+        auto& switch_pipeline)
     {
         uint32_t drawn{0};
         for (auto const& graph : model.scenes)
@@ -546,7 +554,8 @@ namespace
                     layout,
                     command_buffer,
                     transforms,
-                    drawn);
+                    drawn,
+                    switch_pipeline);
             }
         }
     }
@@ -640,7 +649,8 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
         camera_descriptor_set_layout_,
         nullptr);
 
-    destroy(&backend_->device(), &pipeline_);
+    destroy(&backend_->device(), &culling_pipeline_);
+    destroy(&backend_->device(), &double_sided_pipeline_);
     destroy(&backend_->device(), &model_);
     destroy(&backend_->device(), &depth_buffer_);
 }
@@ -732,7 +742,7 @@ void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
                 .range = transform_buffer_size});
     }
 
-    recreate_pipeline();
+    recreate_pipelines();
 }
 
 void gltfviewer::pbr_renderer_t::update(niku::camera_t const& camera)
@@ -773,7 +783,26 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             material_descriptor_set_,
             frame_data_->transform_descriptor_set};
 
-        vkrndr::bind_pipeline(command_buffer, pipeline_, 0, descriptor_sets);
+        vkrndr::bind_pipeline(command_buffer,
+            culling_pipeline_,
+            0,
+            descriptor_sets);
+
+        auto switch_pipeline =
+            [bound = &culling_pipeline_,
+                &descriptor_sets,
+                this](bool const double_sided, VkCommandBuffer cb) mutable
+        {
+            auto* const required_pipeline{
+                double_sided ? &double_sided_pipeline_ : &culling_pipeline_};
+            if (bound != required_pipeline)
+            {
+                vkrndr::bind_pipeline(cb,
+                    *required_pipeline,
+                    0,
+                    descriptor_sets);
+            }
+        };
 
         VkDeviceSize const zero_offset{};
         vkCmdBindVertexBuffers(command_buffer,
@@ -791,9 +820,10 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         }
 
         ::draw(model_,
-            *pipeline_.layout,
+            *double_sided_pipeline_.layout,
             command_buffer,
-            frame_data_->transform_uniform_map.as<transform_t>());
+            frame_data_->transform_uniform_map.as<transform_t>(),
+            switch_pipeline);
     }
 }
 
@@ -806,14 +836,14 @@ void gltfviewer::pbr_renderer_t::resize(uint32_t width, uint32_t height)
         backend_->device().max_msaa_samples);
 }
 
-void gltfviewer::pbr_renderer_t::recreate_pipeline()
+void gltfviewer::pbr_renderer_t::recreate_pipelines()
 {
-    if (pipeline_.pipeline != VK_NULL_HANDLE)
+    if (double_sided_pipeline_.pipeline != VK_NULL_HANDLE)
     {
-        destroy(&backend_->device(), &pipeline_);
+        destroy(&backend_->device(), &double_sided_pipeline_);
     }
 
-    pipeline_ =
+    double_sided_pipeline_ =
         vkrndr::pipeline_builder_t{&backend_->device(),
             vkrndr::pipeline_layout_builder_t{&backend_->device()}
                 .add_descriptor_set_layout(camera_descriptor_set_layout_)
@@ -832,5 +862,24 @@ void gltfviewer::pbr_renderer_t::recreate_pipeline()
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_.format)
             .add_vertex_input(binding_description(), attribute_descriptions())
+            .build();
+
+    if (culling_pipeline_.pipeline != VK_NULL_HANDLE)
+    {
+        destroy(&backend_->device(), &culling_pipeline_);
+    }
+
+    culling_pipeline_ =
+        vkrndr::pipeline_builder_t{&backend_->device(),
+            double_sided_pipeline_.layout,
+            backend_->image_format()}
+            .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
+            .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(backend_->device().max_msaa_samples)
+            .with_depth_test(depth_buffer_.format)
+            .add_vertex_input(binding_description(), attribute_descriptions())
+            .with_culling(VK_CULL_MODE_BACK_BIT,
+                VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
 }

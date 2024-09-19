@@ -68,7 +68,7 @@ namespace gltfviewer
         };
 
     private:
-        void recreate_pipeline();
+        void recreate_pipelines();
 
     private:
         vkrndr::backend_t* backend_;
@@ -83,7 +83,8 @@ namespace gltfviewer
         VkDescriptorSetLayout camera_descriptor_set_layout_{VK_NULL_HANDLE};
         VkDescriptorSetLayout material_descriptor_set_layout_{VK_NULL_HANDLE};
         VkDescriptorSetLayout transform_descriptor_set_layout_{VK_NULL_HANDLE};
-        vkrndr::pipeline_t pipeline_;
+        vkrndr::pipeline_t double_sided_pipeline_;
+        vkrndr::pipeline_t culling_pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };
