@@ -55,7 +55,7 @@ void main() {
     vec3 norm = normalize(inNormal);
     vec3 lightDirection = normalize(lightPosition - inFragmentPosition);  
 
-    float diff = max(dot(norm, lightDirection), 0.0);
+    float diff = max(dot(norm, lightDirection), 0.1);
     vec3 diffuse = diff * lightColor;
 
     float specularStrength = 0.05;
@@ -64,7 +64,7 @@ void main() {
     float spec = pow(max(dot(viewDir, reflectDirection), 0.0), 32);
     vec3 specular = specularStrength * spec * lightColor;  
 
-    vec4 result = vec4(diffuse, 1.0) * baseColor();
+    vec4 result = vec4(diffuse + specular, 1.0) * baseColor();
 
     outColor = result;
 }

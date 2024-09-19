@@ -29,6 +29,6 @@ void main() {
     gl_Position = camera.projection * camera.view * transforms.model[pc.modelIndex] * vec4(inPosition, 1.0);
 
     outPosition = (transforms.model[pc.modelIndex] * vec4(inPosition, 1.0)).xyz;
-    outNormal = transpose(inverse(mat3(transforms.model[pc.modelIndex]))) * inPosition;
+    outNormal = transpose(inverse(mat3(transforms.model[pc.modelIndex]))) * inNormal;
     outUV = inUV;
 }
