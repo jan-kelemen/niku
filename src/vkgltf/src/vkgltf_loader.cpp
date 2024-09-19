@@ -289,7 +289,8 @@ namespace
     {
         for (fastgltf::Material const& material : asset.materials)
         {
-            vkgltf::material_t m{.name = std::string{material.name}};
+            vkgltf::material_t m{.name = std::string{material.name},
+                .double_sided = material.doubleSided};
             m.pbr_metallic_roughness.base_color_factor =
                 vkgltf::to_glm(material.pbrData.baseColorFactor);
             if (material.pbrData.baseColorTexture)

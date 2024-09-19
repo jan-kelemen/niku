@@ -59,6 +59,7 @@ namespace vkgltf
     {
         std::string name;
         pbr_metallic_roughness_t pbr_metallic_roughness;
+        bool double_sided{false};
     };
 
     struct [[nodiscard]] primitive_t final
