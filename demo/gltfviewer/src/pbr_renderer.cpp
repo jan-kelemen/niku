@@ -10,7 +10,6 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_commands.hpp>
 #include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
@@ -21,6 +20,7 @@
 #include <vkrndr_utility.hpp>
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec4.hpp>
 
 #include <volk.h>
 
@@ -30,6 +30,7 @@
 
 #include <array>
 #include <iterator>
+#include <limits>
 #include <ranges>
 #include <span>
 #include <utility>
@@ -557,7 +558,7 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
     , depth_buffer_{vkrndr::create_depth_buffer(backend_->device(),
           backend_->extent(),
           false,
-          VK_SAMPLE_COUNT_1_BIT)}
+          backend_->device().max_msaa_samples)}
     , camera_descriptor_set_layout_{create_camera_descriptor_set_layout(
           backend_->device())}
     , transform_descriptor_set_layout_{
@@ -745,24 +746,16 @@ void gltfviewer::pbr_renderer_t::update(niku::camera_t const& camera)
 }
 
 void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
+    vkrndr::image_t const& color_image,
     vkrndr::image_t const& target_image)
 {
-    vkrndr::transition_image(target_image.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_PIPELINE_STAGE_2_BLIT_BIT,
-        VK_ACCESS_2_TRANSFER_READ_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        1);
-
     {
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
             target_image.view,
-            VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
+            VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}},
+            color_image.view);
         color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
             depth_buffer_.view,
@@ -810,7 +803,7 @@ void gltfviewer::pbr_renderer_t::resize(uint32_t width, uint32_t height)
     depth_buffer_ = vkrndr::create_depth_buffer(backend_->device(),
         VkExtent2D{width, height},
         false,
-        VK_SAMPLE_COUNT_1_BIT);
+        backend_->device().max_msaa_samples);
 }
 
 void gltfviewer::pbr_renderer_t::recreate_pipeline()
@@ -836,7 +829,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipeline()
             .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
             .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
+            .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_.format)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();

@@ -45,6 +45,7 @@ namespace gltfviewer
         void update(niku::camera_t const& camera);
 
         void draw(VkCommandBuffer command_buffer,
+            vkrndr::image_t const& color_image,
             vkrndr::image_t const& target_image);
 
         void resize(uint32_t width, uint32_t height);

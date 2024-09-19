@@ -53,11 +53,10 @@ namespace
         return vkrndr::create_image_and_view(backend.device(),
             backend.extent(),
             1,
-            VK_SAMPLE_COUNT_1_BIT,
+            backend.device().max_msaa_samples,
             backend.image_format(),
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
@@ -173,58 +172,11 @@ void gltfviewer::application_t::draw()
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    pbr_renderer_->draw(command_buffer, color_image_);
+    vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
 
-    vkrndr::transition_image(color_image_.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        VK_PIPELINE_STAGE_2_BLIT_BIT,
-        VK_ACCESS_2_TRANSFER_READ_BIT,
-        1);
+    pbr_renderer_->draw(command_buffer, color_image_, target_image);
 
-    vkrndr::transition_image(target_image.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_NONE,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        1);
-
-    VkOffset3D const size{
-        .x = cppext::narrow<int32_t>(target_image.extent.width),
-        .y = cppext::narrow<int32_t>(target_image.extent.height),
-        .z = 1};
-    VkImageBlit region{};
-    region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.srcSubresource.layerCount = 1;
-    region.srcOffsets[1] = size;
-    region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.dstSubresource.layerCount = 1;
-    region.dstOffsets[1] = size;
-
-    vkCmdBlitImage(command_buffer,
-        color_image_.image,
-        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-        target_image.image,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region,
-        VK_FILTER_NEAREST);
-
-    vkrndr::transition_image(target_image.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_PIPELINE_STAGE_2_BLIT_BIT,
-        VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-        VK_ACCESS_2_NONE,
-        1);
+    vkrndr::transition_to_present_layout(target_image.image, command_buffer);
 
     imgui_->render(command_buffer, target_image);
 
