@@ -8,6 +8,10 @@
 #include <filesystem>
 #include <system_error>
 
+// IWYU pragma: no_forward_declare fastgltf::math::mat
+// IWYU pragma: no_forward_declare fastgltf::math::vec
+// IWYU pragma: no_forward_declare fastgltf::math::quat
+
 namespace vkrndr
 {
     class backend_t;
