@@ -84,6 +84,8 @@ gltfviewer::application_t::application_t(bool const debug)
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{backend_.get()}
 {
+    camera_.set_aspect_ratio(1.0f);
+    camera_.update();
 }
 
 gltfviewer::application_t::~application_t() = default;
@@ -205,6 +207,8 @@ void gltfviewer::application_t::on_resize([[maybe_unused]] uint32_t width,
 {
     destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_);
+
+    camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 
     pbr_renderer_->resize(width, height);
 }
