@@ -60,6 +60,11 @@ void main() {
 
     float specularStrength = 0.05;
     vec3 viewDir = normalize(cameraPosition - inFragmentPosition);
+    
+    //vec3 halfDir = normalize(lightDirection + viewDir);
+    //float specAngle = max(dot(halfDir, norm), 0.0);
+    //vec3 specular = pow(specAngle, 16) * lightColor;
+
     vec3 reflectDirection = reflect(-lightDirection, norm);  
     float spec = pow(max(dot(viewDir, reflectDirection), 0.0), 32);
     vec3 specular = specularStrength * spec * lightColor;  
