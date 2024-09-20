@@ -73,7 +73,7 @@ gltfviewer::application_t::application_t(bool const debug)
           .height = 512}}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
+              .preferred_present_mode = VK_PRESENT_MODE_MAILBOX_KHR},
           debug)}
     , imgui_{std::make_unique<niku::imgui_layer_t>(*window(),
           backend_->context(),

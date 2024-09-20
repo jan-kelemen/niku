@@ -54,6 +54,7 @@ namespace
     struct [[nodiscard]] transform_t final
     {
         glm::mat4 model;
+        glm::mat4 model_inverse;
     };
 
     DISABLE_WARNING_PUSH
@@ -99,6 +100,9 @@ namespace
         return descriptions;
     }
 
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_STRUCTURE_WAS_PADDED_DUE_TO_ALIGNMENT_SPECIFIER
+
     struct [[nodiscard]] camera_uniform_t final
     {
         glm::mat4 view;
@@ -108,6 +112,8 @@ namespace
             16) glm::vec3 light_position; // TODO-JK: Remove lights from this
         alignas(16) glm::vec3 light_color;
     };
+
+    DISABLE_WARNING_POP
 
     [[nodiscard]] VkDescriptorSetLayout create_camera_descriptor_set_layout(
         vkrndr::device_t const& device)
@@ -491,6 +497,8 @@ namespace
         if (node.mesh)
         {
             transforms[index].model = node_transform;
+            transforms[index].model_inverse =
+                glm::transpose(glm::inverse(node_transform));
 
             // cppcheck-suppress-begin useStlAlgorithm
             for (auto const& primitive : node.mesh->primitives)

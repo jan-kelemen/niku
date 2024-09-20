@@ -17,8 +17,13 @@ layout(set = 0, binding = 0) uniform Camera {
     vec3 lightColor;
 } camera;
 
-layout(std140, set = 2, binding = 0) readonly buffer Transform {
-    mat4 model[];
+struct Transform {
+    mat4 model;
+    mat4 normal;
+};
+
+layout(std140, set = 2, binding = 0) readonly buffer TransformBuffer {
+    Transform v[];
 } transforms;
 
 layout(location = 0) out vec3 outPosition;
@@ -26,9 +31,11 @@ layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec2 outUV;
 
 void main() {
-    gl_Position = camera.projection * camera.view * transforms.model[pc.modelIndex] * vec4(inPosition, 1.0);
+    vec4 worldPosition = transforms.v[pc.modelIndex].model * vec4(inPosition, 1.0);
 
-    outPosition = (transforms.model[pc.modelIndex] * vec4(inPosition, 1.0)).xyz;
-    outNormal = transpose(inverse(mat3(transforms.model[pc.modelIndex]))) * inNormal;
+    gl_Position = camera.projection * camera.view * worldPosition;
+
+    outPosition = worldPosition.xyz;
+    outNormal = mat3(transforms.v[pc.modelIndex].normal) * inNormal;
     outUV = inUV;
 }
