@@ -38,6 +38,7 @@
 #include <exception>
 #include <iterator>
 #include <optional>
+#include <set>
 #include <span>
 #include <string>
 #include <string_view>
@@ -54,7 +55,68 @@ namespace
 {
     constexpr auto position_attribute{"POSITION"};
     constexpr auto normal_attribute{"NORMAL"};
+    constexpr auto tangent_attribute{"TANGENT"};
     constexpr auto texcoord_0_attribute{"TEXCOORD_0"};
+
+    void calculate_normals_and_tangents(vkgltf::primitive_t const& primitive,
+        vkgltf::vertex_t* const vertices,
+        uint32_t const* const indices,
+        bool const calculate_normals,
+        bool const calculate_tangents)
+    {
+        std::span id{indices, primitive.count};
+
+        for (uint32_t i{}; i != primitive.count; i += 3)
+        {
+            auto& point1{
+                primitive.is_indexed ? vertices[indices[i]] : vertices[i]};
+            auto& point2{primitive.is_indexed ? vertices[indices[i + 1]]
+                                              : vertices[i + 1]};
+            auto& point3{primitive.is_indexed ? vertices[indices[i + 2]]
+                                              : vertices[i + 2]};
+
+            glm::vec3 const edge1{point2.position - point1.position};
+            glm::vec3 const edge2{point3.position - point1.position};
+
+            if (calculate_normals)
+            {
+                // https://stackoverflow.com/a/57812028
+                glm::vec3 const face_normal{
+                    glm::normalize(glm::cross(edge1, edge2))};
+                point1.normal = face_normal;
+                point2.normal = face_normal;
+                point3.normal = face_normal;
+            }
+
+            if (calculate_tangents)
+            {
+                glm::vec2 const delta_texture1{point2.uv - point1.uv};
+                glm::vec2 const delta_texture2{point3.uv - point1.uv};
+
+                float const f{1.0f /
+                    (delta_texture1.x * delta_texture2.y -
+                        delta_texture2.x * delta_texture1.y)};
+
+                glm::vec3 const tan{
+                    (edge1 * delta_texture2.y - edge2 * delta_texture1.y) * f};
+
+                point1.tangent = glm::vec4{tan, 1.0f};
+                point2.tangent = glm::vec4{tan, 1.0f};
+                point3.tangent = glm::vec4{tan, 1.0f};
+            }
+        }
+
+        if (calculate_normals)
+        {
+            for (uint32_t i{}; i != primitive.count; i += 3)
+            {
+                auto& point{
+                    primitive.is_indexed ? vertices[indices[i]] : vertices[i]};
+
+                point.normal = glm::normalize(point.normal);
+            }
+        }
+    }
 
     template<typename T>
     [[nodiscard]] std::optional<uint32_t> copy_attribute(
@@ -88,9 +150,12 @@ namespace
         {
             return 0;
         }
-
+        // clang-format off
         auto const indices_transform =
-            [&indices](auto const v, size_t const idx) { indices[idx] = v; };
+            [&indices](auto const v, size_t const idx) { 
+            indices[idx] = v; 
+            };
+        // clang-format on
 
         auto const& accessor{asset.accessors[*primitive.indicesAccessor]};
         if (accessor.componentType == fastgltf::ComponentType::UnsignedByte)
@@ -124,10 +189,11 @@ namespace
     [[nodiscard]] tl::expected<vkrndr::image_t, std::error_code> load_image(
         vkrndr::backend_t* const backend,
         std::filesystem::path const& parent_path,
+        bool const as_unorm,
         fastgltf::Asset const& asset,
         fastgltf::Image const& image)
     {
-        auto const transfer_image = [backend](int const width,
+        auto const transfer_image = [backend, as_unorm](int const width,
                                         int const height,
                                         stbi_uc const* const data)
             -> tl::expected<vkrndr::image_t, std::error_code>
@@ -144,7 +210,8 @@ namespace
 
                 return backend->transfer_image(image_data,
                     extent,
-                    VK_FORMAT_R8G8B8A8_SRGB,
+                    as_unorm ? VK_FORMAT_R8G8B8A8_UNORM
+                             : VK_FORMAT_R8G8B8A8_SRGB,
                     vkrndr::max_mip_levels(width, height));
             }
 
@@ -233,12 +300,19 @@ namespace
 
     void load_images(vkrndr::backend_t* const backend,
         std::filesystem::path const& parent_path,
+        std::set<size_t> const& unorm_images,
         fastgltf::Asset const& asset,
         vkgltf::model_t& model)
     {
-        for (fastgltf::Image const& image : asset.images)
+        for (size_t i{}; i != asset.images.size(); ++i)
         {
-            auto load_result{load_image(backend, parent_path, asset, image)};
+            auto const& image{asset.images[i]};
+
+            auto load_result{load_image(backend,
+                parent_path,
+                unorm_images.contains(i),
+                asset,
+                image)};
             if (!load_result)
             {
                 throw std::system_error{load_result.error()};
@@ -286,8 +360,11 @@ namespace
         }
     }
 
-    void load_materials(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    [[nodiscard]] std::set<size_t> load_materials(fastgltf::Asset const& asset,
+        vkgltf::model_t& model)
     {
+        std::set<size_t> unorm_images;
+
         for (fastgltf::Material const& material : asset.materials)
         {
             vkgltf::material_t m{.name = std::string{material.name},
@@ -301,8 +378,17 @@ namespace
                                         ->textureIndex];
             }
 
+            if (material.normalTexture)
+            {
+                m.normal_texture =
+                    &model.textures[material.normalTexture->textureIndex];
+                unorm_images.insert(m.normal_texture->image_index);
+            }
+
             model.materials.push_back(std::move(m));
         }
+
+        return unorm_images;
     }
 
     void load_meshes(fastgltf::Asset const& asset,
@@ -321,6 +407,10 @@ namespace
             [&vertices](glm::vec3 const n, size_t const idx)
         { vertices[idx].normal = n; };
 
+        auto const tangent_transform =
+            [&vertices](glm::vec4 const t, size_t const idx)
+        { vertices[idx].tangent = t; };
+
         auto const texcoord_transform =
             [&vertices](glm::vec2 const v, size_t const idx)
         { vertices[idx].uv = v; };
@@ -331,6 +421,9 @@ namespace
             vkgltf::mesh_t m{.name = std::string{mesh.name}};
             for (fastgltf::Primitive const& primitive : mesh.primitives)
             {
+                bool normals_loaded{false};
+                bool tangents_loaded{false};
+
                 vkgltf::primitive_t p{
                     .topology = vkgltf::to_vulkan(primitive.type)};
 
@@ -346,6 +439,16 @@ namespace
                         normal_transform)})
                 {
                     assert(normal_count == vertex_count);
+                    normals_loaded = true;
+                }
+
+                if (auto const tangent_count{copy_attribute<glm::vec4>(asset,
+                        primitive,
+                        tangent_attribute,
+                        tangent_transform)})
+                {
+                    assert(tangent_count == vertex_count);
+                    tangents_loaded = true;
                 }
 
                 if (auto const texcoord_count{copy_attribute<glm::vec2>(asset,
@@ -356,12 +459,9 @@ namespace
                     assert(texcoord_count == vertex_count);
                 }
 
-                vertices += *vertex_count;
-
                 size_t const index_count{
                     load_indices(asset, primitive, indices)};
-                indices += index_count;
-
+                std::span id{indices, index_count};
                 p.is_indexed = index_count != 0;
                 if (p.is_indexed)
                 {
@@ -376,6 +476,15 @@ namespace
                     p.first = cppext::narrow<uint32_t>(running_vertex_count);
                 }
 
+                if (!normals_loaded || !tangents_loaded)
+                {
+                    calculate_normals_and_tangents(p,
+                        vertices,
+                        indices,
+                        !normals_loaded,
+                        !tangents_loaded);
+                }
+
                 running_vertex_count += cppext::narrow<int32_t>(*vertex_count);
                 running_index_count += cppext::narrow<uint32_t>(index_count);
 
@@ -383,6 +492,9 @@ namespace
                 {
                     p.material_index = *primitive.materialIndex;
                 }
+
+                vertices += *vertex_count;
+                indices += index_count;
 
                 m.primitives.push_back(p);
             }
@@ -523,10 +635,10 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
 
     try
     {
-        load_images(backend_, parent_path, asset.get(), rv);
         load_samplers(asset.get(), rv);
         load_textures(asset.get(), rv);
-        load_materials(asset.get(), rv);
+        std::set<size_t> unorm_images{load_materials(asset.get(), rv)};
+        load_images(backend_, parent_path, unorm_images, asset.get(), rv);
 
         load_meshes(asset.get(), rv, vertices, indices);
         unmap_memory(backend_->device(), &vertex_map);
