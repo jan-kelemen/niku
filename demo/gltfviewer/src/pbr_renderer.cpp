@@ -60,13 +60,21 @@ namespace
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_STRUCTURE_WAS_PADDED_DUE_TO_ALIGNMENT_SPECIFIER
 
-    struct [[nodiscard]] alignas(32) material_t final
+    struct [[nodiscard]] alignas(64) material_t final
     {
         glm::vec4 base_color_factor;
-        uint32_t base_color_texture_index;
-        uint32_t base_color_sampler_index;
-        uint32_t normal_texture_index;
-        uint32_t normal_sampler_index;
+        uint32_t base_color_texture_index{std::numeric_limits<uint32_t>::max()};
+        uint32_t base_color_sampler_index{std::numeric_limits<uint32_t>::max()};
+        float alpha_cutoff;
+        uint32_t metallic_roughness_texture_index{
+            std::numeric_limits<uint32_t>::max()};
+        uint32_t metallic_roughness_sampler_index{
+            std::numeric_limits<uint32_t>::max()};
+        float metallic_factor;
+        float roughness_factor;
+        uint32_t normal_texture_index{std::numeric_limits<uint32_t>::max()};
+        uint32_t normal_sampler_index{std::numeric_limits<uint32_t>::max()};
+        float normal_scale;
     };
 
     DISABLE_WARNING_POP
@@ -397,9 +405,21 @@ namespace
                 materials,
                 [](vkgltf::material_t const& m)
                 {
-                    material_t rv{};
-                    rv.base_color_factor =
-                        m.pbr_metallic_roughness.base_color_factor;
+                    DISABLE_WARNING_PUSH
+                    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
+
+                    material_t rv{
+                        .base_color_factor =
+                            m.pbr_metallic_roughness.base_color_factor,
+                        .alpha_cutoff = m.alpha_cutoff,
+                        .metallic_factor =
+                            m.pbr_metallic_roughness.metallic_factor,
+                        .roughness_factor =
+                            m.pbr_metallic_roughness.roughness_factor,
+                        .normal_scale = m.normal_scale};
+
+                    DISABLE_WARNING_POP
+
                     if (auto const* const texture{
                             m.pbr_metallic_roughness.base_color_texture})
                     {
@@ -410,12 +430,19 @@ namespace
                             m.pbr_metallic_roughness.base_color_texture
                                 ->sampler_index);
                     }
-                    else
+
+                    if (auto const* const texture{
+                            m.pbr_metallic_roughness
+                                .metallic_roughness_texture})
                     {
-                        rv.base_color_texture_index =
-                            std::numeric_limits<uint32_t>::max();
-                        rv.base_color_sampler_index =
-                            std::numeric_limits<uint32_t>::max();
+                        rv.metallic_roughness_texture_index =
+                            cppext::narrow<uint32_t>(
+                                m.pbr_metallic_roughness
+                                    .metallic_roughness_texture->image_index);
+                        rv.metallic_roughness_sampler_index =
+                            cppext::narrow<uint32_t>(
+                                m.pbr_metallic_roughness
+                                    .metallic_roughness_texture->sampler_index);
                     }
 
                     if (auto const* const texture{m.normal_texture})
@@ -424,13 +451,6 @@ namespace
                             cppext::narrow<uint32_t>(texture->image_index);
                         rv.normal_sampler_index =
                             cppext::narrow<uint32_t>(texture->sampler_index);
-                    }
-                    else
-                    {
-                        rv.normal_texture_index =
-                            std::numeric_limits<uint32_t>::max();
-                        rv.normal_sampler_index =
-                            std::numeric_limits<uint32_t>::max();
                     }
 
                     return rv;
