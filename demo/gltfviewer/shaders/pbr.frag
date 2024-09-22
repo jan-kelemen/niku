@@ -5,6 +5,7 @@
 layout(location = 0) in vec3 inFragmentPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUV;
+layout(location = 3) in mat3 inTBN;
 
 layout(push_constant) uniform PushConsts {
     uint modelIndex;
@@ -26,6 +27,8 @@ struct Material {
     vec4 baseColorFactor;
     uint baseColorTextureIndex;
     uint baseColorSamplerIndex;
+    uint normalTextureIndex;
+    uint normalSamplerIndex;
 };
 
 layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer {
@@ -47,29 +50,33 @@ vec4 baseColor() {
     return m.baseColorFactor * color;
 }
 
+vec3 tangentNormal()
+{
+    Material m = materials.v[pc.materialIndex];
+
+    if (m.normalTextureIndex != UINT_MAX) {
+        vec3 normal = texture(nonuniformEXT(sampler2D(textures[m.normalTextureIndex], samplers[m.normalSamplerIndex])), inUV).rgb;
+        return normalize(normal * 2.0 - 1.0);
+    }
+    else {
+        return inTBN * inNormal;
+    }
+}
+
 void main() {
     vec3 cameraPosition = camera.cameraPosition;
     vec3 lightColor = camera.lightColor;
     vec3 lightPosition = camera.lightPosition;
-
-    vec3 norm = normalize(inNormal);
-    vec3 lightDirection = normalize(lightPosition - inFragmentPosition);  
-
-    float diff = max(dot(norm, lightDirection), 0.1);
-    vec3 diffuse = diff * lightColor;
-
-    float specularStrength = 0.05;
-    vec3 viewDir = normalize(cameraPosition - inFragmentPosition);
     
-    //vec3 halfDir = normalize(lightDirection + viewDir);
-    //float specAngle = max(dot(halfDir, norm), 0.0);
-    //vec3 specular = pow(specAngle, 16) * lightColor;
+    vec3 lightDirection = inTBN * normalize(lightPosition - inFragmentPosition);  
+    vec3 normal = tangentNormal();
 
-    vec3 reflectDirection = reflect(-lightDirection, norm);  
-    float spec = pow(max(dot(viewDir, reflectDirection), 0.0), 32);
-    vec3 specular = specularStrength * spec * lightColor;  
+    float diff = max(dot(lightDirection, normal), 0.1);
 
-    vec4 result = vec4(diffuse + specular, 1.0) * baseColor();
+    vec3 viewDirection = inTBN * normalize(cameraPosition - inFragmentPosition);    
+    vec3 halfDirection = normalize(lightDirection + viewDirection);
+    float specularAngle = max(dot(halfDirection, normal), 0.0);
+    float specular = pow(specularAngle, 16);
 
-    outColor = result;
+    outColor = vec4((diff + specular) * lightColor, 1.0) * baseColor();
 }

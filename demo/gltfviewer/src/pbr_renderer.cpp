@@ -65,6 +65,8 @@ namespace
         glm::vec4 base_color_factor;
         uint32_t base_color_texture_index;
         uint32_t base_color_sampler_index;
+        uint32_t normal_texture_index;
+        uint32_t normal_sampler_index;
     };
 
     DISABLE_WARNING_POP
@@ -92,6 +94,10 @@ namespace
                 .format = VK_FORMAT_R32G32B32_SFLOAT,
                 .offset = offsetof(vkgltf::vertex_t, normal)},
             VkVertexInputAttributeDescription{.location = 2,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                .offset = offsetof(vkgltf::vertex_t, tangent)},
+            VkVertexInputAttributeDescription{.location = 3,
                 .binding = 0,
                 .format = VK_FORMAT_R32G32_SFLOAT,
                 .offset = offsetof(vkgltf::vertex_t, uv)},
@@ -409,6 +415,21 @@ namespace
                         rv.base_color_texture_index =
                             std::numeric_limits<uint32_t>::max();
                         rv.base_color_sampler_index =
+                            std::numeric_limits<uint32_t>::max();
+                    }
+
+                    if (auto const* const texture{m.normal_texture})
+                    {
+                        rv.normal_texture_index =
+                            cppext::narrow<uint32_t>(texture->image_index);
+                        rv.normal_sampler_index =
+                            cppext::narrow<uint32_t>(texture->sampler_index);
+                    }
+                    else
+                    {
+                        rv.normal_texture_index =
+                            std::numeric_limits<uint32_t>::max();
+                        rv.normal_sampler_index =
                             std::numeric_limits<uint32_t>::max();
                     }
 
