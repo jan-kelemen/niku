@@ -62,6 +62,9 @@ namespace vkgltf
     {
         glm::vec4 base_color_factor{1.0f};
         texture_t* base_color_texture;
+        texture_t* metallic_roughness_texture;
+        float metallic_factor{1.0f};
+        float roughness_factor{1.0f};
     };
 
     struct [[nodiscard]] material_t final
@@ -69,6 +72,8 @@ namespace vkgltf
         std::string name;
         pbr_metallic_roughness_t pbr_metallic_roughness;
         texture_t* normal_texture;
+        float normal_scale{1.0f};
+        float alpha_cutoff{0.0f};
         bool double_sided{false};
     };
 

@@ -368,7 +368,9 @@ namespace
         for (fastgltf::Material const& material : asset.materials)
         {
             vkgltf::material_t m{.name = std::string{material.name},
+                .alpha_cutoff = material.alphaCutoff,
                 .double_sided = material.doubleSided};
+
             m.pbr_metallic_roughness.base_color_factor =
                 vkgltf::to_glm(material.pbrData.baseColorFactor);
             if (material.pbrData.baseColorTexture)
@@ -378,10 +380,27 @@ namespace
                                         ->textureIndex];
             }
 
+            if (material.pbrData.metallicRoughnessTexture)
+            {
+                m.pbr_metallic_roughness.metallic_roughness_texture =
+                    &model.textures[material.pbrData.metallicRoughnessTexture
+                                        ->textureIndex];
+                m.pbr_metallic_roughness.metallic_factor =
+                    material.pbrData.metallicFactor;
+                m.pbr_metallic_roughness.roughness_factor =
+                    material.pbrData.roughnessFactor;
+
+                unorm_images.insert(
+                    m.pbr_metallic_roughness.metallic_roughness_texture
+                        ->image_index);
+            }
+
             if (material.normalTexture)
             {
                 m.normal_texture =
                     &model.textures[material.normalTexture->textureIndex];
+                m.normal_scale = material.normalTexture->scale;
+
                 unorm_images.insert(m.normal_texture->image_index);
             }
 
