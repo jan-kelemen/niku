@@ -37,20 +37,25 @@ namespace
 
         VkDescriptorPoolSize uniform_buffer_pool_size{};
         uniform_buffer_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uniform_buffer_pool_size.descriptorCount = 3 * count;
+        uniform_buffer_pool_size.descriptorCount = 1000;
 
         VkDescriptorPoolSize storage_buffer_pool_size{};
         storage_buffer_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        storage_buffer_pool_size.descriptorCount = 6 * count;
+        storage_buffer_pool_size.descriptorCount = 1000;
 
         VkDescriptorPoolSize texture_sampler_pool_size{};
         texture_sampler_pool_size.type =
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        texture_sampler_pool_size.descriptorCount = 2 * count;
+        texture_sampler_pool_size.descriptorCount = 1000;
+
+        VkDescriptorPoolSize sampled_image_pool_size{};
+        sampled_image_pool_size.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        sampled_image_pool_size.descriptorCount = 1000;
 
         std::array pool_sizes{uniform_buffer_pool_size,
             storage_buffer_pool_size,
-            texture_sampler_pool_size};
+            texture_sampler_pool_size,
+            sampled_image_pool_size};
 
         VkDescriptorPoolCreateInfo pool_info{};
         pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
