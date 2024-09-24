@@ -30,21 +30,13 @@ layout(std140, set = 2, binding = 0) readonly buffer TransformBuffer {
 layout(location = 0) out vec3 outPosition;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec2 outUV;
-layout(location = 3) out mat3 outTBN;
 
 void main() {
     vec4 worldPosition = transforms.v[pc.modelIndex].model * vec4(inPosition, 1.0);
 
     gl_Position = camera.projection * camera.view * worldPosition;
 
-    mat3 normalMatrix = mat3(transforms.v[pc.modelIndex].normal);
-    vec3 T = normalize(normalMatrix * inTangent.xyz);
-    vec3 N = normalize(normalMatrix * inNormal);
-    T = normalize(T - dot(T, N) * N);
-    vec3 B = cross(N, T); 
-    outTBN = transpose(mat3(T, B, N));    
-
     outPosition = worldPosition.xyz;
-    outNormal = inNormal;
+    outNormal = mat3(transforms.v[pc.modelIndex].normal) * inNormal;
     outUV = inUV;
 }

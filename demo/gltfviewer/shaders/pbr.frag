@@ -2,10 +2,9 @@
 
 #extension GL_EXT_nonuniform_qualifier : require
 
-layout(location = 0) in vec3 inFragmentPosition;
+layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUV;
-layout(location = 3) in mat3 inTBN;
 
 layout(push_constant) uniform PushConsts {
     uint modelIndex;
@@ -54,14 +53,26 @@ vec4 baseColor(Material m) {
     return m.baseColorFactor * color;
 }
 
-vec3 tangentNormal(Material m)
+vec3 worldNormal(Material m)
 {
     if (m.normalTextureIndex != UINT_MAX) {
-        vec3 normal = texture(nonuniformEXT(sampler2D(textures[m.normalTextureIndex], samplers[m.normalSamplerIndex])), inUV).rgb;
-        return normalize(normal * 2.0 - 1.0) * vec3(m.normalScale);
+        vec3 tangentNormal = texture(nonuniformEXT(sampler2D(textures[m.normalTextureIndex], samplers[m.normalSamplerIndex])), inUV).rgb;
+        tangentNormal = normalize(tangentNormal * 2.0 - 1.0) * vec3(m.normalScale);
+
+        vec3 Q1 = dFdx(inPosition);
+        vec3 Q2 = dFdy(inPosition);
+        vec2 st1 = dFdx(inUV);
+        vec2 st2 = dFdy(inUV);
+
+        vec3 N = normalize(inNormal);
+        vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
+        vec3 B = -normalize(cross(N, T));
+        mat3 TBN = mat3(T, B, N);
+
+        return normalize(TBN * tangentNormal);
     }
     else {
-        return normalize(inTBN * inNormal);
+        return normalize(inNormal);
     }
 }
 
@@ -93,12 +104,12 @@ void main() {
         discard;
     }
 
-    vec3 lightDirection = inTBN * normalize(lightPosition - inFragmentPosition);  
-    vec3 normal = tangentNormal(m);
+    vec3 lightDirection = normalize(lightPosition - inPosition);  
+    vec3 normal = worldNormal(m);
 
     float diff = max(dot(lightDirection, normal), 0.1);
 
-    vec3 viewDirection = inTBN * normalize(cameraPosition - inFragmentPosition);    
+    vec3 viewDirection = normalize(cameraPosition - inPosition);    
     vec3 halfDirection = normalize(lightDirection + viewDirection);
     float specularAngle = max(dot(halfDirection, normal), 0.0);
     float specular = pow(specularAngle, 16);
