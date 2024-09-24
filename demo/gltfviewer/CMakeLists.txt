@@ -6,12 +6,14 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gltfviewer.m.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
 )
 
 target_include_directories(gltfviewer
@@ -50,10 +52,26 @@ compile_shader(
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
 )
 
+compile_shader(
+    SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.frag
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
+)
+
+compile_shader(
+    SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.vert
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.vert.spv
+)
+
 add_custom_target(shaders
     DEPENDS
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.vert.spv 
 )
 
 set_property(TARGET gltfviewer 

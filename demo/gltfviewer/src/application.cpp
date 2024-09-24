@@ -3,6 +3,7 @@
 #include <camera_controller.hpp>
 #include <model_selector.hpp>
 #include <pbr_renderer.hpp>
+#include <postprocess_shader.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
@@ -56,7 +57,7 @@ namespace
             backend.device().max_msaa_samples,
             backend.image_format(),
             VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
@@ -81,6 +82,8 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
     , pbr_renderer_{std::make_unique<pbr_renderer_t>(backend_.get())}
+    , postprocess_shader_{std::make_unique<postprocess_shader_t>(
+          backend_.get())}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{backend_.get()}
 {
@@ -174,9 +177,25 @@ void gltfviewer::application_t::draw()
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
+    vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
+
+    pbr_renderer_->draw(command_buffer, color_image_);
+
+    vkrndr::transition_image(color_image_.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        // VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT |
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        // VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
+        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+        1);
+
     vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
 
-    pbr_renderer_->draw(command_buffer, color_image_, target_image);
+    postprocess_shader_->draw(command_buffer, color_image_, target_image);
 
     vkrndr::transition_to_present_layout(target_image.image, command_buffer);
 
@@ -192,6 +211,8 @@ void gltfviewer::application_t::end_frame() { imgui_->end_frame(); }
 void gltfviewer::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device().logical);
+
+    postprocess_shader_.reset();
 
     pbr_renderer_.reset();
 

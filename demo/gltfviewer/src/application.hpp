@@ -30,6 +30,7 @@ namespace vkrndr
 namespace gltfviewer
 {
     class pbr_renderer_t;
+    class postprocess_shader_t;
 } // namespace gltfviewer
 
 namespace gltfviewer
@@ -80,6 +81,7 @@ namespace gltfviewer
         std::unique_ptr<niku::imgui_layer_t> imgui_;
         vkrndr::image_t color_image_;
         std::unique_ptr<pbr_renderer_t> pbr_renderer_;
+        std::unique_ptr<postprocess_shader_t> postprocess_shader_;
 
         camera_controller_t camera_controller_;
 

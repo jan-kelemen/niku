@@ -829,23 +829,21 @@ void gltfviewer::pbr_renderer_t::update(niku::camera_t const& camera)
 }
 
 void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
-    vkrndr::image_t const& color_image,
-    vkrndr::image_t const& target_image)
+    vkrndr::image_t const& color_image)
 {
     {
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
-            target_image.view,
-            VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}},
-            color_image.view);
+            color_image.view,
+            VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
         color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
             depth_buffer_.view,
             VkClearValue{.depthStencil = {1.0f, 0}});
 
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, target_image.extent})};
+            {{0, 0}, color_image.extent})};
 
         if (!model_.vertex_count)
         {
