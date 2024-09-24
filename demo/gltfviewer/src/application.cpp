@@ -55,7 +55,7 @@ namespace
             backend.extent(),
             1,
             backend.device().max_msaa_samples,
-            backend.image_format(),
+            VK_FORMAT_R32G32B32A32_SFLOAT,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -187,9 +187,7 @@ void gltfviewer::application_t::draw()
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        // VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT |
         VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        // VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
         VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
         1);
 

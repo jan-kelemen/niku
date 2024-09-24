@@ -926,7 +926,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
                     .offset = 0,
                     .size = sizeof(push_constants_t)})
                 .build(),
-            backend_->image_format()}
+            VK_FORMAT_R32G32B32A32_SFLOAT}
             .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
             .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -943,7 +943,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
     culling_pipeline_ =
         vkrndr::pipeline_builder_t{&backend_->device(),
             double_sided_pipeline_.layout,
-            backend_->image_format()}
+            VK_FORMAT_R32G32B32A32_SFLOAT}
             .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
             .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
