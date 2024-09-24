@@ -43,10 +43,13 @@ namespace
         storage_buffer_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         storage_buffer_pool_size.descriptorCount = 1000;
 
-        VkDescriptorPoolSize texture_sampler_pool_size{};
-        texture_sampler_pool_size.type =
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        texture_sampler_pool_size.descriptorCount = 1000;
+        VkDescriptorPoolSize sampler_pool_size{};
+        sampler_pool_size.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+        sampler_pool_size.descriptorCount = 1000;
+
+        VkDescriptorPoolSize combined_sampler_pool_size{};
+        combined_sampler_pool_size.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+        combined_sampler_pool_size.descriptorCount = 1000;
 
         VkDescriptorPoolSize sampled_image_pool_size{};
         sampled_image_pool_size.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -54,7 +57,8 @@ namespace
 
         std::array pool_sizes{uniform_buffer_pool_size,
             storage_buffer_pool_size,
-            texture_sampler_pool_size,
+            sampler_pool_size,
+            combined_sampler_pool_size,
             sampled_image_pool_size};
 
         VkDescriptorPoolCreateInfo pool_info{};
@@ -62,7 +66,7 @@ namespace
         pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         pool_info.poolSizeCount = vkrndr::count_cast(pool_sizes.size());
         pool_info.pPoolSizes = pool_sizes.data();
-        pool_info.maxSets = 4 * count + count;
+        pool_info.maxSets = 1000;
 
         VkDescriptorPool rv{};
         vkrndr::check_result(
