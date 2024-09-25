@@ -28,6 +28,8 @@ namespace gltfviewer
         ~postprocess_shader_t();
 
     public:
+        void update(float gamma, float exposure);
+
         void draw(VkCommandBuffer command_buffer,
             vkrndr::image_t const& color_image,
             vkrndr::image_t const& target_image);
@@ -46,6 +48,9 @@ namespace gltfviewer
         cppext::cycled_buffer_t<VkDescriptorSet> descriptor_sets_;
 
         vkrndr::pipeline_t pipeline_;
+
+        float gamma_{2.2f};
+        float exposure_{1.0f};
     };
 } // namespace gltfviewer
 

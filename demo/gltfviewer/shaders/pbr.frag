@@ -92,6 +92,12 @@ void metallicRoughness(Material m, out float metallic, out float roughness) {
 
 }
 
+vec4 SRGBtoLINEAR(vec4 srgbIn)
+{
+	vec3 bLess = step(vec3(0.04045), srgbIn.xyz);
+	vec3 linOut = mix( srgbIn.xyz/vec3(12.92), pow((srgbIn.xyz+vec3(0.055))/vec3(1.055),vec3(2.4)), bLess );
+	return vec4(linOut, srgbIn.w);;
+}
 void main() {
     vec3 cameraPosition = camera.cameraPosition;
     vec3 lightColor = camera.lightColor;
@@ -99,7 +105,7 @@ void main() {
 
     Material m = materials.v[pc.materialIndex];
 
-    vec4 albedo = baseColor(m);
+    vec4 albedo = SRGBtoLINEAR(baseColor(m));
     if (albedo.w < m.alphaCutoff.x) {
         discard;
     }

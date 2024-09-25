@@ -22,6 +22,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/matrix.hpp>
 #include <glm/vec4.hpp>
 
 #include <imgui.h>
@@ -42,6 +43,8 @@
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 namespace
 {
@@ -408,7 +411,7 @@ namespace
                     DISABLE_WARNING_PUSH
                     DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
 
-                    material_t rv{
+                    material_t mat{
                         .base_color_factor =
                             m.pbr_metallic_roughness.base_color_factor,
                         .alpha_cutoff = m.alpha_cutoff,
@@ -423,10 +426,10 @@ namespace
                     if (auto const* const texture{
                             m.pbr_metallic_roughness.base_color_texture})
                     {
-                        rv.base_color_texture_index = cppext::narrow<uint32_t>(
+                        mat.base_color_texture_index = cppext::narrow<uint32_t>(
                             m.pbr_metallic_roughness.base_color_texture
                                 ->image_index);
-                        rv.base_color_sampler_index = cppext::narrow<uint32_t>(
+                        mat.base_color_sampler_index = cppext::narrow<uint32_t>(
                             m.pbr_metallic_roughness.base_color_texture
                                 ->sampler_index);
                     }
@@ -435,11 +438,11 @@ namespace
                             m.pbr_metallic_roughness
                                 .metallic_roughness_texture})
                     {
-                        rv.metallic_roughness_texture_index =
+                        mat.metallic_roughness_texture_index =
                             cppext::narrow<uint32_t>(
                                 m.pbr_metallic_roughness
                                     .metallic_roughness_texture->image_index);
-                        rv.metallic_roughness_sampler_index =
+                        mat.metallic_roughness_sampler_index =
                             cppext::narrow<uint32_t>(
                                 m.pbr_metallic_roughness
                                     .metallic_roughness_texture->sampler_index);
@@ -447,13 +450,13 @@ namespace
 
                     if (auto const* const texture{m.normal_texture})
                     {
-                        rv.normal_texture_index =
+                        mat.normal_texture_index =
                             cppext::narrow<uint32_t>(texture->image_index);
-                        rv.normal_sampler_index =
+                        mat.normal_sampler_index =
                             cppext::narrow<uint32_t>(texture->sampler_index);
                     }
 
-                    return rv;
+                    return mat;
                 });
 
             rv.buffer = create_buffer(backend.device(),
@@ -607,6 +610,7 @@ namespace
         uint32_t drawn{0};
         for (auto const& graph : model.scenes)
         {
+            // cppcheck-suppress-begin useStlAlgorithm
             for (auto const& root : graph.roots(model))
             {
                 drawn += draw_node(model,
@@ -618,6 +622,7 @@ namespace
                     drawn,
                     switch_pipeline);
             }
+            // cppcheck-suppress-end useStlAlgorithm
         }
     }
 

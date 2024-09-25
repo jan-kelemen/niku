@@ -1,8 +1,12 @@
 #include <postprocess_shader.hpp>
 
+#include <cppext_cycled_buffer.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -10,12 +14,20 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
+#include <span>
+
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <memory>
+// IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 namespace
 {
     struct [[nodiscard]] push_constants_t final
     {
         uint32_t samples;
+        float gamma;
+        float exposure;
     };
 
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
@@ -148,6 +160,13 @@ gltfviewer::postprocess_shader_t::~postprocess_shader_t()
         nullptr);
 }
 
+void gltfviewer::postprocess_shader_t::update(float const gamma,
+    float const exposure)
+{
+    gamma_ = gamma;
+    exposure_ = exposure;
+}
+
 void gltfviewer::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& target_image)
@@ -158,7 +177,9 @@ void gltfviewer::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
             .imageView = color_image.view,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
 
-    push_constants_t const pc{.samples = color_image.sample_count};
+    push_constants_t const pc{.samples = color_image.sample_count,
+        .gamma = gamma_,
+        .exposure = exposure_};
     vkCmdPushConstants(command_buffer,
         *pipeline_.layout,
         VK_SHADER_STAGE_FRAGMENT_BIT,

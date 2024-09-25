@@ -74,7 +74,9 @@ gltfviewer::application_t::application_t(bool const debug)
           .height = 512}}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
+              .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
+              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+          },
           debug)}
     , imgui_{std::make_unique<niku::imgui_layer_t>(*window(),
           backend_->context(),
@@ -89,6 +91,8 @@ gltfviewer::application_t::application_t(bool const debug)
 {
     camera_.set_aspect_ratio(1.0f);
     camera_.update();
+
+    postprocess_shader_->update(gamma_, exposure_);
 }
 
 gltfviewer::application_t::~application_t() = default;
@@ -134,6 +138,18 @@ void gltfviewer::application_t::begin_frame()
         pbr_renderer_->load_model(std::move(model).value());
 
         spdlog::info("End loading: {}", model_path);
+    }
+
+    bool postprocess_updated{false};
+    ImGui::Begin("Postprocess");
+    postprocess_updated |= ImGui::SliderFloat("Gamma", &gamma_, 0.0f, 3.0f);
+    postprocess_updated |=
+        ImGui::SliderFloat("Exposure", &exposure_, 0.0f, 10.f);
+    ImGui::End();
+
+    if (postprocess_updated)
+    {
+        postprocess_shader_->update(gamma_, exposure_);
     }
 }
 
