@@ -1,20 +1,18 @@
 #include <vkgltf_loader.hpp>
 
-#include <cppext_numeric.hpp>
-#include <cppext_overloaded.hpp>
-#include <cppext_pragma_warning.hpp>
-
 #include <vkgltf_error.hpp>
 #include <vkgltf_fastgltf_adapter.hpp>
 #include <vkgltf_model.hpp>
+
+#include <cppext_numeric.hpp>
+#include <cppext_overloaded.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
-
-#include <stb_image.h>
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp> // IWYU pragma: keep
@@ -28,6 +26,8 @@
 #include <glm/vec4.hpp>
 
 #include <spdlog/spdlog.h>
+
+#include <stb_image.h>
 
 #include <tl/expected.hpp>
 
@@ -373,18 +373,16 @@ namespace
 
             m.pbr_metallic_roughness.base_color_factor =
                 vkgltf::to_glm(material.pbrData.baseColorFactor);
-            if (material.pbrData.baseColorTexture)
+            if (auto const& texture{material.pbrData.baseColorTexture})
             {
                 m.pbr_metallic_roughness.base_color_texture =
-                    &model.textures[material.pbrData.baseColorTexture
-                                        ->textureIndex];
+                    &model.textures[texture->textureIndex];
             }
 
-            if (material.pbrData.metallicRoughnessTexture)
+            if (auto const& texture{material.pbrData.metallicRoughnessTexture})
             {
                 m.pbr_metallic_roughness.metallic_roughness_texture =
-                    &model.textures[material.pbrData.metallicRoughnessTexture
-                                        ->textureIndex];
+                    &model.textures[texture->textureIndex];
                 m.pbr_metallic_roughness.metallic_factor =
                     material.pbrData.metallicFactor;
                 m.pbr_metallic_roughness.roughness_factor =
@@ -395,11 +393,10 @@ namespace
                         ->image_index);
             }
 
-            if (material.normalTexture)
+            if (auto const& texture{material.normalTexture})
             {
-                m.normal_texture =
-                    &model.textures[material.normalTexture->textureIndex];
-                m.normal_scale = material.normalTexture->scale;
+                m.normal_texture = &model.textures[texture->textureIndex];
+                m.normal_scale = texture->scale;
 
                 unorm_images.insert(m.normal_texture->image_index);
             }

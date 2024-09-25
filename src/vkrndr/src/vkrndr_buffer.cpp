@@ -1,9 +1,9 @@
 #include <vkrndr_buffer.hpp>
 
-#include <vma_impl.hpp>
-
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
+
+#include <vma_impl.hpp>
 
 void vkrndr::destroy(device_t const* device, buffer_t* const buffer)
 {
