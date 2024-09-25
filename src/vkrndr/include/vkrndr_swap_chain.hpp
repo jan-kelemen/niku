@@ -47,9 +47,6 @@ namespace vkrndr
 
     class [[nodiscard]] swap_chain_t final
     {
-    public: // Constants
-        static constexpr int max_frames_in_flight{2};
-
     public: // Construction
         swap_chain_t(window_t const* window,
             context_t* context,

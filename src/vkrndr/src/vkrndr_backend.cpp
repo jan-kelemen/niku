@@ -9,6 +9,7 @@
 #include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_render_settings.hpp>
 #include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
@@ -19,11 +20,6 @@
 #include <cstring>
 #include <span>
 #include <vector>
-
-namespace vkrndr
-{
-    struct render_settings_t;
-} // namespace vkrndr
 
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <unordered_map>
@@ -84,8 +80,7 @@ vkrndr::backend_t::backend_t(window_t const& window,
           &context_,
           &device_,
           &render_settings_)}
-    , frame_data_{swap_chain_t::max_frames_in_flight,
-          swap_chain_t::max_frames_in_flight}
+    , frame_data_{settings.frames_in_flight, settings.frames_in_flight}
     , descriptor_pool_{create_descriptor_pool(device_)}
 {
     for (frame_data_t& fd : frame_data_.as_span())
@@ -124,6 +119,11 @@ VkFormat vkrndr::backend_t::image_format() const
 uint32_t vkrndr::backend_t::image_count() const
 {
     return swap_chain_->image_count();
+}
+
+uint32_t vkrndr::backend_t::frames_in_flight() const
+{
+    return render_settings_.frames_in_flight;
 }
 
 VkExtent2D vkrndr::backend_t::extent() const { return swap_chain_->extent(); }

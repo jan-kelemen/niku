@@ -64,6 +64,8 @@ namespace vkrndr
 
         [[nodiscard]] uint32_t image_count() const;
 
+        [[nodiscard]] uint32_t frames_in_flight() const;
+
         [[nodiscard]] VkExtent2D extent() const;
 
         [[nodiscard]] image_t swapchain_image();
