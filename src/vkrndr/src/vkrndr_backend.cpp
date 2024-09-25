@@ -32,9 +32,6 @@ namespace
 {
     VkDescriptorPool create_descriptor_pool(vkrndr::device_t const& device)
     {
-        constexpr auto count{
-            vkrndr::count_cast(vkrndr::swap_chain_t::max_frames_in_flight)};
-
         VkDescriptorPoolSize uniform_buffer_pool_size{};
         uniform_buffer_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uniform_buffer_pool_size.descriptorCount = 1000;

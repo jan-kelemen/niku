@@ -20,6 +20,7 @@
 #include <vector>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
+
 namespace vkrndr
 {
     struct device_t;

@@ -22,8 +22,10 @@
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 
+#include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -64,8 +66,6 @@ namespace
         bool const calculate_normals,
         bool const calculate_tangents)
     {
-        std::span id{indices, primitive.count};
-
         for (uint32_t i{}; i != primitive.count; i += 3)
         {
             auto& point1{
@@ -480,7 +480,6 @@ namespace
 
                 size_t const index_count{
                     load_indices(asset, primitive, indices)};
-                std::span id{indices, index_count};
                 p.is_indexed = index_count != 0;
                 if (p.is_indexed)
                 {
@@ -656,7 +655,7 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     {
         load_samplers(asset.get(), rv);
         load_textures(asset.get(), rv);
-        std::set<size_t> unorm_images{load_materials(asset.get(), rv)};
+        std::set<size_t> const unorm_images{load_materials(asset.get(), rv)};
         load_images(backend_, parent_path, unorm_images, asset.get(), rv);
 
         load_meshes(asset.get(), rv, vertices, indices);
