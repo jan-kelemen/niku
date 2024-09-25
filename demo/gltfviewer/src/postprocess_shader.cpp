@@ -116,7 +116,8 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     : backend_{backend}
     , combined_sampler_{create_sampler(backend_->device())}
     , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
-    , descriptor_sets_{backend_->image_count(), backend_->image_count()}
+    , descriptor_sets_{backend_->frames_in_flight(),
+          backend_->frames_in_flight()}
     , pipeline_{vkrndr::pipeline_builder_t{&backend_->device(),
           vkrndr::pipeline_layout_builder_t{&backend_->device()}
               .add_descriptor_set_layout(descriptor_set_layout_)

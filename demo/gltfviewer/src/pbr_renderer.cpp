@@ -6,7 +6,6 @@
 
 #include <niku_camera.hpp>
 
-#include <vector>
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -30,15 +29,15 @@
 #include <volk.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <functional>
-
-#include <array>
 #include <iterator>
 #include <limits>
 #include <ranges>
 #include <span>
 #include <utility>
+#include <vector>
 
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>
@@ -639,8 +638,9 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
     , transform_descriptor_set_layout_{
           create_transform_descriptor_set_layout(backend_->device())}
 {
-    frame_data_ = cppext::cycled_buffer_t<frame_data_t>{backend_->image_count(),
-        backend_->image_count()};
+    frame_data_ =
+        cppext::cycled_buffer_t<frame_data_t>{backend_->frames_in_flight(),
+            backend_->frames_in_flight()};
 
     for (auto& data : frame_data_.as_span())
     {
