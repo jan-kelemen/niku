@@ -12,6 +12,7 @@ if (NIKU_ENABLE_CPPCHECK)
         ${CPPCHECK_EXE}
         --template=${CPPCHECK_TEMPLATE}
         --enable=style,performance,warning,portability
+        --check-level=exhaustive
         --inline-suppr
         # We cannot act on a bug/missing feature of cppcheck
         --suppress=cppcheckError
