@@ -150,40 +150,10 @@ namespace
         {
             return 0;
         }
-        // clang-format off
-        auto const indices_transform =
-            [&indices](auto const v, size_t const idx) { 
-            indices[idx] = v; 
-            };
-        // clang-format on
 
         auto const& accessor{asset.accessors[*primitive.indicesAccessor]};
-        if (accessor.componentType == fastgltf::ComponentType::UnsignedByte)
-        {
-            fastgltf::iterateAccessorWithIndex<uint8_t>(asset,
-                accessor,
-                indices_transform);
-            return accessor.count;
-        }
-
-        if (accessor.componentType == fastgltf::ComponentType::UnsignedShort)
-        {
-            fastgltf::iterateAccessorWithIndex<uint16_t>(asset,
-                accessor,
-                indices_transform);
-            return accessor.count;
-        }
-
-        if (accessor.componentType == fastgltf::ComponentType::UnsignedInt)
-        {
-            fastgltf::copyFromAccessor<uint32_t>(asset, accessor, indices);
-            return accessor.count;
-        }
-
-        spdlog::error("Unrecognized index buffer type: {}",
-            std::to_underlying(accessor.componentType));
-
-        return 0;
+        fastgltf::copyFromAccessor<uint32_t>(asset, accessor, indices);
+        return accessor.count;
     }
 
     [[nodiscard]] tl::expected<vkrndr::image_t, std::error_code> load_image(
