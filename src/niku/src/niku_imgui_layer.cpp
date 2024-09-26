@@ -2,7 +2,6 @@
 
 #include <niku_sdl_window.hpp>
 
-#include <vkrndr_commands.hpp>
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
@@ -153,9 +152,6 @@ void niku::imgui_layer_t::render(VkCommandBuffer command_buffer,
         ImGui::Render();
         frame_rendered_ = true;
 
-        vkrndr::wait_for_color_attachment_read(target_image.image,
-            command_buffer);
-
         vkrndr::render_pass_t render_pass;
         render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
             VK_ATTACHMENT_STORE_OP_STORE,
@@ -166,9 +162,6 @@ void niku::imgui_layer_t::render(VkCommandBuffer command_buffer,
             ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(),
                 command_buffer);
         }
-
-        vkrndr::transition_to_present_layout(target_image.image,
-            command_buffer);
     }
 }
 
