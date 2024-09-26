@@ -7,62 +7,16 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstddef>
 #include <cstdint>
-#include <filesystem>
-#include <fstream>
 #include <iterator>
 #include <memory>
 #include <ranges>
 #include <span>
-#include <stdexcept>
 #include <utility>
 #include <vector>
 
 // IWYU pragma: no_include <type_traits>
 // IWYU pragma: no_include <functional>
-
-namespace
-{
-    [[nodiscard]] std::vector<char> read_file(std::filesystem::path const& file)
-    {
-        std::ifstream stream{file, std::ios::ate | std::ios::binary};
-
-        if (!stream.is_open())
-        {
-            throw std::runtime_error{"failed to open file!"};
-        }
-
-        auto const eof{stream.tellg()};
-
-        std::vector<char> buffer(static_cast<size_t>(eof));
-        stream.seekg(0);
-
-        stream.read(buffer.data(), eof);
-
-        return buffer;
-    }
-} // namespace
-
-namespace
-{
-    [[nodiscard]] VkShaderModule create_shader_module(VkDevice device,
-        std::span<char const> code)
-    {
-        VkShaderModuleCreateInfo create_info{};
-        create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        create_info.codeSize = code.size();
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        create_info.pCode = reinterpret_cast<uint32_t const*>(code.data());
-
-        // TODO-JK: maintenance5 feature - once it's supported by RenderDoc!!
-        VkShaderModule module{};
-        vkrndr::check_result(
-            vkCreateShaderModule(device, &create_info, nullptr, &module));
-
-        return module;
-    }
-} // namespace
 
 void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,
     pipeline_t const& pipeline,
@@ -157,19 +111,6 @@ vkrndr::pipeline_builder_t::~pipeline_builder_t() { cleanup(); }
 
 vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
-    shader_stages.reserve(shaders_.size());
-    for (auto const& shader : shaders_)
-    {
-        VkPipelineShaderStageCreateInfo create_info{};
-        create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        create_info.stage = std::get<0>(shader);
-        create_info.module = std::get<1>(shader);
-        create_info.pName = std::get<2>(shader).c_str();
-
-        shader_stages.push_back(create_info);
-    }
-
     VkPipelineVertexInputStateCreateInfo vertex_input_info{};
     vertex_input_info.sType =
         VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -262,8 +203,8 @@ vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
     {
         create_info.pDepthStencilState = &depth_stencil_.value();
     }
-    create_info.stageCount = count_cast(shader_stages.size());
-    create_info.pStages = shader_stages.data();
+    create_info.stageCount = count_cast(shaders_.size());
+    create_info.pStages = shaders_.data();
     create_info.layout = *pipeline_layout_;
     create_info.pNext = &rendering_create_info;
 
@@ -283,16 +224,10 @@ vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
 }
 
 vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_shader(
-    VkShaderStageFlagBits const stage,
-    std::filesystem::path const& path,
-    std::string_view entry_point)
+    VkPipelineShaderStageCreateInfo const shader)
 {
-    std::string name{entry_point};
-    shaders_.reserve(shaders_.size() + 1);
+    shaders_.push_back(shader);
 
-    shaders_.emplace_back(stage,
-        create_shader_module(device_->logical, read_file(path)),
-        std::move(name));
     return *this;
 }
 
@@ -435,14 +370,7 @@ void vkrndr::pipeline_builder_t::cleanup()
 {
     vertex_input_attributes_.clear();
     vertex_input_binding_.clear();
-
-    for (auto const& shader : shaders_)
-    {
-        vkDestroyShaderModule(device_->logical, std::get<1>(shader), nullptr);
-    }
-
     shaders_.clear();
-
     pipeline_layout_.reset();
 }
 
@@ -454,20 +382,12 @@ vkrndr::compute_pipeline_builder_t::compute_pipeline_builder_t(
 {
 }
 
-vkrndr::compute_pipeline_builder_t::~compute_pipeline_builder_t() { cleanup(); }
-
 vkrndr::pipeline_t vkrndr::compute_pipeline_builder_t::build()
 {
-    VkPipelineShaderStageCreateInfo stage_info{};
-    stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    stage_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    stage_info.module = shader_module_;
-    stage_info.pName = shader_entry_point_.c_str();
-
     VkComputePipelineCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     create_info.layout = *pipeline_layout_;
-    create_info.stage = stage_info;
+    create_info.stage = shader_;
 
     VkPipeline pipeline; // NOLINT
     check_result(vkCreateComputePipelines(device_->logical,
@@ -479,25 +399,13 @@ vkrndr::pipeline_t vkrndr::compute_pipeline_builder_t::build()
 
     pipeline_t rv{pipeline_layout_, pipeline, VK_PIPELINE_BIND_POINT_COMPUTE};
 
-    cleanup();
-
     return rv;
 }
 
 vkrndr::compute_pipeline_builder_t&
 vkrndr::compute_pipeline_builder_t::with_shader(
-    std::filesystem::path const& path,
-    std::string_view entry_point)
+    VkPipelineShaderStageCreateInfo shader)
 {
-    shader_module_ = create_shader_module(device_->logical, read_file(path));
-    shader_entry_point_ = entry_point;
-
+    shader_ = shader;
     return *this;
-}
-
-void vkrndr::compute_pipeline_builder_t::cleanup()
-{
-    vkDestroyShaderModule(device_->logical,
-        std::exchange(shader_module_, VK_NULL_HANDLE),
-        nullptr);
 }

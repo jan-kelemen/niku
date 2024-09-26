@@ -4,13 +4,9 @@
 #include <volk.h>
 
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>
-#include <string>
-#include <string_view>
-#include <tuple>
 #include <vector>
 
 namespace vkrndr
@@ -93,9 +89,7 @@ namespace vkrndr
     public: // Interface
         [[nodiscard]] pipeline_t build();
 
-        pipeline_builder_t& add_shader(VkShaderStageFlagBits stage,
-            std::filesystem::path const& path,
-            std::string_view entry_point);
+        pipeline_builder_t& add_shader(VkPipelineShaderStageCreateInfo shader);
 
         pipeline_builder_t& add_vertex_input(
             std::span<VkVertexInputBindingDescription const>
@@ -138,9 +132,7 @@ namespace vkrndr
         VkPrimitiveTopology primitive_topology_{
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
         VkFormat image_format_{};
-        std::vector<
-            std::tuple<VkShaderStageFlagBits, VkShaderModule, std::string>>
-            shaders_;
+        std::vector<VkPipelineShaderStageCreateInfo> shaders_;
         std::vector<VkVertexInputBindingDescription> vertex_input_binding_;
         std::vector<VkVertexInputAttributeDescription> vertex_input_attributes_;
         VkSampleCountFlagBits rasterization_samples_{VK_SAMPLE_COUNT_1_BIT};
@@ -164,14 +156,13 @@ namespace vkrndr
             compute_pipeline_builder_t&&) noexcept = delete;
 
     public: // Destruction
-        ~compute_pipeline_builder_t();
+        ~compute_pipeline_builder_t() = default;
 
     public: // Interface
         [[nodiscard]] pipeline_t build();
 
         compute_pipeline_builder_t& with_shader(
-            std::filesystem::path const& path,
-            std::string_view entry_point);
+            VkPipelineShaderStageCreateInfo shader);
 
     public: // Operators
         compute_pipeline_builder_t& operator=(
@@ -180,14 +171,10 @@ namespace vkrndr
         compute_pipeline_builder_t& operator=(
             compute_pipeline_builder_t&&) noexcept = delete;
 
-    private: // Helpers
-        void cleanup();
-
     private: // Data
         device_t* device_{};
         std::shared_ptr<VkPipelineLayout> pipeline_layout_;
-        VkShaderModule shader_module_{VK_NULL_HANDLE};
-        std::string shader_entry_point_;
+        VkPipelineShaderStageCreateInfo shader_{};
     };
 } // namespace vkrndr
 
