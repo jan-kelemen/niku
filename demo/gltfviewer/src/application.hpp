@@ -1,5 +1,5 @@
-#ifndef BEAM_APPLICATION_INCLUDED
-#define BEAM_APPLICATION_INCLUDED
+#ifndef GLTFVIEWER_APPLICATION_INCLUDED
+#define GLTFVIEWER_APPLICATION_INCLUDED
 
 #include <camera_controller.hpp>
 #include <model_selector.hpp>
