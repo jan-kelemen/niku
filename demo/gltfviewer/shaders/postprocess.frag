@@ -2,8 +2,9 @@
 
 layout(location = 0) in vec2 inUV;
 
+layout (constant_id = 0) const int SAMPLES = 8;
+
 layout(push_constant) uniform PushConsts {
-    uint samples;
     float gamma;
     float exposure;
 } pc;
@@ -14,12 +15,12 @@ layout(location = 0) out vec4 outColor;
 
 vec4 resolve(ivec2 uv) {
     vec4 result = vec4(0.0);	   
-    for (int i = 0; i < pc.samples; i++) {
+    for (int i = 0; i < SAMPLES; i++) {
         vec4 val = texelFetch(backbuffer, uv, i);
         result += val;
     }
 
-    return result / float(pc.samples);
+    return result / float(SAMPLES);
 }
 
 void main() {

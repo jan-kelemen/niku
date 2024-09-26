@@ -17,6 +17,7 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
+#include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -631,6 +632,14 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
           backend_->extent(),
           false,
           backend_->device().max_msaa_samples)}
+    , vertex_shader_{vkrndr::create_shader_module(backend_->device(),
+          "pbr.vert.spv",
+          VK_SHADER_STAGE_VERTEX_BIT,
+          "main")}
+    , fragment_shader_{vkrndr::create_shader_module(backend_->device(),
+          "pbr.frag.spv",
+          VK_SHADER_STAGE_FRAGMENT_BIT,
+          "main")}
     , camera_descriptor_set_layout_{create_camera_descriptor_set_layout(
           backend_->device())}
     , transform_descriptor_set_layout_{create_transform_descriptor_set_layout(
@@ -713,6 +722,8 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
     destroy(&backend_->device(), &culling_pipeline_);
     destroy(&backend_->device(), &double_sided_pipeline_);
     destroy(&backend_->device(), &model_);
+    destroy(&backend_->device(), &fragment_shader_);
+    destroy(&backend_->device(), &vertex_shader_);
     destroy(&backend_->device(), &depth_buffer_);
 }
 
@@ -927,8 +938,8 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
                     .size = sizeof(push_constants_t)})
                 .build(),
             VK_FORMAT_R32G32B32A32_SFLOAT}
-            .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
-            .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
+            .add_shader(as_pipeline_shader(vertex_shader_))
+            .add_shader(as_pipeline_shader(fragment_shader_))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_.format)
@@ -944,8 +955,8 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
         vkrndr::pipeline_builder_t{&backend_->device(),
             double_sided_pipeline_.layout,
             VK_FORMAT_R32G32B32A32_SFLOAT}
-            .add_shader(VK_SHADER_STAGE_VERTEX_BIT, "pbr.vert.spv", "main")
-            .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "pbr.frag.spv", "main")
+            .add_shader(as_pipeline_shader(vertex_shader_))
+            .add_shader(as_pipeline_shader(fragment_shader_))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_.format)

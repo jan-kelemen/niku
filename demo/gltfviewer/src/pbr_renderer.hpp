@@ -9,6 +9,7 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_shader_module.hpp>
 
 #include <glm/vec3.hpp>
 
@@ -74,6 +75,9 @@ namespace gltfviewer
     private:
         vkrndr::backend_t* backend_;
         vkrndr::image_t depth_buffer_;
+
+        vkrndr::shader_module_t vertex_shader_;
+        vkrndr::shader_module_t fragment_shader_;
 
         vkgltf::model_t model_;
 

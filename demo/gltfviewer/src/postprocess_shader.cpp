@@ -8,6 +8,7 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
+#include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <volk.h>
@@ -25,7 +26,6 @@ namespace
 {
     struct [[nodiscard]] push_constants_t final
     {
-        uint32_t samples;
         float gamma;
         float exposure;
     };
@@ -118,25 +118,44 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
     , descriptor_sets_{backend_->frames_in_flight(),
           backend_->frames_in_flight()}
-    , pipeline_{vkrndr::pipeline_builder_t{&backend_->device(),
-          vkrndr::pipeline_layout_builder_t{&backend_->device()}
-              .add_descriptor_set_layout(descriptor_set_layout_)
-              .add_push_constants(VkPushConstantRange{
-                  .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                  .offset = 0,
-                  .size = sizeof(push_constants_t)})
-              .build(),
-          backend_->image_format()}
-                    .add_shader(VK_SHADER_STAGE_VERTEX_BIT,
-                        "postprocess.vert.spv",
-                        "main")
-                    .add_shader(VK_SHADER_STAGE_FRAGMENT_BIT,
-                        "postprocess.frag.spv",
-                        "main")
+{
+    auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
+        "postprocess.vert.spv",
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "main")};
+    auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
+        "postprocess.frag.spv",
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "main")};
+
+    uint32_t sample_count = backend_->device().max_msaa_samples;
+    VkSpecializationMapEntry const sample_specialization{.constantID = 0,
+        .offset = 0,
+        .size = sizeof(sample_count)};
+    VkSpecializationInfo const fragment_specialization{.mapEntryCount = 1,
+        .pMapEntries = &sample_specialization,
+        .dataSize = sizeof(sample_specialization),
+        .pData = &sample_count};
+
+    pipeline_ = vkrndr::pipeline_builder_t{&backend_->device(),
+        vkrndr::pipeline_layout_builder_t{&backend_->device()}
+            .add_descriptor_set_layout(descriptor_set_layout_)
+            .add_push_constants(
+                VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .offset = 0,
+                    .size = sizeof(push_constants_t)})
+            .build(),
+        backend_->image_format()}
+                    .add_shader(as_pipeline_shader(vertex_shader))
+                    .add_shader(as_pipeline_shader(fragment_shader,
+                        &fragment_specialization))
                     .with_culling(VK_CULL_MODE_FRONT_BIT,
                         VK_FRONT_FACE_COUNTER_CLOCKWISE)
-                    .build()}
-{
+                    .build();
+
+    destroy(&backend_->device(), &vertex_shader);
+    destroy(&backend_->device(), &fragment_shader);
+
     for (auto& set : descriptor_sets_.as_span())
     {
         vkrndr::create_descriptor_sets(backend_->device(),
@@ -178,9 +197,7 @@ void gltfviewer::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
             .imageView = color_image.view,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
 
-    push_constants_t const pc{.samples = color_image.sample_count,
-        .gamma = gamma_,
-        .exposure = exposure_};
+    push_constants_t const pc{.gamma = gamma_, .exposure = exposure_};
     vkCmdPushConstants(command_buffer,
         *pipeline_.layout,
         VK_SHADER_STAGE_FRAGMENT_BIT,
