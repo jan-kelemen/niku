@@ -7,6 +7,7 @@
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <niku_application.hpp>
 #include <niku_imgui_layer.hpp>
@@ -22,7 +23,10 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
 
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_STRINGOP_OVERFLOW
 #include <fmt/std.h> // IWYU pragma: keep
+DISABLE_WARNING_POP
 
 #include <imgui.h>
 

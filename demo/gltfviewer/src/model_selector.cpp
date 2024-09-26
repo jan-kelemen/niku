@@ -1,12 +1,19 @@
 #include <model_selector.hpp>
 
 #include <cppext_numeric.hpp>
+#include <cppext_pragma_warning.hpp>
 
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_STRINGOP_OVERFLOW
 #include <fmt/std.h> // IWYU pragma: keep
+DISABLE_WARNING_POP
 
 #include <imgui.h>
 
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_NULL_DEREFERENCE
 #include <simdjson.h>
+DISABLE_WARNING_POP
 
 #include <spdlog/spdlog.h>
 
