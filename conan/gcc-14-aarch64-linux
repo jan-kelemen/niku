@@ -1,10 +1,7 @@
+include(base/gcc-14-linux)
+
 [settings]
-os=Linux
 arch=armv8
-compiler=gcc
-compiler.cppstd=23
-compiler.libcxx=libstdc++11
-compiler.version=14
 
 [buildenv]
 CC=aarch64-linux-gnu-gcc-14

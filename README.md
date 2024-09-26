@@ -8,7 +8,7 @@ Necessary build tools are:
 * Conan 2.4 or higher
   * See [installation instructions](https://docs.conan.io/2/installation.html)
 * One of supported compilers:
-  * Clang-18
+  * Clang-18 (libstdc++ and libc++)
   * GCC-14
   * Visual Studio 2022 (MSVC v194)
 
