@@ -25,5 +25,7 @@ namespace vkrndr
         VkDeviceSize size,
         VkBufferCreateFlags usage,
         VkMemoryPropertyFlags memory_properties);
+
+    buffer_t create_staging_buffer(device_t const& device, VkDeviceSize size);
 } // namespace vkrndr
 #endif

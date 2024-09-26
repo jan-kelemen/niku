@@ -242,11 +242,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_image(
     VkFormat const format,
     uint32_t const mip_levels)
 {
-    buffer_t staging_buffer{create_buffer(device_,
-        image_data.size(),
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
+    buffer_t staging_buffer{create_staging_buffer(device_, image_data.size())};
 
     mapped_memory_t staging_map{map_memory(device_, staging_buffer)};
     memcpy(staging_map.mapped_memory, image_data.data(), image_data.size());

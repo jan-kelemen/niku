@@ -627,11 +627,8 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
 
     model_t rv;
     collect_primitive_data(asset.get(), rv);
-    rv.vertex_buffer = vkrndr::create_buffer(backend_->device(),
-        sizeof(vertex_t) * rv.vertex_count,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    rv.vertex_buffer = vkrndr::create_staging_buffer(backend_->device(),
+        sizeof(vertex_t) * rv.vertex_count);
     auto vertex_map{vkrndr::map_memory(backend_->device(), rv.vertex_buffer)};
     auto* const vertices{vertex_map.as<vertex_t>()};
 
@@ -639,11 +636,8 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     uint32_t* indices{};
     if (rv.index_count != 0)
     {
-        rv.index_buffer = vkrndr::create_buffer(backend_->device(),
-            sizeof(uint32_t) * rv.index_count,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        rv.index_buffer = vkrndr::create_staging_buffer(backend_->device(),
+            sizeof(uint32_t) * rv.index_count);
         index_map = vkrndr::map_memory(backend_->device(), rv.index_buffer);
         indices = index_map.as<uint32_t>();
     }

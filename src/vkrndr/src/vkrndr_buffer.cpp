@@ -46,3 +46,14 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
 
     return rv;
 }
+
+vkrndr::buffer_t vkrndr::create_staging_buffer(device_t const& device,
+    VkDeviceSize const size)
+{
+    return create_buffer(device,
+        size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+}
