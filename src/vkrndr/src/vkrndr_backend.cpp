@@ -74,12 +74,12 @@ vkrndr::backend_t::backend_t(window_t const& window,
     bool const debug)
     : render_settings_{settings}
     , window_{&window}
-    , context_{vkrndr::create_context(&window, debug)}
+    , context_{vkrndr::create_context(*window_, debug)}
     , device_{vkrndr::create_device(context_)}
-    , swap_chain_{std::make_unique<swap_chain_t>(window_,
-          &context_,
-          &device_,
-          &render_settings_)}
+    , swap_chain_{std::make_unique<swap_chain_t>(*window_,
+          context_,
+          device_,
+          render_settings_)}
     , frame_data_{settings.frames_in_flight, settings.frames_in_flight}
     , descriptor_pool_{create_descriptor_pool(device_)}
 {

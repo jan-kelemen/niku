@@ -102,15 +102,15 @@ vkrndr::query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
     return rv;
 }
 
-vkrndr::swap_chain_t::swap_chain_t(window_t const* const window,
-    context_t* const context,
-    device_t* const device,
-    render_settings_t const* const settings)
-    : window_{window}
-    , context_{context}
-    , device_{device}
-    , settings_{settings}
-    , present_queue_{device->present_queue}
+vkrndr::swap_chain_t::swap_chain_t(window_t const& window,
+    context_t& context,
+    device_t& device,
+    render_settings_t const& settings)
+    : window_{&window}
+    , context_{&context}
+    , device_{&device}
+    , settings_{&settings}
+    , present_queue_{device.present_queue}
 {
     create_swap_frames();
 }
@@ -258,9 +258,9 @@ void vkrndr::swap_chain_t::create_swap_frames()
             image_format_,
             VK_IMAGE_ASPECT_COLOR_BIT,
             1);
-        frame.image_available = create_semaphore(device_);
-        frame.render_finished = create_semaphore(device_);
-        frame.in_flight = create_fence(device_, true);
+        frame.image_available = create_semaphore(*device_);
+        frame.render_finished = create_semaphore(*device_);
+        frame.in_flight = create_fence(*device_, true);
     }
 }
 

@@ -926,8 +926,8 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
     }
 
     double_sided_pipeline_ =
-        vkrndr::pipeline_builder_t{&backend_->device(),
-            vkrndr::pipeline_layout_builder_t{&backend_->device()}
+        vkrndr::pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(camera_descriptor_set_layout_)
                 .add_descriptor_set_layout(material_descriptor_set_layout_)
                 .add_descriptor_set_layout(transform_descriptor_set_layout_)
@@ -952,7 +952,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
     }
 
     culling_pipeline_ =
-        vkrndr::pipeline_builder_t{&backend_->device(),
+        vkrndr::pipeline_builder_t{backend_->device(),
             double_sided_pipeline_.layout,
             VK_FORMAT_R32G32B32A32_SFLOAT}
             .add_shader(as_pipeline_shader(vertex_shader_))

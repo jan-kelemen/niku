@@ -137,8 +137,8 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         .dataSize = sizeof(sample_specialization),
         .pData = &sample_count};
 
-    pipeline_ = vkrndr::pipeline_builder_t{&backend_->device(),
-        vkrndr::pipeline_layout_builder_t{&backend_->device()}
+    pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(descriptor_set_layout_)
             .add_push_constants(
                 VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,

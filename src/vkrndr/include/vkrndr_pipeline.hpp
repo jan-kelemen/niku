@@ -40,7 +40,7 @@ namespace vkrndr
     class [[nodiscard]] pipeline_layout_builder_t final
     {
     public:
-        explicit pipeline_layout_builder_t(device_t* device);
+        explicit pipeline_layout_builder_t(device_t& device);
 
         pipeline_layout_builder_t(pipeline_layout_builder_t const&) = delete;
 
@@ -75,7 +75,7 @@ namespace vkrndr
     class [[nodiscard]] pipeline_builder_t final
     {
     public: // Construction
-        pipeline_builder_t(device_t* device,
+        pipeline_builder_t(device_t& device,
             std::shared_ptr<VkPipelineLayout> pipeline_layout,
             VkFormat image_format);
 
@@ -147,7 +147,7 @@ namespace vkrndr
     class [[nodiscard]] compute_pipeline_builder_t final
     {
     public:
-        compute_pipeline_builder_t(device_t* device,
+        compute_pipeline_builder_t(device_t& device,
             std::shared_ptr<VkPipelineLayout> pipeline_layout);
 
         compute_pipeline_builder_t(compute_pipeline_builder_t const&) = delete;

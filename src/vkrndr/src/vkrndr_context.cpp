@@ -117,7 +117,7 @@ namespace
     }
 } // namespace
 
-vkrndr::context_t vkrndr::create_context(vkrndr::window_t const* const window,
+vkrndr::context_t vkrndr::create_context(vkrndr::window_t const& window,
     bool const setup_validation_layers)
 {
     context_t rv;
@@ -134,7 +134,7 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const* const window,
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
 
-    std::vector<char const*> required_extensions{window->required_extensions()};
+    std::vector<char const*> required_extensions{window.required_extensions()};
 
     bool has_debug_utils_extension{setup_validation_layers};
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info;
@@ -170,7 +170,7 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const* const window,
         check_result(create_debug_messenger(rv.instance, rv.debug_messenger));
     }
 
-    check_result(window->create_surface(rv.instance, rv.surface));
+    check_result(window.create_surface(rv.instance, rv.surface));
 
     return rv;
 }

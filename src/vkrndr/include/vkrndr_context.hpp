@@ -17,7 +17,7 @@ namespace vkrndr
         VkDebugUtilsMessengerEXT debug_messenger{VK_NULL_HANDLE};
     };
 
-    context_t create_context(window_t const* window,
+    context_t create_context(window_t const& window,
         bool setup_validation_layers);
 
     void destroy(context_t* context);

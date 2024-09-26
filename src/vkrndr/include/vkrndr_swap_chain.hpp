@@ -48,10 +48,10 @@ namespace vkrndr
     class [[nodiscard]] swap_chain_t final
     {
     public: // Construction
-        swap_chain_t(window_t const* window,
-            context_t* context,
-            device_t* device,
-            render_settings_t const* settings);
+        swap_chain_t(window_t const& window,
+            context_t& context,
+            device_t& device,
+            render_settings_t const& settings);
 
         swap_chain_t(swap_chain_t const&) = delete;
 

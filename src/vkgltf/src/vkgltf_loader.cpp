@@ -554,9 +554,7 @@ namespace
     }
 } // namespace
 
-vkgltf::loader_t::loader_t(vkrndr::backend_t* const backend) : backend_{backend}
-{
-}
+vkgltf::loader_t::loader_t(vkrndr::backend_t& backend) : backend_{&backend} { }
 
 tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     std::filesystem::path const& path)

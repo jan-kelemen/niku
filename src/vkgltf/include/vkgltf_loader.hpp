@@ -18,7 +18,7 @@ namespace vkgltf
     class [[nodiscard]] loader_t final
     {
     public:
-        explicit loader_t(vkrndr::backend_t* backend);
+        explicit loader_t(vkrndr::backend_t& backend);
 
         loader_t(loader_t const&) = default;
 

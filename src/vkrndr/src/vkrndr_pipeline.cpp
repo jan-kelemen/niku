@@ -53,9 +53,8 @@ void vkrndr::destroy(device_t* const device, pipeline_t* const pipeline)
     }
 }
 
-vkrndr::pipeline_layout_builder_t::pipeline_layout_builder_t(
-    device_t* const device)
-    : device_{device}
+vkrndr::pipeline_layout_builder_t::pipeline_layout_builder_t(device_t& device)
+    : device_{&device}
 {
 }
 
@@ -97,10 +96,10 @@ vkrndr::pipeline_layout_builder_t::add_push_constants(
     return *this;
 }
 
-vkrndr::pipeline_builder_t::pipeline_builder_t(device_t* const device,
+vkrndr::pipeline_builder_t::pipeline_builder_t(device_t& device,
     std::shared_ptr<VkPipelineLayout> pipeline_layout,
     VkFormat const image_format)
-    : device_{device}
+    : device_{&device}
     , pipeline_layout_{std::move(pipeline_layout)}
     , image_format_{image_format}
     , dynamic_states_{{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR}}
@@ -374,10 +373,9 @@ void vkrndr::pipeline_builder_t::cleanup()
     pipeline_layout_.reset();
 }
 
-vkrndr::compute_pipeline_builder_t::compute_pipeline_builder_t(
-    device_t* const device,
+vkrndr::compute_pipeline_builder_t::compute_pipeline_builder_t(device_t& device,
     std::shared_ptr<VkPipelineLayout> pipeline_layout)
-    : device_{device}
+    : device_{&device}
     , pipeline_layout_{std::move(pipeline_layout)}
 {
 }

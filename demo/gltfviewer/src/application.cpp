@@ -90,7 +90,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
-    , gltf_loader_{backend_.get()}
+    , gltf_loader_{*backend_}
 {
     camera_.set_aspect_ratio(1.0f);
     camera_.update();
