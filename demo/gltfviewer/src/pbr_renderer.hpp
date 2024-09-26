@@ -32,7 +32,7 @@ namespace gltfviewer
     class [[nodiscard]] pbr_renderer_t final
     {
     public:
-        explicit pbr_renderer_t(vkrndr::backend_t* backend);
+        explicit pbr_renderer_t(vkrndr::backend_t& backend);
 
         pbr_renderer_t(pbr_renderer_t const&) = delete;
 

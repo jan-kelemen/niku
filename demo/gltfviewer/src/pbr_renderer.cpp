@@ -394,11 +394,9 @@ namespace
     {
         materials_transfer_t rv;
         {
-            vkrndr::buffer_t staging_buffer{create_buffer(backend.device(),
-                sizeof(material_t) * model.materials.size(),
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
+            vkrndr::buffer_t staging_buffer{
+                create_staging_buffer(backend.device(),
+                    sizeof(material_t) * model.materials.size())};
             vkrndr::mapped_memory_t staging_buffer_map{
                 map_memory(backend.device(), staging_buffer)};
             material_t* const materials{staging_buffer_map.as<material_t>()};
@@ -627,21 +625,18 @@ namespace
 
 } // namespace
 
-gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t* const backend)
-    : backend_{backend}
+gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
+    : backend_{&backend}
     , depth_buffer_{vkrndr::create_depth_buffer(backend_->device(),
           backend_->extent(),
           false,
           backend_->device().max_msaa_samples)}
     , camera_descriptor_set_layout_{create_camera_descriptor_set_layout(
           backend_->device())}
-    , transform_descriptor_set_layout_{
-          create_transform_descriptor_set_layout(backend_->device())}
+    , transform_descriptor_set_layout_{create_transform_descriptor_set_layout(
+          backend_->device())}
+    , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    frame_data_ =
-        cppext::cycled_buffer_t<frame_data_t>{backend_->frames_in_flight(),
-            backend_->frames_in_flight()};
-
     for (auto& data : frame_data_.as_span())
     {
         auto const camera_uniform_buffer_size{sizeof(camera_uniform_t)};

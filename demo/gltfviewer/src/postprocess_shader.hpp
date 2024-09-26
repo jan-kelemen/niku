@@ -18,7 +18,7 @@ namespace gltfviewer
     class [[nodiscard]] postprocess_shader_t final
     {
     public:
-        explicit postprocess_shader_t(vkrndr::backend_t* backend);
+        explicit postprocess_shader_t(vkrndr::backend_t& backend);
 
         postprocess_shader_t(postprocess_shader_t const&) = delete;
 

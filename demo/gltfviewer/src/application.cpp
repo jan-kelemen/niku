@@ -83,9 +83,8 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->device(),
           backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
-    , pbr_renderer_{std::make_unique<pbr_renderer_t>(backend_.get())}
-    , postprocess_shader_{std::make_unique<postprocess_shader_t>(
-          backend_.get())}
+    , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_)}
+    , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{backend_.get()}
 {
@@ -211,9 +210,9 @@ void gltfviewer::application_t::draw()
 
     postprocess_shader_->draw(command_buffer, color_image_, target_image);
 
-    vkrndr::transition_to_present_layout(target_image.image, command_buffer);
-
     imgui_->render(command_buffer, target_image);
+
+    vkrndr::transition_to_present_layout(target_image.image, command_buffer);
 
     backend_->draw();
 }

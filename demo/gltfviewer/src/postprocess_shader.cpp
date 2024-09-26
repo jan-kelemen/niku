@@ -112,8 +112,8 @@ namespace
 } // namespace
 
 gltfviewer::postprocess_shader_t::postprocess_shader_t(
-    vkrndr::backend_t* const backend)
-    : backend_{backend}
+    vkrndr::backend_t& backend)
+    : backend_{&backend}
     , combined_sampler_{create_sampler(backend_->device())}
     , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
     , descriptor_sets_{backend_->frames_in_flight(),
