@@ -15,8 +15,6 @@
 
 #include <imgui.h>
 
-#include <spdlog/spdlog.h>
-
 #include <cassert>
 #include <utility>
 
@@ -135,13 +133,10 @@ bool niku::imgui_layer_t::handle_event(SDL_Event const& event) const
 
 void niku::imgui_layer_t::begin_frame()
 {
-    if (enabled_)
-    {
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
-        ImGui::NewFrame();
-        frame_rendered_ = false;
-    }
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+    frame_rendered_ = false;
 }
 
 void niku::imgui_layer_t::render(VkCommandBuffer command_buffer,
@@ -167,9 +162,8 @@ void niku::imgui_layer_t::render(VkCommandBuffer command_buffer,
 
 void niku::imgui_layer_t::end_frame()
 {
-    if (enabled_ && !std::exchange(frame_rendered_, true))
+    if (!std::exchange(frame_rendered_, true))
     {
-        spdlog::info("Ending ImGui frame without matching draw call");
         ImGui::EndFrame();
     }
 }
