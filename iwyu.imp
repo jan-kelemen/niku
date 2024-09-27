@@ -40,6 +40,11 @@
   { include: [ "<bits/types/time_t.h>", private, "<time.h>", public ] },
   { include: [ "<bits/utility.h>", private, "<utility>", public ] },
   { include: [ "<__stdarg_va_arg.h>", private, "<cstdarg>", public ] },
+
+  # libc++ aliases
+  { include: [ "<__fwd/fstream.h>", private, "<fstream>", public ] },
+  { include: [ "<__fwd/ios.h>", private, "<ios>", public ] },
+  { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
   
   # Catch2 aliases
   { include: [ "<catch2/catch_message.hpp>", public, "<catch2/catch_test_macros.hpp>", public ] },

@@ -16,7 +16,6 @@
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp> // IWYU pragma: keep
-#include <fastgltf/math.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 

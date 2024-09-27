@@ -15,7 +15,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <ranges>
 #include <span>
 
 // IWYU pragma: no_include <functional>
