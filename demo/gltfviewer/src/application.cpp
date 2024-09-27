@@ -94,7 +94,10 @@ gltfviewer::application_t::application_t(bool const debug)
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
 {
-    camera_.set_aspect_ratio(1.0f);
+    auto const extent{backend_->extent()};
+
+    camera_.set_aspect_ratio(
+        cppext::as_fp(extent.width) / cppext::as_fp(extent.height));
     camera_.update();
 
     postprocess_shader_->update(gamma_, exposure_);
