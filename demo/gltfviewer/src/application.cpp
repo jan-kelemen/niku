@@ -31,6 +31,7 @@ DISABLE_WARNING_POP
 #include <imgui.h>
 
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_scancode.h>
 #include <SDL2/SDL_video.h>
 
 #include <spdlog/spdlog.h>
@@ -49,6 +50,7 @@ DISABLE_WARNING_POP
 #include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <string_view>
 
 namespace
 {
@@ -105,6 +107,15 @@ bool gltfviewer::application_t::handle_event(SDL_Event const& event)
     camera_controller_.handle_event(event);
 
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
+
+    if (event.type == SDL_KEYDOWN)
+    {
+        auto const& keyboard{event.key};
+        if (keyboard.keysym.scancode == SDL_SCANCODE_F4)
+        {
+            imgui_->set_enabled(!imgui_->enabled());
+        }
+    }
 
     return true;
 }

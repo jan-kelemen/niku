@@ -20,6 +20,7 @@
 
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <string_view>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 namespace

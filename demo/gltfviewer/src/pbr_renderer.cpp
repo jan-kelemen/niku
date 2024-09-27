@@ -44,6 +44,7 @@
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_include <string_view>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 namespace
