@@ -48,6 +48,7 @@
 #include <variant>
 #include <vector>
 
+// IWYU pragma: no_include <fastgltf/math.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 // IWYU pragma: no_include <functional>

@@ -18,6 +18,7 @@
 #include <span>
 
 // IWYU pragma: no_include <functional>
+// IWYU pragma: no_include <utility>
 
 namespace
 {

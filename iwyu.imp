@@ -40,6 +40,12 @@
   { include: [ "<bits/types/time_t.h>", private, "<time.h>", public ] },
   { include: [ "<bits/utility.h>", private, "<utility>", public ] },
   { include: [ "<__stdarg_va_arg.h>", private, "<cstdarg>", public ] },
+  { symbol: [ "std::ranges::__find_if_fn", private, "<algorithm>", public ] },
+  { symbol: [ "std::ranges::__find_fn", private, "<algorithm>", public ] },
+  { symbol: [ "std::ranges::__fill_fn", private, "<algorithm>", public ] },
+  { symbol: [ "std::ranges::find_if", private, "<algorithm>", public ] },
+  { symbol: [ "std::ranges::find", private, "<algorithm>", public ] },
+  { symbol: [ "std::ranges::fill_n", private, "<algorithm>", public ] },
 
   # libc++ aliases
   { include: [ "<__fwd/fstream.h>", private, "<fstream>", public ] },
