@@ -51,6 +51,10 @@
             "inherits": "conan-release"
         },
         {
+            "name": "relwithdebinfo",
+            "inherits": "conan-relwithdebinfo"
+        },
+        {
             "name": "debug",
             "inherits": "conan-debug"
         }
@@ -61,6 +65,10 @@
             "configurePreset": "release"
         },
         {
+            "name": "relwithdebinfo",
+            "configurePreset": "relwithdebinfo"
+        },
+        {
             "name": "debug",
             "configurePreset": "debug"
         },
@@ -69,6 +77,12 @@
             "configurePreset": "default",
             "configuration": "Release",
             "inherits": "release"
+        },
+        {
+            "name": "multi-relwithdebinfo",
+            "configurePreset": "default",
+            "configuration": "RelWithDebInfo",
+            "inherits": "relwithdebinfo"
         },
         {
             "name": "multi-debug",
@@ -89,6 +103,11 @@
             "inherits": "common"
         },
         {
+            "name": "relwithdebinfo",
+            "configurePreset": "relwithdebinfo",
+            "inherits": "common"
+        },
+        {
             "name": "debug",
             "configurePreset": "debug",
             "inherits": "common"
@@ -98,6 +117,12 @@
             "configurePreset": "default",
             "configuration": "Release",
             "inherits": ["release", "common"]
+        },
+        {
+            "name": "multi-relwithdebinfo",
+            "configurePreset": "default",
+            "configuration": "RelWithDebInfo",
+            "inherits": ["relwithdebinfo", "common"]
         },
         {
             "name": "multi-debug",
