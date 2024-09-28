@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <filesystem>
 #include <functional>
 #include <iterator>
 #include <limits>
@@ -40,7 +41,7 @@
 #include <utility>
 #include <vector>
 
-// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <chrono>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <type_traits>
@@ -633,14 +634,7 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
           backend_->extent(),
           false,
           backend_->device().max_msaa_samples)}
-    , vertex_shader_{vkrndr::create_shader_module(backend_->device(),
-          "pbr.vert.spv",
-          VK_SHADER_STAGE_VERTEX_BIT,
-          "main")}
-    , fragment_shader_{vkrndr::create_shader_module(backend_->device(),
-          "pbr.frag.spv",
-          VK_SHADER_STAGE_FRAGMENT_BIT,
-          "main")}
+
     , camera_descriptor_set_layout_{create_camera_descriptor_set_layout(
           backend_->device())}
     , transform_descriptor_set_layout_{create_transform_descriptor_set_layout(
@@ -921,6 +915,27 @@ void gltfviewer::pbr_renderer_t::resize(uint32_t width, uint32_t height)
 
 void gltfviewer::pbr_renderer_t::recreate_pipelines()
 {
+    std::filesystem::path vertex_path{"pbr.vert.spv"};
+    if (auto const wt{last_write_time(vertex_path)}; vertex_write_time_ != wt)
+    {
+        vertex_shader_ = vkrndr::create_shader_module(backend_->device(),
+            "pbr.vert.spv",
+            VK_SHADER_STAGE_VERTEX_BIT,
+            "main");
+        vertex_write_time_ = wt;
+    }
+
+    std::filesystem::path fragment_path{"pbr.frag.spv"};
+    if (auto const wt{last_write_time(fragment_path)};
+        fragment_write_time_ != wt)
+    {
+        fragment_shader_ = vkrndr::create_shader_module(backend_->device(),
+            "pbr.frag.spv",
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            "main");
+        fragment_write_time_ = wt;
+    }
+
     if (double_sided_pipeline_.pipeline != VK_NULL_HANDLE)
     {
         destroy(&backend_->device(), &double_sided_pipeline_);

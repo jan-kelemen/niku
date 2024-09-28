@@ -1,6 +1,9 @@
 #version 460
 
+#extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_nonuniform_qualifier : require
+
+#include "color_conversion.glsl"
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
@@ -92,12 +95,10 @@ void metallicRoughness(Material m, out float metallic, out float roughness) {
 
 }
 
-vec4 SRGBtoLINEAR(vec4 srgbIn)
-{
-	vec3 bLess = step(vec3(0.04045), srgbIn.xyz);
-	vec3 linOut = mix( srgbIn.xyz/vec3(12.92), pow((srgbIn.xyz+vec3(0.055))/vec3(1.055),vec3(2.4)), bLess );
-	return vec4(linOut, srgbIn.w);;
+vec3 fresnelSchlick(vec3 f0, vec3 f90, float VdotH) {
+    return f0 + (f90 - f0) * pow(clamp(1.0 - VdotH, 0.0, 1.0), 5.0);
 }
+
 void main() {
     vec3 cameraPosition = camera.cameraPosition;
     vec3 lightColor = camera.lightColor;
@@ -105,20 +106,30 @@ void main() {
 
     Material m = materials.v[pc.materialIndex];
 
-    vec4 albedo = SRGBtoLINEAR(baseColor(m));
-    if (albedo.w < m.alphaCutoff.x) {
+    vec4 albedo = toLinear(baseColor(m));
+    if (albedo.a < m.alphaCutoff.x) {
         discard;
     }
 
-    vec3 lightDirection = normalize(lightPosition - inPosition);  
-    vec3 normal = worldNormal(m);
+    float metallic;
+    float roughness;
+    metallicRoughness(m, metallic, roughness);
 
-    float diff = max(dot(lightDirection, normal), 0.1);
+	const vec3 N = worldNormal(m);
+	const vec3 V = normalize(cameraPosition - inPosition);
+	const vec3 L = normalize(lightPosition - inPosition);
+	const vec3 H = normalize(L + V);
 
-    vec3 viewDirection = normalize(cameraPosition - inPosition);    
-    vec3 halfDirection = normalize(lightDirection + viewDirection);
-    float specularAngle = max(dot(halfDirection, normal), 0.0);
-    float specular = pow(specularAngle, 16);
+    const vec3 F0 = vec3(0.04);
+    const vec3 diffuseColor = (1.0 - metallic) * (vec3(1.0) - F0) * albedo.rgb;
 
-    outColor = vec4((diff + specular) * lightColor, 1.0) * baseColor(m);
+	const vec3 specularColor = mix(F0, albedo.rgb, metallic);
+    const float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
+	const float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
+	const vec3 specularEnvironmentR0 = specularColor.rgb;
+	const vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
+
+    const vec3 F = fresnelSchlick(specularEnvironmentR0, specularEnvironmentR90, clamp(dot(V, H), 0.0, 1.0));
+
+    outColor = vec4(F, 1.0);
 }

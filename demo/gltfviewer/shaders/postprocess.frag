@@ -1,5 +1,9 @@
 #version 460
 
+#extension GL_GOOGLE_include_directive : require
+
+#include "color_conversion.glsl"
+
 layout(location = 0) in vec2 inUV;
 
 layout (constant_id = 0) const int SAMPLES = 8;
@@ -28,19 +32,14 @@ void main() {
     ivec2 attDim = textureSize(backbuffer);
     ivec2 UV = ivec2(inUV * attDim);
 
-    vec4 resolved = resolve(UV);
-  
-    vec3 color = resolved.rgb;
-
-    // exposure tone mapping
+    vec4 result = resolve(UV);
     if (pc.exposure != 0.0) {
-        color = vec3(1.0) - exp(-color * pc.exposure);
+        result = exposureToneMapping(result, pc.exposure);
     }
 
-    // gamma correction 
     if (pc.gamma != 0.0) {
-        color = pow(color, vec3(1.0 / pc.gamma));
+        result = gammaCorrection(result, pc.gamma);
     }
 
-    outColor = vec4(color, resolved.a);
+    outColor = result;
 }

@@ -16,7 +16,10 @@
 #include <volk.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <vector>
+
+// IWYU pragma: no_include <chrono>
 
 namespace niku
 {
@@ -76,7 +79,10 @@ namespace gltfviewer
         vkrndr::backend_t* backend_;
         vkrndr::image_t depth_buffer_;
 
+        std::filesystem::file_time_type vertex_write_time_;
         vkrndr::shader_module_t vertex_shader_;
+
+        std::filesystem::file_time_type fragment_write_time_;
         vkrndr::shader_module_t fragment_shader_;
 
         vkgltf::model_t model_;
