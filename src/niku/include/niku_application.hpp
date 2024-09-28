@@ -18,7 +18,6 @@ namespace niku
     struct [[nodiscard]] subsystems_t final
     {
         bool video{true};
-        bool audio{false};
         bool debug{false};
     };
 

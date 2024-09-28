@@ -71,7 +71,7 @@ namespace
 
 gltfviewer::application_t::application_t(bool const debug)
     : niku::application_t{niku::startup_params_t{
-          .init_subsystems = {.video = true, .audio = false, .debug = debug},
+          .init_subsystems = {.video = true, .debug = debug},
           .title = "gltfviewer",
           .window_flags = static_cast<SDL_WindowFlags>(
               SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI),

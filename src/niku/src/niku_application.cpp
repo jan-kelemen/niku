@@ -18,8 +18,7 @@ namespace
     [[nodiscard]] constexpr uint32_t to_init_flags(
         niku::subsystems_t const& subsystems)
     {
-        return (subsystems.video ? SDL_INIT_VIDEO : 0) |
-            (subsystems.audio ? SDL_INIT_AUDIO : 0);
+        return subsystems.video ? SDL_INIT_VIDEO : 0;
     }
 } // namespace
 
