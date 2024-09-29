@@ -7,7 +7,8 @@
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec2 inUV;
+layout(location = 2) in vec4 inColor;
+layout(location = 3) in vec2 inUV;
 
 layout(push_constant) uniform PushConsts {
     uint modelIndex;
@@ -27,6 +28,7 @@ layout(set = 1, binding = 1) uniform sampler samplers[];
 
 struct Material {
     vec4 baseColorFactor;
+    vec3 emissiveFactor;
     uint baseColorTextureIndex;
     uint baseColorSamplerIndex;
     float alphaCutoff;
@@ -36,6 +38,8 @@ struct Material {
     float roughnessFactor;
     uint normalTextureIndex;
     uint normalSamplerIndex;
+    uint emissiveTextureIndex;
+    uint emissiveSamplerIndex;
     float normalScale;
 };
 
@@ -47,15 +51,6 @@ layout(location = 0) out vec4 outColor;
 
 const uint UINT_MAX = ~0;
 const float M_PI = 3.141592653589793;
-
-vec4 baseColor(Material m) {
-    vec4 color = vec4(1);
-    if (m.baseColorTextureIndex != UINT_MAX) {
-        color = texture(nonuniformEXT(sampler2D(textures[m.baseColorTextureIndex], samplers[m.baseColorSamplerIndex])), inUV);
-    }
-
-    return m.baseColorFactor * color;
-}
 
 vec3 worldNormal(Material m) {
     if (m.normalTextureIndex != UINT_MAX) {
@@ -77,6 +72,24 @@ vec3 worldNormal(Material m) {
     else {
         return normalize(inNormal);
     }
+}
+
+vec4 baseColor(Material m) {
+    vec4 color = vec4(1);
+    if (m.baseColorTextureIndex != UINT_MAX) {
+        color = texture(nonuniformEXT(sampler2D(textures[m.baseColorTextureIndex], samplers[m.baseColorSamplerIndex])), inUV);
+    }
+
+    return m.baseColorFactor * color;
+}
+
+vec3 emissiveColor(Material m) {
+	vec3 emissive = m.emissiveFactor.rgb;
+	if (m.emissiveTextureIndex != UINT_MAX) {
+		emissive *= texture(nonuniformEXT(sampler2D(textures[m.emissiveTextureIndex], samplers[m.emissiveSamplerIndex])), inUV).rgb;
+	};
+
+    return emissive;
 }
 
 void metallicRoughness(Material m, out float metallic, out float roughness) {
@@ -128,6 +141,7 @@ void main() {
     if (albedo.a < m.alphaCutoff.x) {
         discard;
     }
+    albedo *= inColor;
 
     float metallic;
     float roughness;
@@ -161,6 +175,8 @@ void main() {
     const vec3 specularContribution = F * G * D / (4.0 * NdotL * NdotV);
 
     vec3 color = NdotL * lightColor * (diffuseContribution + specularContribution);
+
+    color += emissiveColor(m);
 
     outColor = vec4(color, albedo.a);
 }

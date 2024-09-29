@@ -65,9 +65,10 @@ namespace
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_STRUCTURE_WAS_PADDED_DUE_TO_ALIGNMENT_SPECIFIER
 
-    struct [[nodiscard]] alignas(64) material_t final
+    struct [[nodiscard]] alignas(16) material_t final
     {
         glm::vec4 base_color_factor;
+        glm::vec3 emmisive_factor;
         uint32_t base_color_texture_index{std::numeric_limits<uint32_t>::max()};
         uint32_t base_color_sampler_index{std::numeric_limits<uint32_t>::max()};
         float alpha_cutoff;
@@ -79,6 +80,8 @@ namespace
         float roughness_factor;
         uint32_t normal_texture_index{std::numeric_limits<uint32_t>::max()};
         uint32_t normal_sampler_index{std::numeric_limits<uint32_t>::max()};
+        uint32_t emissive_texture_index{std::numeric_limits<uint32_t>::max()};
+        uint32_t emissive_sampler_index{std::numeric_limits<uint32_t>::max()};
         float normal_scale;
     };
 
@@ -111,6 +114,10 @@ namespace
                 .format = VK_FORMAT_R32G32B32A32_SFLOAT,
                 .offset = offsetof(vkgltf::vertex_t, tangent)},
             VkVertexInputAttributeDescription{.location = 3,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                .offset = offsetof(vkgltf::vertex_t, color)},
+            VkVertexInputAttributeDescription{.location = 4,
                 .binding = 0,
                 .format = VK_FORMAT_R32G32_SFLOAT,
                 .offset = offsetof(vkgltf::vertex_t, uv)},
@@ -414,6 +421,7 @@ namespace
                     material_t mat{
                         .base_color_factor =
                             m.pbr_metallic_roughness.base_color_factor,
+                        .emmisive_factor = m.emmisive_factor,
                         .alpha_cutoff = m.alpha_cutoff,
                         .metallic_factor =
                             m.pbr_metallic_roughness.metallic_factor,
@@ -453,6 +461,14 @@ namespace
                         mat.normal_texture_index =
                             cppext::narrow<uint32_t>(texture->image_index);
                         mat.normal_sampler_index =
+                            cppext::narrow<uint32_t>(texture->sampler_index);
+                    }
+
+                    if (auto const* const texture{m.emmisive_texture})
+                    {
+                        mat.emissive_texture_index =
+                            cppext::narrow<uint32_t>(texture->image_index);
+                        mat.emissive_sampler_index =
                             cppext::narrow<uint32_t>(texture->sampler_index);
                     }
 
