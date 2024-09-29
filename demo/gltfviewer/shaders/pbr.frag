@@ -46,6 +46,7 @@ layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer {
 layout(location = 0) out vec4 outColor;
 
 const uint UINT_MAX = ~0;
+const float M_PI = 3.141592653589793;
 
 vec4 baseColor(Material m) {
     vec4 color = vec4(1);
@@ -56,8 +57,7 @@ vec4 baseColor(Material m) {
     return m.baseColorFactor * color;
 }
 
-vec3 worldNormal(Material m)
-{
+vec3 worldNormal(Material m) {
     if (m.normalTextureIndex != UINT_MAX) {
         vec3 tangentNormal = texture(nonuniformEXT(sampler2D(textures[m.normalTextureIndex], samplers[m.normalSamplerIndex])), inUV).rgb;
         tangentNormal = normalize(tangentNormal * 2.0 - 1.0) * vec3(m.normalScale);
@@ -99,13 +99,22 @@ vec3 fresnelSchlick(vec3 f0, vec3 f90, float VdotH) {
     return f0 + (f90 - f0) * pow(clamp(1.0 - VdotH, 0.0, 1.0), 5.0);
 }
 
-float geometricOcclusion(float roughness, float NdotL, float NdotV)
-{
-	const float r = roughness * roughness;
-	const float attenuationL = 2.0 * NdotL / (NdotL + sqrt(r  + (1.0 - r) * (NdotL * NdotL)));
-	const float attenuationV = 2.0 * NdotV / (NdotV + sqrt(r + (1.0 - r) * (NdotV * NdotV)));
+float geometricOcclusion(float roughness, float NdotL, float NdotV) {
+    const float r = roughness * roughness;
+    const float attenuationL = 2.0 * NdotL / (NdotL + sqrt(r  + (1.0 - r) * (NdotL * NdotL)));
+    const float attenuationV = 2.0 * NdotV / (NdotV + sqrt(r + (1.0 - r) * (NdotV * NdotV)));
 
-	return attenuationL * attenuationV;
+    return attenuationL * attenuationV;
+}
+
+float microfacetDistribution(float roughness, float NdotH) {
+    const float r = roughness * roughness;
+    const float f = (NdotH * r - NdotH) * NdotH + 1.0;
+    return r / (M_PI * f * f);
+}
+
+vec3 diffuse(vec3 diffuseColor) {
+    return diffuseColor / M_PI;
 }
 
 void main() {
@@ -123,6 +132,7 @@ void main() {
     float metallic;
     float roughness;
     metallicRoughness(m, metallic, roughness);
+    const float alphaRoughness = roughness * roughness;
 
     const vec3 N = worldNormal(m);
     const vec3 V = normalize(cameraPosition - inPosition);
@@ -141,9 +151,16 @@ void main() {
     const float VdotH = clamp(dot(V, H), 0.0, 1.0);
     const float NdotL = clamp(dot(N, L), 0.001, 1.0);
     const float NdotV = clamp(abs(dot(N, V)), 0.001, 1.0);
+    const float NdotH = clamp(dot(N, H), 0.0, 1.0);
 
     const vec3 F = fresnelSchlick(specularEnvironmentR0, specularEnvironmentR90, VdotH);
-    const float G = geometricOcclusion(roughness * roughness, NdotL, NdotV);
+    const float G = geometricOcclusion(alphaRoughness, NdotL, NdotV);
+    const float D = microfacetDistribution(alphaRoughness, NdotH);
 
-    outColor = vec4(vec3(G), 1.0);
+    const vec3 diffuseContribution = (1.0 - F) * diffuse(diffuseColor);
+    const vec3 specularContribution = F * G * D / (4.0 * NdotL * NdotV);
+
+    vec3 color = NdotL * lightColor * (diffuseContribution + specularContribution);
+
+    outColor = vec4(color, albedo.a);
 }
