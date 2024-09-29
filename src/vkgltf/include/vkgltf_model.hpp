@@ -38,6 +38,7 @@ namespace vkgltf
         alignas(16) glm::vec3 position;
         alignas(16) glm::vec3 normal;
         glm::vec4 tangent;
+        glm::vec4 color{1.0f};
         glm::vec2 uv;
     };
 
@@ -73,7 +74,9 @@ namespace vkgltf
         std::string name;
         pbr_metallic_roughness_t pbr_metallic_roughness;
         texture_t* normal_texture;
+        texture_t* emmisive_texture;
         float normal_scale{1.0f};
+        glm::vec3 emmisive_factor;
         float alpha_cutoff{0.0f};
         bool double_sided{false};
     };

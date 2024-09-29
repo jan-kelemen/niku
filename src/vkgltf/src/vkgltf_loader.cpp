@@ -59,6 +59,7 @@ namespace
     constexpr auto normal_attribute{"NORMAL"};
     constexpr auto tangent_attribute{"TANGENT"};
     constexpr auto texcoord_0_attribute{"TEXCOORD_0"};
+    constexpr auto color_attribute{"COLOR_0"};
 
     void calculate_normals_and_tangents(vkgltf::primitive_t const& primitive,
         vkgltf::vertex_t* const vertices,
@@ -135,6 +136,43 @@ namespace
             }
 
             fastgltf::iterateAccessorWithIndex<T>(asset, accessor, transform);
+
+            return cppext::narrow<uint32_t>(accessor.count);
+        }
+
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<uint32_t> copy_color_attribute(
+        fastgltf::Asset const& asset,
+        fastgltf::Primitive const& primitive,
+        auto&& transform)
+    {
+        if (auto const* const attr{primitive.findAttribute(color_attribute)};
+            attr != primitive.attributes.cend())
+        {
+            auto const& accessor{asset.accessors[attr->accessorIndex]};
+            if (!accessor.bufferViewIndex.has_value())
+            {
+                return std::nullopt;
+            }
+
+            if (accessor.type == fastgltf::AccessorType::Vec3)
+            {
+                fastgltf::iterateAccessorWithIndex<glm::vec3>(asset,
+                    accessor,
+                    transform);
+            }
+            else if (accessor.type == fastgltf::AccessorType::Vec4)
+            {
+                fastgltf::iterateAccessorWithIndex<glm::vec4>(asset,
+                    accessor,
+                    transform);
+            }
+            else
+            {
+                assert(false);
+            }
 
             return cppext::narrow<uint32_t>(accessor.count);
         }
@@ -371,6 +409,12 @@ namespace
                 unorm_images.insert(m.normal_texture->image_index);
             }
 
+            if (auto const& texture{material.emissiveTexture})
+            {
+                m.emmisive_texture = &model.textures[texture->textureIndex];
+                m.emmisive_factor = vkgltf::to_glm(material.emissiveFactor);
+            }
+
             model.materials.push_back(std::move(m));
         }
 
@@ -396,6 +440,12 @@ namespace
         auto const tangent_transform =
             [&vertices](glm::vec4 const t, size_t const idx)
         { vertices[idx].tangent = t; };
+
+        auto const color_transform =
+            cppext::overloaded{[&vertices](glm::vec3 const c, size_t const idx)
+                { vertices[idx].color = glm::vec4(c, 1.0f); },
+                [&vertices](glm::vec4 const c, size_t const idx)
+                { vertices[idx].color = c; }};
 
         auto const texcoord_transform =
             [&vertices](glm::vec2 const v, size_t const idx)
@@ -435,6 +485,13 @@ namespace
                 {
                     assert(tangent_count == vertex_count);
                     tangents_loaded = true;
+                }
+
+                if (auto const color_count{copy_color_attribute(asset,
+                        primitive,
+                        color_transform)})
+                {
+                    assert(color_count == vertex_count);
                 }
 
                 if (auto const texcoord_count{copy_attribute<glm::vec2>(asset,
