@@ -99,6 +99,15 @@ vec3 fresnelSchlick(vec3 f0, vec3 f90, float VdotH) {
     return f0 + (f90 - f0) * pow(clamp(1.0 - VdotH, 0.0, 1.0), 5.0);
 }
 
+float geometricOcclusion(float roughness, float NdotL, float NdotV)
+{
+	const float r = roughness * roughness;
+	const float attenuationL = 2.0 * NdotL / (NdotL + sqrt(r  + (1.0 - r) * (NdotL * NdotL)));
+	const float attenuationV = 2.0 * NdotV / (NdotV + sqrt(r + (1.0 - r) * (NdotV * NdotV)));
+
+	return attenuationL * attenuationV;
+}
+
 void main() {
     vec3 cameraPosition = camera.cameraPosition;
     vec3 lightColor = camera.lightColor;
@@ -129,7 +138,12 @@ void main() {
     const vec3 specularEnvironmentR0 = specularColor.rgb;
     const vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
 
-    const vec3 F = fresnelSchlick(specularEnvironmentR0, specularEnvironmentR90, clamp(dot(V, H), 0.0, 1.0));
+    const float VdotH = clamp(dot(V, H), 0.0, 1.0);
+    const float NdotL = clamp(dot(N, L), 0.001, 1.0);
+    const float NdotV = clamp(abs(dot(N, V)), 0.001, 1.0);
 
-    outColor = vec4(F, 1.0);
+    const vec3 F = fresnelSchlick(specularEnvironmentR0, specularEnvironmentR90, VdotH);
+    const float G = geometricOcclusion(roughness * roughness, NdotL, NdotV);
+
+    outColor = vec4(vec3(G), 1.0);
 }
