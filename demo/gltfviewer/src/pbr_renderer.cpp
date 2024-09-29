@@ -915,7 +915,7 @@ void gltfviewer::pbr_renderer_t::resize(uint32_t width, uint32_t height)
 
 void gltfviewer::pbr_renderer_t::recreate_pipelines()
 {
-    std::filesystem::path vertex_path{"pbr.vert.spv"};
+    std::filesystem::path const vertex_path{"pbr.vert.spv"};
     if (auto const wt{last_write_time(vertex_path)}; vertex_write_time_ != wt)
     {
         vertex_shader_ = vkrndr::create_shader_module(backend_->device(),
@@ -925,7 +925,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
         vertex_write_time_ = wt;
     }
 
-    std::filesystem::path fragment_path{"pbr.frag.spv"};
+    std::filesystem::path const fragment_path{"pbr.frag.spv"};
     if (auto const wt{last_write_time(fragment_path)};
         fragment_write_time_ != wt)
     {

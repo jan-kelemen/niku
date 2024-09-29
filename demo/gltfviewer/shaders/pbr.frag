@@ -106,7 +106,7 @@ void main() {
 
     Material m = materials.v[pc.materialIndex];
 
-    vec4 albedo = toLinear(baseColor(m));
+    vec4 albedo = baseColor(m);
     if (albedo.a < m.alphaCutoff.x) {
         discard;
     }
@@ -115,19 +115,19 @@ void main() {
     float roughness;
     metallicRoughness(m, metallic, roughness);
 
-	const vec3 N = worldNormal(m);
-	const vec3 V = normalize(cameraPosition - inPosition);
-	const vec3 L = normalize(lightPosition - inPosition);
-	const vec3 H = normalize(L + V);
+    const vec3 N = worldNormal(m);
+    const vec3 V = normalize(cameraPosition - inPosition);
+    const vec3 L = normalize(lightPosition - inPosition);
+    const vec3 H = normalize(L + V);
 
     const vec3 F0 = vec3(0.04);
     const vec3 diffuseColor = (1.0 - metallic) * (vec3(1.0) - F0) * albedo.rgb;
 
-	const vec3 specularColor = mix(F0, albedo.rgb, metallic);
+    const vec3 specularColor = mix(F0, albedo.rgb, metallic);
     const float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
-	const float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
-	const vec3 specularEnvironmentR0 = specularColor.rgb;
-	const vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
+    const float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
+    const vec3 specularEnvironmentR0 = specularColor.rgb;
+    const vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
 
     const vec3 F = fresnelSchlick(specularEnvironmentR0, specularEnvironmentR90, clamp(dot(V, H), 0.0, 1.0));
 
