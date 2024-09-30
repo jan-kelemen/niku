@@ -2,6 +2,7 @@
 #define VKGLTF_FASTGLTF_ADAPTER_INCLUDED
 
 #include <vkgltf_error.hpp>
+#include <vkgltf_model.hpp>
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/math.hpp> // IWYU pragma: keep
@@ -143,6 +144,25 @@ namespace vkgltf
         default:
             assert(false);
             return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        }
+    }
+
+    [[nodiscard]] constexpr alpha_mode_t to_alpha_mode(
+        fastgltf::AlphaMode const a)
+    {
+        using fastgltf::AlphaMode;
+
+        switch (a)
+        {
+        case AlphaMode::Opaque:
+            return vkgltf::alpha_mode_t::opaque;
+        case AlphaMode::Mask:
+            return vkgltf::alpha_mode_t::mask;
+        case AlphaMode::Blend:
+            return vkgltf::alpha_mode_t::blend;
+        default:
+            assert(false);
+            return vkgltf::alpha_mode_t::opaque;
         }
     }
 

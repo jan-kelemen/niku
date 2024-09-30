@@ -372,10 +372,10 @@ namespace
         vkgltf::model_t& model)
     {
         std::set<size_t> unorm_images;
-
         for (fastgltf::Material const& material : asset.materials)
         {
             vkgltf::material_t m{.name = std::string{material.name},
+                .alpha_mode = vkgltf::to_alpha_mode(material.alphaMode),
                 .alpha_cutoff = material.alphaCutoff,
                 .double_sided = material.doubleSided};
 

@@ -19,6 +19,7 @@ Checks: '
   modernize-*,
   -modernize-use-trailing-return-type,
   performance-*,
+  -performance-enum-size,
   portability-*,
   readability-*,
   -readability-convert-member-functions-to-static,

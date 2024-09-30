@@ -69,6 +69,13 @@ namespace vkgltf
         float roughness_factor{1.0f};
     };
 
+    enum class alpha_mode_t
+    {
+        opaque,
+        mask,
+        blend
+    };
+
     struct [[nodiscard]] material_t final
     {
         std::string name;
@@ -77,6 +84,7 @@ namespace vkgltf
         texture_t* emmisive_texture;
         float normal_scale{1.0f};
         glm::vec3 emmisive_factor;
+        alpha_mode_t alpha_mode{alpha_mode_t::opaque};
         float alpha_cutoff{0.0f};
         bool double_sided{false};
     };
