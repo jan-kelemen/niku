@@ -36,10 +36,13 @@ struct Material {
     uint metallicRoughnessSamplerIndex;
     float metallicFactor;
     float roughnessFactor;
+    float occlusionStrength;
     uint normalTextureIndex;
     uint normalSamplerIndex;
     uint emissiveTextureIndex;
     uint emissiveSamplerIndex;
+    uint occlusionTextureIndex;
+    uint occlusionSamplerIndex;
     float normalScale;
 };
 
@@ -106,6 +109,15 @@ void metallicRoughness(Material m, out float metallic, out float roughness) {
         metallic = clamp(metallic, 0.0, 1.0);
     }
 
+}
+
+float ambientOcclusion(Material m) {
+    float occlusion = 1.0;
+    if (m.occlusionTextureIndex != UINT_MAX) {
+        occlusion = texture(nonuniformEXT(sampler2D(textures[m.occlusionTextureIndex], samplers[m.occlusionSamplerIndex])), inUV).r;
+    }
+
+    return occlusion;
 }
 
 vec3 fresnelSchlick(vec3 f0, vec3 f90, float VdotH) {
@@ -175,6 +187,8 @@ void main() {
     const vec3 specularContribution = F * G * D / (4.0 * NdotL * NdotV);
 
     vec3 color = NdotL * lightColor * (diffuseContribution + specularContribution);
+
+    color = mix(color, color * ambientOcclusion(m), m.occlusionStrength);
 
     color += emissiveColor(m);
 

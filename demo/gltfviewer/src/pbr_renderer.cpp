@@ -78,10 +78,13 @@ namespace
             std::numeric_limits<uint32_t>::max()};
         float metallic_factor;
         float roughness_factor;
+        float occlusion_strength;
         uint32_t normal_texture_index{std::numeric_limits<uint32_t>::max()};
         uint32_t normal_sampler_index{std::numeric_limits<uint32_t>::max()};
         uint32_t emissive_texture_index{std::numeric_limits<uint32_t>::max()};
         uint32_t emissive_sampler_index{std::numeric_limits<uint32_t>::max()};
+        uint32_t occlusion_texture_index{std::numeric_limits<uint32_t>::max()};
+        uint32_t occlusion_sampler_index{std::numeric_limits<uint32_t>::max()};
         float normal_scale;
     };
 
@@ -422,6 +425,7 @@ namespace
                     : 0.0f,
                 .metallic_factor = m.pbr_metallic_roughness.metallic_factor,
                 .roughness_factor = m.pbr_metallic_roughness.roughness_factor,
+                .occlusion_strength = m.occlusion_strength,
                 .normal_scale = m.normal_scale};
 
             DISABLE_WARNING_POP
@@ -451,6 +455,12 @@ namespace
             {
                 std::tie(rv.emissive_texture_index, rv.emissive_sampler_index) =
                     image_and_sampler(*texture);
+            }
+
+            if (auto const* const texture{m.occlusion_texture})
+            {
+                std::tie(rv.occlusion_texture_index,
+                    rv.occlusion_sampler_index) = image_and_sampler(*texture);
             }
 
             return rv;
@@ -989,6 +999,11 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
             .with_culling(VK_CULL_MODE_BACK_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
+
+    if (blending_pipeline_.pipeline != VK_NULL_HANDLE)
+    {
+        destroy(&backend_->device(), &blending_pipeline_);
+    }
 
     VkPipelineColorBlendAttachmentState color_blending{};
     color_blending.blendEnable = VK_TRUE;
