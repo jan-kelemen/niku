@@ -402,6 +402,58 @@ namespace
     materials_transfer_t transfer_materials(vkrndr::backend_t& backend,
         vkgltf::model_t const& model)
     {
+        auto const image_and_sampler = [](vkgltf::texture_t const& texture)
+        {
+            return std::make_pair(cppext::narrow<uint32_t>(texture.image_index),
+                cppext::narrow<uint32_t>(texture.sampler_index));
+        };
+
+        auto const to_gpu_material = [&image_and_sampler](
+                                         vkgltf::material_t const& m)
+        {
+            DISABLE_WARNING_PUSH
+            DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
+
+            material_t rv{
+                .base_color_factor = m.pbr_metallic_roughness.base_color_factor,
+                .emmisive_factor = m.emmisive_factor,
+                .alpha_cutoff = m.alpha_cutoff,
+                .metallic_factor = m.pbr_metallic_roughness.metallic_factor,
+                .roughness_factor = m.pbr_metallic_roughness.roughness_factor,
+                .normal_scale = m.normal_scale};
+
+            DISABLE_WARNING_POP
+
+            if (auto const* const texture{
+                    m.pbr_metallic_roughness.base_color_texture})
+            {
+                std::tie(rv.base_color_texture_index,
+                    rv.base_color_sampler_index) = image_and_sampler(*texture);
+            }
+
+            if (auto const* const texture{
+                    m.pbr_metallic_roughness.metallic_roughness_texture})
+            {
+                std::tie(rv.metallic_roughness_texture_index,
+                    rv.metallic_roughness_sampler_index) =
+                    image_and_sampler(*texture);
+            }
+
+            if (auto const* const texture{m.normal_texture})
+            {
+                std::tie(rv.normal_texture_index, rv.normal_sampler_index) =
+                    image_and_sampler(*texture);
+            }
+
+            if (auto const* const texture{m.emmisive_texture})
+            {
+                std::tie(rv.emissive_texture_index, rv.emissive_sampler_index) =
+                    image_and_sampler(*texture);
+            }
+
+            return rv;
+        };
+
         materials_transfer_t rv;
         {
             vkrndr::buffer_t staging_buffer{
@@ -411,69 +463,7 @@ namespace
                 map_memory(backend.device(), staging_buffer)};
             material_t* const materials{staging_buffer_map.as<material_t>()};
 
-            std::ranges::transform(model.materials,
-                materials,
-                [](vkgltf::material_t const& m)
-                {
-                    DISABLE_WARNING_PUSH
-                    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
-
-                    material_t mat{
-                        .base_color_factor =
-                            m.pbr_metallic_roughness.base_color_factor,
-                        .emmisive_factor = m.emmisive_factor,
-                        .alpha_cutoff = m.alpha_cutoff,
-                        .metallic_factor =
-                            m.pbr_metallic_roughness.metallic_factor,
-                        .roughness_factor =
-                            m.pbr_metallic_roughness.roughness_factor,
-                        .normal_scale = m.normal_scale};
-
-                    DISABLE_WARNING_POP
-
-                    if (auto const* const texture{
-                            m.pbr_metallic_roughness.base_color_texture})
-                    {
-                        mat.base_color_texture_index = cppext::narrow<uint32_t>(
-                            m.pbr_metallic_roughness.base_color_texture
-                                ->image_index);
-                        mat.base_color_sampler_index = cppext::narrow<uint32_t>(
-                            m.pbr_metallic_roughness.base_color_texture
-                                ->sampler_index);
-                    }
-
-                    if (auto const* const texture{
-                            m.pbr_metallic_roughness
-                                .metallic_roughness_texture})
-                    {
-                        mat.metallic_roughness_texture_index =
-                            cppext::narrow<uint32_t>(
-                                m.pbr_metallic_roughness
-                                    .metallic_roughness_texture->image_index);
-                        mat.metallic_roughness_sampler_index =
-                            cppext::narrow<uint32_t>(
-                                m.pbr_metallic_roughness
-                                    .metallic_roughness_texture->sampler_index);
-                    }
-
-                    if (auto const* const texture{m.normal_texture})
-                    {
-                        mat.normal_texture_index =
-                            cppext::narrow<uint32_t>(texture->image_index);
-                        mat.normal_sampler_index =
-                            cppext::narrow<uint32_t>(texture->sampler_index);
-                    }
-
-                    if (auto const* const texture{m.emmisive_texture})
-                    {
-                        mat.emissive_texture_index =
-                            cppext::narrow<uint32_t>(texture->image_index);
-                        mat.emissive_sampler_index =
-                            cppext::narrow<uint32_t>(texture->sampler_index);
-                    }
-
-                    return mat;
-                });
+            std::ranges::transform(model.materials, materials, to_gpu_material);
 
             rv.buffer = create_buffer(backend.device(),
                 staging_buffer.size,
@@ -509,138 +499,121 @@ namespace
             std::span{&rv.descriptor_layout, 1},
             std::span{&rv.descriptor_set, 1});
 
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
         std::vector<VkDescriptorImageInfo> image_descriptors;
         image_descriptors.reserve(model.images.size());
-        std::ranges::transform(
-            model.images,
+        std::ranges::transform(model.images,
             std::back_inserter(image_descriptors),
-            [](VkImageView view)
-            {
-                return VkDescriptorImageInfo{.imageView = view,
-                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-            },
-            &vkrndr::image_t::view);
+            [](vkrndr::image_t const& image)
+            { return vkrndr::sampled_image_descriptor(image); });
 
         std::vector<VkDescriptorImageInfo> sampler_descriptors;
         sampler_descriptors.reserve(model.samplers.size());
         std::ranges::transform(rv.samplers,
             std::back_inserter(sampler_descriptors),
-            [](VkSampler sampler)
-            { return VkDescriptorImageInfo{.sampler = sampler}; });
-        DISABLE_WARNING_POP
+            vkrndr::sampler_descriptor);
 
         bind_material_descriptor_set(backend.device(),
             rv.descriptor_set,
             image_descriptors,
             sampler_descriptors,
-            VkDescriptorBufferInfo{.buffer = rv.buffer.buffer,
-                .offset = 0,
-                .range = rv.buffer.size});
+            vkrndr::buffer_descriptor(rv.buffer));
 
         return rv;
     }
 
-    [[nodiscard]] uint32_t draw_node(vkgltf::model_t const& model,
-        vkgltf::node_t const& node,
-        glm::mat4 const& transform,
-        VkPipelineLayout const layout,
-        VkCommandBuffer command_buffer,
-        transform_t* transforms,
-        uint32_t const index,
-        auto& switch_pipeline)
+    struct [[nodiscard]] draw_traversal_t final
     {
-        auto const node_transform{transform * node.matrix};
+        vkgltf::model_t const* model;
+        transform_t* const transforms;
+        VkPipelineLayout const layout;
+        VkCommandBuffer const command_buffer;
 
-        uint32_t drawn{0};
-        if (node.mesh)
+        void draw(auto& switch_pipeline)
         {
-            transforms[index].model = node_transform;
-            transforms[index].model_inverse =
-                glm::transpose(glm::inverse(node_transform));
-
-            // cppcheck-suppress-begin useStlAlgorithm
-            for (auto const& primitive : node.mesh->primitives)
+            uint32_t drawn{0};
+            for (auto const& graph : model->scenes)
             {
-                push_constants_t pc{.transform_index = index,
-                    .material_index =
-                        cppext::narrow<uint32_t>(primitive.material_index)};
-
-                switch_pipeline(
-                    model.materials[primitive.material_index].double_sided,
-                    command_buffer);
-
-                vkCmdPushConstants(command_buffer,
-                    layout,
-                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                    0,
-                    sizeof(pc),
-                    &pc);
-                if (primitive.is_indexed)
+                // cppcheck-suppress-begin useStlAlgorithm
+                for (auto const& root : graph.roots(*model))
                 {
-                    vkCmdDrawIndexed(command_buffer,
-                        primitive.count,
-                        1,
-                        primitive.first,
-                        primitive.vertex_offset,
-                        0);
+                    drawn += draw_node(root,
+                        glm::mat4{1.0f},
+                        drawn,
+                        switch_pipeline);
                 }
-                else
-                {
-                    vkCmdDraw(command_buffer,
-                        primitive.count,
-                        1,
-                        primitive.first,
-                        0);
-                }
+                // cppcheck-suppress-end useStlAlgorithm
             }
-            // cppcheck-suppress-end useStlAlgorithm
-
-            ++drawn;
         }
 
-        // cppcheck-suppress-begin useStlAlgorithm
-        for (auto const& child : node.children(model))
+    private:
+        [[nodiscard]] uint32_t draw_node(vkgltf::node_t const& node,
+            glm::mat4 const& transform,
+            uint32_t const index,
+            auto& switch_pipeline)
         {
-            drawn += draw_node(model,
-                child,
-                node_transform,
-                layout,
-                command_buffer,
-                transforms,
-                index + drawn,
-                switch_pipeline);
-        }
-        // cppcheck-suppress-end useStlAlgorithm
+            auto const node_transform{transform * node.matrix};
 
-        return drawn;
-    }
-
-    void draw(vkgltf::model_t const& model,
-        VkPipelineLayout const layout,
-        VkCommandBuffer command_buffer,
-        transform_t* transforms,
-        auto& switch_pipeline)
-    {
-        uint32_t drawn{0};
-        for (auto const& graph : model.scenes)
-        {
-            // cppcheck-suppress-begin useStlAlgorithm
-            for (auto const& root : graph.roots(model))
+            uint32_t drawn{0};
+            if (node.mesh)
             {
-                drawn += draw_node(model,
-                    root,
-                    glm::mat4{1.0f},
-                    layout,
-                    command_buffer,
-                    transforms,
-                    drawn,
+                transforms[index].model = node_transform;
+                transforms[index].model_inverse =
+                    glm::transpose(glm::inverse(node_transform));
+
+                // cppcheck-suppress-begin useStlAlgorithm
+                for (auto const& primitive : node.mesh->primitives)
+                {
+                    push_constants_t const pc{.transform_index = index,
+                        .material_index =
+                            cppext::narrow<uint32_t>(primitive.material_index)};
+
+                    switch_pipeline(
+                        model->materials[primitive.material_index].double_sided,
+                        command_buffer);
+
+                    vkCmdPushConstants(command_buffer,
+                        layout,
+                        VK_SHADER_STAGE_VERTEX_BIT |
+                            VK_SHADER_STAGE_FRAGMENT_BIT,
+                        0,
+                        sizeof(pc),
+                        &pc);
+                    if (primitive.is_indexed)
+                    {
+                        vkCmdDrawIndexed(command_buffer,
+                            primitive.count,
+                            1,
+                            primitive.first,
+                            primitive.vertex_offset,
+                            0);
+                    }
+                    else
+                    {
+                        vkCmdDraw(command_buffer,
+                            primitive.count,
+                            1,
+                            primitive.first,
+                            0);
+                    }
+                }
+                // cppcheck-suppress-end useStlAlgorithm
+
+                ++drawn;
+            }
+
+            // cppcheck-suppress-begin useStlAlgorithm
+            for (auto const& child : node.children(*model))
+            {
+                drawn += draw_node(child,
+                    node_transform,
+                    index + drawn,
                     switch_pipeline);
             }
             // cppcheck-suppress-end useStlAlgorithm
+
+            return drawn;
         }
-    }
+    };
 
 } // namespace
 
@@ -650,7 +623,6 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
           backend_->extent(),
           false,
           backend_->device().max_msaa_samples)}
-
     , camera_descriptor_set_layout_{create_camera_descriptor_set_layout(
           backend_->device())}
     , transform_descriptor_set_layout_{create_transform_descriptor_set_layout(
@@ -675,9 +647,7 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
 
         bind_camera_descriptor_set(backend_->device(),
             data.camera_descriptor_set,
-            VkDescriptorBufferInfo{.buffer = data.camera_uniform.buffer,
-                .offset = 0,
-                .range = camera_uniform_buffer_size});
+            vkrndr::buffer_descriptor(data.camera_uniform));
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
@@ -820,9 +790,7 @@ void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
 
         bind_transform_descriptor_set(backend_->device(),
             data.transform_descriptor_set,
-            VkDescriptorBufferInfo{.buffer = data.transform_uniform.buffer,
-                .offset = 0,
-                .range = transform_buffer_size});
+            vkrndr::buffer_descriptor(data.transform_uniform));
     }
 
     recreate_pipelines();
@@ -912,11 +880,12 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
                 VK_INDEX_TYPE_UINT32);
         }
 
-        ::draw(model_,
-            *double_sided_pipeline_.layout,
-            command_buffer,
-            frame_data_->transform_uniform_map.as<transform_t>(),
-            switch_pipeline);
+        draw_traversal_t traversal{.model = &model_,
+            .transforms = frame_data_->transform_uniform_map.as<transform_t>(),
+            .layout = *double_sided_pipeline_.layout,
+            .command_buffer = command_buffer};
+
+        traversal.draw(switch_pipeline);
     }
 }
 
