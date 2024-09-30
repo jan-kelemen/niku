@@ -38,6 +38,7 @@
 #include <limits>
 #include <ranges>
 #include <span>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -533,12 +534,16 @@ namespace
         return rv;
     }
 
+    
     struct [[nodiscard]] draw_traversal_t final
     {
+        // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
         vkgltf::model_t const* const model;
         transform_t* const transforms;
         VkPipelineLayout const layout;
         VkCommandBuffer const command_buffer;
+        // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+
         vkgltf::alpha_mode_t alpha_mode;
 
         void draw(auto& switch_pipeline)
