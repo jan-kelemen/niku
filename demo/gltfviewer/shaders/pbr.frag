@@ -138,7 +138,7 @@ void main() {
     Material m = materials.v[pc.materialIndex];
 
     vec4 albedo = baseColor(m);
-    if (albedo.a < m.alphaCutoff.x) {
+    if (m.alphaCutoff.x != 0.0 && albedo.a < m.alphaCutoff.x) {
         discard;
     }
     albedo *= inColor;

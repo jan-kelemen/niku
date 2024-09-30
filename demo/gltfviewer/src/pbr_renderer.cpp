@@ -417,7 +417,9 @@ namespace
             material_t rv{
                 .base_color_factor = m.pbr_metallic_roughness.base_color_factor,
                 .emmisive_factor = m.emmisive_factor,
-                .alpha_cutoff = m.alpha_cutoff,
+                .alpha_cutoff = m.alpha_mode == vkgltf::alpha_mode_t::mask
+                    ? m.alpha_cutoff
+                    : 0.0f,
                 .metallic_factor = m.pbr_metallic_roughness.metallic_factor,
                 .roughness_factor = m.pbr_metallic_roughness.roughness_factor,
                 .normal_scale = m.normal_scale};
@@ -523,10 +525,11 @@ namespace
 
     struct [[nodiscard]] draw_traversal_t final
     {
-        vkgltf::model_t const* model;
+        vkgltf::model_t const* const model;
         transform_t* const transforms;
         VkPipelineLayout const layout;
         VkCommandBuffer const command_buffer;
+        vkgltf::alpha_mode_t alpha_mode;
 
         void draw(auto& switch_pipeline)
         {
@@ -567,9 +570,14 @@ namespace
                         .material_index =
                             cppext::narrow<uint32_t>(primitive.material_index)};
 
-                    switch_pipeline(
-                        model->materials[primitive.material_index].double_sided,
-                        command_buffer);
+                    auto const& material{
+                        model->materials[primitive.material_index]};
+                    if (material.alpha_mode != alpha_mode)
+                    {
+                        continue;
+                    }
+
+                    switch_pipeline(material.double_sided, alpha_mode);
 
                     vkCmdPushConstants(command_buffer,
                         layout,
@@ -700,6 +708,7 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
         camera_descriptor_set_layout_,
         nullptr);
 
+    destroy(&backend_->device(), &blending_pipeline_);
     destroy(&backend_->device(), &culling_pipeline_);
     destroy(&backend_->device(), &double_sided_pipeline_);
     destroy(&backend_->device(), &model_);
@@ -849,16 +858,25 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             0,
             descriptor_sets);
 
-        auto switch_pipeline =
-            [bound = &culling_pipeline_,
-                &descriptor_sets,
-                this](bool const double_sided, VkCommandBuffer cb) mutable
+        auto switch_pipeline = [command_buffer,
+                                   bound = &culling_pipeline_,
+                                   &descriptor_sets,
+                                   this](bool const double_sided,
+                                   vkgltf::alpha_mode_t const mode) mutable
         {
-            auto* const required_pipeline{
-                double_sided ? &double_sided_pipeline_ : &culling_pipeline_};
+            auto* required_pipeline{bound};
+            if (mode == vkgltf::alpha_mode_t::blend)
+            {
+                required_pipeline = &blending_pipeline_;
+            }
+            else if (double_sided)
+            {
+                required_pipeline = &double_sided_pipeline_;
+            }
+
             if (bound != required_pipeline)
             {
-                vkrndr::bind_pipeline(cb,
+                vkrndr::bind_pipeline(command_buffer,
                     *required_pipeline,
                     0,
                     descriptor_sets);
@@ -883,8 +901,14 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         draw_traversal_t traversal{.model = &model_,
             .transforms = frame_data_->transform_uniform_map.as<transform_t>(),
             .layout = *double_sided_pipeline_.layout,
-            .command_buffer = command_buffer};
+            .command_buffer = command_buffer,
+            .alpha_mode = vkgltf::alpha_mode_t::opaque};
+        traversal.draw(switch_pipeline);
 
+        traversal.alpha_mode = vkgltf::alpha_mode_t::mask;
+        traversal.draw(switch_pipeline);
+
+        traversal.alpha_mode = vkgltf::alpha_mode_t::blend;
         traversal.draw(switch_pipeline);
     }
 }
@@ -964,5 +988,29 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
             .add_vertex_input(binding_description(), attribute_descriptions())
             .with_culling(VK_CULL_MODE_BACK_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
+            .build();
+
+    VkPipelineColorBlendAttachmentState color_blending{};
+    color_blending.blendEnable = VK_TRUE;
+    color_blending.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+        VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_A_BIT;
+    color_blending.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    color_blending.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    color_blending.colorBlendOp = VK_BLEND_OP_ADD;
+    color_blending.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blending.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    color_blending.alphaBlendOp = VK_BLEND_OP_ADD;
+    blending_pipeline_ =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            double_sided_pipeline_.layout,
+            VK_FORMAT_R32G32B32A32_SFLOAT}
+            .add_shader(as_pipeline_shader(vertex_shader_))
+            .add_shader(as_pipeline_shader(fragment_shader_))
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(backend_->device().max_msaa_samples)
+            .with_depth_test(depth_buffer_.format)
+            .add_vertex_input(binding_description(), attribute_descriptions())
+            .with_color_blending(color_blending)
             .build();
 }

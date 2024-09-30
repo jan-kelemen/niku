@@ -96,6 +96,7 @@ namespace gltfviewer
         VkDescriptorSetLayout transform_descriptor_set_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t double_sided_pipeline_;
         vkrndr::pipeline_t culling_pipeline_;
+        vkrndr::pipeline_t blending_pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
 
