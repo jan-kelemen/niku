@@ -415,6 +415,12 @@ namespace
                 m.emmisive_factor = vkgltf::to_glm(material.emissiveFactor);
             }
 
+            if (auto const& texture{material.occlusionTexture})
+            {
+                m.occlusion_texture = &model.textures[texture->textureIndex];
+                m.occlusion_strength = texture->strength;
+            }
+
             model.materials.push_back(std::move(m));
         }
 

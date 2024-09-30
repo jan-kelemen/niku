@@ -82,8 +82,10 @@ namespace vkgltf
         pbr_metallic_roughness_t pbr_metallic_roughness;
         texture_t* normal_texture;
         texture_t* emmisive_texture;
+        texture_t* occlusion_texture;
         float normal_scale{1.0f};
         glm::vec3 emmisive_factor;
+        float occlusion_strength{1.0f};
         alpha_mode_t alpha_mode{alpha_mode_t::opaque};
         float alpha_cutoff{0.0f};
         bool double_sided{false};
