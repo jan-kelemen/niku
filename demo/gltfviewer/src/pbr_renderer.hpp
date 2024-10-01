@@ -21,11 +21,6 @@
 
 // IWYU pragma: no_include <chrono>
 
-namespace niku
-{
-    class camera_t;
-} // namespace niku
-
 namespace vkrndr
 {
     class backend_t;
@@ -33,10 +28,15 @@ namespace vkrndr
 
 namespace gltfviewer
 {
+    class environment_t;
+} // namespace gltfviewer
+
+namespace gltfviewer
+{
     class [[nodiscard]] pbr_renderer_t final
     {
     public:
-        explicit pbr_renderer_t(vkrndr::backend_t& backend);
+        pbr_renderer_t(vkrndr::backend_t& backend, environment_t& environment);
 
         pbr_renderer_t(pbr_renderer_t const&) = delete;
 
@@ -46,9 +46,9 @@ namespace gltfviewer
         ~pbr_renderer_t();
 
     public:
-        void load_model(vkgltf::model_t&& model);
+        [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
-        void update(niku::camera_t const& camera);
+        void load_model(vkgltf::model_t&& model);
 
         void draw(VkCommandBuffer command_buffer,
             vkrndr::image_t const& color_image);
@@ -63,10 +63,6 @@ namespace gltfviewer
     private:
         struct [[nodiscard]] frame_data_t final
         {
-            vkrndr::buffer_t camera_uniform;
-            vkrndr::mapped_memory_t camera_uniform_map;
-            VkDescriptorSet camera_descriptor_set{VK_NULL_HANDLE};
-
             vkrndr::buffer_t transform_uniform;
             vkrndr::mapped_memory_t transform_uniform_map;
             VkDescriptorSet transform_descriptor_set{VK_NULL_HANDLE};
@@ -77,6 +73,8 @@ namespace gltfviewer
 
     private:
         vkrndr::backend_t* backend_;
+        environment_t* environment_;
+
         vkrndr::image_t depth_buffer_;
 
         std::filesystem::file_time_type vertex_write_time_;
@@ -91,7 +89,6 @@ namespace gltfviewer
         vkrndr::buffer_t material_uniform_;
         VkDescriptorSet material_descriptor_set_{VK_NULL_HANDLE};
 
-        VkDescriptorSetLayout camera_descriptor_set_layout_{VK_NULL_HANDLE};
         VkDescriptorSetLayout material_descriptor_set_layout_{VK_NULL_HANDLE};
         VkDescriptorSetLayout transform_descriptor_set_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t double_sided_pipeline_;
@@ -99,9 +96,6 @@ namespace gltfviewer
         vkrndr::pipeline_t blending_pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
-
-        glm::vec3 light_position_{};
-        glm::vec3 light_color_{1.0f};
     };
 } // namespace gltfviewer
 #endif

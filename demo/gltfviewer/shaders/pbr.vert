@@ -1,5 +1,7 @@
 #version 460
 
+#extension GL_GOOGLE_include_directive : require
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec4 inTangent;
@@ -11,13 +13,7 @@ layout(push_constant) uniform PushConsts {
     uint materialIndex;
 } pc;
 
-layout(set = 0, binding = 0) uniform Camera {
-    mat4 view;
-    mat4 projection;
-    vec3 cameraPosition;
-    vec3 lightPosition;
-    vec3 lightColor;
-} camera;
+#include "environment.glsl" // (set = 0)
 
 struct Transform {
     mat4 model;
@@ -36,7 +32,7 @@ layout(location = 3) out vec2 outUV;
 void main() {
     vec4 worldPosition = transforms.v[pc.modelIndex].model * vec4(inPosition, 1.0);
 
-    gl_Position = camera.projection * camera.view * worldPosition;
+    gl_Position = env.projection * env.view * worldPosition;
 
     outPosition = worldPosition.xyz;
     outNormal = mat3(transforms.v[pc.modelIndex].normal) * inNormal;

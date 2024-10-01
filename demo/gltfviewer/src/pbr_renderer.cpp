@@ -1,10 +1,10 @@
 #include <pbr_renderer.hpp>
 
+#include <environment.hpp>
+
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
-
-#include <niku_camera.hpp>
 
 #include <vkgltf_model.hpp>
 
@@ -20,12 +20,9 @@
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/matrix.hpp>
 #include <glm/vec4.hpp>
-
-#include <imgui.h>
 
 #include <volk.h>
 
@@ -130,48 +127,6 @@ namespace
         return descriptions;
     }
 
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_STRUCTURE_WAS_PADDED_DUE_TO_ALIGNMENT_SPECIFIER
-
-    struct [[nodiscard]] camera_uniform_t final
-    {
-        glm::mat4 view;
-        glm::mat4 projection;
-        alignas(16) glm::vec3 camera_position;
-        alignas(
-            16) glm::vec3 light_position; // TODO-JK: Remove lights from this
-        alignas(16) glm::vec3 light_color;
-    };
-
-    DISABLE_WARNING_POP
-
-    [[nodiscard]] VkDescriptorSetLayout create_camera_descriptor_set_layout(
-        vkrndr::device_t const& device)
-    {
-        VkDescriptorSetLayoutBinding camera_uniform_binding{};
-        camera_uniform_binding.binding = 0;
-        camera_uniform_binding.descriptorType =
-            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        camera_uniform_binding.descriptorCount = 1;
-        camera_uniform_binding.stageFlags =
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        std::array const bindings{camera_uniform_binding};
-
-        VkDescriptorSetLayoutCreateInfo layout_info{};
-        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_info.bindingCount = vkrndr::count_cast(bindings.size());
-        layout_info.pBindings = bindings.data();
-
-        VkDescriptorSetLayout rv; // NOLINT
-        vkrndr::check_result(vkCreateDescriptorSetLayout(device.logical,
-            &layout_info,
-            nullptr,
-            &rv));
-
-        return rv;
-    }
-
     [[nodiscard]] VkDescriptorSetLayout create_material_descriptor_set_layout(
         vkrndr::device_t const& device,
         size_t const images,
@@ -241,28 +196,6 @@ namespace
             &rv));
 
         return rv;
-    }
-
-    void bind_camera_descriptor_set(vkrndr::device_t const& device,
-        VkDescriptorSet const descriptor_set,
-        VkDescriptorBufferInfo const camera_uniform_info)
-    {
-        VkWriteDescriptorSet camera_uniform_write{};
-        camera_uniform_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        camera_uniform_write.dstSet = descriptor_set;
-        camera_uniform_write.dstBinding = 0;
-        camera_uniform_write.dstArrayElement = 0;
-        camera_uniform_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        camera_uniform_write.descriptorCount = 1;
-        camera_uniform_write.pBufferInfo = &camera_uniform_info;
-
-        std::array const descriptor_writes{camera_uniform_write};
-
-        vkUpdateDescriptorSets(device.logical,
-            vkrndr::count_cast(descriptor_writes.size()),
-            descriptor_writes.data(),
-            0,
-            nullptr);
     }
 
     void bind_material_descriptor_set(vkrndr::device_t const& device,
@@ -639,38 +572,20 @@ namespace
 
 } // namespace
 
-gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
+gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend,
+    environment_t& environment)
     : backend_{&backend}
+    , environment_{&environment}
     , depth_buffer_{vkrndr::create_depth_buffer(backend_->device(),
           backend_->extent(),
           false,
           backend_->device().max_msaa_samples)}
-    , camera_descriptor_set_layout_{create_camera_descriptor_set_layout(
-          backend_->device())}
     , transform_descriptor_set_layout_{create_transform_descriptor_set_layout(
           backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
     for (auto& data : frame_data_.as_span())
     {
-        auto const camera_uniform_buffer_size{sizeof(camera_uniform_t)};
-        data.camera_uniform = create_buffer(backend_->device(),
-            camera_uniform_buffer_size,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        data.camera_uniform_map =
-            vkrndr::map_memory(backend_->device(), data.camera_uniform);
-
-        vkrndr::create_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            std::span{&camera_descriptor_set_layout_, 1},
-            std::span{&data.camera_descriptor_set, 1});
-
-        bind_camera_descriptor_set(backend_->device(),
-            data.camera_descriptor_set,
-            vkrndr::buffer_descriptor(data.camera_uniform));
-
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
             std::span{&transform_descriptor_set_layout_, 1},
@@ -691,13 +606,6 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
             unmap_memory(backend_->device(), &data.transform_uniform_map);
             destroy(&backend_->device(), &data.transform_uniform);
         }
-
-        vkrndr::free_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            std::span{&data.camera_descriptor_set, 1});
-
-        unmap_memory(backend_->device(), &data.camera_uniform_map);
-        destroy(&backend_->device(), &data.camera_uniform);
     }
 
     destroy(&backend_->device(), &material_uniform_);
@@ -718,10 +626,6 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
         material_descriptor_set_layout_,
         nullptr);
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
-        camera_descriptor_set_layout_,
-        nullptr);
-
     destroy(&backend_->device(), &blending_pipeline_);
     destroy(&backend_->device(), &culling_pipeline_);
     destroy(&backend_->device(), &double_sided_pipeline_);
@@ -729,6 +633,11 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
     destroy(&backend_->device(), &fragment_shader_);
     destroy(&backend_->device(), &vertex_shader_);
     destroy(&backend_->device(), &depth_buffer_);
+}
+
+VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
+{
+    return *double_sided_pipeline_.layout;
 }
 
 void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
@@ -819,31 +728,11 @@ void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
     recreate_pipelines();
 }
 
-void gltfviewer::pbr_renderer_t::update(niku::camera_t const& camera)
-{
-    frame_data_.cycle();
-
-    // TODO-JK: TEMP
-    ImGui::Begin("Light");
-    ImGui::SliderFloat3("Position",
-        glm::value_ptr(light_position_),
-        -500.0f,
-        500.0f);
-    ImGui::SliderFloat3("Color", glm::value_ptr(light_color_), 0.0f, 1.0f);
-    ImGui::End();
-
-    auto* const camera_uniform{
-        frame_data_->camera_uniform_map.as<camera_uniform_t>()};
-    camera_uniform->view = camera.view_matrix();
-    camera_uniform->projection = camera.projection_matrix();
-    camera_uniform->camera_position = camera.position();
-    camera_uniform->light_position = light_position_;
-    camera_uniform->light_color = light_color_;
-}
-
 void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image)
 {
+    frame_data_.cycle();
+
     {
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -863,13 +752,12 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             return;
         }
 
-        std::array const descriptor_sets{frame_data_->camera_descriptor_set,
-            material_descriptor_set_,
+        std::array const descriptor_sets{material_descriptor_set_,
             frame_data_->transform_descriptor_set};
 
         vkrndr::bind_pipeline(command_buffer,
             culling_pipeline_,
-            0,
+            1,
             descriptor_sets);
 
         auto switch_pipeline = [command_buffer,
@@ -892,7 +780,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             {
                 vkrndr::bind_pipeline(command_buffer,
                     *required_pipeline,
-                    0,
+                    1,
                     descriptor_sets);
             }
         };
@@ -967,7 +855,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
     double_sided_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(camera_descriptor_set_layout_)
+                .add_descriptor_set_layout(environment_->descriptor_layout())
                 .add_descriptor_set_layout(material_descriptor_set_layout_)
                 .add_descriptor_set_layout(transform_descriptor_set_layout_)
                 .add_push_constants(VkPushConstantRange{

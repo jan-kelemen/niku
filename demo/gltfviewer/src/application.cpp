@@ -1,6 +1,7 @@
 #include <application.hpp>
 
 #include <camera_controller.hpp>
+#include <environment.hpp>
 #include <model_selector.hpp>
 #include <pbr_renderer.hpp>
 #include <postprocess_shader.hpp>
@@ -89,7 +90,8 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->device(),
           backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
-    , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_)}
+    , environment_{std::make_unique<environment_t>(*backend_)}
+    , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_, *environment_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
@@ -101,9 +103,6 @@ gltfviewer::application_t::application_t(bool const debug)
     camera_.update();
 
     postprocess_shader_->update(gamma_, exposure_);
-
-    pbr_renderer_->load_model(std::move(*gltf_loader_.load(
-        R"(D:\git\glTF-Sample-Assets\Models\Sponza\glTF\Sponza.gltf)")));
 }
 
 gltfviewer::application_t::~application_t() = default;
@@ -129,6 +128,8 @@ bool gltfviewer::application_t::handle_event(SDL_Event const& event)
 void gltfviewer::application_t::update(float delta_time)
 {
     camera_controller_.update(delta_time);
+
+    environment_->update(camera_);
 }
 
 void gltfviewer::application_t::begin_frame()
@@ -184,11 +185,6 @@ bool gltfviewer::application_t::begin_draw()
             }},
         backend_->begin_frame())};
 
-    if (rv)
-    {
-        pbr_renderer_->update(camera_);
-    }
-
     return rv;
 }
 
@@ -214,6 +210,10 @@ void gltfviewer::application_t::draw()
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
+
+    environment_->bind_on(command_buffer,
+        pbr_renderer_->pipeline_layout(),
+        VK_PIPELINE_BIND_POINT_GRAPHICS);
 
     pbr_renderer_->draw(command_buffer, color_image_);
 
@@ -249,6 +249,8 @@ void gltfviewer::application_t::on_shutdown()
     postprocess_shader_.reset();
 
     pbr_renderer_.reset();
+
+    environment_.reset();
 
     destroy(&backend_->device(), &color_image_);
 

@@ -15,13 +15,7 @@ layout(push_constant) uniform PushConsts {
     uint materialIndex;
 } pc;
 
-layout(set = 0, binding = 0) uniform Camera {
-    mat4 view;
-    mat4 projection;
-    vec3 cameraPosition;
-    vec3 lightPosition;
-    vec3 lightColor;
-} camera;
+#include "environment.glsl" // (set = 0)
 
 layout(set = 1, binding = 0) uniform texture2D textures[];
 layout(set = 1, binding = 1) uniform sampler samplers[];
@@ -143,10 +137,6 @@ vec3 diffuse(vec3 diffuseColor) {
 }
 
 void main() {
-    vec3 cameraPosition = camera.cameraPosition;
-    vec3 lightColor = camera.lightColor;
-    vec3 lightPosition = camera.lightPosition;
-
     Material m = materials.v[pc.materialIndex];
 
     vec4 albedo = baseColor(m);
@@ -161,8 +151,8 @@ void main() {
     const float alphaRoughness = roughness * roughness;
 
     const vec3 N = worldNormal(m);
-    const vec3 V = normalize(cameraPosition - inPosition);
-    const vec3 L = normalize(lightPosition - inPosition);
+    const vec3 V = normalize(env.cameraPosition - inPosition);
+    const vec3 L = normalize(env.lightPosition - inPosition);
     const vec3 H = normalize(L + V);
 
     const vec3 F0 = vec3(0.04);
@@ -186,7 +176,7 @@ void main() {
     const vec3 diffuseContribution = (1.0 - F) * diffuse(diffuseColor);
     const vec3 specularContribution = F * G * D / (4.0 * NdotL * NdotV);
 
-    vec3 color = NdotL * lightColor * (diffuseContribution + specularContribution);
+    vec3 color = NdotL * env.lightColor * (diffuseContribution + specularContribution);
 
     color = mix(color, color * ambientOcclusion(m), m.occlusionStrength);
 
