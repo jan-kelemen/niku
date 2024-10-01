@@ -41,6 +41,7 @@ namespace
 
     constexpr VkPhysicalDeviceVulkan12Features device_12_features{
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
         .runtimeDescriptorArray = VK_TRUE};
 
     constexpr VkPhysicalDeviceVulkan13Features device_13_features{
