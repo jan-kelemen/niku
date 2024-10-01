@@ -534,7 +534,6 @@ namespace
         return rv;
     }
 
-    
     struct [[nodiscard]] draw_traversal_t final
     {
         // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
@@ -852,7 +851,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             color_image.view,
             VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
         color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
+            VK_ATTACHMENT_STORE_OP_DONT_CARE,
             depth_buffer_.view,
             VkClearValue{.depthStencil = {1.0f, 0}});
 
@@ -977,7 +976,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
                     .offset = 0,
                     .size = sizeof(push_constants_t)})
                 .build(),
-            VK_FORMAT_R32G32B32A32_SFLOAT}
+            VK_FORMAT_R8G8B8A8_UNORM}
             .add_shader(as_pipeline_shader(vertex_shader_))
             .add_shader(as_pipeline_shader(fragment_shader_))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -994,7 +993,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
     culling_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
             double_sided_pipeline_.layout,
-            VK_FORMAT_R32G32B32A32_SFLOAT}
+            VK_FORMAT_R8G8B8A8_UNORM}
             .add_shader(as_pipeline_shader(vertex_shader_))
             .add_shader(as_pipeline_shader(fragment_shader_))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -1024,7 +1023,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines()
     blending_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
             double_sided_pipeline_.layout,
-            VK_FORMAT_R32G32B32A32_SFLOAT}
+            VK_FORMAT_R8G8B8A8_UNORM}
             .add_shader(as_pipeline_shader(vertex_shader_))
             .add_shader(as_pipeline_shader(fragment_shader_))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)

@@ -61,7 +61,7 @@ namespace
             backend.extent(),
             1,
             backend.device().max_msaa_samples,
-            VK_FORMAT_R32G32B32A32_SFLOAT,
+            VK_FORMAT_R8G8B8A8_UNORM,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -81,7 +81,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+              .preferred_present_mode = VK_PRESENT_MODE_MAILBOX_KHR,
           },
           debug)}
     , imgui_{std::make_unique<niku::imgui_layer_t>(*window(),
@@ -101,6 +101,9 @@ gltfviewer::application_t::application_t(bool const debug)
     camera_.update();
 
     postprocess_shader_->update(gamma_, exposure_);
+
+    pbr_renderer_->load_model(std::move(*gltf_loader_.load(
+        R"(D:\git\glTF-Sample-Assets\Models\Sponza\glTF\Sponza.gltf)")));
 }
 
 gltfviewer::application_t::~application_t() = default;

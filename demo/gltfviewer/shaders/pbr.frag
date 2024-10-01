@@ -57,7 +57,7 @@ const float M_PI = 3.141592653589793;
 
 vec3 worldNormal(Material m) {
     if (m.normalTextureIndex != UINT_MAX) {
-        vec3 tangentNormal = texture(nonuniformEXT(sampler2D(textures[m.normalTextureIndex], samplers[m.normalSamplerIndex])), inUV).rgb;
+        vec3 tangentNormal = texture(sampler2D(textures[nonuniformEXT(m.normalTextureIndex)], samplers[nonuniformEXT(m.normalSamplerIndex)]), inUV).rgb;
         tangentNormal = normalize(tangentNormal * 2.0 - 1.0) * vec3(m.normalScale);
 
         vec3 Q1 = dFdx(inPosition);
@@ -80,7 +80,7 @@ vec3 worldNormal(Material m) {
 vec4 baseColor(Material m) {
     vec4 color = vec4(1);
     if (m.baseColorTextureIndex != UINT_MAX) {
-        color = texture(nonuniformEXT(sampler2D(textures[m.baseColorTextureIndex], samplers[m.baseColorSamplerIndex])), inUV);
+        color = texture(sampler2D(textures[nonuniformEXT(m.baseColorTextureIndex)], samplers[nonuniformEXT(m.baseColorSamplerIndex)]), inUV);
     }
 
     return m.baseColorFactor * color;
@@ -89,7 +89,7 @@ vec4 baseColor(Material m) {
 vec3 emissiveColor(Material m) {
 	vec3 emissive = m.emissiveFactor.rgb;
 	if (m.emissiveTextureIndex != UINT_MAX) {
-		emissive *= texture(nonuniformEXT(sampler2D(textures[m.emissiveTextureIndex], samplers[m.emissiveSamplerIndex])), inUV).rgb;
+		emissive *= texture(sampler2D(textures[nonuniformEXT(m.emissiveTextureIndex)], samplers[nonuniformEXT(m.emissiveSamplerIndex)]), inUV).rgb;
 	};
 
     return emissive;
@@ -100,7 +100,7 @@ void metallicRoughness(Material m, out float metallic, out float roughness) {
     metallic = m.metallicFactor;
 
     if (m.metallicRoughnessTextureIndex != UINT_MAX) {
-        vec4 mr = texture(nonuniformEXT(sampler2D(textures[m.metallicRoughnessTextureIndex], samplers[m.metallicRoughnessSamplerIndex])), inUV);
+        vec4 mr = texture(sampler2D(textures[nonuniformEXT(m.metallicRoughnessTextureIndex)], samplers[nonuniformEXT(m.metallicRoughnessSamplerIndex)]), inUV);
         roughness *= mr.g;
         metallic *= mr.b;
     }
