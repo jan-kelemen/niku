@@ -11,8 +11,6 @@
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
 
-#include <glm/vec3.hpp>
-
 #include <volk.h>
 
 #include <cstdint>

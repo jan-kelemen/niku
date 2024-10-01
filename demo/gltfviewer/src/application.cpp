@@ -211,9 +211,12 @@ void gltfviewer::application_t::draw()
 
     vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
 
-    environment_->bind_on(command_buffer,
-        pbr_renderer_->pipeline_layout(),
-        VK_PIPELINE_BIND_POINT_GRAPHICS);
+    if (auto const layout{pbr_renderer_->pipeline_layout()})
+    {
+        environment_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+    }
 
     pbr_renderer_->draw(command_buffer, color_image_);
 

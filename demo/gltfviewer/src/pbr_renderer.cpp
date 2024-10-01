@@ -22,6 +22,7 @@
 
 #include <glm/mat4x4.hpp>
 #include <glm/matrix.hpp>
+#include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
 #include <volk.h>
@@ -637,6 +638,11 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 
 VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
 {
+    if (!model_.vertex_count)
+    {
+        return VK_NULL_HANDLE;
+    }
+
     return *double_sided_pipeline_.layout;
 }
 
@@ -716,7 +722,8 @@ void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model)
             transform_buffer_size,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         data.transform_uniform_map =
             map_memory(backend_->device(), data.transform_uniform);
 
