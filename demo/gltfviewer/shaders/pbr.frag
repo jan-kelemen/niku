@@ -55,6 +55,31 @@ layout(location = 0) out vec4 outColor;
 const uint UINT_MAX = ~0;
 const float M_PI = 3.141592653589793;
 
+vec4 baseColor(Material m) {
+    vec4 color = vec4(1);
+    if (m.baseColorTextureIndex != UINT_MAX) {
+        color = texture(sampler2D(textures[nonuniformEXT(m.baseColorTextureIndex)], samplers[nonuniformEXT(m.baseColorSamplerIndex)]), inUV);
+    }
+
+    return m.baseColorFactor * color;
+}
+
+void metallicRoughness(Material m, out float metallic, out float roughness) {
+    roughness = m.roughnessFactor;
+    metallic = m.metallicFactor;
+
+    if (m.metallicRoughnessTextureIndex != UINT_MAX) {
+        vec4 mr = texture(sampler2D(textures[nonuniformEXT(m.metallicRoughnessTextureIndex)], samplers[nonuniformEXT(m.metallicRoughnessSamplerIndex)]), inUV);
+        roughness *= mr.g;
+        metallic *= mr.b;
+    }
+    else {
+        roughness = clamp(roughness, 0.04, 1.0);
+        metallic = clamp(metallic, 0.0, 1.0);
+    }
+
+}
+
 vec3 worldNormal(Material m) {
     if (m.normalTextureIndex != UINT_MAX) {
         vec3 tangentNormal = texture(sampler2D(textures[nonuniformEXT(m.normalTextureIndex)], samplers[nonuniformEXT(m.normalSamplerIndex)]), inUV).rgb;
@@ -77,13 +102,13 @@ vec3 worldNormal(Material m) {
     }
 }
 
-vec4 baseColor(Material m) {
-    vec4 color = vec4(1);
-    if (m.baseColorTextureIndex != UINT_MAX) {
-        color = texture(sampler2D(textures[nonuniformEXT(m.baseColorTextureIndex)], samplers[nonuniformEXT(m.baseColorSamplerIndex)]), inUV);
+float ambientOcclusion(Material m) {
+    float occlusion = 1.0;
+    if (m.occlusionTextureIndex != UINT_MAX) {
+        occlusion = texture(sampler2D(textures[nonuniformEXT(m.occlusionTextureIndex)], samplers[nonuniformEXT(m.occlusionSamplerIndex)]), inUV).r;
     }
 
-    return m.baseColorFactor * color;
+    return occlusion;
 }
 
 vec3 emissiveColor(Material m) {
@@ -93,31 +118,6 @@ vec3 emissiveColor(Material m) {
 	};
 
     return emissive;
-}
-
-void metallicRoughness(Material m, out float metallic, out float roughness) {
-    roughness = m.roughnessFactor;
-    metallic = m.metallicFactor;
-
-    if (m.metallicRoughnessTextureIndex != UINT_MAX) {
-        vec4 mr = texture(sampler2D(textures[nonuniformEXT(m.metallicRoughnessTextureIndex)], samplers[nonuniformEXT(m.metallicRoughnessSamplerIndex)]), inUV);
-        roughness *= mr.g;
-        metallic *= mr.b;
-    }
-    else {
-        roughness = clamp(roughness, 0.04, 1.0);
-        metallic = clamp(metallic, 0.0, 1.0);
-    }
-
-}
-
-float ambientOcclusion(Material m) {
-    float occlusion = 1.0;
-    if (m.occlusionTextureIndex != UINT_MAX) {
-        occlusion = texture(nonuniformEXT(sampler2D(textures[m.occlusionTextureIndex], samplers[m.occlusionSamplerIndex])), inUV).r;
-    }
-
-    return occlusion;
 }
 
 vec3 fresnelSchlick(vec3 f0, vec3 f90, float VdotH) {
