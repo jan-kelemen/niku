@@ -13,6 +13,7 @@ layout(location = 3) in vec2 inUV;
 layout(push_constant) uniform PushConsts {
     uint modelIndex;
     uint materialIndex;
+    uint debug;
 } pc;
 
 #include "environment.glsl" // (set = 0)
@@ -106,10 +107,10 @@ float ambientOcclusion(Material m) {
 }
 
 vec3 emissiveColor(Material m) {
-	vec3 emissive = m.emissiveFactor.rgb;
-	if (m.emissiveTextureIndex != UINT_MAX) {
-		emissive *= texture(sampler2D(textures[nonuniformEXT(m.emissiveTextureIndex)], samplers[nonuniformEXT(m.emissiveSamplerIndex)]), inUV).rgb;
-	};
+    vec3 emissive = m.emissiveFactor.rgb;
+    if (m.emissiveTextureIndex != UINT_MAX) {
+        emissive *= texture(sampler2D(textures[nonuniformEXT(m.emissiveTextureIndex)], samplers[nonuniformEXT(m.emissiveSamplerIndex)]), inUV).rgb;
+    };
 
     return emissive;
 }
@@ -178,9 +179,49 @@ void main() {
 
     vec3 color = NdotL * env.lightColor * (diffuseContribution + specularContribution);
 
-    color = mix(color, color * ambientOcclusion(m), m.occlusionStrength);
+    const float occlusion = ambientOcclusion(m);
+    color = mix(color, color * occlusion, m.occlusionStrength);
 
-    color += emissiveColor(m);
+    const vec3 emissive = emissiveColor(m);
+    color += emissive;
 
-    outColor = vec4(color, albedo.a);
+    outColor = vec4(color, pc.debug > 0 ? 1.0 : albedo.a);
+
+    if (pc.debug > 0) {
+        switch (pc.debug) {
+            case 1:
+                outColor.rgba = albedo;
+                break;
+            case 2:
+                outColor.rgb = N;
+                break;
+            case 3:
+                outColor.rgb = vec3(occlusion);
+                break;
+            case 4:
+                outColor.rgb = emissive;
+                break;
+            case 5:
+                outColor.rgb = vec3(metallic);
+                break;
+            case 6:
+                outColor.rgb = vec3(roughness);
+                break;
+            case 7:
+                outColor.rgb = diffuseContribution;
+                break;
+            case 8:
+                outColor.rgb = F;
+                break;
+            case 9:
+                outColor.rgb = vec3(G);
+                break;
+            case 10:
+                outColor.rgb = vec3(D);
+                break;
+            case 11:
+                outColor.rgb = specularContribution;
+                break;
+        }
+    }
 }

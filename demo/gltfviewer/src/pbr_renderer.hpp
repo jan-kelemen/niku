@@ -94,6 +94,8 @@ namespace gltfviewer
         vkrndr::pipeline_t blending_pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
+
+        uint32_t debug_{0};
     };
 } // namespace gltfviewer
 #endif

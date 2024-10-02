@@ -25,6 +25,8 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include <imgui.h>
+
 #include <volk.h>
 
 #include <algorithm>
@@ -49,10 +51,24 @@
 
 namespace
 {
+    constexpr std::array debug_options{"None",
+        "Albedo",
+        "Normals",
+        "Occlusion",
+        "Emissive",
+        "Metallic",
+        "Roughness",
+        "Diff (l,n)",
+        "F (l,h)",
+        "G (l,v,h)",
+        "D (h)",
+        "Specular"};
+
     struct [[nodiscard]] push_constants_t final
     {
         uint32_t transform_index;
         uint32_t material_index;
+        uint32_t debug;
     };
 
     struct [[nodiscard]] transform_t final
@@ -475,6 +491,7 @@ namespace
         transform_t* const transforms;
         VkPipelineLayout const layout;
         VkCommandBuffer const command_buffer;
+        uint32_t const debug;
         // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
         vkgltf::alpha_mode_t alpha_mode;
@@ -516,7 +533,8 @@ namespace
                 {
                     push_constants_t const pc{.transform_index = index,
                         .material_index =
-                            cppext::narrow<uint32_t>(primitive.material_index)};
+                            cppext::narrow<uint32_t>(primitive.material_index),
+                        .debug = debug};
 
                     auto const& material{
                         model->materials[primitive.material_index]};
@@ -740,6 +758,30 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
 {
     frame_data_.cycle();
 
+    ImGui::Begin("PBR debug");
+    if (ImGui::BeginCombo("Equation", debug_options[debug_], 0))
+    {
+        uint32_t i{};
+        for (auto const& option : debug_options)
+        {
+            auto const selected{debug_ == i};
+
+            if (ImGui::Selectable(option, selected))
+            {
+                debug_ = i;
+            }
+
+            if (selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+
+            ++i;
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::End();
+
     {
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -811,6 +853,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             .transforms = frame_data_->transform_uniform_map.as<transform_t>(),
             .layout = *double_sided_pipeline_.layout,
             .command_buffer = command_buffer,
+            .debug = debug_,
             .alpha_mode = vkgltf::alpha_mode_t::opaque};
         traversal.draw(switch_pipeline);
 
