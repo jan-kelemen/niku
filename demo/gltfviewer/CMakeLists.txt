@@ -5,6 +5,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/environment.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
@@ -13,6 +14,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/environment.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gltfviewer.m.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp

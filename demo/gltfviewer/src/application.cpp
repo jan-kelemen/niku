@@ -2,6 +2,7 @@
 
 #include <camera_controller.hpp>
 #include <environment.hpp>
+#include <materials.hpp>
 #include <model_selector.hpp>
 #include <pbr_renderer.hpp>
 #include <postprocess_shader.hpp>
@@ -91,7 +92,8 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
     , environment_{std::make_unique<environment_t>(*backend_)}
-    , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_, *environment_)}
+    , materials_{std::make_unique<materials_t>(*backend_)}
+    , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
@@ -156,7 +158,10 @@ void gltfviewer::application_t::begin_frame()
 
         vkDeviceWaitIdle(backend_->device().logical);
 
-        pbr_renderer_->load_model(std::move(model).value());
+        materials_->load(*model);
+        pbr_renderer_->load_model(std::move(model).value(),
+            environment_->descriptor_layout(),
+            materials_->descriptor_layout());
 
         spdlog::info("End loading: {}", model_path);
     }
@@ -211,9 +216,13 @@ void gltfviewer::application_t::draw()
 
     vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
 
-    if (auto const layout{pbr_renderer_->pipeline_layout()})
+    if (VkPipelineLayout const layout{pbr_renderer_->pipeline_layout()})
     {
         environment_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        materials_->bind_on(command_buffer,
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
     }
@@ -252,6 +261,8 @@ void gltfviewer::application_t::on_shutdown()
     postprocess_shader_.reset();
 
     pbr_renderer_.reset();
+
+    materials_.reset();
 
     environment_.reset();
 

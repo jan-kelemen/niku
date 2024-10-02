@@ -26,15 +26,10 @@ namespace vkrndr
 
 namespace gltfviewer
 {
-    class environment_t;
-} // namespace gltfviewer
-
-namespace gltfviewer
-{
     class [[nodiscard]] pbr_renderer_t final
     {
     public:
-        pbr_renderer_t(vkrndr::backend_t& backend, environment_t& environment);
+        pbr_renderer_t(vkrndr::backend_t& backend);
 
         pbr_renderer_t(pbr_renderer_t const&) = delete;
 
@@ -46,7 +41,9 @@ namespace gltfviewer
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
-        void load_model(vkgltf::model_t&& model);
+        void load_model(vkgltf::model_t&& model,
+            VkDescriptorSetLayout environment_layout,
+            VkDescriptorSetLayout materials_layout);
 
         void draw(VkCommandBuffer command_buffer,
             vkrndr::image_t const& color_image);
@@ -67,11 +64,11 @@ namespace gltfviewer
         };
 
     private:
-        void recreate_pipelines();
+        void recreate_pipelines(VkDescriptorSetLayout environment_layout,
+            VkDescriptorSetLayout materials_layout);
 
     private:
         vkrndr::backend_t* backend_;
-        environment_t* environment_;
 
         vkrndr::image_t depth_buffer_;
 
@@ -83,11 +80,6 @@ namespace gltfviewer
 
         vkgltf::model_t model_;
 
-        std::vector<VkSampler> samplers_;
-        vkrndr::buffer_t material_uniform_;
-        VkDescriptorSet material_descriptor_set_{VK_NULL_HANDLE};
-
-        VkDescriptorSetLayout material_descriptor_set_layout_{VK_NULL_HANDLE};
         VkDescriptorSetLayout transform_descriptor_set_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t double_sided_pipeline_;
         vkrndr::pipeline_t culling_pipeline_;
