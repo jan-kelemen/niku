@@ -153,7 +153,7 @@ void main() {
 
     const vec3 N = worldNormal(m);
     const vec3 V = normalize(env.cameraPosition - inPosition);
-    const vec3 L = normalize(env.lightPosition - inPosition);
+    const vec3 L = normalize(env.lightPosition);
     const vec3 H = normalize(L + V);
 
     const vec3 F0 = vec3(0.04);
