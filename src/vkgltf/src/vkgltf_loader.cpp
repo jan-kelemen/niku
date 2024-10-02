@@ -391,15 +391,15 @@ namespace
             {
                 m.pbr_metallic_roughness.metallic_roughness_texture =
                     &model.textures[texture->textureIndex];
-                m.pbr_metallic_roughness.metallic_factor =
-                    material.pbrData.metallicFactor;
-                m.pbr_metallic_roughness.roughness_factor =
-                    material.pbrData.roughnessFactor;
 
                 unorm_images.insert(
                     m.pbr_metallic_roughness.metallic_roughness_texture
                         ->image_index);
             }
+            m.pbr_metallic_roughness.metallic_factor =
+                material.pbrData.metallicFactor;
+            m.pbr_metallic_roughness.roughness_factor =
+                material.pbrData.roughnessFactor;
 
             if (auto const& texture{material.normalTexture})
             {
@@ -412,8 +412,8 @@ namespace
             if (auto const& texture{material.emissiveTexture})
             {
                 m.emmisive_texture = &model.textures[texture->textureIndex];
-                m.emmisive_factor = vkgltf::to_glm(material.emissiveFactor);
             }
+            m.emmisive_factor = vkgltf::to_glm(material.emissiveFactor);
 
             if (auto const& texture{material.occlusionTexture})
             {
