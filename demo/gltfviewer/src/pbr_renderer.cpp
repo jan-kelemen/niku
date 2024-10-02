@@ -245,14 +245,25 @@ namespace
                             cppext::narrow<uint32_t>(primitive.material_index),
                         .debug = debug};
 
-                    auto const& material{
-                        model->materials[primitive.material_index]};
-                    if (material.alpha_mode != alpha_mode)
+                    if (!model->materials.empty())
+                    {
+                        auto const& material{
+                            model->materials[primitive.material_index]};
+                        if (material.alpha_mode != alpha_mode)
+                        {
+                            continue;
+                        }
+
+                        switch_pipeline(material.double_sided, alpha_mode);
+                    }
+                    else if (alpha_mode != vkgltf::alpha_mode_t::opaque)
                     {
                         continue;
                     }
-
-                    switch_pipeline(material.double_sided, alpha_mode);
+                    else
+                    {
+                        switch_pipeline(false, alpha_mode);
+                    }
 
                     vkCmdPushConstants(command_buffer,
                         layout,

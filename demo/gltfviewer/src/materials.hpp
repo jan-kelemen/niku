@@ -47,14 +47,25 @@ namespace gltfviewer
         materials_t& operator=(materials_t&&) noexcept = delete;
 
     private:
+        void create_dummy_material();
+
         void clear();
 
     private:
         vkrndr::backend_t* backend_;
 
+        bool has_materials_{false};
+
+        // Dummy data when materials don't exist
+        VkDescriptorSetLayout dummy_descriptor_layout_{VK_NULL_HANDLE};
+        VkDescriptorSet dummy_descriptor_set_{VK_NULL_HANDLE};
+        vkrndr::buffer_t dummy_uniform_;
+        VkSampler default_sampler_{VK_NULL_HANDLE};
+        vkrndr::image_t white_pixel_;
+
+        // Actual model data
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
         VkDescriptorSet descriptor_set_{VK_NULL_HANDLE};
-
         vkrndr::buffer_t uniform_;
         std::vector<VkSampler> samplers_;
         std::vector<vkrndr::image_t> images_;
