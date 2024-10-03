@@ -30,19 +30,16 @@ namespace vkgltf
 {
     struct model_t;
 
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_STRUCTURE_WAS_PADDED_DUE_TO_ALIGNMENT_SPECIFIER
-
     struct [[nodiscard]] vertex_t final
     {
-        alignas(16) glm::vec3 position;
-        alignas(16) glm::vec3 normal;
+        glm::vec3 position;
+        uint8_t padding1[4];
+        glm::vec3 normal;
+        uint8_t padding2[4];
         glm::vec4 tangent;
         glm::vec4 color{1.0f};
         glm::vec2 uv;
     };
-
-    DISABLE_WARNING_POP
 
     struct [[nodiscard]] sampler_info_t final
     {
