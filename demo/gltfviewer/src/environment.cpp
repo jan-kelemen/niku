@@ -1,7 +1,6 @@
 #include <environment.hpp>
 
 #include <cppext_cycled_buffer.hpp>
-#include <cppext_pragma_warning.hpp>
 
 #include <niku_camera.hpp>
 
@@ -25,20 +24,20 @@
 
 namespace
 {
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_STRUCTURE_WAS_PADDED_DUE_TO_ALIGNMENT_SPECIFIER
-
     struct [[nodiscard]] environment_uniform_t final
     {
         glm::mat4 view;
         glm::mat4 projection;
-        alignas(16) glm::vec3 camera_position;
+        glm::vec3 camera_position;
+        uint8_t padding1[4];
         // TODO-JK: Remove lights from this
-        alignas(16) glm::vec3 light_position;
-        alignas(16) glm::vec3 light_color;
+        glm::vec3 light_position;
+        uint8_t padding2[4];
+        glm::vec3 light_color;
+        uint8_t padding3[4];
     };
 
-    DISABLE_WARNING_POP
+    static_assert(sizeof(environment_uniform_t) % 16 == 0);
 
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
         vkrndr::device_t const& device)

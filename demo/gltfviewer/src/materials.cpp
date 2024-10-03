@@ -1,7 +1,6 @@
 #include <materials.hpp>
 
 #include <cppext_numeric.hpp>
-#include <cppext_pragma_warning.hpp>
 
 #include <vkgltf_model.hpp>
 
@@ -25,10 +24,7 @@
 
 namespace
 {
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_STRUCTURE_WAS_PADDED_DUE_TO_ALIGNMENT_SPECIFIER
-
-    struct [[nodiscard]] alignas(16) material_t final
+    struct [[nodiscard]] material_t final
     {
         glm::vec4 base_color_factor;
         glm::vec3 emmisive_factor;
@@ -49,9 +45,10 @@ namespace
         uint32_t occlusion_texture_index{std::numeric_limits<uint32_t>::max()};
         uint32_t occlusion_sampler_index{std::numeric_limits<uint32_t>::max()};
         float normal_scale;
+        uint8_t padding[8];
     };
 
-    DISABLE_WARNING_POP
+    static_assert(sizeof(material_t) % 16 == 0);
 
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
         vkrndr::device_t const& device,
