@@ -127,24 +127,20 @@ void niku::application_t::run()
         // NOLINTEND(bugprone-unchecked-optional-access)
 
         last_tick = current_tick;
-
-        begin_frame();
-
-        if (do_fixed_update)
+        if (begin_frame())
         {
-            last_fixed_tick = current_tick;
-            fixed_update(fixed_delta);
-        }
+            if (do_fixed_update)
+            {
+                last_fixed_tick = current_tick;
+                fixed_update(fixed_delta);
+            }
 
-        update(delta);
+            update(delta);
 
-        if (begin_draw())
-        {
             draw();
-            end_draw();
-        }
 
-        end_frame();
+            end_frame();
+        }
     }
 
     on_shutdown();

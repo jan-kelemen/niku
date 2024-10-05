@@ -3,6 +3,7 @@
 
 #include <volk.h>
 
+#include <vkrndr_image.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cstddef>
@@ -25,8 +26,6 @@ namespace vkrndr
     {
         struct [[nodiscard]] swap_frame_t final
         {
-            VkImage image;
-            VkImageView image_view;
             VkSemaphore image_available;
             VkSemaphore render_finished;
             VkFence in_flight;
@@ -108,6 +107,7 @@ namespace vkrndr
         VkExtent2D extent_{};
         VkSwapchainKHR chain_{};
         std::vector<detail::swap_frame_t> frames_;
+        std::vector<vkrndr::image_t> images_;
     };
 
 } // namespace vkrndr
@@ -140,13 +140,13 @@ constexpr uint32_t vkrndr::swap_chain_t::image_count() const noexcept
 constexpr VkImage vkrndr::swap_chain_t::image(
     uint32_t const image_index) const noexcept
 {
-    return frames_[image_index].image;
+    return images_[image_index].image;
 }
 
 constexpr VkImageView vkrndr::swap_chain_t::image_view(
     uint32_t const image_index) const noexcept
 {
-    return frames_[image_index].image_view;
+    return images_[image_index].view;
 }
 
 #endif // !VKRNDR_VULKAN_SWAP_CHAIN_INCLUDED

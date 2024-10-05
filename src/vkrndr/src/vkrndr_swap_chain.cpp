@@ -56,7 +56,6 @@ namespace
 void vkrndr::detail::destroy(device_t const* const device,
     swap_frame_t* const frame)
 {
-    vkDestroyImageView(device->logical, frame->image_view, nullptr);
     vkDestroySemaphore(device->logical, frame->image_available, nullptr);
     vkDestroySemaphore(device->logical, frame->render_finished, nullptr);
     vkDestroyFence(device->logical, frame->in_flight, nullptr);
@@ -246,18 +245,25 @@ void vkrndr::swap_chain_t::create_swap_frames()
         chain_,
         &used_image_count,
         images.data()));
-
-    frames_.resize(used_image_count);
-    for (size_t i{}; i != used_image_count; ++i)
+    images_.reserve(images.size());
+    for (VkImage image : images)
     {
-        auto& frame{frames_[i]};
-
-        frame.image = images[i];
-        frame.image_view = create_image_view(*device_,
-            images[i],
+        images_.emplace_back(image,
+            VK_NULL_HANDLE,
+            create_image_view(*device_,
+                image,
+                image_format_,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                1),
             image_format_,
-            VK_IMAGE_ASPECT_COLOR_BIT,
-            1);
+            VK_SAMPLE_COUNT_1_BIT,
+            1,
+            extent_);
+    }
+
+    frames_.resize(settings_->frames_in_flight);
+    for (detail::swap_frame_t& frame : frames_)
+    {
         frame.image_available = create_semaphore(*device_);
         frame.render_finished = create_semaphore(*device_);
         frame.in_flight = create_fence(*device_, true);
@@ -270,6 +276,13 @@ void vkrndr::swap_chain_t::cleanup()
     {
         destroy(device_, &frame);
     }
+    frames_.clear();
+
+    for (vkrndr::image_t& image : images_)
+    {
+        vkDestroyImageView(device_->logical, image.view, nullptr);
+    }
+    images_.clear();
 
     vkDestroySwapchainKHR(device_->logical, chain_, nullptr);
 }

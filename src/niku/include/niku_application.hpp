@@ -64,17 +64,13 @@ namespace niku
             return true;
         }
 
-        virtual void begin_frame() { }
-
         virtual void fixed_update([[maybe_unused]] float const delta_time) { }
 
         virtual void update([[maybe_unused]] float const delta_time) { }
 
-        [[nodiscard]] virtual bool begin_draw() { return false; }
+        [[nodiscard]] virtual bool begin_frame() { return false; }
 
         virtual void draw() { }
-
-        virtual void end_draw() { }
 
         virtual void end_frame() { }
 
