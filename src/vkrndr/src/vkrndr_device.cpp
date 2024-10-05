@@ -196,22 +196,37 @@ namespace
     {
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(device, &properties);
-
         VkSampleCountFlags const counts =
             properties.limits.framebufferColorSampleCounts &
             properties.limits.framebufferDepthSampleCounts;
-        for (VkSampleCountFlagBits const count : {VK_SAMPLE_COUNT_64_BIT,
-                 VK_SAMPLE_COUNT_32_BIT,
-                 VK_SAMPLE_COUNT_16_BIT,
-                 VK_SAMPLE_COUNT_8_BIT,
-                 VK_SAMPLE_COUNT_4_BIT,
-                 VK_SAMPLE_COUNT_2_BIT})
+
+        if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
-            if ((static_cast<int>(counts) & count) != 0)
+            for (VkSampleCountFlagBits const count : {VK_SAMPLE_COUNT_64_BIT,
+                     VK_SAMPLE_COUNT_32_BIT,
+                     VK_SAMPLE_COUNT_16_BIT,
+                     VK_SAMPLE_COUNT_8_BIT,
+                     VK_SAMPLE_COUNT_4_BIT,
+                     VK_SAMPLE_COUNT_2_BIT})
             {
-                return count;
+                if ((static_cast<int>(counts) & count) != 0)
+                {
+                    return count;
+                }
             }
         }
+        else
+        {
+            for (VkSampleCountFlagBits const count :
+                {VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_2_BIT})
+            {
+                if ((static_cast<int>(counts) & count) != 0)
+                {
+                    return count;
+                }
+            }
+        }
+
         return VK_SAMPLE_COUNT_1_BIT;
     }
 } // namespace
