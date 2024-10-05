@@ -83,7 +83,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+              .preferred_present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR,
           },
           debug)}
     , imgui_{std::make_unique<niku::imgui_layer_t>(*window(),
@@ -129,14 +129,6 @@ bool gltfviewer::application_t::handle_event(SDL_Event const& event)
 
 void gltfviewer::application_t::update(float delta_time)
 {
-    camera_controller_.update(delta_time);
-
-    environment_->update(camera_);
-}
-
-void gltfviewer::application_t::begin_frame()
-{
-    imgui_->begin_frame();
     if (selector_.select_model())
     {
         std::filesystem::path const model_path{selector_.selected_model()};
@@ -177,9 +169,13 @@ void gltfviewer::application_t::begin_frame()
     {
         postprocess_shader_->update(gamma_, exposure_);
     }
+
+    camera_controller_.update(delta_time);
+
+    environment_->update(camera_);
 }
 
-bool gltfviewer::application_t::begin_draw()
+bool gltfviewer::application_t::begin_frame()
 {
     auto const rv{std::visit(
         cppext::overloaded{[](bool const acquired) { return acquired; },
@@ -189,6 +185,11 @@ bool gltfviewer::application_t::begin_draw()
                 return false;
             }},
         backend_->begin_frame())};
+
+    if (rv)
+    {
+        imgui_->begin_frame();
+    }
 
     return rv;
 }
@@ -250,9 +251,12 @@ void gltfviewer::application_t::draw()
     backend_->draw();
 }
 
-void gltfviewer::application_t::end_draw() { backend_->end_frame(); }
+void gltfviewer::application_t::end_frame()
+{
+    imgui_->end_frame();
 
-void gltfviewer::application_t::end_frame() { imgui_->end_frame(); }
+    backend_->end_frame();
+}
 
 void gltfviewer::application_t::on_shutdown()
 {

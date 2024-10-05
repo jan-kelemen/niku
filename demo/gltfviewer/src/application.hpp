@@ -59,15 +59,11 @@ namespace gltfviewer
     private: // niku::application callback interface
         bool handle_event(SDL_Event const& event) override;
 
-        void begin_frame() override;
-
         void update(float delta_time) override;
 
-        bool begin_draw() override;
+        bool begin_frame() override;
 
         void draw() override;
-
-        void end_draw() override;
 
         void end_frame() override;
 
