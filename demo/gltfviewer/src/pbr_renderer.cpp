@@ -506,6 +506,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
                     *required_pipeline,
                     2,
                     descriptor_sets);
+                bound = required_pipeline;
             }
         };
 
