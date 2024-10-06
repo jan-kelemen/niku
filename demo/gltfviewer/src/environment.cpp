@@ -20,6 +20,7 @@
 #include <volk.h>
 
 #include <array>
+#include <numeric>
 #include <span>
 
 namespace
@@ -29,22 +30,23 @@ namespace
         glm::mat4 view;
         glm::mat4 projection;
         glm::vec3 camera_position;
-        uint8_t padding1[4];
-        // TODO-JK: Remove lights from this
-        glm::vec3 light_position;
-        uint8_t padding2[4];
-        glm::vec3 light_color;
-        uint8_t padding3[4];
+        uint32_t light_count;
     };
 
     static_assert(sizeof(environment_uniform_t) % 16 == 0);
+
+    struct [[nodiscard]] light_t final
+    {
+        glm::vec4 position;
+        glm::vec4 color;
+    };
 
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
         vkrndr::device_t const& device)
     {
         VkDescriptorSetLayoutBinding uniform_binding{};
         uniform_binding.binding = 0;
-        uniform_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uniform_binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         uniform_binding.descriptorCount = 1;
         uniform_binding.stageFlags =
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -74,7 +76,7 @@ namespace
         uniform_write.dstSet = descriptor_set;
         uniform_write.dstBinding = 0;
         uniform_write.dstArrayElement = 0;
-        uniform_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uniform_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         uniform_write.descriptorCount = 1;
         uniform_write.pBufferInfo = &uniform_info;
 
@@ -90,15 +92,26 @@ namespace
 
 gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
     : backend_{&backend}
+    , lights_{11}
     , descriptor_layout_{create_descriptor_set_layout(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
+    float x_coord{-10.0f};
+    for (light_t& light : lights_)
+    {
+        light.position.x = x_coord;
+        x_coord += 2.0f;
+    }
+    lights_[5].enabled = true;
+
     for (auto& data : frame_data_.as_span())
     {
-        auto const uniform_buffer_size{sizeof(environment_uniform_t)};
+        auto const uniform_buffer_size{
+            sizeof(environment_uniform_t) + sizeof(::light_t) * lights_.size()};
+
         data.uniform = create_buffer(backend_->device(),
             uniform_buffer_size,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -141,21 +154,45 @@ void gltfviewer::environment_t::update(niku::camera_t const& camera)
 {
     frame_data_.cycle();
 
-    // TODO-JK: TEMP
-    ImGui::Begin("Light");
-    ImGui::SliderFloat3("Position",
-        glm::value_ptr(light_position_),
-        -500.0f,
-        500.0f);
-    ImGui::SliderFloat3("Color", glm::value_ptr(light_color_), 0.0f, 1.0f);
+    ImGui::Begin("Lights");
+    for (size_t i{}; i != lights_.size(); ++i)
+    {
+        ImGui::PushID(cppext::narrow<int>(i));
+        ImGui::Checkbox("Enabled", &lights_[i].enabled);
+        ImGui::SliderFloat3("Position",
+            glm::value_ptr(lights_[i].position),
+            -500.0f,
+            500.0f);
+        ImGui::SliderFloat3("Color",
+            glm::value_ptr(lights_[i].color),
+            0.0f,
+            1.0f);
+        ImGui::PopID();
+    }
     ImGui::End();
 
-    auto* const uniform{frame_data_->uniform_map.as<environment_uniform_t>()};
-    uniform->view = camera.view_matrix();
-    uniform->projection = camera.projection_matrix();
-    uniform->camera_position = camera.position();
-    uniform->light_position = light_position_;
-    uniform->light_color = light_color_;
+    auto* const header{frame_data_->uniform_map.as<environment_uniform_t>()};
+    header->view = camera.view_matrix();
+    header->projection = camera.projection_matrix();
+    header->camera_position = camera.position();
+
+    auto* const light_array{
+        frame_data_->uniform_map.as<::light_t>(sizeof(environment_uniform_t))};
+
+    uint32_t enabled_lights{};
+    for (light_t const& light : lights_)
+    {
+        if (light.enabled)
+        {
+            light_array[enabled_lights] = {
+                .position = glm::vec4{light.position, 0.0f},
+                .color = glm::vec4{light.color, 0.0f},
+            };
+
+            ++enabled_lights;
+        }
+    }
+    header->light_count = enabled_lights;
 }
 
 void gltfviewer::environment_t::bind_on(VkCommandBuffer command_buffer,

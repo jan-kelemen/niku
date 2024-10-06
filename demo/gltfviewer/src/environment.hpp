@@ -53,18 +53,25 @@ namespace gltfviewer
         {
             vkrndr::buffer_t uniform;
             vkrndr::mapped_memory_t uniform_map;
+
             VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
+        };
+
+        struct [[nodiscard]] light_t final
+        {
+            glm::vec3 position{0.0f, 1.0f, 0.0f};
+            glm::vec3 color{1.0f, 1.0f, 1.0f};
+            bool enabled{false};
         };
 
     private:
         vkrndr::backend_t* backend_;
 
+        std::vector<light_t> lights_;
+
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
-
-        glm::vec3 light_position_{0.0f, 1.0f, 0.0f};
-        glm::vec3 light_color_{1.0f};
     };
 } // namespace gltfviewer
 

@@ -1,7 +1,12 @@
-layout(set = 0, binding = 0) uniform Environment {
+struct Light {
+    vec4 position;
+    vec4 color;
+};
+
+layout(std430, set = 0, binding = 0) readonly buffer Environment {
     mat4 view;
     mat4 projection;
     vec3 cameraPosition;
-    vec3 lightPosition;
-    vec3 lightColor;
+    uint lightCount;
+    Light lights[];
 } env;

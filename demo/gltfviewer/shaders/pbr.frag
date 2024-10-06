@@ -153,8 +153,7 @@ void main() {
 
     const vec3 N = worldNormal(m);
     const vec3 V = normalize(env.cameraPosition - inPosition);
-    const vec3 L = normalize(env.lightPosition);
-    const vec3 H = normalize(L + V);
+    const float NdotV = clamp(abs(dot(N, V)), 0.001, 1.0);
 
     const vec3 F0 = vec3(0.04);
     const vec3 diffuseColor = (1.0 - metallic) * (vec3(1.0) - F0) * albedo.rgb;
@@ -165,19 +164,28 @@ void main() {
     const vec3 specularEnvironmentR0 = specularColor.rgb;
     const vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
 
-    const float VdotH = clamp(dot(V, H), 0.0, 1.0);
-    const float NdotL = clamp(dot(N, L), 0.001, 1.0);
-    const float NdotV = clamp(abs(dot(N, V)), 0.001, 1.0);
-    const float NdotH = clamp(dot(N, H), 0.0, 1.0);
+    vec3 color = vec3(0.0);
+    for (uint i = 0; i != env.lightCount; ++i) {
+        const vec3 L = normalize(env.lights[i].position.xyz - inPosition);
+        const vec3 H = normalize(L + V);
 
-    const vec3 F = fresnelSchlick(specularEnvironmentR0, specularEnvironmentR90, VdotH);
-    const float G = geometricOcclusion(alphaRoughness, NdotL, NdotV);
-    const float D = microfacetDistribution(alphaRoughness, NdotH);
+        const float distance = length(env.lights[i].position.xyz - inPosition);
+        const float attenuation = 1.0 / (distance * distance);
+        const vec3 radiance     = env.lights[i].color.xyz * attenuation;    
 
-    const vec3 diffuseContribution = (1.0 - F) * diffuse(diffuseColor);
-    const vec3 specularContribution = F * G * D / (4.0 * NdotL * NdotV);
+        const float VdotH = clamp(dot(V, H), 0.0, 1.0);
+        const float NdotL = clamp(dot(N, L), 0.001, 1.0);
+        const float NdotH = clamp(dot(N, H), 0.0, 1.0);
 
-    vec3 color = NdotL * env.lightColor * (diffuseContribution + specularContribution);
+        const vec3 F = fresnelSchlick(specularEnvironmentR0, specularEnvironmentR90, VdotH);
+        const float G = geometricOcclusion(alphaRoughness, NdotL, NdotV);
+        const float D = microfacetDistribution(alphaRoughness, NdotH);
+
+        const vec3 diffuseContribution = (1.0 - F) * diffuse(diffuseColor);
+        const vec3 specularContribution = F * G * D / (4.0 * NdotL * NdotV);
+
+        color += NdotL * radiance * (diffuseContribution + specularContribution);
+    }
 
     const float occlusion = ambientOcclusion(m);
     color = mix(color, color * occlusion, m.occlusionStrength);
@@ -206,21 +214,6 @@ void main() {
                 break;
             case 6:
                 outColor.rgb = vec3(roughness);
-                break;
-            case 7:
-                outColor.rgb = diffuseContribution;
-                break;
-            case 8:
-                outColor.rgb = F;
-                break;
-            case 9:
-                outColor.rgb = vec3(G);
-                break;
-            case 10:
-                outColor.rgb = vec3(D);
-                break;
-            case 11:
-                outColor.rgb = specularContribution;
                 break;
         }
     }
