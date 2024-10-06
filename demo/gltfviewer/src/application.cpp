@@ -6,6 +6,7 @@
 #include <model_selector.hpp>
 #include <pbr_renderer.hpp>
 #include <postprocess_shader.hpp>
+#include <render_graph.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
@@ -93,6 +94,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , color_image_{create_color_image(*backend_)}
     , environment_{std::make_unique<environment_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
+    , render_graph_{std::make_unique<render_graph_t>(*backend_)}
     , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
@@ -151,9 +153,11 @@ void gltfviewer::application_t::update(float delta_time)
         vkDeviceWaitIdle(backend_->device().logical);
 
         materials_->load(*model);
-        pbr_renderer_->load_model(std::move(model).value(),
+        render_graph_->load(*model);
+        pbr_renderer_->load(std::move(model).value(),
             environment_->descriptor_layout(),
-            materials_->descriptor_layout());
+            materials_->descriptor_layout(),
+            render_graph_->descriptor_layout());
 
         spdlog::info("End loading: {}", model_path);
     }
@@ -226,6 +230,10 @@ void gltfviewer::application_t::draw()
         materials_->bind_on(command_buffer,
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        render_graph_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
     }
 
     pbr_renderer_->draw(command_buffer, color_image_);
@@ -265,6 +273,8 @@ void gltfviewer::application_t::on_shutdown()
     postprocess_shader_.reset();
 
     pbr_renderer_.reset();
+
+    render_graph_.reset();
 
     materials_.reset();
 

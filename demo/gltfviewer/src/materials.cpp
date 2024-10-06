@@ -339,11 +339,15 @@ gltfviewer::materials_t::~materials_t()
     clear();
 
     destroy(&backend_->device(), &dummy_uniform_);
+
     vkDestroySampler(backend_->device().logical, default_sampler_, nullptr);
+
     destroy(&backend_->device(), &white_pixel_);
+
     vkrndr::free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
         std::span{&dummy_descriptor_set_, 1});
+
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         dummy_descriptor_layout_,
         nullptr);

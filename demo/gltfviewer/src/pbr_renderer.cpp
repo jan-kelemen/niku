@@ -71,12 +71,6 @@ namespace
         uint32_t debug;
     };
 
-    struct [[nodiscard]] transform_t final
-    {
-        glm::mat4 model;
-        glm::mat4 model_inverse;
-    };
-
     consteval auto binding_description()
     {
         constexpr std::array descriptions{
@@ -116,88 +110,10 @@ namespace
         return descriptions;
     }
 
-    [[nodiscard]] VkDescriptorSetLayout create_transform_descriptor_set_layout(
-        vkrndr::device_t const& device)
-    {
-        VkDescriptorSetLayoutBinding transform_uniform_binding{};
-        transform_uniform_binding.binding = 0;
-        transform_uniform_binding.descriptorType =
-            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        transform_uniform_binding.descriptorCount = 1;
-        transform_uniform_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        std::array const bindings{transform_uniform_binding};
-
-        VkDescriptorSetLayoutCreateInfo layout_info{};
-        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_info.bindingCount = vkrndr::count_cast(bindings.size());
-        layout_info.pBindings = bindings.data();
-
-        VkDescriptorSetLayout rv; // NOLINT
-        vkrndr::check_result(vkCreateDescriptorSetLayout(device.logical,
-            &layout_info,
-            nullptr,
-            &rv));
-
-        return rv;
-    }
-
-    void bind_transform_descriptor_set(vkrndr::device_t const& device,
-        VkDescriptorSet const descriptor_set,
-        VkDescriptorBufferInfo const transform_uniform_info)
-    {
-        VkWriteDescriptorSet transform_storage_write{};
-        transform_storage_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        transform_storage_write.dstSet = descriptor_set;
-        transform_storage_write.dstBinding = 0;
-        transform_storage_write.dstArrayElement = 0;
-        transform_storage_write.descriptorType =
-            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        transform_storage_write.descriptorCount = 1;
-        transform_storage_write.pBufferInfo = &transform_uniform_info;
-
-        std::array const descriptor_writes{transform_storage_write};
-
-        vkUpdateDescriptorSets(device.logical,
-            vkrndr::count_cast(descriptor_writes.size()),
-            descriptor_writes.data(),
-            0,
-            nullptr);
-    }
-
-    [[nodiscard]] uint32_t nodes_with_mesh(vkgltf::node_t const& node,
-        vkgltf::model_t const& model)
-    {
-        auto rv{static_cast<uint32_t>(node.mesh != nullptr)};
-        // cppcheck-suppress-begin useStlAlgorithm
-        for (auto const& child : node.children(model))
-        {
-            rv += nodes_with_mesh(child, model);
-        }
-        // cppcheck-suppress-end useStlAlgorithm
-        return rv;
-    }
-
-    [[nodiscard]] uint32_t required_transforms(vkgltf::model_t const& model)
-    {
-        uint32_t rv{};
-        // cppcheck-suppress-begin useStlAlgorithm
-        for (auto const& graph : model.scenes)
-        {
-            for (auto const& root : graph.roots(model))
-            {
-                rv += nodes_with_mesh(root, model);
-            }
-        }
-        // cppcheck-suppress-end useStlAlgorithm
-        return rv;
-    }
-
     struct [[nodiscard]] draw_traversal_t final
     {
         // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
         vkgltf::model_t const* const model;
-        transform_t* const transforms;
         VkPipelineLayout const layout;
         VkCommandBuffer const command_buffer;
         uint32_t const debug;
@@ -213,10 +129,7 @@ namespace
                 // cppcheck-suppress-begin useStlAlgorithm
                 for (auto const& root : graph.roots(*model))
                 {
-                    drawn += draw_node(root,
-                        glm::mat4{1.0f},
-                        drawn,
-                        switch_pipeline);
+                    drawn += draw_node(root, drawn, switch_pipeline);
                 }
                 // cppcheck-suppress-end useStlAlgorithm
             }
@@ -224,19 +137,12 @@ namespace
 
     private:
         [[nodiscard]] uint32_t draw_node(vkgltf::node_t const& node,
-            glm::mat4 const& transform,
             uint32_t const index,
             auto& switch_pipeline)
         {
-            auto const node_transform{transform * node.matrix};
-
             uint32_t drawn{0};
             if (node.mesh)
             {
-                transforms[index].model = node_transform;
-                transforms[index].model_inverse =
-                    glm::transpose(glm::inverse(node_transform));
-
                 // cppcheck-suppress-begin useStlAlgorithm
                 for (auto const& primitive : node.mesh->primitives)
                 {
@@ -298,10 +204,7 @@ namespace
             // cppcheck-suppress-begin useStlAlgorithm
             for (auto const& child : node.children(*model))
             {
-                drawn += draw_node(child,
-                    node_transform,
-                    index + drawn,
-                    switch_pipeline);
+                drawn += draw_node(child, index + drawn, switch_pipeline);
             }
             // cppcheck-suppress-end useStlAlgorithm
 
@@ -317,42 +220,15 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
           backend_->extent(),
           false,
           backend_->device().max_msaa_samples)}
-    , transform_descriptor_set_layout_{create_transform_descriptor_set_layout(
-          backend_->device())}
-    , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    for (auto& data : frame_data_.as_span())
-    {
-        vkrndr::create_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            std::span{&transform_descriptor_set_layout_, 1},
-            std::span{&data.transform_descriptor_set, 1});
-    }
 }
 
 gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 {
-    for (auto& data : frame_data_.as_span())
-    {
-        vkrndr::free_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            std::span{&data.transform_descriptor_set, 1});
-
-        if (data.transform_uniform_map.allocation != VK_NULL_HANDLE)
-        {
-            unmap_memory(backend_->device(), &data.transform_uniform_map);
-            destroy(&backend_->device(), &data.transform_uniform);
-        }
-    }
-
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
-        transform_descriptor_set_layout_,
-        nullptr);
-
+    destroy(&backend_->device(), &model_);
     destroy(&backend_->device(), &blending_pipeline_);
     destroy(&backend_->device(), &culling_pipeline_);
     destroy(&backend_->device(), &double_sided_pipeline_);
-    destroy(&backend_->device(), &model_);
     destroy(&backend_->device(), &fragment_shader_);
     destroy(&backend_->device(), &vertex_shader_);
     destroy(&backend_->device(), &depth_buffer_);
@@ -360,80 +236,17 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 
 VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
 {
-    if (!model_.vertex_count)
+    if (double_sided_pipeline_.pipeline)
     {
-        return VK_NULL_HANDLE;
+        return *double_sided_pipeline_.layout;
     }
 
-    return *double_sided_pipeline_.layout;
-}
-
-void gltfviewer::pbr_renderer_t::load_model(vkgltf::model_t&& model,
-    VkDescriptorSetLayout environment_layout,
-    VkDescriptorSetLayout materials_layout)
-{
-    auto real_vertex_buffer{create_buffer(backend_->device(),
-        model.vertex_buffer.size,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
-
-    std::optional<vkrndr::buffer_t> real_index_buffer;
-    if (model.index_buffer.size > 0)
-    {
-        real_index_buffer = create_buffer(backend_->device(),
-            model.index_buffer.size,
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    }
-
-    backend_->transfer_buffer(model.vertex_buffer, real_vertex_buffer);
-    if (real_index_buffer)
-    {
-        backend_->transfer_buffer(model.index_buffer, *real_index_buffer);
-    }
-
-    destroy(&backend_->device(), &model.vertex_buffer);
-    destroy(&backend_->device(), &model.index_buffer);
-    model.vertex_buffer = real_vertex_buffer;
-    model.index_buffer = real_index_buffer.value_or(vkrndr::buffer_t{});
-
-    destroy(&backend_->device(), &model_);
-
-    model_ = std::move(model);
-
-    uint32_t const transform_count{required_transforms(model_)};
-    VkDeviceSize const transform_buffer_size{
-        transform_count * sizeof(transform_t)};
-    for (auto& data : frame_data_.as_span())
-    {
-        if (data.transform_uniform_map.allocation != VK_NULL_HANDLE)
-        {
-            unmap_memory(backend_->device(), &data.transform_uniform_map);
-            destroy(&backend_->device(), &data.transform_uniform);
-        }
-
-        data.transform_uniform = create_buffer(backend_->device(),
-            transform_buffer_size,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        data.transform_uniform_map =
-            map_memory(backend_->device(), data.transform_uniform);
-
-        bind_transform_descriptor_set(backend_->device(),
-            data.transform_descriptor_set,
-            vkrndr::buffer_descriptor(data.transform_uniform));
-    }
-
-    recreate_pipelines(environment_layout, materials_layout);
+    return VK_NULL_HANDLE;
 }
 
 void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image)
 {
-    frame_data_.cycle();
-
     ImGui::Begin("PBR debug");
     if (ImGui::BeginCombo("Equation", debug_options[debug_], 0))
     {
@@ -472,21 +285,15 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
             {{0, 0}, color_image.extent})};
 
-        if (!model_.vertex_count)
+        if (model_.vertex_count == 0)
         {
             return;
         }
 
-        std::array const descriptor_sets{frame_data_->transform_descriptor_set};
-
-        vkrndr::bind_pipeline(command_buffer,
-            culling_pipeline_,
-            2,
-            descriptor_sets);
+        vkrndr::bind_pipeline(command_buffer, culling_pipeline_);
 
         auto switch_pipeline = [command_buffer,
                                    bound = &culling_pipeline_,
-                                   &descriptor_sets,
                                    this](bool const double_sided,
                                    vkgltf::alpha_mode_t const mode) mutable
         {
@@ -502,31 +309,12 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
 
             if (bound != required_pipeline)
             {
-                vkrndr::bind_pipeline(command_buffer,
-                    *required_pipeline,
-                    2,
-                    descriptor_sets);
+                vkrndr::bind_pipeline(command_buffer, *required_pipeline);
                 bound = required_pipeline;
             }
         };
 
-        VkDeviceSize const zero_offset{};
-        vkCmdBindVertexBuffers(command_buffer,
-            0,
-            1,
-            &model_.vertex_buffer.buffer,
-            &zero_offset);
-
-        if (model_.index_buffer.buffer != VK_NULL_HANDLE)
-        {
-            vkCmdBindIndexBuffer(command_buffer,
-                model_.index_buffer.buffer,
-                0,
-                VK_INDEX_TYPE_UINT32);
-        }
-
         draw_traversal_t traversal{.model = &model_,
-            .transforms = frame_data_->transform_uniform_map.as<transform_t>(),
             .layout = *double_sided_pipeline_.layout,
             .command_buffer = command_buffer,
             .debug = debug_,
@@ -550,10 +338,15 @@ void gltfviewer::pbr_renderer_t::resize(uint32_t width, uint32_t height)
         backend_->device().max_msaa_samples);
 }
 
-void gltfviewer::pbr_renderer_t::recreate_pipelines(
+void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
     VkDescriptorSetLayout environment_layout,
-    VkDescriptorSetLayout materials_layout)
+    VkDescriptorSetLayout materials_layout,
+    VkDescriptorSetLayout graph_layout)
 {
+    destroy(&backend_->device(), &model_);
+
+    model_ = std::move(model);
+
     std::filesystem::path const vertex_path{"pbr.vert.spv"};
     if (auto const wt{last_write_time(vertex_path)}; vertex_write_time_ != wt)
     {
@@ -585,7 +378,7 @@ void gltfviewer::pbr_renderer_t::recreate_pipelines(
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(materials_layout)
-                .add_descriptor_set_layout(transform_descriptor_set_layout_)
+                .add_descriptor_set_layout(graph_layout)
                 .add_push_constants(VkPushConstantRange{
                     .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                         VK_SHADER_STAGE_FRAGMENT_BIT,
