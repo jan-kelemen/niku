@@ -427,14 +427,14 @@ namespace
         return unorm_images;
     }
 
-    void load_meshes(fastgltf::Asset const& asset,
+    void load_mesh(fastgltf::Asset const& asset,
+        size_t const mesh_index,
         vkgltf::model_t& model,
-        vkgltf::vertex_t* vertices,
-        uint32_t* indices)
+        vkgltf::vertex_t*& vertices,
+        int32_t& running_vertex_count,
+        uint32_t*& indices,
+        uint32_t& running_index_count)
     {
-        uint32_t running_index_count{};
-        int32_t running_vertex_count{};
-
         auto const vertex_transform =
             [&vertices](glm::vec3 const v, size_t const idx)
         { vertices[idx] = {.position = v}; };
@@ -457,123 +457,163 @@ namespace
             [&vertices](glm::vec2 const v, size_t const idx)
         { vertices[idx].uv = v; };
 
-        model.meshes.reserve(asset.meshes.size());
-        for (fastgltf::Mesh const& mesh : asset.meshes)
+        fastgltf::Mesh const& mesh{asset.meshes[mesh_index]};
+
+        vkgltf::mesh_t m{.name = std::string{mesh.name}};
+
+        for (fastgltf::Primitive const& primitive : mesh.primitives)
         {
-            vkgltf::mesh_t m{.name = std::string{mesh.name}};
-            for (fastgltf::Primitive const& primitive : mesh.primitives)
-            {
-                bool normals_loaded{false};
-                bool tangents_loaded{false};
+            bool normals_loaded{false};
+            bool tangents_loaded{false};
 
-                vkgltf::primitive_t p{
-                    .topology = vkgltf::to_vulkan(primitive.type)};
+            vkgltf::primitive_t p{
+                .topology = vkgltf::to_vulkan(primitive.type)};
 
-                auto const vertex_count{copy_attribute<glm::vec3>(asset,
+            auto const vertex_count{copy_attribute<glm::vec3>(asset,
+                primitive,
+                position_attribute,
+                vertex_transform)};
+            assert(vertex_count);
+
+            if (auto const normal_count{copy_attribute<glm::vec3>(asset,
                     primitive,
-                    position_attribute,
-                    vertex_transform)};
-                assert(vertex_count);
-
-                if (auto const normal_count{copy_attribute<glm::vec3>(asset,
-                        primitive,
-                        normal_attribute,
-                        normal_transform)})
-                {
-                    assert(normal_count == vertex_count);
-                    normals_loaded = true;
-                }
-
-                if (auto const tangent_count{copy_attribute<glm::vec4>(asset,
-                        primitive,
-                        tangent_attribute,
-                        tangent_transform)})
-                {
-                    assert(tangent_count == vertex_count);
-                    tangents_loaded = true;
-                }
-
-                if (auto const color_count{copy_color_attribute(asset,
-                        primitive,
-                        color_transform)})
-                {
-                    assert(color_count == vertex_count);
-                }
-
-                if (auto const texcoord_count{copy_attribute<glm::vec2>(asset,
-                        primitive,
-                        texcoord_0_attribute,
-                        texcoord_transform)})
-                {
-                    assert(texcoord_count == vertex_count);
-                }
-
-                size_t const index_count{
-                    load_indices(asset, primitive, indices)};
-                p.is_indexed = index_count != 0;
-                if (p.is_indexed)
-                {
-                    p.count = cppext::narrow<uint32_t>(index_count);
-                    p.first = cppext::narrow<uint32_t>(running_index_count);
-                    p.vertex_offset =
-                        cppext::narrow<int32_t>(running_vertex_count);
-                }
-                else
-                {
-                    p.count = cppext::narrow<uint32_t>(*vertex_count);
-                    p.first = cppext::narrow<uint32_t>(running_vertex_count);
-                }
-
-                if (!normals_loaded || !tangents_loaded)
-                {
-                    calculate_normals_and_tangents(p,
-                        vertices,
-                        indices,
-                        !normals_loaded,
-                        !tangents_loaded);
-                }
-
-                running_vertex_count += cppext::narrow<int32_t>(*vertex_count);
-                running_index_count += cppext::narrow<uint32_t>(index_count);
-
-                if (primitive.materialIndex)
-                {
-                    p.material_index = *primitive.materialIndex;
-                }
-
-                vertices += *vertex_count;
-                indices += index_count;
-
-                m.primitives.push_back(p);
-            }
-
-            model.meshes.push_back(std::move(m));
-        }
-    }
-
-    void load_nodes(fastgltf::Asset const& asset, vkgltf::model_t& model)
-    {
-        for (fastgltf::Node const& node : asset.nodes)
-        {
-            vkgltf::node_t n{.name = std::string{node.name}};
-
-            if (node.meshIndex)
+                    normal_attribute,
+                    normal_transform)})
             {
-                n.mesh = &model.meshes[*node.meshIndex];
+                assert(normal_count == vertex_count);
+                normals_loaded = true;
             }
 
-            n.matrix = vkgltf::to_glm(fastgltf::getTransformMatrix(node));
+            if (auto const tangent_count{copy_attribute<glm::vec4>(asset,
+                    primitive,
+                    tangent_attribute,
+                    tangent_transform)})
+            {
+                assert(tangent_count == vertex_count);
+                tangents_loaded = true;
+            }
 
-            n.child_indices.reserve(node.children.size());
-            std::ranges::copy(node.children,
-                std::back_inserter(n.child_indices));
+            if (auto const color_count{
+                    copy_color_attribute(asset, primitive, color_transform)})
+            {
+                assert(color_count == vertex_count);
+            }
 
-            model.nodes.push_back(std::move(n));
+            if (auto const texcoord_count{copy_attribute<glm::vec2>(asset,
+                    primitive,
+                    texcoord_0_attribute,
+                    texcoord_transform)})
+            {
+                assert(texcoord_count == vertex_count);
+            }
+
+            size_t const index_count{load_indices(asset, primitive, indices)};
+            p.is_indexed = index_count != 0;
+            if (p.is_indexed)
+            {
+                p.count = cppext::narrow<uint32_t>(index_count);
+                p.first = cppext::narrow<uint32_t>(running_index_count);
+                p.vertex_offset = cppext::narrow<int32_t>(running_vertex_count);
+            }
+            else
+            {
+                p.count = cppext::narrow<uint32_t>(*vertex_count);
+                p.first = cppext::narrow<uint32_t>(running_vertex_count);
+            }
+
+            if (!normals_loaded || !tangents_loaded)
+            {
+                calculate_normals_and_tangents(p,
+                    vertices,
+                    indices,
+                    !normals_loaded,
+                    !tangents_loaded);
+            }
+
+            running_vertex_count += cppext::narrow<int32_t>(*vertex_count);
+            running_index_count += cppext::narrow<uint32_t>(index_count);
+
+            if (primitive.materialIndex)
+            {
+                p.material_index = *primitive.materialIndex;
+            }
+
+            vertices += *vertex_count;
+            indices += index_count;
+
+            m.primitives.push_back(p);
         }
+
+        model.meshes[mesh_index] = std::move(m);
     }
 
-    void load_scenes(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    void load_node(fastgltf::Asset const& asset,
+        size_t const node_index,
+        std::set<size_t>& loaded_meshes,
+        vkgltf::model_t& model,
+        vkgltf::vertex_t*& vertices,
+        int32_t& running_vertex_count,
+        uint32_t*& indices,
+        uint32_t& running_index_count)
     {
+        fastgltf::Node const& node{asset.nodes[node_index]};
+
+        vkgltf::node_t n{.name = std::string{node.name}};
+
+        if (node.meshIndex)
+        {
+            if (!loaded_meshes.contains(*node.meshIndex))
+            {
+                load_mesh(asset,
+                    *node.meshIndex,
+                    model,
+                    vertices,
+                    running_vertex_count,
+                    indices,
+                    running_index_count);
+                loaded_meshes.insert(*node.meshIndex);
+            }
+
+            n.mesh = &model.meshes[*node.meshIndex];
+        }
+
+        n.matrix = vkgltf::to_glm(fastgltf::getTransformMatrix(node));
+
+        n.child_indices.reserve(node.children.size());
+        std::ranges::copy(node.children, std::back_inserter(n.child_indices));
+
+        for (size_t const i : n.child_indices)
+        {
+            load_node(asset,
+                i,
+                loaded_meshes,
+                model,
+                vertices,
+                running_vertex_count,
+                indices,
+                running_index_count);
+        }
+
+        model.nodes[node_index] = std::move(n);
+    }
+
+    void load_scenes(fastgltf::Asset const& asset,
+        vkgltf::model_t& model,
+        vkgltf::vertex_t* vertices,
+        uint32_t* indices)
+    {
+        auto const to_node = [&asset](
+                                 size_t const index) -> fastgltf::Node const&
+        { return asset.nodes[index]; };
+
+        auto const to_mesh = [&asset](
+                                 size_t const index) -> fastgltf::Mesh const&
+        { return asset.meshes[index]; };
+
+        std::set<size_t> loaded_meshes;
+
+        int32_t running_vertex_count{};
+        uint32_t running_index_count{};
         for (fastgltf::Scene const& scene : asset.scenes)
         {
             vkgltf::scene_graph_t s{.name = std::string{scene.name}};
@@ -583,6 +623,18 @@ namespace
                 std::back_inserter(s.root_indices));
 
             model.scenes.push_back(std::move(s));
+
+            for (size_t const node_index : scene.nodeIndices)
+            {
+                load_node(asset,
+                    node_index,
+                    loaded_meshes,
+                    model,
+                    vertices,
+                    running_vertex_count,
+                    indices,
+                    running_index_count);
+            }
         }
     }
 
@@ -680,15 +732,16 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
         std::set<size_t> const unorm_images{load_materials(asset.get(), rv)};
         load_images(backend_, parent_path, unorm_images, asset.get(), rv);
 
-        load_meshes(asset.get(), rv, vertices, indices);
+        rv.nodes.resize(asset->nodes.size());
+        rv.meshes.resize(asset->meshes.size());
+
+        load_scenes(asset.get(), rv, vertices, indices);
+
         unmap_memory(backend_->device(), &vertex_map);
         if (indices)
         {
             unmap_memory(backend_->device(), &index_map);
         }
-
-        load_nodes(asset.get(), rv);
-        load_scenes(asset.get(), rv);
     }
     catch (std::exception const& ex)
     {
