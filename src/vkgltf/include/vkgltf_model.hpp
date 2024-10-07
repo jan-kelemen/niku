@@ -1,8 +1,6 @@
 #ifndef VKGLTF_MODEL_INCLUDED
 #define VKGLTF_MODEL_INCLUDED
 
-#include <cppext_pragma_warning.hpp>
-
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_image.hpp>
 

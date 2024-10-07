@@ -240,18 +240,19 @@ void vkrndr::swap_chain_t::create_swap_frames()
         &used_image_count,
         nullptr));
 
-    std::vector<VkImage> images{used_image_count};
+    std::vector<VkImage> swapchain_images{used_image_count};
     check_result(vkGetSwapchainImagesKHR(device_->logical,
         chain_,
         &used_image_count,
-        images.data()));
-    images_.reserve(images.size());
-    for (VkImage image : images)
+        swapchain_images.data()));
+    images_.reserve(swapchain_images.size());
+    // cppcheck-suppress-begin useStlAlgorithm
+    for (VkImage swapchain_image : swapchain_images)
     {
-        images_.emplace_back(image,
+        images_.emplace_back(swapchain_image,
             VK_NULL_HANDLE,
             create_image_view(*device_,
-                image,
+                swapchain_image,
                 image_format_,
                 VK_IMAGE_ASPECT_COLOR_BIT,
                 1),
@@ -260,6 +261,7 @@ void vkrndr::swap_chain_t::create_swap_frames()
             1,
             extent_);
     }
+    // cppcheck-suppress-end useStlAlgorithm
 
     frames_.resize(settings_->frames_in_flight);
     for (detail::swap_frame_t& frame : frames_)
@@ -278,9 +280,9 @@ void vkrndr::swap_chain_t::cleanup()
     }
     frames_.clear();
 
-    for (vkrndr::image_t& image : images_)
+    for (vkrndr::image_t const& swapchain_image : images_)
     {
-        vkDestroyImageView(device_->logical, image.view, nullptr);
+        vkDestroyImageView(device_->logical, swapchain_image.view, nullptr);
     }
     images_.clear();
 

@@ -602,14 +602,6 @@ namespace
         vkgltf::vertex_t* vertices,
         uint32_t* indices)
     {
-        auto const to_node = [&asset](
-                                 size_t const index) -> fastgltf::Node const&
-        { return asset.nodes[index]; };
-
-        auto const to_mesh = [&asset](
-                                 size_t const index) -> fastgltf::Mesh const&
-        { return asset.meshes[index]; };
-
         std::set<size_t> loaded_meshes;
 
         int32_t running_vertex_count{};
