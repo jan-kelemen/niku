@@ -44,6 +44,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <typeinfo>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -245,64 +246,85 @@ namespace
             return transfer_image(width, height, data);
         };
 
+        auto const load_from_array = [&](fastgltf::sources::Array const& vector)
+        {
+            int width; // NOLINT
+            int height; // NOLINT
+            int channels; // NOLINT
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+            stbi_uc* const data{stbi_load_from_memory(
+                reinterpret_cast<stbi_uc const*>(vector.bytes.data()),
+                cppext::narrow<int>(vector.bytes.size()),
+                &width,
+                &height,
+                &channels,
+                4)};
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+            return transfer_image(width, height, data);
+        };
+
+        auto const load_from_uri = [&transfer_image, &parent_path](
+                                       fastgltf::sources::URI const& filePath)
+            -> tl::expected<vkrndr::image_t, std::error_code>
+        {
+            // No offsets in file
+            assert(filePath.fileByteOffset == 0);
+            // Only local files
+            assert(filePath.uri.isLocalPath());
+
+            std::filesystem::path path{filePath.uri.fspath()};
+            if (path.is_relative())
+            {
+                path = parent_path / path;
+            }
+
+            int width; // NOLINT
+            int height; // NOLINT
+            int channels; // NOLINT
+            stbi_uc* const data{stbi_load(path.string().c_str(),
+                &width,
+                &height,
+                &channels,
+                4)};
+            if (data == nullptr)
+            {
+                return tl::make_unexpected(
+                    make_error_code(vkgltf::error_t::unknown));
+            }
+
+            auto rv{transfer_image(width, height, data)};
+
+            stbi_image_free(data);
+
+            return rv;
+        };
+
         auto const unsupported_variant = []([[maybe_unused]] auto&& arg)
             -> tl::expected<vkrndr::image_t, std::error_code>
         {
-            spdlog::error("Unsupported variant during image load");
+            spdlog::error("Unsupported variant '{}' during image load",
+                typeid(arg).name());
             return tl::make_unexpected(
                 make_error_code(vkgltf::error_t::unknown));
         };
 
-        return std::visit(
-            cppext::overloaded{
-                [&transfer_image, &parent_path](
-                    fastgltf::sources::URI const& filePath)
-                    -> tl::expected<vkrndr::image_t, std::error_code>
-                {
-                    // No offsets in file
-                    assert(filePath.fileByteOffset == 0);
-                    // Only local files
-                    assert(filePath.uri.isLocalPath());
+        auto const load_from_buffer_view =
+            [&unsupported_variant, &load_from_vector, &asset](
+                fastgltf::sources::BufferView const& view)
+        {
+            auto const& bufferView = asset.bufferViews[view.bufferViewIndex];
+            auto const& buffer = asset.buffers[bufferView.bufferIndex];
 
-                    std::filesystem::path path{filePath.uri.fspath()};
-                    if (path.is_relative())
-                    {
-                        path = parent_path / path;
-                    }
+            return std::visit(
+                cppext::overloaded{unsupported_variant, load_from_vector},
+                buffer.data);
+        };
 
-                    int width; // NOLINT
-                    int height; // NOLINT
-                    int channels; // NOLINT
-                    stbi_uc* const data{stbi_load(path.string().c_str(),
-                        &width,
-                        &height,
-                        &channels,
-                        4)};
-                    if (data == nullptr)
-                    {
-                        return tl::make_unexpected(
-                            make_error_code(vkgltf::error_t::unknown));
-                    }
-
-                    auto rv{transfer_image(width, height, data)};
-
-                    stbi_image_free(data);
-
-                    return rv;
-                },
-                load_from_vector,
-                [&unsupported_variant, &load_from_vector, &asset](
-                    fastgltf::sources::BufferView const& view)
-                {
-                    auto const& bufferView =
-                        asset.bufferViews[view.bufferViewIndex];
-                    auto const& buffer = asset.buffers[bufferView.bufferIndex];
-
-                    return std::visit(cppext::overloaded{unsupported_variant,
-                                          load_from_vector},
-                        buffer.data);
-                },
-                unsupported_variant},
+        return std::visit(cppext::overloaded{load_from_uri,
+                              load_from_array,
+                              load_from_vector,
+                              load_from_buffer_view,
+                              unsupported_variant},
             image.data);
     }
 
