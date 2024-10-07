@@ -12,8 +12,6 @@
 #include <cstdint>
 #include <filesystem>
 
-// IWYU pragma: no_include <chrono>
-
 namespace vkrndr
 {
     class backend_t;

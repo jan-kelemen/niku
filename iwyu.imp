@@ -46,6 +46,7 @@
   { symbol: [ "std::ranges::find_if", private, "<algorithm>", public ] },
   { symbol: [ "std::ranges::find", private, "<algorithm>", public ] },
   { symbol: [ "std::ranges::fill_n", private, "<algorithm>", public ] },
+  { symbol: [ "std::filesystem::file_time_type", private, "<filesystem>", public ] },
 
   # libc++ aliases
   { include: [ "<__fwd/fstream.h>", private, "<fstream>", public ] },
