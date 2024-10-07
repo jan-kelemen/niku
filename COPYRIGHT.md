@@ -25,3 +25,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+`demo/gltfviewer/assets/aviation_museum_4k.hdr` is licensed under CC0:
+
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Thanks to Sergej Majboroda, on [polyhaven.com/a/aviation_museum](https://polyhaven.com/a/aviation_museum).
+

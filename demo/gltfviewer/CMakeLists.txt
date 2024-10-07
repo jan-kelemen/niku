@@ -42,7 +42,7 @@ target_link_libraries(gltfviewer
         project-options
 )
 
-add_dependencies(gltfviewer shaders)
+add_dependencies(gltfviewer gltfviewer_assets gltfviewer_shaders)
 
 compile_shader(
     SHADER
@@ -72,12 +72,20 @@ compile_shader(
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.vert.spv
 )
 
-add_custom_target(shaders
+add_custom_target(gltfviewer_shaders
     DEPENDS
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.vert.spv 
+)
+
+add_custom_target(gltfviewer_assets
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/aviation_museum_4k.hdr
+        ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/aviation_museum_4k.hdr
 )
 
 set_property(TARGET gltfviewer 
