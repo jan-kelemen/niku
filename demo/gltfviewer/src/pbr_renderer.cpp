@@ -1,44 +1,26 @@
 #include <pbr_renderer.hpp>
 
-#include <environment.hpp>
-
-#include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
-#include <cppext_pragma_warning.hpp>
 
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_buffer.hpp>
 #include <vkrndr_depth_buffer.hpp>
-#include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
-#include <vkrndr_utility.hpp>
-
-#include <glm/mat4x4.hpp>
-#include <glm/matrix.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 
 #include <imgui.h>
 
 #include <volk.h>
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <filesystem>
-#include <functional>
-#include <iterator>
-#include <limits>
 #include <ranges>
 #include <span>
-#include <tuple>
 #include <utility>
 #include <vector>
 

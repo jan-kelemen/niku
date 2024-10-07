@@ -1,6 +1,7 @@
 #include <environment.hpp>
 
 #include <cppext_cycled_buffer.hpp>
+#include <cppext_numeric.hpp>
 
 #include <niku_camera.hpp>
 
@@ -14,14 +15,18 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 #include <imgui.h>
 
 #include <volk.h>
 
 #include <array>
-#include <numeric>
+#include <cstddef>
+#include <cstdint>
 #include <span>
+
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
 namespace
 {

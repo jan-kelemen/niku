@@ -1,12 +1,15 @@
 #include <materials.hpp>
 
 #include <cppext_numeric.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -19,8 +22,14 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <iterator>
 #include <limits>
 #include <span>
+#include <tuple>
+#include <utility>
+
+// IWYU pragma: no_include <type_traits>
 
 namespace
 {
@@ -365,7 +374,8 @@ void gltfviewer::materials_t::load(vkgltf::model_t& model)
     has_materials_ = !model.materials.empty();
     if (has_materials_)
     {
-        materials_transfer_t transfer{transfer_materials(*backend_, model)};
+        materials_transfer_t const transfer{
+            transfer_materials(*backend_, model)};
 
         uniform_ = transfer.buffer;
         descriptor_layout_ = transfer.descriptor_layout;

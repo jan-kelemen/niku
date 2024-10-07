@@ -8,6 +8,9 @@
 
 #include <volk.h>
 
+#include <cstdint>
+#include <span>
+
 namespace vkgltf
 {
     struct model_t;
@@ -23,7 +26,7 @@ namespace gltfviewer
     class [[nodiscard]] render_graph_t final
     {
     public:
-        render_graph_t(vkrndr::backend_t& backend);
+        explicit render_graph_t(vkrndr::backend_t& backend);
 
         render_graph_t(render_graph_t const&) = delete;
 

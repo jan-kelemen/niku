@@ -10,6 +10,8 @@
 
 #include <volk.h>
 
+#include <vector>
+
 namespace niku
 {
     class camera_t;

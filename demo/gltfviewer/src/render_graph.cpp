@@ -1,14 +1,23 @@
 #include <render_graph.hpp>
 
+#include <cppext_cycled_buffer.hpp>
+
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <glm/mat4x4.hpp>
+#include <glm/matrix.hpp>
 
 #include <array>
+
+// IWYU pragma: no_include <ranges>
+// IWYU pragma: no_include <vector>
 
 namespace
 {
