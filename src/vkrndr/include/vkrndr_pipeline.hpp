@@ -59,6 +59,11 @@ namespace vkrndr
         pipeline_layout_builder_t& add_push_constants(
             VkPushConstantRange push_constant_range);
 
+        template<typename T>
+        pipeline_layout_builder_t& add_push_constants(
+            VkShaderStageFlags const stage_flags,
+            uint32_t const offset = 0);
+
     public:
         pipeline_layout_builder_t& operator=(
             pipeline_layout_builder_t const&) = delete;
@@ -71,6 +76,15 @@ namespace vkrndr
         std::vector<VkDescriptorSetLayout> descriptor_set_layouts_;
         std::vector<VkPushConstantRange> push_constants_;
     };
+
+    template<typename T>
+    pipeline_layout_builder_t& pipeline_layout_builder_t::add_push_constants(
+        VkShaderStageFlags const stage_flags,
+        uint32_t const offset)
+    {
+        return add_push_constants(
+            {.stageFlags = stage_flags, .offset = offset, .size = sizeof(T)});
+    }
 
     class [[nodiscard]] pipeline_builder_t final
     {
@@ -176,6 +190,7 @@ namespace vkrndr
         std::shared_ptr<VkPipelineLayout> pipeline_layout_;
         VkPipelineShaderStageCreateInfo shader_{};
     };
+
 } // namespace vkrndr
 
 #endif
