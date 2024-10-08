@@ -49,6 +49,8 @@ namespace gltfviewer
     private:
         void create_dummy_material();
 
+        void transfer_textures(vkgltf::model_t& model);
+
         void clear();
 
     private:

@@ -181,21 +181,24 @@ void gltfviewer::application_t::update(float delta_time)
 
 bool gltfviewer::application_t::begin_frame()
 {
-    auto const rv{std::visit(
-        cppext::overloaded{[](bool const acquired) { return acquired; },
-            [this](VkExtent2D const extent)
-            {
-                on_resize(extent.width, extent.height);
-                return false;
-            }},
-        backend_->begin_frame())};
-
-    if (rv)
+    auto const on_swapchain_acquire = [this](bool const acquired)
     {
-        imgui_->begin_frame();
-    }
+        if (acquired)
+        {
+            imgui_->begin_frame();
+        }
+        return acquired;
+    };
 
-    return rv;
+    auto const on_swapchain_resized = [this](VkExtent2D const extent)
+    {
+        on_resize(extent.width, extent.height);
+        return false;
+    };
+
+    return std::visit(
+        cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
+        backend_->begin_frame());
 }
 
 void gltfviewer::application_t::draw()

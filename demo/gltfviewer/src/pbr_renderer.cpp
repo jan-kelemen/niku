@@ -361,11 +361,8 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(materials_layout)
                 .add_descriptor_set_layout(graph_layout)
-                .add_push_constants(VkPushConstantRange{
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                        VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .offset = 0,
-                    .size = sizeof(push_constants_t)})
+                .add_push_constants<push_constants_t>(
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
                 .build(),
             VK_FORMAT_R16G16B16A16_SFLOAT}
             .add_shader(as_pipeline_shader(vertex_shader_))

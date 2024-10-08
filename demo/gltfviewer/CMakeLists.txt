@@ -30,6 +30,7 @@ target_include_directories(gltfviewer
 target_link_libraries(gltfviewer
     PRIVATE
         niku
+        stb_impl
         vkgltf
         vkrndr
     PRIVATE

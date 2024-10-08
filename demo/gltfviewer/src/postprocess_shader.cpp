@@ -141,10 +141,7 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(descriptor_set_layout_)
-            .add_push_constants(
-                VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .offset = 0,
-                    .size = sizeof(push_constants_t)})
+            .add_push_constants<push_constants_t>(VK_SHADER_STAGE_FRAGMENT_BIT)
             .build(),
         backend_->image_format()}
                     .add_shader(as_pipeline_shader(vertex_shader))
@@ -192,11 +189,11 @@ void gltfviewer::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& target_image)
 {
+    descriptor_sets_.cycle();
+
     bind_descriptor_set(backend_->device(),
         *descriptor_sets_,
-        VkDescriptorImageInfo{.sampler = combined_sampler_,
-            .imageView = color_image.view,
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
+        vkrndr::combined_sampler_descriptor(combined_sampler_, color_image));
 
     push_constants_t const pc{.gamma = gamma_, .exposure = exposure_};
     vkCmdPushConstants(command_buffer,
@@ -209,8 +206,7 @@ void gltfviewer::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
     vkrndr::render_pass_t color_render_pass;
     color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         VK_ATTACHMENT_STORE_OP_STORE,
-        target_image.view,
-        std::nullopt);
+        target_image.view);
 
     [[maybe_unused]] auto guard{
         color_render_pass.begin(command_buffer, {{0, 0}, target_image.extent})};
@@ -221,6 +217,4 @@ void gltfviewer::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
         std::span{&descriptor_sets_.current(), 1});
 
     vkCmdDraw(command_buffer, 3, 1, 0, 0);
-
-    descriptor_sets_.cycle();
 }

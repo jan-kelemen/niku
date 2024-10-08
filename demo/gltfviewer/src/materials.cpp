@@ -183,14 +183,6 @@ namespace
         return rv;
     }
 
-    struct [[nodiscard]] materials_transfer_t final
-    {
-        vkrndr::buffer_t buffer;
-        std::vector<VkSampler> samplers;
-        VkDescriptorSetLayout descriptor_layout{VK_NULL_HANDLE};
-        VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
-    };
-
     [[nodiscard]] vkrndr::buffer_t create_material_uniform(
         vkrndr::backend_t& backend,
         std::span<vkgltf::material_t const> const& materials)
@@ -277,64 +269,6 @@ namespace
 
         return rv;
     }
-
-    materials_transfer_t transfer_materials(vkrndr::backend_t& backend,
-        vkgltf::model_t const& model)
-    {
-        materials_transfer_t rv{};
-        rv.buffer = create_material_uniform(backend, model.materials);
-
-        std::vector<VkDescriptorImageInfo> image_descriptors;
-        std::vector<VkDescriptorImageInfo> sampler_descriptors;
-        if (!model.images.empty())
-        {
-            // clang-format off
-            uint32_t const max_mip_levels{std::ranges::max(model.images,
-                std::less{},
-                &vkrndr::image_t::mip_levels).mip_levels};
-            // clang-format on
-
-            for (auto const& sampler : model.samplers)
-            {
-                rv.samplers.push_back(
-                    create_sampler(backend.device(), sampler, max_mip_levels));
-            }
-
-            rv.descriptor_layout =
-                create_descriptor_set_layout(backend.device(),
-                    model.images.size(),
-                    model.samplers.size());
-
-            image_descriptors.reserve(model.images.size());
-            std::ranges::transform(model.images,
-                std::back_inserter(image_descriptors),
-                [](vkrndr::image_t const& image)
-                { return vkrndr::sampled_image_descriptor(image); });
-
-            sampler_descriptors.reserve(model.samplers.size());
-            std::ranges::transform(rv.samplers,
-                std::back_inserter(sampler_descriptors),
-                vkrndr::sampler_descriptor);
-        }
-        else
-        {
-            rv.descriptor_layout =
-                create_descriptor_set_layout(backend.device(), 0, 0);
-        }
-
-        vkrndr::create_descriptor_sets(backend.device(),
-            backend.descriptor_pool(),
-            std::span{&rv.descriptor_layout, 1},
-            std::span{&rv.descriptor_set, 1});
-
-        update_descriptor_set(backend.device(),
-            rv.descriptor_set,
-            image_descriptors,
-            sampler_descriptors,
-            vkrndr::buffer_descriptor(rv.buffer));
-
-        return rv;
-    }
 } // namespace
 
 gltfviewer::materials_t::materials_t(vkrndr::backend_t& backend)
@@ -374,14 +308,8 @@ void gltfviewer::materials_t::load(vkgltf::model_t& model)
     has_materials_ = !model.materials.empty();
     if (has_materials_)
     {
-        materials_transfer_t const transfer{
-            transfer_materials(*backend_, model)};
-
-        uniform_ = transfer.buffer;
-        descriptor_layout_ = transfer.descriptor_layout;
-        descriptor_set_ = transfer.descriptor_set;
-        samplers_ = transfer.samplers;
-        images_ = std::move(model.images);
+        uniform_ = create_material_uniform(*backend_, model.materials);
+        transfer_textures(model);
     }
 
     model.textures.clear();
@@ -442,6 +370,61 @@ void gltfviewer::materials_t::create_dummy_material()
         std::span{&image_descriptor, 1},
         std::span{&sampler_descriptor, 1},
         vkrndr::buffer_descriptor(dummy_uniform_));
+}
+
+void gltfviewer::materials_t::transfer_textures(vkgltf::model_t& model)
+{
+    std::vector<VkDescriptorImageInfo> image_descriptors;
+    std::vector<VkDescriptorImageInfo> sampler_descriptors;
+    if (!model.images.empty())
+    {
+        // clang-format off
+        uint32_t const max_mip_levels{std::ranges::max(model.images,
+            std::less{},
+            &vkrndr::image_t::mip_levels).mip_levels};
+        // clang-format on
+
+        for (auto const& sampler : model.samplers)
+        {
+            samplers_.push_back(
+                create_sampler(backend_->device(), sampler, max_mip_levels));
+        }
+
+        image_descriptors.reserve(model.images.size());
+        std::ranges::transform(model.images,
+            std::back_inserter(image_descriptors),
+            [](vkrndr::image_t const& image)
+            { return vkrndr::sampled_image_descriptor(image); });
+
+        sampler_descriptors.reserve(model.samplers.size());
+        std::ranges::transform(samplers_,
+            std::back_inserter(sampler_descriptors),
+            vkrndr::sampler_descriptor);
+    }
+    else
+    {
+        image_descriptors.push_back(
+            vkrndr::sampled_image_descriptor(white_pixel_));
+        sampler_descriptors.push_back(
+            vkrndr::sampler_descriptor(default_sampler_));
+    }
+
+    descriptor_layout_ = create_descriptor_set_layout(backend_->device(),
+        image_descriptors.size(),
+        sampler_descriptors.size());
+
+    vkrndr::create_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        std::span{&descriptor_layout_, 1},
+        std::span{&descriptor_set_, 1});
+
+    update_descriptor_set(backend_->device(),
+        descriptor_set_,
+        image_descriptors,
+        sampler_descriptors,
+        vkrndr::buffer_descriptor(uniform_));
+
+    images_ = std::move(model.images);
 }
 
 void gltfviewer::materials_t::clear()
