@@ -39,6 +39,7 @@ struct Material {
     uint occlusionTextureIndex;
     uint occlusionSamplerIndex;
     float normalScale;
+    uint doubleSided;
 };
 
 layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer {
@@ -76,6 +77,8 @@ void metallicRoughness(Material m, out float metallic, out float roughness) {
 }
 
 vec3 worldNormal(Material m) {
+    vec3 normal = inNormal;
+
     if (m.normalTextureIndex != UINT_MAX) {
         vec3 tangentNormal = texture(sampler2D(textures[nonuniformEXT(m.normalTextureIndex)], samplers[nonuniformEXT(m.normalSamplerIndex)]), inUV).rgb;
         tangentNormal = normalize(tangentNormal * 2.0 - 1.0) * vec3(m.normalScale);
@@ -90,11 +93,15 @@ vec3 worldNormal(Material m) {
         vec3 B = -normalize(cross(N, T));
         mat3 TBN = mat3(T, B, N);
 
-        return normalize(TBN * tangentNormal);
+        normal = TBN * tangentNormal;
     }
-    else {
-        return normalize(inNormal);
+
+    normal = normalize(normal);
+    if (m.doubleSided > 0 && !gl_FrontFacing) {
+        return -normal;
     }
+
+    return normal;
 }
 
 float ambientOcclusion(Material m) {

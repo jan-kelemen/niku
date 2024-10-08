@@ -54,7 +54,8 @@ namespace
         uint32_t occlusion_texture_index{std::numeric_limits<uint32_t>::max()};
         uint32_t occlusion_sampler_index{std::numeric_limits<uint32_t>::max()};
         float normal_scale;
-        uint8_t padding[8];
+        uint32_t double_sided{};
+        uint8_t padding[4];
     };
 
     static_assert(sizeof(material_t) % 16 == 0);
@@ -208,7 +209,8 @@ namespace
                 .metallic_factor = m.pbr_metallic_roughness.metallic_factor,
                 .roughness_factor = m.pbr_metallic_roughness.roughness_factor,
                 .occlusion_strength = m.occlusion_strength,
-                .normal_scale = m.normal_scale};
+                .normal_scale = m.normal_scale,
+                .double_sided = static_cast<uint32_t>(m.double_sided)};
 
             DISABLE_WARNING_POP
 
