@@ -68,6 +68,8 @@ namespace gltfviewer
 
         void end_frame() override;
 
+        void on_startup() override;
+
         void on_shutdown() override;
 
         void on_resize(uint32_t width, uint32_t height) override;

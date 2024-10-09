@@ -19,6 +19,8 @@
 
 #include <imgui.h>
 
+#include <stb_image.h>
+
 #include <volk.h>
 
 #include <array>
@@ -148,6 +150,8 @@ gltfviewer::environment_t::~environment_t()
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         descriptor_layout_,
         nullptr);
+
+    destroy(&backend_->device(), &hdr_texture_);
 }
 
 VkDescriptorSetLayout gltfviewer::environment_t::descriptor_layout() const
@@ -212,4 +216,26 @@ void gltfviewer::environment_t::bind_on(VkCommandBuffer command_buffer,
         &frame_data_->descriptor_set,
         0,
         nullptr);
+}
+
+void gltfviewer::environment_t::load_hdr(std::filesystem::path const& hdr_image)
+{
+    int width; // NOLINT
+    int height; // NOLINT
+    int components; // NOLINT
+    float* const hdr_texture_data{stbi_loadf(hdr_image.string().c_str(),
+        &width,
+        &height,
+        &components,
+        4)};
+    assert(hdr_texture_data);
+
+    auto const hdr_extent{vkrndr::to_extent(width, height)};
+    hdr_texture_ =
+        backend_->transfer_image(vkrndr::as_bytes(std::span{hdr_texture_data,
+                                     hdr_extent.width * hdr_extent.height * 4}),
+            hdr_extent,
+            VK_FORMAT_R32G32B32A32_SFLOAT,
+            1);
+    stbi_image_free(hdr_texture_data);
 }

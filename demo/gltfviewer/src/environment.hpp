@@ -4,12 +4,14 @@
 #include <cppext_cycled_buffer.hpp>
 
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 
 #include <glm/vec3.hpp>
 
 #include <volk.h>
 
+#include <filesystem>
 #include <vector>
 
 namespace niku
@@ -45,6 +47,8 @@ namespace gltfviewer
             VkPipelineLayout layout,
             VkPipelineBindPoint bind_point);
 
+        void load_hdr(std::filesystem::path const& hdr_image);
+
     public:
         environment_t& operator=(environment_t const&) = delete;
 
@@ -70,6 +74,8 @@ namespace gltfviewer
         vkrndr::backend_t* backend_;
 
         std::vector<light_t> lights_;
+
+        vkrndr::image_t hdr_texture_;
 
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
 

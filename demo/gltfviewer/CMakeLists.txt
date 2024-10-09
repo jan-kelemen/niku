@@ -95,3 +95,5 @@ set_property(TARGET gltfviewer
 )
 
 set_target_properties(gltfviewer PROPERTIES FOLDER "demo")
+set_target_properties(gltfviewer_shaders PROPERTIES FOLDER "demo")
+set_target_properties(gltfviewer_assets PROPERTIES FOLDER "demo")

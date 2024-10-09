@@ -100,13 +100,6 @@ gltfviewer::application_t::application_t(bool const debug)
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
 {
-    auto const extent{backend_->extent()};
-
-    camera_.set_aspect_ratio(
-        cppext::as_fp(extent.width) / cppext::as_fp(extent.height));
-    camera_.update();
-
-    postprocess_shader_->update(gamma_, exposure_);
 }
 
 gltfviewer::application_t::~application_t() = default;
@@ -267,6 +260,19 @@ void gltfviewer::application_t::end_frame()
     imgui_->end_frame();
 
     backend_->end_frame();
+}
+
+void gltfviewer::application_t::on_startup()
+{
+    auto const extent{backend_->extent()};
+
+    camera_.set_aspect_ratio(
+        cppext::as_fp(extent.width) / cppext::as_fp(extent.height));
+    camera_.update();
+
+    environment_->load_hdr("aviation_museum_4k.hdr");
+
+    postprocess_shader_->update(gamma_, exposure_);
 }
 
 void gltfviewer::application_t::on_shutdown()
