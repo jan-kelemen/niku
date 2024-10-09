@@ -222,6 +222,9 @@ void main() {
             case 6:
                 outColor.rgb = vec3(roughness);
                 break;
+            case 7:
+                outColor.rgb = vec3(inUV, 0.0f);
+                break;
         }
     }
 }

@@ -40,11 +40,7 @@ namespace
         "Emissive",
         "Metallic",
         "Roughness",
-        "Diff (l,n)",
-        "F (l,h)",
-        "G (l,v,h)",
-        "D (h)",
-        "Specular"};
+        "UV"};
 
     struct [[nodiscard]] push_constants_t final
     {
