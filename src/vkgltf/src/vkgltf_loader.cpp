@@ -209,8 +209,7 @@ namespace
         {
             if (data)
             {
-                VkExtent2D const extent{cppext::narrow<uint32_t>(width),
-                    cppext::narrow<uint32_t>(height)};
+                auto const extent{vkrndr::to_extent(width, height)};
                 // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 std::span<std::byte const> const image_data{
                     reinterpret_cast<std::byte const*>(data),
