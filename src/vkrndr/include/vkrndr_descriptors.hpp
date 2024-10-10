@@ -26,6 +26,10 @@ namespace vkrndr
         VkDescriptorPool descriptor_pool,
         std::span<VkDescriptorSet> descriptor_sets);
 
+    [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
+        device_t const& device,
+        std::span<VkDescriptorSetLayoutBinding const> const& bindings);
+
     [[nodiscard]] constexpr VkDescriptorBufferInfo buffer_descriptor(
         vkrndr::buffer_t const& buffer,
         VkDeviceSize const offset = 0,
