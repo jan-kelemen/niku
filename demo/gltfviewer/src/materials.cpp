@@ -163,8 +163,8 @@ namespace
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         sampler_info.magFilter = info.mag_filter;
         sampler_info.minFilter = info.min_filter;
-        sampler_info.addressModeU = info.warp_u;
-        sampler_info.addressModeV = info.warp_v;
+        sampler_info.addressModeU = info.wrap_u;
+        sampler_info.addressModeV = info.wrap_v;
         sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         sampler_info.anisotropyEnable = VK_TRUE;
         sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;

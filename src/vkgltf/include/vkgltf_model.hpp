@@ -41,11 +41,11 @@ namespace vkgltf
 
     struct [[nodiscard]] sampler_info_t final
     {
-        VkFilter mag_filter{VK_FILTER_NEAREST};
-        VkFilter min_filter{VK_FILTER_NEAREST};
-        VkSamplerAddressMode warp_u{VK_SAMPLER_ADDRESS_MODE_REPEAT};
-        VkSamplerAddressMode warp_v{VK_SAMPLER_ADDRESS_MODE_REPEAT};
-        VkSamplerMipmapMode mipmap_mode{VK_SAMPLER_MIPMAP_MODE_NEAREST};
+        VkFilter mag_filter{VK_FILTER_LINEAR};
+        VkFilter min_filter{VK_FILTER_LINEAR};
+        VkSamplerAddressMode wrap_u{VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        VkSamplerAddressMode wrap_v{VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        VkSamplerMipmapMode mipmap_mode{VK_SAMPLER_MIPMAP_MODE_LINEAR};
     };
 
     struct [[nodiscard]] texture_t final
