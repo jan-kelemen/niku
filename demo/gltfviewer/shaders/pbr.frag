@@ -7,8 +7,9 @@
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec4 inColor;
-layout(location = 3) in vec2 inUV;
+layout(location = 2) in vec4 inTangent;
+layout(location = 3) in vec4 inColor;
+layout(location = 4) in vec2 inUV;
 
 layout(push_constant) uniform PushConsts {
     uint modelIndex;
@@ -83,14 +84,9 @@ vec3 worldNormal(Material m) {
         vec3 tangentNormal = texture(sampler2D(textures[nonuniformEXT(m.normalTextureIndex)], samplers[nonuniformEXT(m.normalSamplerIndex)]), inUV).rgb;
         tangentNormal = normalize(tangentNormal * 2.0 - 1.0) * vec3(m.normalScale);
 
-        vec3 Q1 = dFdx(inPosition);
-        vec3 Q2 = dFdy(inPosition);
-        vec2 st1 = dFdx(inUV);
-        vec2 st2 = dFdy(inUV);
-
         vec3 N = normalize(inNormal);
-        vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
-        vec3 B = -normalize(cross(N, T));
+        vec3 T = normalize(inTangent.xyz);
+        vec3 B = normalize(cross(N, T)) * inTangent.w;
         mat3 TBN = mat3(T, B, N);
 
         normal = TBN * tangentNormal;

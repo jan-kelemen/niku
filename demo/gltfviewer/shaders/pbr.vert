@@ -26,8 +26,9 @@ layout(std140, set = 2, binding = 0) readonly buffer TransformBuffer {
 
 layout(location = 0) out vec3 outPosition;
 layout(location = 1) out vec3 outNormal;
-layout(location = 2) out vec4 outColor;
-layout(location = 3) out vec2 outUV;
+layout(location = 2) out vec4 outTangent;
+layout(location = 3) out vec4 outColor;
+layout(location = 4) out vec2 outUV;
 
 void main() {
     vec4 worldPosition = transforms.v[pc.modelIndex].model * vec4(inPosition, 1.0);
@@ -36,6 +37,7 @@ void main() {
 
     outPosition = worldPosition.xyz;
     outNormal = mat3(transforms.v[pc.modelIndex].normal) * inNormal;
+    outTangent = vec4(mat3(transforms.v[pc.modelIndex].normal) * inTangent.xyz, inTangent.w);
     outColor = inColor;
     outUV = inUV;
 }
