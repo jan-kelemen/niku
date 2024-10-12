@@ -9,6 +9,7 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -24,6 +25,7 @@
 #include <volk.h>
 
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -231,11 +233,11 @@ void gltfviewer::environment_t::load_hdr(std::filesystem::path const& hdr_image)
     assert(hdr_texture_data);
 
     auto const hdr_extent{vkrndr::to_extent(width, height)};
-    hdr_texture_ =
-        backend_->transfer_image(vkrndr::as_bytes(std::span{hdr_texture_data,
-                                     hdr_extent.width * hdr_extent.height * 4}),
-            hdr_extent,
-            VK_FORMAT_R32G32B32A32_SFLOAT,
-            1);
+    hdr_texture_ = backend_->transfer_image(
+        vkrndr::as_bytes(std::span{hdr_texture_data,
+            size_t{hdr_extent.width} * hdr_extent.height * 4}),
+        hdr_extent,
+        VK_FORMAT_R32G32B32A32_SFLOAT,
+        1);
     stbi_image_free(hdr_texture_data);
 }

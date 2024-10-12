@@ -335,10 +335,10 @@ void gltfviewer::materials_t::bind_on(VkCommandBuffer command_buffer,
 void gltfviewer::materials_t::create_dummy_material()
 {
     static constexpr std::array white{
-        static_cast<std::byte>(256),
-        static_cast<std::byte>(256),
-        static_cast<std::byte>(256),
-        static_cast<std::byte>(256),
+        static_cast<std::byte>(255),
+        static_cast<std::byte>(255),
+        static_cast<std::byte>(255),
+        static_cast<std::byte>(255),
     };
 
     white_pixel_ = backend_->transfer_image(white,
@@ -386,11 +386,13 @@ void gltfviewer::materials_t::transfer_textures(vkgltf::model_t& model)
             &vkrndr::image_t::mip_levels).mip_levels};
         // clang-format on
 
+        // cppcheck-suppress-begin useStlAlgorithm
         for (auto const& sampler : model.samplers)
         {
             samplers_.push_back(
                 create_sampler(backend_->device(), sampler, max_mip_levels));
         }
+        // cppcheck-suppress-end useStlAlgorithm
 
         image_descriptors.reserve(model.images.size());
         std::ranges::transform(model.images,

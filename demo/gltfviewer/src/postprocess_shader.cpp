@@ -15,7 +15,6 @@
 
 #include <array>
 #include <cstdint>
-#include <optional>
 #include <span>
 
 // IWYU pragma: no_include <filesystem>
