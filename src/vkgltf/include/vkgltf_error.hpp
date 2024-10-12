@@ -14,6 +14,7 @@ namespace vkgltf
         parse_failed,
         out_of_memory,
         export_failed,
+        load_transform_failed,
         unknown
     };
 

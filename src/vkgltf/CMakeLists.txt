@@ -32,6 +32,8 @@ target_link_libraries(vkgltf
     PRIVATE
         fastgltf::fastgltf
         fmt::fmt
+        meshoptimizer::meshoptimizer
+        mikktspace::mikktspace 
         spdlog::spdlog
     PRIVATE
         project-options

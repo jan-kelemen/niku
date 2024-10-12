@@ -26,6 +26,8 @@ namespace
                 return "out of memory";
             case vkgltf::error_t::export_failed:
                 return "export failed";
+            case vkgltf::error_t::load_transform_failed:
+                return "load transformation failed";
             case vkgltf::error_t::unknown:
                 return "unknown";
             default:

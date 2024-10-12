@@ -20,9 +20,12 @@
 #include <fastgltf/types.hpp>
 
 #include <glm/geometric.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+
+#include <mikktspace.h>
 
 #include <spdlog/spdlog.h>
 
@@ -62,62 +65,169 @@ namespace
     constexpr auto texcoord_0_attribute{"TEXCOORD_0"};
     constexpr auto color_attribute{"COLOR_0"};
 
-    void calculate_normals_and_tangents(vkgltf::primitive_t const& primitive,
-        vkgltf::vertex_t* const vertices,
-        uint32_t const* const indices,
-        bool const calculate_normals,
-        bool const calculate_tangents)
+    struct [[nodiscard]] loaded_vertex_t final
     {
-        for (uint32_t i{}; i != primitive.count; i += 3)
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec4 tangent;
+        glm::vec4 color{1.0f};
+        glm::vec2 uv;
+    };
+
+    struct [[nodiscard]] loaded_primitive_t final
+    {
+        VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
+
+        std::vector<loaded_vertex_t> vertices;
+        std::vector<uint32_t> indices;
+
+        size_t material_index{};
+    };
+
+    [[nodiscard]] bool make_unindexed(loaded_primitive_t& primitive)
+    {
+        if (primitive.indices.empty())
         {
-            auto& point1{
-                primitive.is_indexed ? vertices[indices[i]] : vertices[i]};
-            auto& point2{primitive.is_indexed ? vertices[indices[i + 1]]
-                                              : vertices[i + 1]};
-            auto& point3{primitive.is_indexed ? vertices[indices[i + 2]]
-                                              : vertices[i + 2]};
+            return false;
+        }
+
+        std::vector<loaded_vertex_t> new_vertices;
+        new_vertices.reserve(primitive.indices.size());
+        std::ranges::transform(primitive.indices,
+            std::back_inserter(new_vertices),
+            [&primitive](uint32_t const i) { return primitive.vertices[i]; });
+
+        primitive.vertices = std::move(new_vertices);
+        primitive.indices.clear();
+
+        return true;
+    }
+
+    struct [[nodiscard]] loaded_mesh_t final
+    {
+        std::string name;
+        std::vector<loaded_primitive_t> primitives;
+
+        bool consumed{false};
+    };
+
+    void calculate_normals(loaded_primitive_t& primitive)
+    {
+        bool const is_indexed{!primitive.indices.empty()};
+
+        auto& vertices{primitive.vertices};
+        auto const& indices{primitive.indices};
+
+        size_t const vertex_count{
+            is_indexed ? primitive.indices.size() : primitive.vertices.size()};
+        for (uint32_t i{}; i != vertex_count; i += 3)
+        {
+            auto& point1{is_indexed ? vertices[indices[i]] : vertices[i]};
+            auto& point2{
+                is_indexed ? vertices[indices[i + 1]] : vertices[i + 1]};
+            auto& point3{
+                is_indexed ? vertices[indices[i + 2]] : vertices[i + 2]};
 
             glm::vec3 const edge1{point2.position - point1.position};
             glm::vec3 const edge2{point3.position - point1.position};
 
-            if (calculate_normals)
-            {
-                // https://stackoverflow.com/a/57812028
-                glm::vec3 const face_normal{
-                    glm::normalize(glm::cross(edge1, edge2))};
-                point1.normal = face_normal;
-                point2.normal = face_normal;
-                point3.normal = face_normal;
-            }
-
-            if (calculate_tangents)
-            {
-                glm::vec2 const delta_texture1{point2.uv - point1.uv};
-                glm::vec2 const delta_texture2{point3.uv - point1.uv};
-
-                float const f{1.0f /
-                    (delta_texture1.x * delta_texture2.y -
-                        delta_texture2.x * delta_texture1.y)};
-
-                glm::vec3 const tan{
-                    (edge1 * delta_texture2.y - edge2 * delta_texture1.y) * f};
-
-                point1.tangent = glm::vec4{tan, 1.0f};
-                point2.tangent = glm::vec4{tan, 1.0f};
-                point3.tangent = glm::vec4{tan, 1.0f};
-            }
+            // https://stackoverflow.com/a/57812028
+            glm::vec3 const face_normal{
+                glm::normalize(glm::cross(edge1, edge2))};
+            point1.normal = face_normal;
+            point2.normal = face_normal;
+            point3.normal = face_normal;
         }
 
-        if (calculate_normals)
+        for (auto& vertex : primitive.vertices)
         {
-            for (uint32_t i{}; i != primitive.count; i += 3)
-            {
-                auto& point{
-                    primitive.is_indexed ? vertices[indices[i]] : vertices[i]};
-
-                point.normal = glm::normalize(point.normal);
-            }
+            vertex.normal = glm::normalize(vertex.normal);
         }
+    }
+
+    [[nodiscard]] bool calculate_tangents(loaded_primitive_t& primitive)
+    {
+        auto const get_num_faces = [](SMikkTSpaceContext const* context) -> int
+        {
+            auto* const v{static_cast<std::vector<loaded_vertex_t>*>(
+                context->m_pUserData)};
+
+            return cppext::narrow<int>(v->size() / 3);
+        };
+
+        auto const get_num_vertices_of_face =
+            []([[maybe_unused]] SMikkTSpaceContext const* context,
+                [[maybe_unused]] int const face) -> int { return 3; };
+
+        auto const get_position = [](SMikkTSpaceContext const* context,
+                                      float* const out,
+                                      int const face,
+                                      int const vertex)
+        {
+            auto const& v{*static_cast<std::vector<loaded_vertex_t>*>(
+                context->m_pUserData)};
+
+            std::copy_n(
+                glm::value_ptr(
+                    v[cppext::narrow<size_t>(face * 3 + vertex)].position),
+                3,
+                out);
+        };
+
+        auto const get_normal = [](SMikkTSpaceContext const* context,
+                                    float* const out,
+                                    int const face,
+                                    int const vertex)
+        {
+            auto const& v{*static_cast<std::vector<loaded_vertex_t>*>(
+                context->m_pUserData)};
+
+            std::copy_n(
+                glm::value_ptr(
+                    v[cppext::narrow<size_t>(face * 3 + vertex)].normal),
+                3,
+                out);
+        };
+
+        auto const get_uv = [](SMikkTSpaceContext const* context,
+                                float* const out,
+                                int const face,
+                                int const vertex)
+        {
+            auto const& v{*static_cast<std::vector<loaded_vertex_t>*>(
+                context->m_pUserData)};
+
+            std::copy_n(
+                glm::value_ptr(v[cppext::narrow<size_t>(face * 3 + vertex)].uv),
+                2,
+                out);
+        };
+
+        auto const set_tangent = [](SMikkTSpaceContext const* context,
+                                     float const* const tangent,
+                                     float const sign,
+                                     int const face,
+                                     int const vertex)
+        {
+            auto& v{*static_cast<std::vector<loaded_vertex_t>*>(
+                context->m_pUserData)};
+
+            v[cppext::narrow<size_t>(face * 3 + vertex)].tangent =
+                glm::vec4{tangent[0], tangent[1], tangent[2], -sign};
+        };
+
+        SMikkTSpaceInterface interface{.m_getNumFaces = get_num_faces,
+            .m_getNumVerticesOfFace = get_num_vertices_of_face,
+            .m_getPosition = get_position,
+            .m_getNormal = get_normal,
+            .m_getTexCoord = get_uv,
+            .m_setTSpaceBasic = set_tangent,
+            .m_setTSpace = nullptr};
+
+        SMikkTSpaceContext const context{.m_pInterface = &interface,
+            .m_pUserData = &primitive.vertices};
+
+        return static_cast<bool>(genTangSpaceDefault(&context));
     }
 
     template<typename T>
@@ -181,18 +291,19 @@ namespace
         return std::nullopt;
     }
 
-    [[nodiscard]] size_t load_indices(fastgltf::Asset const& asset,
+    [[nodiscard]] void load_indices(fastgltf::Asset const& asset,
         fastgltf::Primitive const& primitive,
-        uint32_t* indices)
+        std::vector<uint32_t>& indices)
     {
         if (!primitive.indicesAccessor.has_value())
         {
-            return 0;
+            return;
         }
 
         auto const& accessor{asset.accessors[*primitive.indicesAccessor]};
-        fastgltf::copyFromAccessor<uint32_t>(asset, accessor, indices);
-        return accessor.count;
+        indices.resize(accessor.count);
+
+        fastgltf::copyFromAccessor<uint32_t>(asset, accessor, indices.data());
     }
 
     [[nodiscard]] tl::expected<vkrndr::image_t, std::error_code> load_image(
@@ -448,53 +559,65 @@ namespace
         return unorm_images;
     }
 
-    void load_mesh(fastgltf::Asset const& asset,
-        size_t const mesh_index,
-        vkgltf::model_t& model,
-        vkgltf::vertex_t*& vertices,
-        int32_t& running_vertex_count,
-        uint32_t*& indices,
-        uint32_t& running_index_count)
+    [[nodiscard]] tl::expected<loaded_mesh_t, std::error_code>
+    load_mesh(fastgltf::Asset const& asset, fastgltf::Mesh const& mesh)
     {
-        auto const vertex_transform =
-            [&vertices](glm::vec3 const v, size_t const idx)
-        { vertices[idx] = {.position = v}; };
-
-        auto const normal_transform =
-            [&vertices](glm::vec3 const n, size_t const idx)
-        { vertices[idx].normal = n; };
-
-        auto const tangent_transform =
-            [&vertices](glm::vec4 const t, size_t const idx)
-        { vertices[idx].tangent = t; };
-
-        auto const color_transform =
-            cppext::overloaded{[&vertices](glm::vec3 const c, size_t const idx)
-                { vertices[idx].color = glm::vec4(c, 1.0f); },
-                [&vertices](glm::vec4 const c, size_t const idx)
-                { vertices[idx].color = c; }};
-
-        auto const texcoord_transform =
-            [&vertices](glm::vec2 const v, size_t const idx)
-        { vertices[idx].uv = v; };
-
-        fastgltf::Mesh const& mesh{asset.meshes[mesh_index]};
-
-        vkgltf::mesh_t m{.name = std::string{mesh.name}};
+        loaded_mesh_t rv{.name = std::string{mesh.name}};
+        rv.primitives.reserve(mesh.primitives.size());
 
         for (fastgltf::Primitive const& primitive : mesh.primitives)
         {
             bool normals_loaded{false};
             bool tangents_loaded{false};
 
-            vkgltf::primitive_t p{
-                .topology = vkgltf::to_vulkan(primitive.type)};
+            loaded_primitive_t p{.topology = vkgltf::to_vulkan(primitive.type)};
+
+            if (auto const* const attr{
+                    primitive.findAttribute(position_attribute)};
+                attr != primitive.attributes.cend())
+            {
+                auto const& accessor{asset.accessors[attr->accessorIndex]};
+                if (!accessor.bufferViewIndex.has_value())
+                {
+                    spdlog::error(
+                        "Primitive in {} mesh doesn't have position attribute",
+                        rv.name);
+
+                    return tl::make_unexpected(make_error_code(
+                        vkgltf::error_t::load_transform_failed));
+                }
+
+                p.vertices.resize(accessor.count);
+            }
+            load_indices(asset, primitive, p.indices);
+
+            auto const vertex_transform =
+                [&vertices = p.vertices](glm::vec3 const v, size_t const idx)
+            { vertices[idx] = {.position = v}; };
+
+            auto const normal_transform =
+                [&vertices = p.vertices](glm::vec3 const n, size_t const idx)
+            { vertices[idx].normal = n; };
+
+            auto const tangent_transform =
+                [&vertices = p.vertices](glm::vec4 const t, size_t const idx)
+            { vertices[idx].tangent = t; };
+
+            auto const color_transform = cppext::overloaded{
+                [&vertices = p.vertices](glm::vec3 const c, size_t const idx)
+                { vertices[idx].color = glm::vec4(c, 1.0f); },
+                [&vertices = p.vertices](glm::vec4 const c, size_t const idx)
+                { vertices[idx].color = c; }};
+
+            auto const texcoord_transform =
+                [&vertices = p.vertices](glm::vec2 const v, size_t const idx)
+            { vertices[idx].uv = v; };
 
             auto const vertex_count{copy_attribute<glm::vec3>(asset,
                 primitive,
                 position_attribute,
                 vertex_transform)};
-            assert(vertex_count);
+            assert(vertex_count == p.vertices.size());
 
             if (auto const normal_count{copy_attribute<glm::vec3>(asset,
                     primitive,
@@ -528,50 +651,70 @@ namespace
                 assert(texcoord_count == vertex_count);
             }
 
-            size_t const index_count{load_indices(asset, primitive, indices)};
-            p.is_indexed = index_count != 0;
-            if (p.is_indexed)
+            if (!normals_loaded)
             {
-                p.count = cppext::narrow<uint32_t>(index_count);
-                p.first = cppext::narrow<uint32_t>(running_index_count);
-                p.vertex_offset = cppext::narrow<int32_t>(running_vertex_count);
-            }
-            else
-            {
-                p.count = cppext::narrow<uint32_t>(*vertex_count);
-                p.first = cppext::narrow<uint32_t>(running_vertex_count);
+                calculate_normals(p);
             }
 
-            if (!normals_loaded || !tangents_loaded)
+            if (!tangents_loaded)
             {
-                calculate_normals_and_tangents(p,
-                    vertices,
-                    indices,
-                    !normals_loaded,
-                    !tangents_loaded);
-            }
+                bool const was_indexed{make_unindexed(p)};
 
-            running_vertex_count += cppext::narrow<int32_t>(*vertex_count);
-            running_index_count += cppext::narrow<uint32_t>(index_count);
+                if (!calculate_tangents(p))
+                {
+                    spdlog::error("Tangent calculation in {} mesh failed",
+                        rv.name);
+
+                    return tl::make_unexpected(make_error_code(
+                        vkgltf::error_t::load_transform_failed));
+                }
+
+                // TODO: Reindex the primitive if it was indexed
+            }
 
             if (primitive.materialIndex)
             {
                 p.material_index = *primitive.materialIndex;
             }
 
-            vertices += *vertex_count;
-            indices += index_count;
-
-            m.primitives.push_back(p);
+            rv.primitives.push_back(std::move(p));
         }
 
-        model.meshes[mesh_index] = std::move(m);
+        return rv;
+    }
+
+    [[nodiscard]] std::vector<loaded_mesh_t> load_meshes(
+        fastgltf::Asset const& asset,
+        size_t& vertex_sum,
+        size_t& index_sum)
+    {
+        std::vector<loaded_mesh_t> rv;
+        rv.reserve(asset.meshes.size());
+
+        for (fastgltf::Mesh const& mesh : asset.meshes)
+        {
+            auto load_result{load_mesh(asset, mesh)};
+            if (!load_result)
+            {
+                throw std::system_error{load_result.error()};
+            }
+
+            rv.push_back(std::move(*load_result));
+
+            for (auto const& primitive : rv.back().primitives)
+            {
+                vertex_sum += primitive.vertices.size();
+                index_sum += primitive.indices.size();
+            }
+        }
+
+        return rv;
     }
 
     void load_node(fastgltf::Asset const& asset,
         size_t const node_index,
-        std::set<size_t>& loaded_meshes,
         vkgltf::model_t& model,
+        std::vector<loaded_mesh_t>& meshes,
         vkgltf::vertex_t*& vertices,
         int32_t& running_vertex_count,
         uint32_t*& indices,
@@ -583,16 +726,60 @@ namespace
 
         if (node.meshIndex)
         {
-            if (!loaded_meshes.contains(*node.meshIndex))
+            if (auto& mesh{meshes[*node.meshIndex]}; !mesh.consumed)
             {
-                load_mesh(asset,
-                    *node.meshIndex,
-                    model,
-                    vertices,
-                    running_vertex_count,
-                    indices,
-                    running_index_count);
-                loaded_meshes.insert(*node.meshIndex);
+                auto& model_mesh{model.meshes[*node.meshIndex]};
+                model_mesh.name = std::move(mesh.name);
+                model_mesh.primitives.reserve(mesh.primitives.size());
+                std::ranges::transform(mesh.primitives,
+                    std::back_inserter(model_mesh.primitives),
+                    [&](loaded_primitive_t& p) mutable
+                    {
+                        vkgltf::primitive_t rv{
+                            .topology = p.topology,
+                            .is_indexed = !p.indices.empty(),
+                            .material_index = p.material_index,
+                        };
+
+                        vertices = std::ranges::transform(p.vertices,
+                            vertices,
+                            [](loaded_vertex_t const& v) -> vkgltf::vertex_t
+                            {
+                                return {.position = v.position,
+                                    .normal = v.normal,
+                                    .tangent = v.tangent,
+                                    .color = v.color,
+                                    .uv = v.uv};
+                            }).out;
+
+                        indices = std::ranges::copy(p.indices, indices).out;
+
+                        if (rv.is_indexed)
+                        {
+                            rv.count =
+                                cppext::narrow<uint32_t>(p.indices.size());
+                            rv.first =
+                                cppext::narrow<uint32_t>(running_index_count);
+                            rv.vertex_offset =
+                                cppext::narrow<int32_t>(running_vertex_count);
+                        }
+                        else
+                        {
+                            rv.count =
+                                cppext::narrow<uint32_t>(p.vertices.size());
+                            rv.first =
+                                cppext::narrow<uint32_t>(running_vertex_count);
+                        }
+
+                        running_index_count +=
+                            cppext::narrow<uint32_t>(p.indices.size());
+                        running_vertex_count +=
+                            cppext::narrow<uint32_t>(p.vertices.size());
+
+                        return rv;
+                    });
+
+                mesh.consumed = true;
             }
 
             n.mesh = &model.meshes[*node.meshIndex];
@@ -607,8 +794,8 @@ namespace
         {
             load_node(asset,
                 i,
-                loaded_meshes,
                 model,
+                meshes,
                 vertices,
                 running_vertex_count,
                 indices,
@@ -620,13 +807,13 @@ namespace
 
     void load_scenes(fastgltf::Asset const& asset,
         vkgltf::model_t& model,
+        std::vector<loaded_mesh_t>& meshes,
         vkgltf::vertex_t* vertices,
         uint32_t* indices)
     {
-        std::set<size_t> loaded_meshes;
-
         int32_t running_vertex_count{};
         uint32_t running_index_count{};
+
         for (fastgltf::Scene const& scene : asset.scenes)
         {
             vkgltf::scene_graph_t s{.name = std::string{scene.name}};
@@ -641,8 +828,8 @@ namespace
             {
                 load_node(asset,
                     node_index,
-                    loaded_meshes,
                     model,
+                    meshes,
                     vertices,
                     running_vertex_count,
                     indices,
@@ -652,34 +839,6 @@ namespace
     }
 
     DISABLE_WARNING_POP
-
-    void collect_primitive_data(fastgltf::Asset const& asset,
-        vkgltf::model_t& model)
-    {
-        for (fastgltf::Mesh const& mesh : asset.meshes)
-        {
-            for (fastgltf::Primitive const& primitive : mesh.primitives)
-            {
-                auto const* const attribute{
-                    primitive.findAttribute(position_attribute)};
-                if (attribute != primitive.attributes.cend())
-                {
-                    auto const& accessor{
-                        asset.accessors[attribute->accessorIndex]};
-                    model.vertex_count +=
-                        cppext::narrow<uint32_t>(accessor.count);
-                }
-
-                if (primitive.indicesAccessor.has_value())
-                {
-                    auto const& accessor{
-                        asset.accessors[*primitive.indicesAccessor]};
-                    model.index_count +=
-                        cppext::narrow<uint32_t>(accessor.count);
-                }
-            }
-        }
-    }
 } // namespace
 
 vkgltf::loader_t::loader_t(vkrndr::backend_t& backend) : backend_{&backend} { }
@@ -722,22 +881,6 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     }
 
     model_t rv;
-    collect_primitive_data(asset.get(), rv);
-    rv.vertex_buffer = vkrndr::create_staging_buffer(backend_->device(),
-        sizeof(vertex_t) * rv.vertex_count);
-    auto vertex_map{vkrndr::map_memory(backend_->device(), rv.vertex_buffer)};
-    auto* const vertices{vertex_map.as<vertex_t>()};
-
-    vkrndr::mapped_memory_t index_map;
-    uint32_t* indices{};
-    if (rv.index_count != 0)
-    {
-        rv.index_buffer = vkrndr::create_staging_buffer(backend_->device(),
-            sizeof(uint32_t) * rv.index_count);
-        index_map = vkrndr::map_memory(backend_->device(), rv.index_buffer);
-        indices = index_map.as<uint32_t>();
-    }
-
     try
     {
         load_samplers(asset.get(), rv);
@@ -745,10 +888,32 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
         std::set<size_t> const unorm_images{load_materials(asset.get(), rv)};
         load_images(backend_, parent_path, unorm_images, asset.get(), rv);
 
+        size_t vertex_count{};
+        size_t index_count{};
+        std::vector<loaded_mesh_t> meshes{
+            load_meshes(asset.get(), vertex_count, index_count)};
+        rv.vertex_count = cppext::narrow<uint32_t>(vertex_count);
+        rv.vertex_buffer = vkrndr::create_staging_buffer(backend_->device(),
+            sizeof(vertex_t) * rv.vertex_count);
+        auto vertex_map{
+            vkrndr::map_memory(backend_->device(), rv.vertex_buffer)};
+        auto* const vertices{vertex_map.as<vertex_t>()};
+
+        vkrndr::mapped_memory_t index_map;
+        uint32_t* indices{};
+        rv.index_count = cppext::narrow<uint32_t>(index_count);
+        if (rv.index_count)
+        {
+            rv.index_buffer = vkrndr::create_staging_buffer(backend_->device(),
+                sizeof(uint32_t) * rv.index_count);
+            index_map = vkrndr::map_memory(backend_->device(), rv.index_buffer);
+            indices = index_map.as<uint32_t>();
+        }
+
         rv.nodes.resize(asset->nodes.size());
         rv.meshes.resize(asset->meshes.size());
 
-        load_scenes(asset.get(), rv, vertices, indices);
+        load_scenes(asset.get(), rv, meshes, vertices, indices);
 
         unmap_memory(backend_->device(), &vertex_map);
         if (indices)
@@ -758,11 +923,6 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     }
     catch (std::exception const& ex)
     {
-        unmap_memory(backend_->device(), &vertex_map);
-        if (indices)
-        {
-            unmap_memory(backend_->device(), &index_map);
-        }
         destroy(&backend_->device(), &rv);
         spdlog::error("Failed to load model: {}", ex.what());
         return tl::make_unexpected(make_error_code(error_t::unknown));
