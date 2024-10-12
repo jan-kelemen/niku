@@ -7,8 +7,8 @@
 
 namespace cppext
 {
-    template<std::integral To>
-    [[nodiscard]] constexpr To narrow(std::integral auto const value)
+    template<std::integral To, std::integral From>
+    [[nodiscard]] constexpr To narrow(From const value)
     {
         assert(std::in_range<To>(value));
         return static_cast<To>(value);

@@ -25,6 +25,8 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include <meshoptimizer.h>
+
 #include <mikktspace.h>
 
 #include <spdlog/spdlog.h>
@@ -101,6 +103,43 @@ namespace
         primitive.indices.clear();
 
         return true;
+    }
+
+    void make_indexed(loaded_primitive_t& primitive)
+    {
+        size_t const index_count{primitive.vertices.size()};
+        size_t const unindexed_vertex_count{primitive.vertices.size()};
+
+        std::vector<unsigned int> remap;
+        remap.resize(index_count);
+
+        size_t const vertex_count{meshopt_generateVertexRemap(remap.data(),
+            nullptr,
+            index_count,
+            primitive.vertices.data(),
+            unindexed_vertex_count,
+            sizeof(loaded_vertex_t))};
+
+        std::vector<unsigned int> new_indices;
+        new_indices.resize(index_count);
+        meshopt_remapIndexBuffer(new_indices.data(),
+            nullptr,
+            index_count,
+            remap.data());
+
+        std::vector<loaded_vertex_t> new_vertices;
+        new_vertices.resize(vertex_count);
+        meshopt_remapVertexBuffer(new_vertices.data(),
+            primitive.vertices.data(),
+            unindexed_vertex_count,
+            sizeof(loaded_vertex_t),
+            remap.data());
+        primitive.vertices = std::move(new_vertices);
+
+        primitive.indices.resize(new_indices.size());
+        std::ranges::transform(new_indices,
+            std::begin(primitive.indices),
+            cppext::narrow<uint32_t, unsigned int>);
     }
 
     struct [[nodiscard]] loaded_mesh_t final
@@ -669,7 +708,10 @@ namespace
                         vkgltf::error_t::load_transform_failed));
                 }
 
-                // TODO: Reindex the primitive if it was indexed
+                if (was_indexed)
+                {
+                    make_indexed(p);
+                }
             }
 
             if (primitive.materialIndex)
