@@ -69,11 +69,11 @@ namespace
 
     struct [[nodiscard]] loaded_vertex_t final
     {
-        glm::vec3 position;
-        glm::vec3 normal;
-        glm::vec4 tangent;
+        glm::vec3 position{};
+        glm::vec3 normal{};
+        glm::vec4 tangent{};
         glm::vec4 color{1.0f};
-        glm::vec2 uv;
+        glm::vec2 uv{};
     };
 
     struct [[nodiscard]] loaded_primitive_t final
@@ -120,13 +120,6 @@ namespace
             unindexed_vertex_count,
             sizeof(loaded_vertex_t))};
 
-        std::vector<unsigned int> new_indices;
-        new_indices.resize(index_count);
-        meshopt_remapIndexBuffer(new_indices.data(),
-            nullptr,
-            index_count,
-            remap.data());
-
         std::vector<loaded_vertex_t> new_vertices;
         new_vertices.resize(vertex_count);
         meshopt_remapVertexBuffer(new_vertices.data(),
@@ -136,10 +129,28 @@ namespace
             remap.data());
         primitive.vertices = std::move(new_vertices);
 
-        primitive.indices.resize(new_indices.size());
-        std::ranges::transform(new_indices,
-            std::begin(primitive.indices),
-            cppext::narrow<uint32_t, unsigned int>);
+        if constexpr (std::is_same_v<unsigned int, uint32_t>)
+        {
+            primitive.indices.resize(index_count);
+            meshopt_remapIndexBuffer(primitive.indices.data(),
+                nullptr,
+                index_count,
+                remap.data());
+        }
+        else
+        {
+            std::vector<unsigned int> new_indices;
+            new_indices.resize(index_count);
+            meshopt_remapIndexBuffer(new_indices.data(),
+                nullptr,
+                index_count,
+                remap.data());
+
+            primitive.indices.resize(new_indices.size());
+            std::ranges::transform(new_indices,
+                std::begin(primitive.indices),
+                cppext::narrow<uint32_t, unsigned int>);
+        }
     }
 
     struct [[nodiscard]] loaded_mesh_t final
@@ -330,7 +341,7 @@ namespace
         return std::nullopt;
     }
 
-    [[nodiscard]] void load_indices(fastgltf::Asset const& asset,
+    void load_indices(fastgltf::Asset const& asset,
         fastgltf::Primitive const& primitive,
         std::vector<uint32_t>& indices)
     {
@@ -816,7 +827,7 @@ namespace
                         running_index_count +=
                             cppext::narrow<uint32_t>(p.indices.size());
                         running_vertex_count +=
-                            cppext::narrow<uint32_t>(p.vertices.size());
+                            cppext::narrow<int32_t>(p.vertices.size());
 
                         return rv;
                     });

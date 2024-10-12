@@ -60,9 +60,8 @@ namespace vkrndr
             VkPushConstantRange push_constant_range);
 
         template<typename T>
-        pipeline_layout_builder_t& add_push_constants(
-            VkShaderStageFlags const stage_flags,
-            uint32_t const offset = 0);
+        pipeline_layout_builder_t&
+        add_push_constants(VkShaderStageFlags stage_flags, uint32_t offset = 0);
 
     public:
         pipeline_layout_builder_t& operator=(
@@ -82,8 +81,10 @@ namespace vkrndr
         VkShaderStageFlags const stage_flags,
         uint32_t const offset)
     {
+        // cppcheck-suppress-begin returnTempReference
         return add_push_constants(
             {.stageFlags = stage_flags, .offset = offset, .size = sizeof(T)});
+        // cppcheck-suppress-end returnTempReference
     }
 
     class [[nodiscard]] pipeline_builder_t final
