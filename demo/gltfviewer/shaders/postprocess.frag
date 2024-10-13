@@ -6,7 +6,7 @@
 
 layout(location = 0) in vec2 inUV;
 
-layout (constant_id = 0) const int SAMPLES = 8;
+layout(constant_id = 0) const int SAMPLES = 8;
 
 layout(push_constant) uniform PushConsts {
     float gamma;

@@ -11,6 +11,8 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_render_pass.hpp>
+#include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -60,20 +62,8 @@ namespace
         uniform_binding.stageFlags =
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array const bindings{uniform_binding};
-
-        VkDescriptorSetLayoutCreateInfo layout_info{};
-        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_info.bindingCount = vkrndr::count_cast(bindings.size());
-        layout_info.pBindings = bindings.data();
-
-        VkDescriptorSetLayout rv; // NOLINT
-        vkrndr::check_result(vkCreateDescriptorSetLayout(device.logical,
-            &layout_info,
-            nullptr,
-            &rv));
-
-        return rv;
+        return vkrndr::create_descriptor_set_layout(device,
+            std::span{&uniform_binding, 1});
     }
 
     void update_descriptor_set(vkrndr::device_t const& device,
@@ -96,6 +86,95 @@ namespace
             descriptor_writes.data(),
             0,
             nullptr);
+    }
+
+    [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
+    {
+        VkPhysicalDeviceProperties properties; // NOLINT
+        vkGetPhysicalDeviceProperties(device.physical, &properties);
+
+        VkSamplerCreateInfo sampler_info{};
+        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_info.magFilter = VK_FILTER_NEAREST;
+        sampler_info.minFilter = VK_FILTER_NEAREST;
+        sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.anisotropyEnable = VK_TRUE;
+        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+        sampler_info.unnormalizedCoordinates = VK_FALSE;
+        sampler_info.compareEnable = VK_FALSE;
+        sampler_info.compareOp = VK_COMPARE_OP_NEVER;
+        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        sampler_info.mipLodBias = 0.0f;
+        sampler_info.minLod = 0.0f;
+        sampler_info.maxLod = 1.0f;
+
+        VkSampler rv; // NOLINT
+        vkrndr::check_result(
+            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+
+        return rv;
+    }
+
+    [[nodiscard]] VkDescriptorSetLayout create_cubemap_descriptor_set_layout(
+        vkrndr::device_t const& device)
+    {
+        VkDescriptorSetLayoutBinding cubemap_binding{};
+        cubemap_binding.binding = 0;
+        cubemap_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        cubemap_binding.descriptorCount = 1;
+        cubemap_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        return vkrndr::create_descriptor_set_layout(device,
+            std::span{&cubemap_binding, 1});
+    }
+
+    void update_cubemap_descriptor(vkrndr::device_t const& device,
+        VkDescriptorSet const descriptor_set,
+        VkDescriptorImageInfo const cubemap_sampler)
+    {
+        VkWriteDescriptorSet uniform_write{};
+        uniform_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        uniform_write.dstSet = descriptor_set;
+        uniform_write.dstBinding = 0;
+        uniform_write.dstArrayElement = 0;
+        uniform_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        uniform_write.descriptorCount = 1;
+        uniform_write.pImageInfo = &cubemap_sampler;
+
+        std::array const descriptor_writes{uniform_write};
+
+        vkUpdateDescriptorSets(device.logical,
+            vkrndr::count_cast(descriptor_writes.size()),
+            descriptor_writes.data(),
+            0,
+            nullptr);
+    }
+
+    consteval auto binding_description()
+    {
+        constexpr std::array descriptions{
+            VkVertexInputBindingDescription{.binding = 0,
+                .stride = sizeof(glm::vec3),
+                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+        };
+
+        return descriptions;
+    }
+
+    consteval auto attribute_descriptions()
+    {
+        constexpr std::array descriptions{
+            VkVertexInputAttributeDescription{.location = 0,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = 0}};
+
+        return descriptions;
     }
 } // namespace
 
@@ -153,7 +232,23 @@ gltfviewer::environment_t::~environment_t()
         descriptor_layout_,
         nullptr);
 
-    destroy(&backend_->device(), &hdr_texture_);
+    destroy(&backend_->device(), &cubemap_pipeline_);
+
+    vkrndr::free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        std::span{&cubemap_descriptor_, 1});
+
+    vkDestroyDescriptorSetLayout(backend_->device().logical,
+        cubemap_descriptor_layout_,
+        nullptr);
+
+    vkDestroySampler(backend_->device().logical, cubemap_sampler_, nullptr);
+
+    destroy(&backend_->device(), &cubemap_index_buffer_);
+
+    destroy(&backend_->device(), &cubemap_vertex_buffer_);
+
+    destroy(&backend_->device(), &cubemap_texture_);
 }
 
 VkDescriptorSetLayout gltfviewer::environment_t::descriptor_layout() const
@@ -225,6 +320,7 @@ void gltfviewer::environment_t::load_hdr(std::filesystem::path const& hdr_image)
     int width; // NOLINT
     int height; // NOLINT
     int components; // NOLINT
+    stbi_set_flip_vertically_on_load(1);
     float* const hdr_texture_data{stbi_loadf(hdr_image.string().c_str(),
         &width,
         &height,
@@ -233,11 +329,176 @@ void gltfviewer::environment_t::load_hdr(std::filesystem::path const& hdr_image)
     assert(hdr_texture_data);
 
     auto const hdr_extent{vkrndr::to_extent(width, height)};
-    hdr_texture_ = backend_->transfer_image(
+    cubemap_texture_ = backend_->transfer_image(
         vkrndr::as_bytes(std::span{hdr_texture_data,
             size_t{hdr_extent.width} * hdr_extent.height * 4}),
         hdr_extent,
         VK_FORMAT_R32G32B32A32_SFLOAT,
         1);
     stbi_image_free(hdr_texture_data);
+
+    {
+        auto staging_buffer{vkrndr::create_staging_buffer(backend_->device(),
+            sizeof(glm::vec3) * 8)};
+        auto map{vkrndr::map_memory(backend_->device(), staging_buffer)};
+
+        glm::vec3* const vertices{map.as<glm::vec3>()};
+        vertices[0] = glm::vec3{-0.5, -0.5, -0.5};
+        vertices[1] = glm::vec3{0.5, -0.5, -0.5};
+        vertices[2] = glm::vec3{0.5, 0.5, -0.5};
+        vertices[3] = glm::vec3{-0.5, 0.5, -0.5};
+        vertices[4] = glm::vec3{-0.5, -0.5, 0.5};
+        vertices[5] = glm::vec3{0.5, -0.5, 0.5};
+        vertices[6] = glm::vec3{0.5, 0.5, 0.5};
+        vertices[7] = glm::vec3{-0.5, 0.5, 0.5};
+
+        unmap_memory(backend_->device(), &map);
+
+        cubemap_vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
+            staging_buffer.size,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        backend_->transfer_buffer(staging_buffer, cubemap_vertex_buffer_);
+
+        destroy(&backend_->device(), &staging_buffer);
+    }
+
+    {
+        auto staging_buffer{vkrndr::create_staging_buffer(backend_->device(),
+            sizeof(uint32_t) * 36)};
+        auto map{vkrndr::map_memory(backend_->device(), staging_buffer)};
+
+        uint32_t* const indices{map.as<uint32_t>()};
+
+        indices[0] = 0;
+        indices[1] = 1;
+        indices[2] = 2;
+        indices[3] = 0;
+        indices[4] = 2;
+        indices[5] = 3;
+
+        indices[6] = 4;
+        indices[7] = 6;
+        indices[8] = 5;
+        indices[9] = 4;
+        indices[10] = 7;
+        indices[11] = 6;
+
+        indices[12] = 0;
+        indices[13] = 3;
+        indices[14] = 7;
+        indices[15] = 0;
+        indices[16] = 7;
+        indices[17] = 4;
+
+        indices[18] = 1;
+        indices[19] = 5;
+        indices[20] = 6;
+        indices[21] = 1;
+        indices[22] = 6;
+        indices[23] = 2;
+
+        indices[24] = 3;
+        indices[25] = 2;
+        indices[26] = 6;
+        indices[27] = 3;
+        indices[28] = 6;
+        indices[29] = 7;
+
+        indices[30] = 0;
+        indices[31] = 4;
+        indices[32] = 5;
+        indices[33] = 0;
+        indices[34] = 5;
+        indices[35] = 1;
+
+        unmap_memory(backend_->device(), &map);
+
+        cubemap_index_buffer_ = vkrndr::create_buffer(backend_->device(),
+            staging_buffer.size,
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        backend_->transfer_buffer(staging_buffer, cubemap_index_buffer_);
+
+        destroy(&backend_->device(), &staging_buffer);
+    }
+
+    cubemap_sampler_ = create_sampler(backend_->device());
+
+    cubemap_descriptor_layout_ =
+        create_cubemap_descriptor_set_layout(backend_->device());
+
+    vkrndr::create_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        std::span{&cubemap_descriptor_layout_, 1},
+        std::span{&cubemap_descriptor_, 1});
+
+    update_cubemap_descriptor(backend_->device(),
+        cubemap_descriptor_,
+        vkrndr::combined_sampler_descriptor(cubemap_sampler_,
+            cubemap_texture_));
+
+    auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
+        "equirectangular_to_cubemap.vert.spv",
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "main")};
+
+    auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
+        "equirectangular_to_cubemap.frag.spv",
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "main")};
+
+    cubemap_pipeline_ =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
+                .add_descriptor_set_layout(descriptor_layout_)
+                .add_descriptor_set_layout(cubemap_descriptor_layout_)
+                .build(),
+            VK_FORMAT_R16G16B16A16_SFLOAT}
+            .add_shader(as_pipeline_shader(vertex_shader))
+            .add_shader(as_pipeline_shader(fragment_shader))
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(backend_->device().max_msaa_samples)
+            .add_vertex_input(binding_description(), attribute_descriptions())
+            .build();
+
+    destroy(&backend_->device(), &vertex_shader);
+    destroy(&backend_->device(), &fragment_shader);
+}
+
+void gltfviewer::environment_t::draw(VkCommandBuffer command_buffer,
+    vkrndr::image_t const& color_image)
+{
+    vkrndr::render_pass_t color_render_pass;
+    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        color_image.view);
+
+    [[maybe_unused]] auto guard{
+        color_render_pass.begin(command_buffer, {{0, 0}, color_image.extent})};
+
+    VkDeviceSize const zero_offset{};
+    vkCmdBindVertexBuffers(command_buffer,
+        0,
+        1,
+        &cubemap_vertex_buffer_.buffer,
+        &zero_offset);
+
+    vkCmdBindIndexBuffer(command_buffer,
+        cubemap_index_buffer_.buffer,
+        0,
+        VK_INDEX_TYPE_UINT32);
+
+    bind_on(command_buffer,
+        *cubemap_pipeline_.layout,
+        VK_PIPELINE_BIND_POINT_GRAPHICS);
+    vkrndr::bind_pipeline(command_buffer,
+        cubemap_pipeline_,
+        1,
+        std::span{&cubemap_descriptor_, 1});
+
+    vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
 }

@@ -40,20 +40,8 @@ namespace
         combined_sampler_binding.descriptorCount = 1;
         combined_sampler_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array const bindings{combined_sampler_binding};
-
-        VkDescriptorSetLayoutCreateInfo layout_info{};
-        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_info.bindingCount = vkrndr::count_cast(bindings.size());
-        layout_info.pBindings = bindings.data();
-
-        VkDescriptorSetLayout rv; // NOLINT
-        vkrndr::check_result(vkCreateDescriptorSetLayout(device.logical,
-            &layout_info,
-            nullptr,
-            &rv));
-
-        return rv;
+        return vkrndr::create_descriptor_set_layout(device,
+            std::span{&combined_sampler_binding, 1});
     }
 
     void bind_descriptor_set(vkrndr::device_t const& device,

@@ -234,6 +234,8 @@ void gltfviewer::application_t::draw()
 
     pbr_renderer_->draw(command_buffer, color_image_);
 
+    environment_->draw(command_buffer, color_image_);
+
     vkrndr::transition_image(color_image_.image,
         command_buffer,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
