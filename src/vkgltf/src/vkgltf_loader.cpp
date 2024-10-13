@@ -49,6 +49,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <type_traits>
 #include <typeinfo>
 #include <utility>
 #include <variant>
@@ -69,7 +70,7 @@ namespace
 
     struct [[nodiscard]] loaded_vertex_t final
     {
-        glm::vec3 position{};
+        float position[3];
         glm::vec3 normal{};
         glm::vec4 tangent{};
         glm::vec4 color{1.0f};
@@ -81,7 +82,7 @@ namespace
         VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
 
         std::vector<loaded_vertex_t> vertices;
-        std::vector<uint32_t> indices;
+        std::vector<unsigned int> indices;
 
         size_t material_index{};
     };
@@ -97,7 +98,8 @@ namespace
         new_vertices.reserve(primitive.indices.size());
         std::ranges::transform(primitive.indices,
             std::back_inserter(new_vertices),
-            [&primitive](uint32_t const i) { return primitive.vertices[i]; });
+            [&primitive](unsigned int const i)
+            { return primitive.vertices[i]; });
 
         primitive.vertices = std::move(new_vertices);
         primitive.indices.clear();
@@ -129,28 +131,11 @@ namespace
             remap.data());
         primitive.vertices = std::move(new_vertices);
 
-        if constexpr (std::is_same_v<unsigned int, uint32_t>)
-        {
-            primitive.indices.resize(index_count);
-            meshopt_remapIndexBuffer(primitive.indices.data(),
-                nullptr,
-                index_count,
-                remap.data());
-        }
-        else
-        {
-            std::vector<unsigned int> new_indices;
-            new_indices.resize(index_count);
-            meshopt_remapIndexBuffer(new_indices.data(),
-                nullptr,
-                index_count,
-                remap.data());
-
-            primitive.indices.resize(new_indices.size());
-            std::ranges::transform(new_indices,
-                std::begin(primitive.indices),
-                cppext::narrow<uint32_t, unsigned int>);
-        }
+        primitive.indices.resize(index_count);
+        meshopt_remapIndexBuffer(primitive.indices.data(),
+            nullptr,
+            index_count,
+            remap.data());
     }
 
     struct [[nodiscard]] loaded_mesh_t final
@@ -178,8 +163,10 @@ namespace
             auto& point3{
                 is_indexed ? vertices[indices[i + 2]] : vertices[i + 2]};
 
-            glm::vec3 const edge1{point2.position - point1.position};
-            glm::vec3 const edge2{point3.position - point1.position};
+            glm::vec3 const edge1{glm::make_vec3(point2.position) -
+                glm::make_vec3(point1.position)};
+            glm::vec3 const edge2{glm::make_vec3(point3.position) -
+                glm::make_vec3(point1.position)};
 
             // https://stackoverflow.com/a/57812028
             glm::vec3 const face_normal{
@@ -217,9 +204,7 @@ namespace
             auto const& v{*static_cast<std::vector<loaded_vertex_t>*>(
                 context->m_pUserData)};
 
-            std::copy_n(
-                glm::value_ptr(
-                    v[cppext::narrow<size_t>(face * 3 + vertex)].position),
+            std::copy_n(v[cppext::narrow<size_t>(face * 3 + vertex)].position,
                 3,
                 out);
         };
@@ -343,7 +328,7 @@ namespace
 
     void load_indices(fastgltf::Asset const& asset,
         fastgltf::Primitive const& primitive,
-        std::vector<uint32_t>& indices)
+        std::vector<unsigned int>& indices)
     {
         if (!primitive.indicesAccessor.has_value())
         {
@@ -353,7 +338,9 @@ namespace
         auto const& accessor{asset.accessors[*primitive.indicesAccessor]};
         indices.resize(accessor.count);
 
-        fastgltf::copyFromAccessor<uint32_t>(asset, accessor, indices.data());
+        fastgltf::copyFromAccessor<unsigned int>(asset,
+            accessor,
+            indices.data());
     }
 
     [[nodiscard]] tl::expected<vkrndr::image_t, std::error_code> load_image(
@@ -643,7 +630,7 @@ namespace
 
             auto const vertex_transform =
                 [&vertices = p.vertices](glm::vec3 const v, size_t const idx)
-            { vertices[idx] = {.position = v}; };
+            { std::copy_n(glm::value_ptr(v), 3, vertices[idx].position); };
 
             auto const normal_transform =
                 [&vertices = p.vertices](glm::vec3 const n, size_t const idx)
@@ -667,6 +654,14 @@ namespace
                 primitive,
                 position_attribute,
                 vertex_transform)};
+            if (!vertex_count)
+            {
+                spdlog::error("Primitive in {} mesh failed to load positions",
+                    rv.name);
+
+                return tl::make_unexpected(
+                    make_error_code(vkgltf::error_t::load_transform_failed));
+            }
             assert(vertex_count == p.vertices.size());
 
             if (auto const normal_count{copy_attribute<glm::vec3>(asset,
@@ -724,6 +719,26 @@ namespace
                     make_indexed(p);
                 }
             }
+
+            meshopt_optimizeVertexCache(p.indices.data(),
+                p.indices.data(),
+                p.indices.size(),
+                p.vertices.size());
+
+            meshopt_optimizeOverdraw(p.indices.data(),
+                p.indices.data(),
+                p.indices.size(),
+                &p.vertices[0].position[0],
+                p.vertices.size(),
+                sizeof(loaded_vertex_t),
+                1.05f);
+
+            meshopt_optimizeVertexFetch(p.vertices.data(),
+                p.indices.data(),
+                p.indices.size(),
+                p.vertices.data(),
+                p.vertices.size(),
+                sizeof(loaded_vertex_t));
 
             if (primitive.materialIndex)
             {
@@ -798,14 +813,25 @@ namespace
                             vertices,
                             [](loaded_vertex_t const& v) -> vkgltf::vertex_t
                             {
-                                return {.position = v.position,
+                                return {.position = glm::make_vec3(v.position),
                                     .normal = v.normal,
                                     .tangent = v.tangent,
                                     .color = v.color,
                                     .uv = v.uv};
                             }).out;
 
-                        indices = std::ranges::copy(p.indices, indices).out;
+                        if constexpr (std::is_same_v<uint32_t, unsigned int>)
+                        {
+                            indices = std::ranges::copy(p.indices, indices).out;
+                        }
+                        else
+                        {
+                            // clang-format off
+                            indices = std::ranges::transform(p.indices,
+                                indices,
+                                cppext::narrow<uint32_t, unsigned int>).out;
+                            // clang-format on
+                        }
 
                         if (rv.is_indexed)
                         {
