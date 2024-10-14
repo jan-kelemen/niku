@@ -10,6 +10,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
@@ -20,6 +21,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.cpp
 )
 
 target_include_directories(gltfviewer
@@ -86,6 +88,20 @@ compile_shader(
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.vert.spv
 )
 
+compile_shader(
+    SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/skybox.frag.spv
+)
+
+compile_shader(
+    SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/skybox.vert.spv
+)
+
 add_custom_target(gltfviewer_shaders
     DEPENDS
         ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.frag.spv
@@ -93,7 +109,9 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.vert.spv 
+        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.vert.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/skybox.frag.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/skybox.vert.spv
 )
 
 add_custom_target(gltfviewer_assets

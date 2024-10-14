@@ -4,7 +4,6 @@
 #include <cppext_cycled_buffer.hpp>
 
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_cubemap.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -13,7 +12,6 @@
 
 #include <volk.h>
 
-#include <filesystem>
 #include <vector>
 
 namespace niku
@@ -49,11 +47,6 @@ namespace gltfviewer
             VkPipelineLayout layout,
             VkPipelineBindPoint bind_point);
 
-        void load_hdr(std::filesystem::path const& hdr_image);
-
-        void draw(VkCommandBuffer command_buffer,
-            vkrndr::image_t const& color_image);
-
     public:
         environment_t& operator=(environment_t const&) = delete;
 
@@ -79,16 +72,6 @@ namespace gltfviewer
         vkrndr::backend_t* backend_;
 
         std::vector<light_t> lights_;
-
-        vkrndr::image_t cubemap_texture_;
-        vkrndr::cubemap_t cubemap_;
-        vkrndr::buffer_t cubemap_vertex_buffer_;
-        vkrndr::buffer_t cubemap_index_buffer_;
-        vkrndr::buffer_t cubemap_uniform_buffer_;
-        VkSampler cubemap_sampler_;
-        VkDescriptorSetLayout cubemap_descriptor_layout_;
-        VkDescriptorSet cubemap_descriptor_;
-        vkrndr::pipeline_t cubemap_pipeline_;
 
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
 
