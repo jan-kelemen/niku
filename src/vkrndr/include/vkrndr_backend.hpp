@@ -6,6 +6,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
+#include <vkrndr_transient_operation.hpp>
 
 #include <cppext_cycled_buffer.hpp>
 
@@ -74,7 +75,9 @@ namespace vkrndr
 
         void end_frame();
 
-        [[nodiscard]] VkCommandBuffer request_command_buffer(
+        [[nodiscard]] VkCommandBuffer request_command_buffer();
+
+        [[nodiscard]] transient_operation_t request_transient_operation(
             bool transfer_only);
 
         void draw();
@@ -103,13 +106,12 @@ namespace vkrndr
         {
             execution_port_t* present_queue{};
             std::unique_ptr<command_pool_t> present_command_pool;
+            std::unique_ptr<command_pool_t> present_transient_command_pool;
             std::vector<VkCommandBuffer> present_command_buffers;
             size_t used_present_command_buffers{};
 
             execution_port_t* transfer_queue{};
-            std::unique_ptr<command_pool_t> transfer_command_pool;
-            std::vector<VkCommandBuffer> transfer_command_buffers;
-            size_t used_transfer_command_buffers{};
+            std::unique_ptr<command_pool_t> transfer_transient_command_pool;
         };
 
     private: // Data

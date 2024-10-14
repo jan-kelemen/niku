@@ -88,10 +88,15 @@ vkrndr::backend_t::backend_t(window_t const& window,
         fd.present_queue = device_.present_queue;
         fd.present_command_pool = std::make_unique<command_pool_t>(device_,
             fd.present_queue->queue_family());
+        fd.present_transient_command_pool =
+            std::make_unique<command_pool_t>(device_,
+                fd.present_queue->queue_family(),
+                VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
         fd.transfer_queue = device_.transfer_queue;
-        fd.transfer_command_pool = std::make_unique<command_pool_t>(device_,
-            fd.transfer_queue->queue_family());
+        fd.transfer_transient_command_pool =
+            std::make_unique<command_pool_t>(device_,
+                fd.transfer_queue->queue_family());
     };
 }
 
@@ -100,7 +105,8 @@ vkrndr::backend_t::~backend_t()
     for (frame_data_t& fd : frame_data_.as_span())
     {
         fd.present_command_pool.reset();
-        fd.transfer_command_pool.reset();
+        fd.present_transient_command_pool.reset();
+        fd.transfer_transient_command_pool.reset();
     };
 
     vkDestroyDescriptorPool(device_.logical, descriptor_pool_, nullptr);
@@ -160,47 +166,19 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
     }
 
     frame_data_->present_command_pool->reset();
-    frame_data_->transfer_command_pool->reset();
+    frame_data_->transfer_transient_command_pool->reset();
 
     return true;
 }
 
 void vkrndr::backend_t::end_frame()
 {
-    frame_data_.cycle(
-        [](frame_data_t& fd, frame_data_t const&)
-        {
-            fd.used_present_command_buffers = 0;
-            fd.used_transfer_command_buffers = 0;
-        });
+    frame_data_.cycle([](frame_data_t& fd, frame_data_t const&)
+        { fd.used_present_command_buffers = 0; });
 }
 
-VkCommandBuffer vkrndr::backend_t::request_command_buffer(
-    bool const transfer_only)
+VkCommandBuffer vkrndr::backend_t::request_command_buffer()
 {
-    if (transfer_only)
-    {
-        if (frame_data_->used_transfer_command_buffers ==
-            frame_data_->transfer_command_buffers.size())
-        {
-            frame_data_->transfer_command_buffers.resize(
-                frame_data_->transfer_command_buffers.size() + 1);
-
-            frame_data_->transfer_command_pool->allocate_command_buffers(true,
-                1,
-                std::span{&frame_data_->transfer_command_buffers.back(), 1});
-        }
-
-        VkCommandBuffer rv{frame_data_->transfer_command_buffers
-                               [frame_data_->used_transfer_command_buffers++]};
-
-        VkCommandBufferBeginInfo begin_info{};
-        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        check_result(vkBeginCommandBuffer(rv, &begin_info));
-
-        return rv;
-    }
-
     if (frame_data_->used_present_command_buffers ==
         frame_data_->present_command_buffers.size())
     {
@@ -219,6 +197,21 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer(
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     check_result(vkBeginCommandBuffer(rv, &begin_info));
     return rv;
+}
+
+vkrndr::transient_operation_t vkrndr::backend_t::request_transient_operation(
+    bool const transfer_only)
+{
+    if (transfer_only)
+    {
+        return {*frame_data_->transfer_queue,
+            *frame_data_->transfer_transient_command_pool};
+    }
+    else
+    {
+        return {*frame_data_->present_queue,
+            *frame_data_->present_transient_command_pool};
+    }
 }
 
 void vkrndr::backend_t::draw()
@@ -273,37 +266,25 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT)};
 
-    execution_port_t* const queue{frame_data_->present_queue};
-
-    VkCommandBuffer present_queue_buffer; // NOLINT
-    begin_single_time_commands(*frame_data_->present_command_pool,
-        1,
-        std::span{&present_queue_buffer, 1});
-
-    wait_for_transfer_write(image.image, present_queue_buffer, mip_levels);
-    copy_buffer_to_image(present_queue_buffer,
-        source.buffer,
-        image.image,
-        extent);
-    if (mip_levels == 1)
     {
-        wait_for_transfer_write_completed(image.image,
-            present_queue_buffer,
-            mip_levels);
+        auto transient{request_transient_operation(false)};
+        auto cb{transient.command_buffer()};
+        wait_for_transfer_write(image.image, cb, mip_levels);
+        copy_buffer_to_image(cb, source.buffer, image.image, extent);
+        if (mip_levels == 1)
+        {
+            wait_for_transfer_write_completed(image.image, cb, mip_levels);
+        }
+        else
+        {
+            generate_mipmaps(device_,
+                image.image,
+                cb,
+                format,
+                extent,
+                mip_levels);
+        }
     }
-    else
-    {
-        generate_mipmaps(device_,
-            image.image,
-            present_queue_buffer,
-            format,
-            extent,
-            mip_levels);
-    }
-
-    end_single_time_commands(*frame_data_->present_command_pool,
-        *queue,
-        std::span{&present_queue_buffer, 1});
 
     return image;
 }
@@ -311,19 +292,9 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
 void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
     buffer_t const& target)
 {
-    execution_port_t* const transfer_queue{frame_data_->transfer_queue};
-
-    VkCommandBuffer command_buffer; // NOLINT
-    begin_single_time_commands(*frame_data_->transfer_command_pool,
-        1,
-        std::span{&command_buffer, 1});
-
-    copy_buffer_to_buffer(command_buffer,
+    auto transient{request_transient_operation(true)};
+    copy_buffer_to_buffer(transient.command_buffer(),
         source.buffer,
         source.size,
         target.buffer);
-
-    end_single_time_commands(*frame_data_->transfer_command_pool,
-        *transfer_queue,
-        std::span{&command_buffer, 1});
 }
