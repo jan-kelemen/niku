@@ -1,12 +1,13 @@
 #ifndef GLTFVIEWER_ENVIRONMENT_INCLUDED
 #define GLTFVIEWER_ENVIRONMENT_INCLUDED
 
-#include "vkrndr_pipeline.hpp"
 #include <cppext_cycled_buffer.hpp>
 
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_cubemap.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
 
 #include <glm/vec3.hpp>
 
@@ -80,8 +81,10 @@ namespace gltfviewer
         std::vector<light_t> lights_;
 
         vkrndr::image_t cubemap_texture_;
+        vkrndr::cubemap_t cubemap_;
         vkrndr::buffer_t cubemap_vertex_buffer_;
         vkrndr::buffer_t cubemap_index_buffer_;
+        vkrndr::buffer_t cubemap_uniform_buffer_;
         VkSampler cubemap_sampler_;
         VkDescriptorSetLayout cubemap_descriptor_layout_;
         VkDescriptorSet cubemap_descriptor_;
