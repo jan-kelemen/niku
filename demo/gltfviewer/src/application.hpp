@@ -81,6 +81,7 @@ namespace gltfviewer
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<niku::imgui_layer_t> imgui_;
         vkrndr::image_t color_image_;
+        vkrndr::image_t depth_buffer_;
         std::unique_ptr<environment_t> environment_;
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;

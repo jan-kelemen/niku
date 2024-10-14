@@ -37,12 +37,12 @@ namespace gltfviewer
         void load(vkgltf::model_t&& model,
             VkDescriptorSetLayout environment_layout,
             VkDescriptorSetLayout materials_layout,
-            VkDescriptorSetLayout graph_layout);
+            VkDescriptorSetLayout graph_layout,
+            VkFormat depth_buffer_format);
 
         void draw(VkCommandBuffer command_buffer,
-            vkrndr::image_t const& color_image);
-
-        void resize(uint32_t width, uint32_t height);
+            vkrndr::image_t const& color_image,
+            vkrndr::image_t const& depth_buffer);
 
     public:
         pbr_renderer_t& operator=(pbr_renderer_t const&) = delete;
@@ -51,8 +51,6 @@ namespace gltfviewer
 
     private:
         vkrndr::backend_t* backend_;
-
-        vkrndr::image_t depth_buffer_;
 
         vkgltf::model_t model_;
 

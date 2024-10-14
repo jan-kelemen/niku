@@ -5,7 +5,6 @@
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -194,10 +193,6 @@ namespace
 
 gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
     : backend_{&backend}
-    , depth_buffer_{vkrndr::create_depth_buffer(backend_->device(),
-          backend_->extent(),
-          false,
-          backend_->device().max_msaa_samples)}
 {
 }
 
@@ -209,7 +204,6 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
     destroy(&backend_->device(), &double_sided_pipeline_);
     destroy(&backend_->device(), &fragment_shader_);
     destroy(&backend_->device(), &vertex_shader_);
-    destroy(&backend_->device(), &depth_buffer_);
 }
 
 VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
@@ -223,7 +217,8 @@ VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
 }
 
 void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
-    vkrndr::image_t const& color_image)
+    vkrndr::image_t const& color_image,
+    vkrndr::image_t const& depth_buffer)
 {
     ImGui::Begin("PBR debug");
     if (ImGui::BeginCombo("Equation", debug_options[debug_], 0))
@@ -257,7 +252,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
         color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            depth_buffer_.view,
+            depth_buffer.view,
             VkClearValue{.depthStencil = {1.0f, 0}});
 
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
@@ -307,19 +302,11 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
     }
 }
 
-void gltfviewer::pbr_renderer_t::resize(uint32_t width, uint32_t height)
-{
-    destroy(&backend_->device(), &depth_buffer_);
-    depth_buffer_ = vkrndr::create_depth_buffer(backend_->device(),
-        VkExtent2D{width, height},
-        false,
-        backend_->device().max_msaa_samples);
-}
-
 void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
-    VkDescriptorSetLayout graph_layout)
+    VkDescriptorSetLayout graph_layout,
+    VkFormat depth_buffer_format)
 {
     destroy(&backend_->device(), &model_);
 
@@ -365,7 +352,7 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .add_shader(as_pipeline_shader(fragment_shader_))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_.format)
+            .with_depth_test(depth_buffer_format)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
 
@@ -382,7 +369,7 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .add_shader(as_pipeline_shader(fragment_shader_))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_.format)
+            .with_depth_test(depth_buffer_format)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .with_culling(VK_CULL_MODE_BACK_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
@@ -412,7 +399,7 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .add_shader(as_pipeline_shader(fragment_shader_))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_.format)
+            .with_depth_test(depth_buffer_format)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .with_color_blending(color_blending)
             .build();

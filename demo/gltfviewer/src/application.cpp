@@ -22,6 +22,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
@@ -70,6 +71,15 @@ namespace
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
+
+    [[nodiscard]] vkrndr::image_t create_depth_buffer(
+        vkrndr::backend_t const& backend)
+    {
+        return vkrndr::create_depth_buffer(backend.device(),
+            backend.extent(),
+            false,
+            backend.device().max_msaa_samples);
+    }
 } // namespace
 
 gltfviewer::application_t::application_t(bool const debug)
@@ -92,6 +102,7 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->device(),
           backend_->swap_chain())}
     , color_image_{create_color_image(*backend_)}
+    , depth_buffer_{create_depth_buffer(*backend_)}
     , environment_{std::make_unique<environment_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
@@ -150,7 +161,8 @@ void gltfviewer::application_t::update(float delta_time)
         pbr_renderer_->load(std::move(model).value(),
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
-            render_graph_->descriptor_layout());
+            render_graph_->descriptor_layout(),
+            depth_buffer_.format);
 
         spdlog::info("End loading: {}", model_path);
     }
@@ -204,6 +216,10 @@ void gltfviewer::application_t::draw()
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer(false)};
 
+    vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
+
+    // environment_->draw(command_buffer, color_image_);
+
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
         .width = cppext::as_fp(target_image.extent.width),
@@ -214,8 +230,6 @@ void gltfviewer::application_t::draw()
 
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-    vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
 
     if (VkPipelineLayout const layout{pbr_renderer_->pipeline_layout()})
     {
@@ -232,9 +246,7 @@ void gltfviewer::application_t::draw()
             VK_PIPELINE_BIND_POINT_GRAPHICS);
     }
 
-    pbr_renderer_->draw(command_buffer, color_image_);
-
-    environment_->draw(command_buffer, color_image_);
+    pbr_renderer_->draw(command_buffer, color_image_, depth_buffer_);
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,
@@ -291,6 +303,8 @@ void gltfviewer::application_t::on_shutdown()
 
     environment_.reset();
 
+    destroy(&backend_->device(), &depth_buffer_);
+
     destroy(&backend_->device(), &color_image_);
 
     imgui_.reset();
@@ -304,7 +318,8 @@ void gltfviewer::application_t::on_resize([[maybe_unused]] uint32_t width,
     destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_);
 
-    camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
+    destroy(&backend_->device(), &depth_buffer_);
+    depth_buffer_ = create_depth_buffer(*backend_);
 
-    pbr_renderer_->resize(width, height);
+    camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 }
