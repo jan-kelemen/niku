@@ -8,9 +8,7 @@ layout(push_constant) uniform PushConsts {
     uint direction;
 } pc;
 
-#include "environment.glsl" // (set = 0)
-
-layout(set = 1, binding = 1) uniform Projection {
+layout(set = 0, binding = 1) uniform Projection {
     mat4 projection;
     mat4 directions[6];
 } proj;

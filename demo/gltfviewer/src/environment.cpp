@@ -358,6 +358,7 @@ void gltfviewer::environment_t::load_hdr(std::filesystem::path const& hdr_image)
         &height,
         &components,
         4)};
+    stbi_set_flip_vertically_on_load(0);
     assert(hdr_texture_data);
 
     auto const hdr_extent{vkrndr::to_extent(width, height)};
@@ -535,7 +536,6 @@ void gltfviewer::environment_t::load_hdr(std::filesystem::path const& hdr_image)
     cubemap_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(descriptor_layout_)
                 .add_descriptor_set_layout(cubemap_descriptor_layout_)
                 .add_push_constants<cubemap_push_constants_t>(
                     VK_SHADER_STAGE_VERTEX_BIT)
@@ -578,12 +578,9 @@ void gltfviewer::environment_t::draw(VkCommandBuffer command_buffer,
         0,
         VK_INDEX_TYPE_UINT32);
 
-    bind_on(command_buffer,
-        *cubemap_pipeline_.layout,
-        VK_PIPELINE_BIND_POINT_GRAPHICS);
     vkrndr::bind_pipeline(command_buffer,
         cubemap_pipeline_,
-        1,
+        0,
         std::span{&cubemap_descriptor_, 1});
 
     for (uint32_t i{}; i != cubemap_.face_views.size(); ++i)

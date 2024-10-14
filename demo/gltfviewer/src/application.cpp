@@ -218,7 +218,7 @@ void gltfviewer::application_t::draw()
 
     vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
 
-    // environment_->draw(command_buffer, color_image_);
+    environment_->draw(command_buffer, color_image_);
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
