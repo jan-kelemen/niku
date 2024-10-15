@@ -199,7 +199,8 @@ void vkrndr::generate_mipmaps(device_t const& device,
     VkCommandBuffer command_buffer,
     VkFormat const format,
     VkExtent2D const extent,
-    uint32_t const mip_levels)
+    uint32_t const mip_levels,
+    uint32_t const layers)
 {
     VkFormatProperties properties;
     vkGetPhysicalDeviceFormatProperties(device.physical, format, &properties);
@@ -217,7 +218,7 @@ void vkrndr::generate_mipmaps(device_t const& device,
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.layerCount = layers;
     barrier.subresourceRange.levelCount = 1;
 
     VkDependencyInfo dependency{};
@@ -231,10 +232,10 @@ void vkrndr::generate_mipmaps(device_t const& device,
     {
         barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
         barrier.subresourceRange.baseMipLevel = i - 1;
 
         vkCmdPipelineBarrier2(command_buffer, &dependency);
@@ -245,7 +246,7 @@ void vkrndr::generate_mipmaps(device_t const& device,
         blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         blit.srcSubresource.mipLevel = i - 1;
         blit.srcSubresource.baseArrayLayer = 0;
-        blit.srcSubresource.layerCount = 1;
+        blit.srcSubresource.layerCount = layers;
         blit.dstOffsets[0] = {0, 0, 0};
         blit.dstOffsets[1] = {mip_width > 1 ? mip_width / 2 : 1,
             mip_height > 1 ? mip_height / 2 : 1,
@@ -253,7 +254,7 @@ void vkrndr::generate_mipmaps(device_t const& device,
         blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         blit.dstSubresource.mipLevel = i;
         blit.dstSubresource.baseArrayLayer = 0;
-        blit.dstSubresource.layerCount = 1;
+        blit.dstSubresource.layerCount = layers;
 
         vkCmdBlitImage(command_buffer,
             image,
@@ -266,10 +267,10 @@ void vkrndr::generate_mipmaps(device_t const& device,
 
         barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
         barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         barrier.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
 
         vkCmdPipelineBarrier2(command_buffer, &dependency);
 
@@ -279,10 +280,10 @@ void vkrndr::generate_mipmaps(device_t const& device,
 
     barrier.subresourceRange.baseMipLevel = mip_levels - 1;
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
     vkCmdPipelineBarrier2(command_buffer, &dependency);
 }
