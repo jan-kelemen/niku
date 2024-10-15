@@ -23,7 +23,8 @@ namespace vkrndr
         VkImageLayout new_layout,
         VkPipelineStageFlags2 dst_stage_mask,
         VkAccessFlags2 dst_access_mask,
-        uint32_t mip_levels);
+        uint32_t mip_levels,
+        uint32_t layers = 1);
 
     void begin_single_time_commands(command_pool_t& pool,
         uint32_t count,

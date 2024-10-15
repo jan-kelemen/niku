@@ -18,7 +18,8 @@ void vkrndr::transition_image(VkImage const image,
     VkImageLayout const new_layout,
     VkPipelineStageFlags2 const dst_stage_mask,
     VkAccessFlags2 const dst_access_mask,
-    uint32_t const mip_levels)
+    uint32_t const mip_levels,
+    uint32_t const layers)
 {
     VkImageMemoryBarrier2 barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -34,7 +35,7 @@ void vkrndr::transition_image(VkImage const image,
         .baseMipLevel = 0,
         .levelCount = mip_levels,
         .baseArrayLayer = 0,
-        .layerCount = 1,
+        .layerCount = layers,
     };
 
     VkDependencyInfo dependency{};

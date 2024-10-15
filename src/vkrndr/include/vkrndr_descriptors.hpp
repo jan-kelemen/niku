@@ -2,6 +2,7 @@
 #define VKRNDR_DESCRIPTORS_INCLUDED
 
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_cubemap.hpp>
 #include <vkrndr_image.hpp>
 
 #include <cppext_pragma_warning.hpp>
@@ -39,7 +40,7 @@ namespace vkrndr
     }
 
     [[nodiscard]] constexpr VkDescriptorImageInfo sampled_image_descriptor(
-        vkrndr::image_t const& image,
+        image_t const& image,
         VkImageLayout const layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
         DISABLE_WARNING_PUSH
@@ -63,11 +64,21 @@ namespace vkrndr
 
     [[nodiscard]] constexpr VkDescriptorImageInfo combined_sampler_descriptor(
         VkSampler sampler,
-        vkrndr::image_t const& image,
+        image_t const& image,
         VkImageLayout const layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
         return {.sampler = sampler,
             .imageView = image.view,
+            .imageLayout = layout};
+    }
+
+    [[nodiscard]] constexpr VkDescriptorImageInfo combined_sampler_descriptor(
+        VkSampler sampler,
+        cubemap_t const& cubemap,
+        VkImageLayout const layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        return {.sampler = sampler,
+            .imageView = cubemap.view,
             .imageLayout = layout};
     }
 } // namespace vkrndr
