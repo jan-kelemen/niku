@@ -4,15 +4,11 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_cubemap.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
-
-#include <glm/vec3.hpp>
 
 #include <volk.h>
 
 #include <filesystem>
-#include <vector>
 
 namespace vkrndr
 {

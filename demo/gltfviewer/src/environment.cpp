@@ -9,10 +9,7 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
-#include <vkrndr_render_pass.hpp>
-#include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -22,12 +19,9 @@
 
 #include <imgui.h>
 
-#include <stb_image.h>
-
 #include <volk.h>
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <span>

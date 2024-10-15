@@ -55,6 +55,7 @@ DISABLE_WARNING_POP
 #include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string_view>
 
 namespace

@@ -4,9 +4,7 @@
 #include <cppext_cycled_buffer.hpp>
 
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
-#include <vkrndr_pipeline.hpp>
 
 #include <glm/vec3.hpp>
 

@@ -3,7 +3,6 @@
 
 #include <vkgltf_model.hpp>
 
-#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
 
@@ -15,6 +14,7 @@
 namespace vkrndr
 {
     class backend_t;
+    struct image_t;
 } // namespace vkrndr
 
 namespace gltfviewer

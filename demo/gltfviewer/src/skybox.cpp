@@ -5,18 +5,21 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_cubemap.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
+#include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/trigonometric.hpp>
 #include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 
 #include <stb_image.h>
 
@@ -29,6 +32,7 @@
 #include <span>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <memory>
 
 namespace
 {
@@ -558,7 +562,7 @@ VkPipelineLayout gltfviewer::skybox_t::pipeline_layout() const
 void gltfviewer::skybox_t::generate_cubemap_faces()
 {
     auto transient{backend_->request_transient_operation(false)};
-    auto command_buffer{transient.command_buffer()};
+    VkCommandBuffer command_buffer{transient.command_buffer()};
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
