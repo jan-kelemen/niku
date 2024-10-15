@@ -55,8 +55,8 @@ namespace
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        sampler_info.magFilter = VK_FILTER_NEAREST;
-        sampler_info.minFilter = VK_FILTER_NEAREST;
+        sampler_info.magFilter = VK_FILTER_LINEAR;
+        sampler_info.minFilter = VK_FILTER_LINEAR;
         sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
         sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -66,7 +66,7 @@ namespace
         sampler_info.unnormalizedCoordinates = VK_FALSE;
         sampler_info.compareEnable = VK_FALSE;
         sampler_info.compareOp = VK_COMPARE_OP_NEVER;
-        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         sampler_info.mipLodBias = 0.0f;
         sampler_info.minLod = 0.0f;
         sampler_info.maxLod = 1.0f;
@@ -155,7 +155,8 @@ namespace
     }
 
     [[nodiscard]] VkSampler create_skybox_sampler(
-        vkrndr::device_t const& device)
+        vkrndr::device_t const& device,
+        uint32_t const mip_levels)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
         vkGetPhysicalDeviceProperties(device.physical, &properties);
@@ -176,7 +177,7 @@ namespace
         sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         sampler_info.mipLodBias = 0.0f;
         sampler_info.minLod = 0.0f;
-        sampler_info.maxLod = 1.0f;
+        sampler_info.maxLod = cppext::as_fp(mip_levels);
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
@@ -285,11 +286,12 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     cubemap_ = vkrndr::create_cubemap(backend_->device(),
         1024,
-        1,
+        vkrndr::max_mip_levels(1024, 1024),
         VK_SAMPLE_COUNT_1_BIT,
         VK_FORMAT_R32G32B32A32_SFLOAT,
         VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     {
@@ -467,7 +469,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     generate_cubemap_faces();
 
-    skybox_sampler_ = create_skybox_sampler(backend_->device());
+    skybox_sampler_ =
+        create_skybox_sampler(backend_->device(), cubemap_.mip_levels);
 
     skybox_descriptor_layout_ =
         create_skybox_descriptor_set_layout(backend_->device());
@@ -629,9 +632,17 @@ void gltfviewer::skybox_t::generate_cubemap_faces()
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_PIPELINE_STAGE_2_BLIT_BIT,
+        VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        cubemap_.mip_levels,
+        6);
+
+    generate_mipmaps(backend_->device(),
+        cubemap_.image,
+        command_buffer,
+        cubemap_.format,
+        cubemap_.extent,
         cubemap_.mip_levels,
         6);
 }
