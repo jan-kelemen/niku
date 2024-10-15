@@ -18,7 +18,7 @@ namespace vkrndr
 
         transient_operation_t(transient_operation_t const&) = delete;
 
-        transient_operation_t(transient_operation_t&&) noexcept;
+        transient_operation_t(transient_operation_t&& other) noexcept;
 
     public:
         ~transient_operation_t();

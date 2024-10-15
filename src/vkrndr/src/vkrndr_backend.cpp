@@ -11,6 +11,7 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_swap_chain.hpp>
+#include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
 
@@ -207,11 +208,9 @@ vkrndr::transient_operation_t vkrndr::backend_t::request_transient_operation(
         return {*frame_data_->transfer_queue,
             *frame_data_->transfer_transient_command_pool};
     }
-    else
-    {
-        return {*frame_data_->present_queue,
-            *frame_data_->present_transient_command_pool};
-    }
+
+    return {*frame_data_->present_queue,
+        *frame_data_->present_transient_command_pool};
 }
 
 void vkrndr::backend_t::draw()
@@ -268,7 +267,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
 
     {
         auto transient{request_transient_operation(false)};
-        auto cb{transient.command_buffer()};
+        VkCommandBuffer cb{transient.command_buffer()};
         wait_for_transfer_write(image.image, cb, mip_levels);
         copy_buffer_to_image(cb, source.buffer, image.image, extent);
         if (mip_levels == 1)

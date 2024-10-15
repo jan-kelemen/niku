@@ -70,7 +70,7 @@ namespace
 
     struct [[nodiscard]] loaded_vertex_t final
     {
-        float position[3];
+        float position[3]{};
         glm::vec3 normal{};
         glm::vec4 tangent{};
         glm::vec4 color{1.0f};
@@ -163,10 +163,12 @@ namespace
             auto& point3{
                 is_indexed ? vertices[indices[i + 2]] : vertices[i + 2]};
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             glm::vec3 const edge1{glm::make_vec3(point2.position) -
                 glm::make_vec3(point1.position)};
             glm::vec3 const edge2{glm::make_vec3(point3.position) -
                 glm::make_vec3(point1.position)};
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
             // https://stackoverflow.com/a/57812028
             glm::vec3 const face_normal{
@@ -204,6 +206,7 @@ namespace
             auto const& v{*static_cast<std::vector<loaded_vertex_t>*>(
                 context->m_pUserData)};
 
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             std::copy_n(v[cppext::narrow<size_t>(face * 3 + vertex)].position,
                 3,
                 out);
@@ -630,7 +633,10 @@ namespace
 
             auto const vertex_transform =
                 [&vertices = p.vertices](glm::vec3 const v, size_t const idx)
-            { std::copy_n(glm::value_ptr(v), 3, vertices[idx].position); };
+            {
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+                std::copy_n(glm::value_ptr(v), 3, vertices[idx].position);
+            };
 
             auto const normal_transform =
                 [&vertices = p.vertices](glm::vec3 const n, size_t const idx)
@@ -813,6 +819,7 @@ namespace
                             vertices,
                             [](loaded_vertex_t const& v) -> vkgltf::vertex_t
                             {
+                                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
                                 return {.position = glm::make_vec3(v.position),
                                     .normal = v.normal,
                                     .tangent = v.tangent,

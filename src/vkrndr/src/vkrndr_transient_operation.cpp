@@ -3,6 +3,7 @@
 #include <vkrndr_commands.hpp>
 
 #include <span>
+#include <utility>
 
 vkrndr::transient_operation_t::transient_operation_t(execution_port_t& port,
     command_pool_t& pool)
@@ -13,9 +14,9 @@ vkrndr::transient_operation_t::transient_operation_t(execution_port_t& port,
 }
 
 vkrndr::transient_operation_t::transient_operation_t(
-    transient_operation_t&&) noexcept
-    : port_{std::exchange(port_, nullptr)}
-    , pool_{std::exchange(pool_, nullptr)}
+    transient_operation_t&& other) noexcept
+    : port_{std::exchange(other.port_, nullptr)}
+    , pool_{std::exchange(other.pool_, nullptr)}
     , command_buffer_{std::exchange(command_buffer_, VK_NULL_HANDLE)}
 {
 }
