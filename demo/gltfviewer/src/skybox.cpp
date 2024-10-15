@@ -4,6 +4,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_commands.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -42,7 +43,8 @@ namespace
         glm::mat4 directions[6];
     };
 
-    [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
+    [[nodiscard]] VkSampler create_cubemap_sampler(
+        vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
         vkGetPhysicalDeviceProperties(device.physical, &properties);
@@ -147,6 +149,68 @@ namespace
 
         return descriptions;
     }
+
+    [[nodiscard]] VkSampler create_skybox_sampler(
+        vkrndr::device_t const& device)
+    {
+        VkPhysicalDeviceProperties properties; // NOLINT
+        vkGetPhysicalDeviceProperties(device.physical, &properties);
+
+        VkSamplerCreateInfo sampler_info{};
+        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_info.magFilter = VK_FILTER_LINEAR;
+        sampler_info.minFilter = VK_FILTER_LINEAR;
+        sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.anisotropyEnable = VK_TRUE;
+        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+        sampler_info.unnormalizedCoordinates = VK_FALSE;
+        sampler_info.compareEnable = VK_FALSE;
+        sampler_info.compareOp = VK_COMPARE_OP_NEVER;
+        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        sampler_info.mipLodBias = 0.0f;
+        sampler_info.minLod = 0.0f;
+        sampler_info.maxLod = 1.0f;
+
+        VkSampler rv; // NOLINT
+        vkrndr::check_result(
+            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+
+        return rv;
+    }
+
+    [[nodiscard]] VkDescriptorSetLayout create_skybox_descriptor_set_layout(
+        vkrndr::device_t const& device)
+    {
+        VkDescriptorSetLayoutBinding cubemap_binding{};
+        cubemap_binding.binding = 0;
+        cubemap_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        cubemap_binding.descriptorCount = 1;
+        cubemap_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        return vkrndr::create_descriptor_set_layout(device,
+            std::span{&cubemap_binding, 1});
+    }
+
+    void update_skybox_descriptor(vkrndr::device_t const& device,
+        VkDescriptorSet const descriptor_set,
+        VkDescriptorImageInfo const cubemap_sampler)
+    {
+        VkWriteDescriptorSet sampler_write{};
+        sampler_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        sampler_write.dstSet = descriptor_set;
+        sampler_write.dstBinding = 0;
+        sampler_write.dstArrayElement = 0;
+        sampler_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        sampler_write.descriptorCount = 1;
+        sampler_write.pImageInfo = &cubemap_sampler;
+
+        vkUpdateDescriptorSets(device.logical, 1, &sampler_write, 0, nullptr);
+    }
 } // namespace
 
 gltfviewer::skybox_t::skybox_t(vkrndr::backend_t& backend) : backend_{&backend}
@@ -155,6 +219,18 @@ gltfviewer::skybox_t::skybox_t(vkrndr::backend_t& backend) : backend_{&backend}
 
 gltfviewer::skybox_t::~skybox_t()
 {
+    destroy(&backend_->device(), &skybox_pipeline_);
+
+    vkrndr::free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        std::span{&skybox_descriptor_, 1});
+
+    vkDestroyDescriptorSetLayout(backend_->device().logical,
+        skybox_descriptor_layout_,
+        nullptr);
+
+    vkDestroySampler(backend_->device().logical, skybox_sampler_, nullptr);
+
     destroy(&backend_->device(), &cubemap_pipeline_);
 
     vkrndr::free_descriptor_sets(backend_->device(),
@@ -178,7 +254,9 @@ gltfviewer::skybox_t::~skybox_t()
     destroy(&backend_->device(), &cubemap_texture_);
 }
 
-void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image)
+void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
+    VkDescriptorSetLayout environment_layout,
+    VkFormat depth_buffer_format)
 {
     int width; // NOLINT
     int height; // NOLINT
@@ -339,7 +417,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image)
         destroy(&backend_->device(), &staging_buffer);
     }
 
-    cubemap_sampler_ = create_sampler(backend_->device());
+    cubemap_sampler_ = create_cubemap_sampler(backend_->device());
 
     cubemap_descriptor_layout_ =
         create_cubemap_descriptor_set_layout(backend_->device());
@@ -354,15 +432,16 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image)
         vkrndr::combined_sampler_descriptor(cubemap_sampler_, cubemap_texture_),
         vkrndr::buffer_descriptor(cubemap_uniform_buffer_));
 
-    auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
+    auto cubemap_vertex_shader{vkrndr::create_shader_module(backend_->device(),
         "equirectangular_to_cubemap.vert.spv",
         VK_SHADER_STAGE_VERTEX_BIT,
         "main")};
 
-    auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
-        "equirectangular_to_cubemap.frag.spv",
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        "main")};
+    auto cubemap_fragment_shader{
+        vkrndr::create_shader_module(backend_->device(),
+            "equirectangular_to_cubemap.frag.spv",
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            "main")};
 
     cubemap_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
@@ -372,20 +451,115 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image)
                     VK_SHADER_STAGE_VERTEX_BIT)
                 .build(),
             cubemap_.format}
-            .add_shader(as_pipeline_shader(vertex_shader))
-            .add_shader(as_pipeline_shader(fragment_shader))
+            .add_shader(as_pipeline_shader(cubemap_vertex_shader))
+            .add_shader(as_pipeline_shader(cubemap_fragment_shader))
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
 
-    destroy(&backend_->device(), &vertex_shader);
-    destroy(&backend_->device(), &fragment_shader);
+    destroy(&backend_->device(), &cubemap_vertex_shader);
+    destroy(&backend_->device(), &cubemap_fragment_shader);
+
+    generate_cubemap_faces();
+
+    skybox_sampler_ = create_skybox_sampler(backend_->device());
+
+    skybox_descriptor_layout_ =
+        create_skybox_descriptor_set_layout(backend_->device());
+
+    vkrndr::create_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        std::span{&skybox_descriptor_layout_, 1},
+        std::span{&skybox_descriptor_, 1});
+
+    update_skybox_descriptor(backend_->device(),
+        skybox_descriptor_,
+        vkrndr::combined_sampler_descriptor(skybox_sampler_, cubemap_));
+
+    auto skybox_vertex_shader{vkrndr::create_shader_module(backend_->device(),
+        "skybox.vert.spv",
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "main")};
+
+    auto skybox_fragment_shader{vkrndr::create_shader_module(backend_->device(),
+        "skybox.frag.spv",
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "main")};
+
+    skybox_pipeline_ =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
+                .add_descriptor_set_layout(environment_layout)
+                .add_descriptor_set_layout(skybox_descriptor_layout_)
+                .build(),
+            VK_FORMAT_R16G16B16A16_SFLOAT}
+            .add_shader(as_pipeline_shader(skybox_vertex_shader))
+            .add_shader(as_pipeline_shader(skybox_fragment_shader))
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(backend_->device().max_msaa_samples)
+            .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS_OR_EQUAL)
+            .add_vertex_input(binding_description(), attribute_descriptions())
+            .build();
+
+    destroy(&backend_->device(), &skybox_vertex_shader);
+    destroy(&backend_->device(), &skybox_fragment_shader);
 }
 
 void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
-    vkrndr::image_t const& color_image)
+    vkrndr::image_t const& color_image,
+    vkrndr::image_t const& depth_buffer)
 {
+    VkDeviceSize const zero_offset{};
+    vkCmdBindVertexBuffers(command_buffer,
+        0,
+        1,
+        &cubemap_vertex_buffer_.buffer,
+        &zero_offset);
+
+    vkCmdBindIndexBuffer(command_buffer,
+        cubemap_index_buffer_.buffer,
+        0,
+        VK_INDEX_TYPE_UINT32);
+
+    vkCmdBindDescriptorSets(command_buffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        *skybox_pipeline_.layout,
+        1,
+        1,
+        &skybox_descriptor_,
+        0,
+        nullptr);
+
+    vkrndr::render_pass_t color_render_pass;
+    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        color_image.view);
+    color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_NONE,
+        depth_buffer.view);
+
+    [[maybe_unused]] auto guard{
+        color_render_pass.begin(command_buffer, {{0, 0}, color_image.extent})};
+
+    vkrndr::bind_pipeline(command_buffer,
+        skybox_pipeline_,
+        1,
+        std::span{&skybox_descriptor_, 1});
+
+    vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
+}
+
+VkPipelineLayout gltfviewer::skybox_t::pipeline_layout() const
+{
+    return *skybox_pipeline_.layout;
+}
+
+void gltfviewer::skybox_t::generate_cubemap_faces()
+{
+    auto transient{backend_->request_transient_operation(false)};
+    auto command_buffer{transient.command_buffer()};
+
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
         .width = cppext::as_fp(cubemap_.extent.width),
@@ -414,6 +588,17 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
         0,
         std::span{&cubemap_descriptor_, 1});
 
+    vkrndr::transition_image(cubemap_.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        cubemap_.mip_levels,
+        6);
+
     for (uint32_t i{}; i != cubemap_.face_views.size(); ++i)
     {
         cubemap_push_constants_t pc{.direction = i};
@@ -434,4 +619,15 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
 
         vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
     }
+
+    vkrndr::transition_image(cubemap_.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
+        cubemap_.mip_levels,
+        6);
 }

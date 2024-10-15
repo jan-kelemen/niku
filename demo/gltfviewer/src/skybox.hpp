@@ -34,15 +34,23 @@ namespace gltfviewer
         ~skybox_t();
 
     public:
-        void load_hdr(std::filesystem::path const& hdr_image);
+        void load_hdr(std::filesystem::path const& hdr_image,
+            VkDescriptorSetLayout environment_layout,
+            VkFormat depth_buffer_format);
 
         void draw(VkCommandBuffer command_buffer,
-            vkrndr::image_t const& color_image);
+            vkrndr::image_t const& color_image,
+            vkrndr::image_t const& depth_buffer);
+
+        [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
     public:
         skybox_t& operator=(skybox_t const&) = delete;
 
         skybox_t& operator=(skybox_t&&) noexcept = delete;
+
+    private:
+        void generate_cubemap_faces();
 
     private:
         vkrndr::backend_t* backend_;
@@ -52,10 +60,15 @@ namespace gltfviewer
         vkrndr::buffer_t cubemap_vertex_buffer_;
         vkrndr::buffer_t cubemap_index_buffer_;
         vkrndr::buffer_t cubemap_uniform_buffer_;
-        VkSampler cubemap_sampler_;
-        VkDescriptorSetLayout cubemap_descriptor_layout_;
-        VkDescriptorSet cubemap_descriptor_;
+        VkSampler cubemap_sampler_{VK_NULL_HANDLE};
+        VkDescriptorSetLayout cubemap_descriptor_layout_{VK_NULL_HANDLE};
+        VkDescriptorSet cubemap_descriptor_{VK_NULL_HANDLE};
         vkrndr::pipeline_t cubemap_pipeline_;
+
+        VkSampler skybox_sampler_{VK_NULL_HANDLE};
+        VkDescriptorSetLayout skybox_descriptor_layout_{VK_NULL_HANDLE};
+        VkDescriptorSet skybox_descriptor_{VK_NULL_HANDLE};
+        vkrndr::pipeline_t skybox_pipeline_;
     };
 } // namespace gltfviewer
 

@@ -216,11 +216,9 @@ void gltfviewer::application_t::draw()
 
     auto target_image{backend_->swapchain_image()};
 
-    VkCommandBuffer command_buffer{backend_->request_command_buffer(false)};
+    VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
     vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
-
-    skybox_->draw(command_buffer, color_image_);
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
@@ -249,6 +247,15 @@ void gltfviewer::application_t::draw()
     }
 
     pbr_renderer_->draw(command_buffer, color_image_, depth_buffer_);
+
+    if (VkPipelineLayout const layout{skybox_->pipeline_layout()})
+    {
+        environment_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        skybox_->draw(command_buffer, color_image_, depth_buffer_);
+    }
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,
@@ -286,7 +293,9 @@ void gltfviewer::application_t::on_startup()
         cppext::as_fp(extent.width) / cppext::as_fp(extent.height));
     camera_.update();
 
-    skybox_->load_hdr("aviation_museum_4k.hdr");
+    skybox_->load_hdr("aviation_museum_4k.hdr",
+        environment_->descriptor_layout(),
+        depth_buffer_.format);
 
     postprocess_shader_->update(gamma_, exposure_);
 }
