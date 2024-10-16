@@ -41,6 +41,8 @@ namespace gltfviewer
 
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
+        [[nodiscard]] VkDescriptorImageInfo irradiance_info() const;
+
     public:
         skybox_t& operator=(skybox_t const&) = delete;
 

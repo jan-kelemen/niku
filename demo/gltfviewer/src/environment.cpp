@@ -1,5 +1,7 @@
 #include <environment.hpp>
 
+#include <skybox.hpp>
+
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -85,6 +87,7 @@ namespace
 
 gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
     : backend_{&backend}
+    , skybox_{backend}
     , lights_{11}
     , descriptor_layout_{create_descriptor_set_layout(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
@@ -141,6 +144,23 @@ gltfviewer::environment_t::~environment_t()
 VkDescriptorSetLayout gltfviewer::environment_t::descriptor_layout() const
 {
     return descriptor_layout_;
+}
+
+void gltfviewer::environment_t::load_skybox(
+    std::filesystem::path const& hdr_image,
+    VkFormat const depth_buffer_format)
+{
+    skybox_.load_hdr(hdr_image, descriptor_layout_, depth_buffer_format);
+}
+
+void gltfviewer::environment_t::draw_skybox(VkCommandBuffer command_buffer,
+    vkrndr::image_t const& color_image,
+    vkrndr::image_t const& depth_buffer)
+{
+    bind_on(command_buffer,
+        skybox_.pipeline_layout(),
+        VK_PIPELINE_BIND_POINT_GRAPHICS);
+    skybox_.draw(command_buffer, color_image, depth_buffer);
 }
 
 void gltfviewer::environment_t::update(niku::camera_t const& camera)

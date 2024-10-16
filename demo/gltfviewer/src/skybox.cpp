@@ -546,6 +546,12 @@ VkPipelineLayout gltfviewer::skybox_t::pipeline_layout() const
     return *skybox_pipeline_.layout;
 }
 
+VkDescriptorImageInfo gltfviewer::skybox_t::irradiance_info() const
+{
+    return vkrndr::combined_sampler_descriptor(skybox_sampler_,
+        irradiance_cubemap_);
+}
+
 void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
     VkDescriptorSet descriptor_set)
 {

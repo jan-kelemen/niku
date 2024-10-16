@@ -1,6 +1,8 @@
 #ifndef GLTFVIEWER_ENVIRONMENT_INCLUDED
 #define GLTFVIEWER_ENVIRONMENT_INCLUDED
 
+#include <skybox.hpp>
+
 #include <cppext_cycled_buffer.hpp>
 
 #include <vkrndr_buffer.hpp>
@@ -10,6 +12,7 @@
 
 #include <volk.h>
 
+#include <filesystem>
 #include <vector>
 
 namespace niku
@@ -20,6 +23,7 @@ namespace niku
 namespace vkrndr
 {
     class backend_t;
+    struct image_t;
 } // namespace vkrndr
 
 namespace gltfviewer
@@ -38,6 +42,13 @@ namespace gltfviewer
 
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
+
+        void load_skybox(std::filesystem::path const& hdr_image,
+            VkFormat depth_buffer_format);
+
+        void draw_skybox(VkCommandBuffer command_buffer,
+            vkrndr::image_t const& color_image,
+            vkrndr::image_t const& depth_buffer);
 
         void update(niku::camera_t const& camera);
 
@@ -68,6 +79,8 @@ namespace gltfviewer
 
     private:
         vkrndr::backend_t* backend_;
+
+        skybox_t skybox_;
 
         std::vector<light_t> lights_;
 

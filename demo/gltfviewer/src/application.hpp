@@ -34,7 +34,6 @@ namespace gltfviewer
     class pbr_renderer_t;
     class postprocess_shader_t;
     class render_graph_t;
-    class skybox_t;
 } // namespace gltfviewer
 
 namespace gltfviewer
@@ -84,7 +83,6 @@ namespace gltfviewer
         vkrndr::image_t color_image_;
         vkrndr::image_t depth_buffer_;
         std::unique_ptr<environment_t> environment_;
-        std::unique_ptr<skybox_t> skybox_;
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;
         std::unique_ptr<pbr_renderer_t> pbr_renderer_;

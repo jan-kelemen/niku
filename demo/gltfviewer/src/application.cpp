@@ -7,7 +7,6 @@
 #include <pbr_renderer.hpp>
 #include <postprocess_shader.hpp>
 #include <render_graph.hpp>
-#include <skybox.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
@@ -106,7 +105,6 @@ gltfviewer::application_t::application_t(bool const debug)
     , color_image_{create_color_image(*backend_)}
     , depth_buffer_{create_depth_buffer(*backend_)}
     , environment_{std::make_unique<environment_t>(*backend_)}
-    , skybox_{std::make_unique<skybox_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
     , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_)}
@@ -249,14 +247,7 @@ void gltfviewer::application_t::draw()
 
     pbr_renderer_->draw(command_buffer, color_image_, depth_buffer_);
 
-    if (VkPipelineLayout const layout{skybox_->pipeline_layout()})
-    {
-        environment_->bind_on(command_buffer,
-            layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
-
-        skybox_->draw(command_buffer, color_image_, depth_buffer_);
-    }
+    environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,
@@ -294,9 +285,7 @@ void gltfviewer::application_t::on_startup()
         cppext::as_fp(extent.width) / cppext::as_fp(extent.height));
     camera_.update();
 
-    skybox_->load_hdr("aviation_museum_4k.hdr",
-        environment_->descriptor_layout(),
-        depth_buffer_.format);
+    environment_->load_skybox("aviation_museum_4k.hdr", depth_buffer_.format);
 
     postprocess_shader_->update(gamma_, exposure_);
 }
@@ -312,8 +301,6 @@ void gltfviewer::application_t::on_shutdown()
     render_graph_.reset();
 
     materials_.reset();
-
-    skybox_.reset();
 
     environment_.reset();
 
