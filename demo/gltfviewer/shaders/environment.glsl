@@ -10,3 +10,6 @@ layout(std430, set = 0, binding = 0) readonly buffer Environment {
     uint lightCount;
     Light lights[];
 } env;
+
+layout(set = 0, binding = 1) uniform samplerCube irradianceMap;
+

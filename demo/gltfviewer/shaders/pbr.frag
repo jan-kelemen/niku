@@ -15,6 +15,7 @@ layout(push_constant) uniform PushConsts {
     uint modelIndex;
     uint materialIndex;
     uint debug;
+    float ibl_factor;
 } pc;
 
 #include "environment.glsl" // (set = 0)
@@ -140,6 +141,13 @@ vec3 diffuse(vec3 diffuseColor) {
     return diffuseColor / M_PI;
 }
 
+vec3 IBLContribution(vec3 N, vec3 diffuseColor) {
+	vec3 diffuseLight = texture(irradianceMap, N).rgb;
+	vec3 diffuse = diffuseLight * diffuseColor;
+
+	return diffuse * pc.ibl_factor;
+}
+
 void main() {
     Material m = materials.v[pc.materialIndex];
 
@@ -195,6 +203,9 @@ void main() {
 
     const vec3 emissive = emissiveColor(m);
     color += emissive;
+
+    vec3 ambient = IBLContribution(N, diffuseColor) * occlusion;
+    color += ambient;
 
     outColor = vec4(color, pc.debug > 0 ? 1.0 : albedo.a);
 

@@ -46,6 +46,7 @@ namespace
         uint32_t transform_index;
         uint32_t material_index;
         uint32_t debug;
+        float ibl_factor;
     };
 
     consteval auto binding_description()
@@ -94,6 +95,7 @@ namespace
         VkPipelineLayout const layout;
         VkCommandBuffer const command_buffer;
         uint32_t const debug;
+        float const ibl_factor;
         // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
 
         vkgltf::alpha_mode_t alpha_mode;
@@ -126,7 +128,8 @@ namespace
                     push_constants_t const pc{.transform_index = index,
                         .material_index =
                             cppext::narrow<uint32_t>(primitive.material_index),
-                        .debug = debug};
+                        .debug = debug,
+                        .ibl_factor = ibl_factor};
 
                     if (!model->materials.empty())
                     {
@@ -242,6 +245,9 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         }
         ImGui::EndCombo();
     }
+
+    ImGui::SliderFloat("IBL factor", &ibl_factor_, 0.0f, 1.0f);
+
     ImGui::End();
 
     {
@@ -291,6 +297,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             .layout = *double_sided_pipeline_.layout,
             .command_buffer = command_buffer,
             .debug = debug_,
+            .ibl_factor = ibl_factor_,
             .alpha_mode = vkgltf::alpha_mode_t::opaque};
         traversal.draw(switch_pipeline);
 

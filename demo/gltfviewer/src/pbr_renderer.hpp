@@ -65,6 +65,7 @@ namespace gltfviewer
         vkrndr::pipeline_t blending_pipeline_;
 
         uint32_t debug_{0};
+        float ibl_factor_{0.0f};
     };
 } // namespace gltfviewer
 #endif

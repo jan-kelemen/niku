@@ -58,13 +58,22 @@ namespace
         uniform_binding.stageFlags =
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        return vkrndr::create_descriptor_set_layout(device,
-            std::span{&uniform_binding, 1});
+        VkDescriptorSetLayoutBinding irradiance_binding{};
+        irradiance_binding.binding = 1;
+        irradiance_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        irradiance_binding.descriptorCount = 1;
+        irradiance_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array bindings{uniform_binding, irradiance_binding};
+
+        return vkrndr::create_descriptor_set_layout(device, bindings);
     }
 
     void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
-        VkDescriptorBufferInfo const uniform_info)
+        VkDescriptorBufferInfo const uniform_info,
+        VkDescriptorImageInfo const irradiance_info)
     {
         VkWriteDescriptorSet uniform_write{};
         uniform_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -75,7 +84,17 @@ namespace
         uniform_write.descriptorCount = 1;
         uniform_write.pBufferInfo = &uniform_info;
 
-        std::array const descriptor_writes{uniform_write};
+        VkWriteDescriptorSet sampler_write{};
+        sampler_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        sampler_write.dstSet = descriptor_set;
+        sampler_write.dstBinding = 1;
+        sampler_write.dstArrayElement = 0;
+        sampler_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        sampler_write.descriptorCount = 1;
+        sampler_write.pImageInfo = &irradiance_info;
+
+        std::array const descriptor_writes{uniform_write, sampler_write};
 
         vkUpdateDescriptorSets(device.logical,
             vkrndr::count_cast(descriptor_writes.size()),
@@ -117,10 +136,6 @@ gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
             backend_->descriptor_pool(),
             std::span{&descriptor_layout_, 1},
             std::span{&data.descriptor_set, 1});
-
-        update_descriptor_set(backend_->device(),
-            data.descriptor_set,
-            vkrndr::buffer_descriptor(data.uniform));
     }
 }
 
@@ -151,6 +166,14 @@ void gltfviewer::environment_t::load_skybox(
     VkFormat const depth_buffer_format)
 {
     skybox_.load_hdr(hdr_image, descriptor_layout_, depth_buffer_format);
+
+    for (auto const& data : frame_data_.as_span())
+    {
+        update_descriptor_set(backend_->device(),
+            data.descriptor_set,
+            vkrndr::buffer_descriptor(data.uniform),
+            skybox_.irradiance_info());
+    }
 }
 
 void gltfviewer::environment_t::draw_skybox(VkCommandBuffer command_buffer,
