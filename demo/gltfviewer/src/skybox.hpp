@@ -3,16 +3,17 @@
 
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_cubemap.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 
 #include <volk.h>
 
 #include <filesystem>
+#include <span>
 
 namespace vkrndr
 {
     class backend_t;
+    struct image_t;
 } // namespace vkrndr
 
 namespace gltfviewer
@@ -46,26 +47,25 @@ namespace gltfviewer
         skybox_t& operator=(skybox_t&&) noexcept = delete;
 
     private:
-        void generate_cubemap_faces();
+        void generate_cubemap_faces(VkDescriptorSetLayout layout,
+            VkDescriptorSet descriptor_set);
 
-        void generate_irradiance_map();
+        void generate_irradiance_map(VkDescriptorSetLayout layout,
+            VkDescriptorSet descriptor_set);
+
+        void render_to_cubemap(vkrndr::pipeline_t const& pipeline,
+            std::span<VkDescriptorSet const> const& descriptors,
+            vkrndr::cubemap_t& cubemap);
 
     private:
         vkrndr::backend_t* backend_;
 
-        vkrndr::image_t cubemap_texture_;
         vkrndr::buffer_t cubemap_vertex_buffer_;
         vkrndr::buffer_t cubemap_index_buffer_;
         vkrndr::buffer_t cubemap_uniform_buffer_;
 
         vkrndr::cubemap_t cubemap_;
-        VkSampler cubemap_sampler_{VK_NULL_HANDLE};
-        VkDescriptorSetLayout cubemap_descriptor_layout_{VK_NULL_HANDLE};
-        VkDescriptorSet cubemap_descriptor_{VK_NULL_HANDLE};
-        vkrndr::pipeline_t cubemap_pipeline_;
-
         vkrndr::cubemap_t irradiance_cubemap_;
-        vkrndr::pipeline_t irradiance_pipeline_;
 
         VkSampler skybox_sampler_{VK_NULL_HANDLE};
         VkDescriptorSetLayout skybox_descriptor_layout_{VK_NULL_HANDLE};

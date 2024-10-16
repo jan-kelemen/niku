@@ -224,8 +224,6 @@ gltfviewer::skybox_t::skybox_t(vkrndr::backend_t& backend) : backend_{&backend}
 
 gltfviewer::skybox_t::~skybox_t()
 {
-    destroy(&backend_->device(), &irradiance_pipeline_);
-
     destroy(&backend_->device(), &irradiance_cubemap_);
 
     destroy(&backend_->device(), &skybox_pipeline_);
@@ -240,18 +238,6 @@ gltfviewer::skybox_t::~skybox_t()
 
     vkDestroySampler(backend_->device().logical, skybox_sampler_, nullptr);
 
-    destroy(&backend_->device(), &cubemap_pipeline_);
-
-    vkrndr::free_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
-        std::span{&cubemap_descriptor_, 1});
-
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
-        cubemap_descriptor_layout_,
-        nullptr);
-
-    vkDestroySampler(backend_->device().logical, cubemap_sampler_, nullptr);
-
     destroy(&backend_->device(), &cubemap_uniform_buffer_);
 
     destroy(&backend_->device(), &cubemap_index_buffer_);
@@ -259,8 +245,6 @@ gltfviewer::skybox_t::~skybox_t()
     destroy(&backend_->device(), &cubemap_vertex_buffer_);
 
     destroy(&backend_->device(), &cubemap_);
-
-    destroy(&backend_->device(), &cubemap_texture_);
 }
 
 void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
@@ -280,7 +264,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
     assert(hdr_texture_data);
 
     auto const hdr_extent{vkrndr::to_extent(width, height)};
-    cubemap_texture_ = backend_->transfer_image(
+    vkrndr::image_t cubemap_texture = backend_->transfer_image(
         vkrndr::as_bytes(std::span{hdr_texture_data,
             size_t{hdr_extent.width} * hdr_extent.height * 4}),
         hdr_extent,
@@ -395,22 +379,22 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
         uniform->projection =
             glm::perspectiveRH_ZO(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-        uniform->directions[0] = glm::lookAt(glm::vec3{0.0f, 0.0f, 0.0f},
+        uniform->directions[0] = glm::lookAtRH(glm::vec3{0.0f, 0.0f, 0.0f},
             glm::vec3{1.0f, 0.0f, 0.0f},
             glm::vec3{0.0f, -1.0f, 0.0f});
-        uniform->directions[1] = glm::lookAt(glm::vec3{0.0f, 0.0f, 0.0f},
+        uniform->directions[1] = glm::lookAtRH(glm::vec3{0.0f, 0.0f, 0.0f},
             glm::vec3{-1.0f, 0.0f, 0.0f},
             glm::vec3{0.0f, -1.0f, 0.0f});
-        uniform->directions[2] = glm::lookAt(glm::vec3{0.0f, 0.0f, 0.0f},
+        uniform->directions[2] = glm::lookAtRH(glm::vec3{0.0f, 0.0f, 0.0f},
             glm::vec3{0.0f, 1.0f, 0.0f},
             glm::vec3{0.0f, 0.0f, 1.0f});
-        uniform->directions[3] = glm::lookAt(glm::vec3{0.0f, 0.0f, 0.0f},
+        uniform->directions[3] = glm::lookAtRH(glm::vec3{0.0f, 0.0f, 0.0f},
             glm::vec3{0.0f, -1.0f, 0.0f},
             glm::vec3{0.0f, 0.0f, -1.0f});
-        uniform->directions[4] = glm::lookAt(glm::vec3{0.0f, 0.0f, 0.0f},
+        uniform->directions[4] = glm::lookAtRH(glm::vec3{0.0f, 0.0f, 0.0f},
             glm::vec3{0.0f, 0.0f, 1.0f},
             glm::vec3{0.0f, -1.0f, 0.0f});
-        uniform->directions[5] = glm::lookAt(glm::vec3{0.0f, 0.0f, 0.0f},
+        uniform->directions[5] = glm::lookAtRH(glm::vec3{0.0f, 0.0f, 0.0f},
             glm::vec3{0.0f, 0.0f, -1.0f},
             glm::vec3{0.0f, -1.0f, 0.0f});
 
@@ -427,51 +411,23 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         destroy(&backend_->device(), &staging_buffer);
     }
 
-    cubemap_sampler_ = create_cubemap_sampler(backend_->device());
+    VkSampler const cubemap_sampler{create_cubemap_sampler(backend_->device())};
 
-    cubemap_descriptor_layout_ =
-        create_cubemap_descriptor_set_layout(backend_->device());
+    VkDescriptorSetLayout const cubemap_descriptor_layout{
+        create_cubemap_descriptor_set_layout(backend_->device())};
 
+    VkDescriptorSet cubemap_descriptor; // NOLINT
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&cubemap_descriptor_layout_, 1},
-        std::span{&cubemap_descriptor_, 1});
+        std::span{&cubemap_descriptor_layout, 1},
+        std::span{&cubemap_descriptor, 1});
 
     update_cubemap_descriptor(backend_->device(),
-        cubemap_descriptor_,
-        vkrndr::combined_sampler_descriptor(cubemap_sampler_, cubemap_texture_),
+        cubemap_descriptor,
+        vkrndr::combined_sampler_descriptor(cubemap_sampler, cubemap_texture),
         vkrndr::buffer_descriptor(cubemap_uniform_buffer_));
 
-    auto cubemap_vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "equirectangular_to_cubemap.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "main")};
-
-    auto cubemap_fragment_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "equirectangular_to_cubemap.frag.spv",
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            "main")};
-
-    cubemap_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(cubemap_descriptor_layout_)
-                .add_push_constants<cubemap_push_constants_t>(
-                    VK_SHADER_STAGE_VERTEX_BIT)
-                .build(),
-            cubemap_.format}
-            .add_shader(as_pipeline_shader(cubemap_vertex_shader))
-            .add_shader(as_pipeline_shader(cubemap_fragment_shader))
-            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
-            .add_vertex_input(binding_description(), attribute_descriptions())
-            .build();
-
-    destroy(&backend_->device(), &cubemap_vertex_shader);
-    destroy(&backend_->device(), &cubemap_fragment_shader);
-
-    generate_cubemap_faces();
+    generate_cubemap_faces(cubemap_descriptor_layout, cubemap_descriptor);
 
     skybox_sampler_ =
         create_skybox_sampler(backend_->device(), cubemap_.mip_levels);
@@ -525,44 +481,20 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    auto irradiance_vertex_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "irradiance.vert.spv",
-            VK_SHADER_STAGE_VERTEX_BIT,
-            "main")};
 
-    auto irradiance_fragment_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "irradiance.frag.spv",
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            "main")};
+    generate_irradiance_map(cubemap_descriptor_layout, cubemap_descriptor);
 
-    irradiance_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(cubemap_descriptor_layout_)
-                .add_descriptor_set_layout(skybox_descriptor_layout_)
-                .add_push_constants<cubemap_push_constants_t>(
-                    VK_SHADER_STAGE_VERTEX_BIT)
-                .build(),
-            irradiance_cubemap_.format}
-            .add_shader(as_pipeline_shader(irradiance_vertex_shader))
-            .add_shader(as_pipeline_shader(irradiance_fragment_shader))
-            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
-            .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS_OR_EQUAL)
-            .add_vertex_input(binding_description(), attribute_descriptions())
-            .build();
+    vkrndr::free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        std::span{&cubemap_descriptor, 1});
 
-    destroy(&backend_->device(), &irradiance_vertex_shader);
-    destroy(&backend_->device(), &irradiance_fragment_shader);
+    vkDestroyDescriptorSetLayout(backend_->device().logical,
+        cubemap_descriptor_layout,
+        nullptr);
 
-    generate_irradiance_map();
+    vkDestroySampler(backend_->device().logical, cubemap_sampler, nullptr);
 
-    update_skybox_descriptor(backend_->device(),
-        skybox_descriptor_,
-        vkrndr::combined_sampler_descriptor(skybox_sampler_,
-            irradiance_cubemap_));
+    destroy(&backend_->device(), &cubemap_texture);
 }
 
 void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
@@ -614,105 +546,100 @@ VkPipelineLayout gltfviewer::skybox_t::pipeline_layout() const
     return *skybox_pipeline_.layout;
 }
 
-void gltfviewer::skybox_t::generate_cubemap_faces()
+void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
+    VkDescriptorSet descriptor_set)
 {
-    auto transient{backend_->request_transient_operation(false)};
-    VkCommandBuffer command_buffer{transient.command_buffer()};
+    auto cubemap_vertex_shader{vkrndr::create_shader_module(backend_->device(),
+        "cubemap.vert.spv",
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "main")};
 
-    VkViewport const viewport{.x = 0.0f,
-        .y = 0.0f,
-        .width = cppext::as_fp(cubemap_.extent.width),
-        .height = cppext::as_fp(cubemap_.extent.height),
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f};
-    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+    auto cubemap_fragment_shader{
+        vkrndr::create_shader_module(backend_->device(),
+            "equirectangular_to_cubemap.frag.spv",
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            "main")};
 
-    VkRect2D const scissor{{0, 0}, cubemap_.extent};
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+    auto pipeline =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
+                .add_descriptor_set_layout(layout)
+                .add_push_constants<cubemap_push_constants_t>(
+                    VK_SHADER_STAGE_VERTEX_BIT)
+                .build(),
+            cubemap_.format}
+            .add_shader(as_pipeline_shader(cubemap_vertex_shader))
+            .add_shader(as_pipeline_shader(cubemap_fragment_shader))
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
+            .add_vertex_input(binding_description(), attribute_descriptions())
+            .build();
 
-    VkDeviceSize const zero_offset{};
-    vkCmdBindVertexBuffers(command_buffer,
-        0,
-        1,
-        &cubemap_vertex_buffer_.buffer,
-        &zero_offset);
+    destroy(&backend_->device(), &cubemap_vertex_shader);
+    destroy(&backend_->device(), &cubemap_fragment_shader);
 
-    vkCmdBindIndexBuffer(command_buffer,
-        cubemap_index_buffer_.buffer,
-        0,
-        VK_INDEX_TYPE_UINT32);
+    render_to_cubemap(pipeline, std::span{&descriptor_set, 1}, cubemap_);
 
-    vkrndr::bind_pipeline(command_buffer,
-        cubemap_pipeline_,
-        0,
-        std::span{&cubemap_descriptor_, 1});
-
-    vkrndr::transition_image(cubemap_.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        cubemap_.mip_levels,
-        6);
-
-    for (uint32_t i{}; i != cubemap_.face_views.size(); ++i)
-    {
-        cubemap_push_constants_t pc{.direction = i};
-        vkCmdPushConstants(command_buffer,
-            *cubemap_pipeline_.layout,
-            VK_SHADER_STAGE_VERTEX_BIT,
-            0,
-            sizeof(cubemap_push_constants_t),
-            &pc);
-
-        vkrndr::render_pass_t color_render_pass;
-        color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            cubemap_.face_views[i]);
-
-        [[maybe_unused]] auto guard{
-            color_render_pass.begin(command_buffer, {{0, 0}, cubemap_.extent})};
-
-        vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
-    }
-
-    vkrndr::transition_image(cubemap_.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_PIPELINE_STAGE_2_BLIT_BIT,
-        VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        cubemap_.mip_levels,
-        6);
-
-    generate_mipmaps(backend_->device(),
-        cubemap_.image,
-        command_buffer,
-        cubemap_.format,
-        cubemap_.extent,
-        cubemap_.mip_levels,
-        6);
+    destroy(&backend_->device(), &pipeline);
 }
 
-void gltfviewer::skybox_t::generate_irradiance_map()
+void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
+    VkDescriptorSet descriptor_set)
+{
+    auto irradiance_vertex_shader{
+        vkrndr::create_shader_module(backend_->device(),
+            "cubemap.vert.spv",
+            VK_SHADER_STAGE_VERTEX_BIT,
+            "main")};
+
+    auto irradiance_fragment_shader{
+        vkrndr::create_shader_module(backend_->device(),
+            "irradiance.frag.spv",
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            "main")};
+
+    auto pipeline =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
+                .add_descriptor_set_layout(layout)
+                .add_descriptor_set_layout(skybox_descriptor_layout_)
+                .add_push_constants<cubemap_push_constants_t>(
+                    VK_SHADER_STAGE_VERTEX_BIT)
+                .build(),
+            irradiance_cubemap_.format}
+            .add_shader(as_pipeline_shader(irradiance_vertex_shader))
+            .add_shader(as_pipeline_shader(irradiance_fragment_shader))
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
+            .add_vertex_input(binding_description(), attribute_descriptions())
+            .build();
+
+    destroy(&backend_->device(), &irradiance_vertex_shader);
+    destroy(&backend_->device(), &irradiance_fragment_shader);
+
+    std::array descriptors{descriptor_set, skybox_descriptor_};
+
+    render_to_cubemap(pipeline, descriptors, irradiance_cubemap_);
+
+    destroy(&backend_->device(), &pipeline);
+}
+
+void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
+    std::span<VkDescriptorSet const> const& descriptors,
+    vkrndr::cubemap_t& cubemap)
 {
     auto transient{backend_->request_transient_operation(false)};
     VkCommandBuffer command_buffer{transient.command_buffer()};
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
-        .width = cppext::as_fp(irradiance_cubemap_.extent.width),
-        .height = cppext::as_fp(irradiance_cubemap_.extent.height),
+        .width = cppext::as_fp(cubemap.extent.width),
+        .height = cppext::as_fp(cubemap.extent.height),
         .minDepth = 0.0f,
         .maxDepth = 1.0f};
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkRect2D const scissor{{0, 0}, cubemap_.extent};
+    VkRect2D const scissor{{0, 0}, cubemap.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     VkDeviceSize const zero_offset{};
@@ -727,11 +654,9 @@ void gltfviewer::skybox_t::generate_irradiance_map()
         0,
         VK_INDEX_TYPE_UINT32);
 
-    std::array descriptors{cubemap_descriptor_, skybox_descriptor_};
+    vkrndr::bind_pipeline(command_buffer, pipeline, 0, descriptors);
 
-    vkrndr::bind_pipeline(command_buffer, irradiance_pipeline_, 0, descriptors);
-
-    vkrndr::transition_image(irradiance_cubemap_.image,
+    vkrndr::transition_image(cubemap.image,
         command_buffer,
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -739,14 +664,14 @@ void gltfviewer::skybox_t::generate_irradiance_map()
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        irradiance_cubemap_.mip_levels,
+        cubemap.mip_levels,
         6);
 
-    for (uint32_t i{}; i != irradiance_cubemap_.face_views.size(); ++i)
+    for (uint32_t i{}; i != cubemap.face_views.size(); ++i)
     {
         cubemap_push_constants_t pc{.direction = i};
         vkCmdPushConstants(command_buffer,
-            *irradiance_pipeline_.layout,
+            *pipeline.layout,
             VK_SHADER_STAGE_VERTEX_BIT,
             0,
             sizeof(cubemap_push_constants_t),
@@ -755,15 +680,15 @@ void gltfviewer::skybox_t::generate_irradiance_map()
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
-            irradiance_cubemap_.face_views[i]);
+            cubemap.face_views[i]);
 
-        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, irradiance_cubemap_.extent})};
+        [[maybe_unused]] auto guard{
+            color_render_pass.begin(command_buffer, {{0, 0}, cubemap.extent})};
 
         vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
     }
 
-    vkrndr::transition_image(irradiance_cubemap_.image,
+    vkrndr::transition_image(cubemap.image,
         command_buffer,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -771,14 +696,14 @@ void gltfviewer::skybox_t::generate_irradiance_map()
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_PIPELINE_STAGE_2_BLIT_BIT,
         VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        irradiance_cubemap_.mip_levels,
+        cubemap.mip_levels,
         6);
 
     generate_mipmaps(backend_->device(),
-        irradiance_cubemap_.image,
+        cubemap.image,
         command_buffer,
-        irradiance_cubemap_.format,
-        irradiance_cubemap_.extent,
-        irradiance_cubemap_.mip_levels,
+        cubemap.format,
+        cubemap.extent,
+        cubemap.mip_levels,
         6);
 }

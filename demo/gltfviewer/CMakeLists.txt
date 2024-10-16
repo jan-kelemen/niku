@@ -49,6 +49,13 @@ add_dependencies(gltfviewer gltfviewer_assets gltfviewer_shaders)
 
 compile_shader(
     SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/cubemap.vert.spv
+)
+
+compile_shader(
+    SHADER
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.frag
     SPIRV
         ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.frag.spv
@@ -56,23 +63,9 @@ compile_shader(
 
 compile_shader(
     SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.vert
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.vert.spv
-)
-
-compile_shader(
-    SHADER
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.frag
     SPIRV
         ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.vert
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/irradiance.vert.spv
 )
 
 compile_shader(
@@ -119,10 +112,9 @@ compile_shader(
 
 add_custom_target(gltfviewer_shaders
     DEPENDS
+        ${CMAKE_CURRENT_BINARY_DIR}/cubemap.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/irradiance.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
