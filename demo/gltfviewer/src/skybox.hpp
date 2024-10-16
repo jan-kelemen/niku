@@ -48,18 +48,24 @@ namespace gltfviewer
     private:
         void generate_cubemap_faces();
 
+        void generate_irradiance_map();
+
     private:
         vkrndr::backend_t* backend_;
 
         vkrndr::image_t cubemap_texture_;
-        vkrndr::cubemap_t cubemap_;
         vkrndr::buffer_t cubemap_vertex_buffer_;
         vkrndr::buffer_t cubemap_index_buffer_;
         vkrndr::buffer_t cubemap_uniform_buffer_;
+
+        vkrndr::cubemap_t cubemap_;
         VkSampler cubemap_sampler_{VK_NULL_HANDLE};
         VkDescriptorSetLayout cubemap_descriptor_layout_{VK_NULL_HANDLE};
         VkDescriptorSet cubemap_descriptor_{VK_NULL_HANDLE};
         vkrndr::pipeline_t cubemap_pipeline_;
+
+        vkrndr::cubemap_t irradiance_cubemap_;
+        vkrndr::pipeline_t irradiance_pipeline_;
 
         VkSampler skybox_sampler_{VK_NULL_HANDLE};
         VkDescriptorSetLayout skybox_descriptor_layout_{VK_NULL_HANDLE};
