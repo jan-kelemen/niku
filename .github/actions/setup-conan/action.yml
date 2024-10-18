@@ -65,9 +65,10 @@ runs:
     - name: Override public Conan recipes
       shell: ${{ inputs.shell }}
       run: |
-        conan export recipes/recipes/freetype/meson --version 2.13.2
+        conan export recipes/recipes/freetype/meson --version 2.13.3
         conan export recipes/recipes/fastgltf/all --version 0.8.0
-        conan export recipes/recipes/sdl/all --version 2.30.6
+        conan export recipes/recipes/sdl/all --version 2.30.8
+        conan export recipes/recipes/simdjson/all --version 3.10.1
         conan export recipes/recipes/spdlog/all --version 1.14.1
         conan export recipes/recipes/vulkan-memory-allocator/all --version 3.1.0
 
