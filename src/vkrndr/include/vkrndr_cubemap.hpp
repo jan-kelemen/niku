@@ -42,5 +42,10 @@ namespace vkrndr
         VkImageTiling tiling,
         VkImageUsageFlags usage,
         VkMemoryPropertyFlags properties);
+
+    [[nodiscard]] std::array<VkImageView, 6> face_views_for_mip(
+        device_t const& device,
+        cubemap_t const& cubemap,
+        uint32_t mip_level);
 } // namespace vkrndr
 #endif

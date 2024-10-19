@@ -103,3 +103,31 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
 
     return rv;
 }
+
+std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
+    vkrndr::cubemap_t const& cubemap,
+    uint32_t const mip_level)
+{
+    std::array<VkImageView, 6> rv;
+
+    for (uint32_t i{}; i != 6; ++i)
+    {
+        VkImageViewCreateInfo face_view_info{};
+        face_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        face_view_info.image = cubemap.image;
+        face_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        face_view_info.format = cubemap.format;
+        face_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        face_view_info.subresourceRange.baseMipLevel = mip_level;
+        face_view_info.subresourceRange.levelCount = 1;
+        face_view_info.subresourceRange.baseArrayLayer = i;
+        face_view_info.subresourceRange.layerCount = 1;
+
+        check_result(vkCreateImageView(device.logical,
+            &face_view_info,
+            nullptr,
+            &rv[i]));
+    }
+
+    return rv;
+}
