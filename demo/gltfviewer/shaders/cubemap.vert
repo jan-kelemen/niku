@@ -6,6 +6,7 @@ layout(location = 0) in vec3 inPosition;
 
 layout(push_constant) uniform PushConsts {
     uint direction;
+    float roughness;
 } pc;
 
 layout(set = 0, binding = 1) uniform Projection {
@@ -16,7 +17,6 @@ layout(set = 0, binding = 1) uniform Projection {
 layout(location = 0) out vec3 outPosition; 
 
 void main() {
-
     outPosition = inPosition;
     gl_Position =  proj.projection * proj.directions[pc.direction] * vec4(inPosition, 1.0);
 }

@@ -84,6 +84,13 @@ compile_shader(
 
 compile_shader(
     SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
+)
+
+compile_shader(
+    SHADER
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.frag
     SPIRV
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
@@ -117,6 +124,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/skybox.frag.spv

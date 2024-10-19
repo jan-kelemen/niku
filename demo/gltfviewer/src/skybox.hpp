@@ -55,6 +55,9 @@ namespace gltfviewer
         void generate_irradiance_map(VkDescriptorSetLayout layout,
             VkDescriptorSet descriptor_set);
 
+        void generate_prefilter_map(VkDescriptorSetLayout layout,
+            VkDescriptorSet descriptor_set);
+
         void render_to_cubemap(vkrndr::pipeline_t const& pipeline,
             std::span<VkDescriptorSet const> const& descriptors,
             vkrndr::cubemap_t& cubemap);
@@ -68,6 +71,7 @@ namespace gltfviewer
 
         vkrndr::cubemap_t cubemap_;
         vkrndr::cubemap_t irradiance_cubemap_;
+        vkrndr::cubemap_t prefilter_cubemap_;
 
         VkSampler skybox_sampler_{VK_NULL_HANDLE};
         VkDescriptorSetLayout skybox_descriptor_layout_{VK_NULL_HANDLE};

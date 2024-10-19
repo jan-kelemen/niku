@@ -39,6 +39,7 @@ namespace
     struct [[nodiscard]] cubemap_push_constants_t final
     {
         uint32_t direction;
+        float roughness;
     };
 
     struct [[nodiscard]] cubemap_uniform_t final
@@ -224,6 +225,8 @@ gltfviewer::skybox_t::skybox_t(vkrndr::backend_t& backend) : backend_{&backend}
 
 gltfviewer::skybox_t::~skybox_t()
 {
+    destroy(&backend_->device(), &prefilter_cubemap_);
+
     destroy(&backend_->device(), &irradiance_cubemap_);
 
     destroy(&backend_->device(), &skybox_pipeline_);
@@ -484,6 +487,22 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     generate_irradiance_map(cubemap_descriptor_layout, cubemap_descriptor);
 
+    prefilter_cubemap_ = vkrndr::create_cubemap(backend_->device(),
+        512,
+        vkrndr::max_mip_levels(512, 512),
+        VK_SAMPLE_COUNT_1_BIT,
+        VK_FORMAT_R32G32B32A32_SFLOAT,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    generate_prefilter_map(cubemap_descriptor_layout, cubemap_descriptor);
+    update_skybox_descriptor(backend_->device(),
+        skybox_descriptor_,
+        vkrndr::combined_sampler_descriptor(skybox_sampler_,
+            prefilter_cubemap_));
+
     vkrndr::free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
         std::span{&cubemap_descriptor, 1});
@@ -626,6 +645,160 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
     std::array descriptors{descriptor_set, skybox_descriptor_};
 
     render_to_cubemap(pipeline, descriptors, irradiance_cubemap_);
+
+    destroy(&backend_->device(), &pipeline);
+}
+
+void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
+    VkDescriptorSet descriptor_set)
+{
+    auto prefilter_vertex_shader{
+        vkrndr::create_shader_module(backend_->device(),
+            "cubemap.vert.spv",
+            VK_SHADER_STAGE_VERTEX_BIT,
+            "main")};
+
+    auto prefilter_fragment_shader{
+        vkrndr::create_shader_module(backend_->device(),
+            "prefilter.frag.spv",
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            "main")};
+
+    struct specialization_t
+    {
+        uint32_t samples;
+        uint32_t resolution;
+    } spec{.samples = 1024, .resolution = cubemap_.extent.width};
+
+    constexpr std::array specialization_entries{
+        VkSpecializationMapEntry{.constantID = 0,
+            .offset = 0,
+            .size = sizeof(uint32_t)},
+        VkSpecializationMapEntry{.constantID = 1,
+            .offset = sizeof(uint32_t),
+            .size = sizeof(uint32_t)}};
+
+    VkSpecializationInfo const fragment_specialization{
+        .mapEntryCount = vkrndr::count_cast(specialization_entries.size()),
+        .pMapEntries = specialization_entries.data(),
+        .dataSize = sizeof(specialization_t),
+        .pData = &spec};
+
+    auto pipeline =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
+                .add_descriptor_set_layout(layout)
+                .add_descriptor_set_layout(skybox_descriptor_layout_)
+                .add_push_constants<cubemap_push_constants_t>(
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                .build(),
+            prefilter_cubemap_.format}
+            .add_shader(as_pipeline_shader(prefilter_vertex_shader))
+            .add_shader(as_pipeline_shader(prefilter_fragment_shader,
+                &fragment_specialization))
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
+            .add_vertex_input(binding_description(), attribute_descriptions())
+            .build();
+
+    destroy(&backend_->device(), &prefilter_vertex_shader);
+    destroy(&backend_->device(), &prefilter_fragment_shader);
+
+    std::array descriptors{descriptor_set, skybox_descriptor_};
+    {
+        auto transient{backend_->request_transient_operation(false)};
+        VkCommandBuffer command_buffer{transient.command_buffer()};
+
+        VkDeviceSize const zero_offset{};
+        vkCmdBindVertexBuffers(command_buffer,
+            0,
+            1,
+            &cubemap_vertex_buffer_.buffer,
+            &zero_offset);
+
+        vkCmdBindIndexBuffer(command_buffer,
+            cubemap_index_buffer_.buffer,
+            0,
+            VK_INDEX_TYPE_UINT32);
+
+        vkrndr::bind_pipeline(command_buffer, pipeline, 0, descriptors);
+
+        vkrndr::transition_image(prefilter_cubemap_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            prefilter_cubemap_.mip_levels,
+            6);
+
+        for (uint32_t mip{}; mip != prefilter_cubemap_.mip_levels; ++mip)
+        {
+            float const dimension{
+                cppext::as_fp(prefilter_cubemap_.extent.width) *
+                std::powf(0.5f, cppext::as_fp(mip))};
+
+            auto face_views{face_views_for_mip(backend_->device(),
+                prefilter_cubemap_,
+                mip)};
+
+            VkViewport const viewport{.x = 0.0f,
+                .y = 0.0f,
+                .width = dimension,
+                .height = dimension,
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f};
+            vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+            VkRect2D const scissor{{0, 0},
+                {static_cast<uint32_t>(std::round(dimension)),
+                    static_cast<uint32_t>(std::round(dimension))}};
+            vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+            for (uint32_t i{}; i != face_views.size(); ++i)
+            {
+                cubemap_push_constants_t pc{.direction = i,
+                    .roughness = cppext::as_fp(mip) /
+                        cppext::as_fp(prefilter_cubemap_.mip_levels - 1)};
+
+                vkCmdPushConstants(command_buffer,
+                    *pipeline.layout,
+                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    0,
+                    sizeof(cubemap_push_constants_t),
+                    &pc);
+
+                vkrndr::render_pass_t color_render_pass;
+                color_render_pass.with_color_attachment(
+                    VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    VK_ATTACHMENT_STORE_OP_STORE,
+                    face_views[i]);
+
+                [[maybe_unused]] auto guard{
+                    color_render_pass.begin(command_buffer, scissor)};
+
+                vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
+            }
+
+            for (VkImageView view : face_views)
+            {
+                vkDestroyImageView(backend_->device().logical, view, nullptr);
+            }
+        }
+
+        vkrndr::transition_image(prefilter_cubemap_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            prefilter_cubemap_.mip_levels,
+            6);
+    }
 
     destroy(&backend_->device(), &pipeline);
 }
