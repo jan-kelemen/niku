@@ -225,6 +225,8 @@ gltfviewer::skybox_t::skybox_t(vkrndr::backend_t& backend) : backend_{&backend}
 
 gltfviewer::skybox_t::~skybox_t()
 {
+    destroy(&backend_->device(), &brdf_lookup_);
+
     destroy(&backend_->device(), &prefilter_cubemap_);
 
     destroy(&backend_->device(), &irradiance_cubemap_);
@@ -498,10 +500,18 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     generate_prefilter_map(cubemap_descriptor_layout, cubemap_descriptor);
-    update_skybox_descriptor(backend_->device(),
-        skybox_descriptor_,
-        vkrndr::combined_sampler_descriptor(skybox_sampler_,
-            prefilter_cubemap_));
+
+    brdf_lookup_ = vkrndr::create_image_and_view(backend_->device(),
+        vkrndr::to_extent(512, 512),
+        1,
+        VK_SAMPLE_COUNT_1_BIT,
+        VK_FORMAT_R16G16_SFLOAT,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        VK_IMAGE_ASPECT_COLOR_BIT);
+
+    generate_brdf_lookup();
 
     vkrndr::free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
@@ -798,6 +808,93 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             prefilter_cubemap_.mip_levels,
             6);
+    }
+
+    destroy(&backend_->device(), &pipeline);
+}
+
+void gltfviewer::skybox_t::generate_brdf_lookup()
+{
+    auto brdf_vertex_shader{vkrndr::create_shader_module(backend_->device(),
+        "fullscreen.vert.spv",
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "main")};
+
+    auto brdf_fragment_shader{vkrndr::create_shader_module(backend_->device(),
+        "brdf.frag.spv",
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "main")};
+
+    struct specialization_t
+    {
+        uint32_t samples;
+    } spec{.samples = 1024};
+
+    constexpr std::array specialization_entries{
+        VkSpecializationMapEntry{.constantID = 0,
+            .offset = 0,
+            .size = sizeof(uint32_t)}};
+
+    VkSpecializationInfo const fragment_specialization{
+        .mapEntryCount = vkrndr::count_cast(specialization_entries.size()),
+        .pMapEntries = specialization_entries.data(),
+        .dataSize = sizeof(specialization_t),
+        .pData = &spec};
+
+    auto pipeline =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}.build(),
+            brdf_lookup_.format}
+            .add_shader(as_pipeline_shader(brdf_vertex_shader))
+            .add_shader(as_pipeline_shader(brdf_fragment_shader,
+                &fragment_specialization))
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
+            .build();
+
+    destroy(&backend_->device(), &brdf_vertex_shader);
+    destroy(&backend_->device(), &brdf_fragment_shader);
+
+    {
+        auto transient{backend_->request_transient_operation(false)};
+        VkCommandBuffer command_buffer{transient.command_buffer()};
+        VkViewport const viewport{.x = 0.0f,
+            .y = 0.0f,
+            .width = cppext::as_fp(brdf_lookup_.extent.width),
+            .height = cppext::as_fp(brdf_lookup_.extent.height),
+            .minDepth = 0.0f,
+            .maxDepth = 1.0f};
+        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+        VkRect2D const scissor{{0, 0}, brdf_lookup_.extent};
+        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+        bind_pipeline(command_buffer, pipeline);
+
+        vkrndr::wait_for_color_attachment_write(brdf_lookup_.image,
+            command_buffer);
+
+        {
+            vkrndr::render_pass_t color_render_pass;
+            color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+                VK_ATTACHMENT_STORE_OP_STORE,
+                brdf_lookup_.view);
+
+            [[maybe_unused]] auto guard{
+                color_render_pass.begin(command_buffer, scissor)};
+
+            vkCmdDraw(command_buffer, 3, 1, 0, 0);
+        }
+
+        vkrndr::transition_image(brdf_lookup_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            brdf_lookup_.mip_levels);
     }
 
     destroy(&backend_->device(), &pipeline);

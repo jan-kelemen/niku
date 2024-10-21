@@ -108,7 +108,7 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
           backend_->frames_in_flight()}
 {
     auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "postprocess.vert.spv",
+        "fullscreen.vert.spv",
         VK_SHADER_STAGE_VERTEX_BIT,
         "main")};
     auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
