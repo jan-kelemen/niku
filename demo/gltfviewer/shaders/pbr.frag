@@ -141,11 +141,21 @@ vec3 diffuse(vec3 diffuseColor) {
     return diffuseColor / M_PI;
 }
 
-vec3 IBLContribution(vec3 N, vec3 diffuseColor) {
-	vec3 diffuseLight = texture(irradianceMap, N).rgb;
-	vec3 diffuse = diffuseLight * diffuseColor;
+vec3 IBLContribution(vec3 N, vec3 reflection, float NdotV, float roughness, vec3 diffuseColor, vec3 specularColor) {
+	float lod = roughness * 5; //roughness * uboParams.prefilteredCubeMipLevels;
 
-	return diffuse * pc.ibl_factor;
+	vec3 brdf = texture(samplerBRDF, vec2(NdotV, 1.0 - roughness)).rgb;
+	vec3 diffuseLight = texture(irradianceMap, N).rgb;
+
+	vec3 specularLight = textureLod(prefilteredMap, reflection, lod).rgb;
+
+	vec3 diffuse = diffuseLight * diffuseColor;
+	vec3 specular = specularLight * (specularColor * brdf.x + brdf.y);
+
+	diffuse *= pc.ibl_factor;
+	specular *= pc.ibl_factor;
+
+	return diffuse + specular;
 }
 
 void main() {
@@ -165,6 +175,7 @@ void main() {
     const vec3 N = worldNormal(m);
     const vec3 V = normalize(env.cameraPosition - inPosition);
     const float NdotV = clamp(abs(dot(N, V)), 0.001, 1.0);
+    const vec3 reflection = normalize(reflect(-V, N));
 
     const vec3 F0 = vec3(0.04);
     const vec3 diffuseColor = (1.0 - metallic) * (vec3(1.0) - F0) * albedo.rgb;
@@ -198,14 +209,14 @@ void main() {
         color += NdotL * radiance * (diffuseContribution + specularContribution);
     }
 
+    vec3 ambient = IBLContribution(N, reflection, NdotV, roughness, diffuseColor, specularColor);
+    color += ambient;
+
     const float occlusion = ambientOcclusion(m);
     color = mix(color, color * occlusion, m.occlusionStrength);
 
     const vec3 emissive = emissiveColor(m);
     color += emissive;
-
-    vec3 ambient = IBLContribution(N, diffuseColor) * occlusion;
-    color += ambient;
 
     outColor = vec4(color, pc.debug > 0 ? 1.0 : albedo.a);
 

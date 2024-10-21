@@ -217,6 +217,36 @@ namespace
 
         vkUpdateDescriptorSets(device.logical, 1, &sampler_write, 0, nullptr);
     }
+
+    [[nodiscard]] VkSampler create_brdf_sampler(vkrndr::device_t const& device)
+    {
+        VkPhysicalDeviceProperties properties; // NOLINT
+        vkGetPhysicalDeviceProperties(device.physical, &properties);
+
+        VkSamplerCreateInfo sampler_info{};
+        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_info.magFilter = VK_FILTER_LINEAR;
+        sampler_info.minFilter = VK_FILTER_LINEAR;
+        sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.anisotropyEnable = VK_TRUE;
+        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+        sampler_info.unnormalizedCoordinates = VK_FALSE;
+        sampler_info.compareEnable = VK_FALSE;
+        sampler_info.compareOp = VK_COMPARE_OP_NEVER;
+        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        sampler_info.mipLodBias = 0.0f;
+        sampler_info.minLod = 0.0f;
+        sampler_info.maxLod = 1.0f;
+
+        VkSampler rv; // NOLINT
+        vkrndr::check_result(
+            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+
+        return rv;
+    }
 } // namespace
 
 gltfviewer::skybox_t::skybox_t(vkrndr::backend_t& backend) : backend_{&backend}
@@ -242,6 +272,8 @@ gltfviewer::skybox_t::~skybox_t()
         nullptr);
 
     vkDestroySampler(backend_->device().logical, skybox_sampler_, nullptr);
+
+    vkDestroySampler(backend_->device().logical, brdf_sampler_, nullptr);
 
     destroy(&backend_->device(), &cubemap_uniform_buffer_);
 
@@ -501,6 +533,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     generate_prefilter_map(cubemap_descriptor_layout, cubemap_descriptor);
 
+    brdf_sampler_ = create_brdf_sampler(backend_->device());
+
     brdf_lookup_ = vkrndr::create_image_and_view(backend_->device(),
         vkrndr::to_extent(512, 512),
         1,
@@ -579,6 +613,17 @@ VkDescriptorImageInfo gltfviewer::skybox_t::irradiance_info() const
 {
     return vkrndr::combined_sampler_descriptor(skybox_sampler_,
         irradiance_cubemap_);
+}
+
+VkDescriptorImageInfo gltfviewer::skybox_t::prefiltered_info() const
+{
+    return vkrndr::combined_sampler_descriptor(skybox_sampler_,
+        prefilter_cubemap_);
+}
+
+VkDescriptorImageInfo gltfviewer::skybox_t::brdf_lookup_info() const
+{
+    return vkrndr::combined_sampler_descriptor(brdf_sampler_, brdf_lookup_);
 }
 
 void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,

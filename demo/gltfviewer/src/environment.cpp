@@ -65,7 +65,23 @@ namespace
         irradiance_binding.descriptorCount = 1;
         irradiance_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array bindings{uniform_binding, irradiance_binding};
+        VkDescriptorSetLayoutBinding prefiltered_binding{};
+        prefiltered_binding.binding = 2;
+        prefiltered_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        prefiltered_binding.descriptorCount = 1;
+        prefiltered_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutBinding brdf_binding{};
+        brdf_binding.binding = 3;
+        brdf_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        brdf_binding.descriptorCount = 1;
+        brdf_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array bindings{uniform_binding,
+            irradiance_binding,
+            prefiltered_binding,
+            brdf_binding};
 
         return vkrndr::create_descriptor_set_layout(device, bindings);
     }
@@ -73,7 +89,9 @@ namespace
     void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
         VkDescriptorBufferInfo const uniform_info,
-        VkDescriptorImageInfo const irradiance_info)
+        VkDescriptorImageInfo const irradiance_info,
+        VkDescriptorImageInfo const prefiltered_info,
+        VkDescriptorImageInfo const brdf_info)
     {
         VkWriteDescriptorSet uniform_write{};
         uniform_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -84,17 +102,39 @@ namespace
         uniform_write.descriptorCount = 1;
         uniform_write.pBufferInfo = &uniform_info;
 
-        VkWriteDescriptorSet sampler_write{};
-        sampler_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        sampler_write.dstSet = descriptor_set;
-        sampler_write.dstBinding = 1;
-        sampler_write.dstArrayElement = 0;
-        sampler_write.descriptorType =
+        VkWriteDescriptorSet irradiance_write{};
+        irradiance_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        irradiance_write.dstSet = descriptor_set;
+        irradiance_write.dstBinding = 1;
+        irradiance_write.dstArrayElement = 0;
+        irradiance_write.descriptorType =
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        sampler_write.descriptorCount = 1;
-        sampler_write.pImageInfo = &irradiance_info;
+        irradiance_write.descriptorCount = 1;
+        irradiance_write.pImageInfo = &irradiance_info;
 
-        std::array const descriptor_writes{uniform_write, sampler_write};
+        VkWriteDescriptorSet prefiltered_write{};
+        prefiltered_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        prefiltered_write.dstSet = descriptor_set;
+        prefiltered_write.dstBinding = 2;
+        prefiltered_write.dstArrayElement = 0;
+        prefiltered_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        prefiltered_write.descriptorCount = 1;
+        prefiltered_write.pImageInfo = &prefiltered_info;
+
+        VkWriteDescriptorSet brdf_write{};
+        brdf_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        brdf_write.dstSet = descriptor_set;
+        brdf_write.dstBinding = 3;
+        brdf_write.dstArrayElement = 0;
+        brdf_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        brdf_write.descriptorCount = 1;
+        brdf_write.pImageInfo = &brdf_info;
+
+        std::array const descriptor_writes{uniform_write,
+            irradiance_write,
+            prefiltered_write,
+            brdf_write};
 
         vkUpdateDescriptorSets(device.logical,
             vkrndr::count_cast(descriptor_writes.size()),
@@ -172,7 +212,9 @@ void gltfviewer::environment_t::load_skybox(
         update_descriptor_set(backend_->device(),
             data.descriptor_set,
             vkrndr::buffer_descriptor(data.uniform),
-            skybox_.irradiance_info());
+            skybox_.irradiance_info(),
+            skybox_.prefiltered_info(),
+            skybox_.brdf_lookup_info());
     }
 }
 

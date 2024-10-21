@@ -43,6 +43,10 @@ namespace gltfviewer
 
         [[nodiscard]] VkDescriptorImageInfo irradiance_info() const;
 
+        [[nodiscard]] VkDescriptorImageInfo prefiltered_info() const;
+
+        [[nodiscard]] VkDescriptorImageInfo brdf_lookup_info() const;
+
     public:
         skybox_t& operator=(skybox_t const&) = delete;
 
@@ -76,6 +80,7 @@ namespace gltfviewer
         vkrndr::cubemap_t prefilter_cubemap_;
         vkrndr::image_t brdf_lookup_;
 
+        VkSampler brdf_sampler_{VK_NULL_HANDLE};
         VkSampler skybox_sampler_{VK_NULL_HANDLE};
         VkDescriptorSetLayout skybox_descriptor_layout_{VK_NULL_HANDLE};
         VkDescriptorSet skybox_descriptor_{VK_NULL_HANDLE};
