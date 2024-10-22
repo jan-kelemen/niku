@@ -37,7 +37,9 @@ namespace
         glm::mat4 view;
         glm::mat4 projection;
         glm::vec3 camera_position;
+        uint32_t prefiltered_mip_levels;
         uint32_t light_count;
+        uint8_t padding[12];
     };
 
     static_assert(sizeof(environment_uniform_t) % 16 == 0);
@@ -253,6 +255,7 @@ void gltfviewer::environment_t::update(niku::camera_t const& camera)
     header->view = camera.view_matrix();
     header->projection = camera.projection_matrix();
     header->camera_position = camera.position();
+    header->prefiltered_mip_levels = skybox_.prefiltered_mip_levels();
 
     auto* const light_array{
         frame_data_->uniform_map.as<::light_t>(sizeof(environment_uniform_t))};

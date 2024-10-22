@@ -142,7 +142,7 @@ vec3 diffuse(vec3 diffuseColor) {
 }
 
 vec3 IBLContribution(vec3 N, vec3 reflection, float NdotV, float roughness, vec3 diffuseColor, vec3 specularColor) {
-	float lod = roughness * 5; //roughness * uboParams.prefilteredCubeMipLevels;
+	float lod = roughness * env.prefilteredMipLevels;
 
 	vec3 brdf = texture(samplerBRDF, vec2(NdotV, 1.0 - roughness)).rgb;
 	vec3 diffuseLight = texture(irradianceMap, N).rgb;

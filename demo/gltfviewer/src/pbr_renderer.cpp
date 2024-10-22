@@ -322,6 +322,11 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
     std::filesystem::path const vertex_path{"pbr.vert.spv"};
     if (auto const wt{last_write_time(vertex_path)}; vertex_write_time_ != wt)
     {
+        if (vertex_shader_.handle)
+        {
+            destroy(&backend_->device(), &vertex_shader_);
+        }
+
         vertex_shader_ = vkrndr::create_shader_module(backend_->device(),
             "pbr.vert.spv",
             VK_SHADER_STAGE_VERTEX_BIT,
@@ -333,6 +338,11 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
     if (auto const wt{last_write_time(fragment_path)};
         fragment_write_time_ != wt)
     {
+        if (fragment_shader_.handle)
+        {
+            destroy(&backend_->device(), &fragment_shader_);
+        }
+
         fragment_shader_ = vkrndr::create_shader_module(backend_->device(),
             "pbr.frag.spv",
             VK_SHADER_STAGE_FRAGMENT_BIT,

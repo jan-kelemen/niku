@@ -8,6 +8,7 @@
 
 #include <volk.h>
 
+#include <cstdint>
 #include <filesystem>
 #include <span>
 
@@ -46,6 +47,8 @@ namespace gltfviewer
         [[nodiscard]] VkDescriptorImageInfo prefiltered_info() const;
 
         [[nodiscard]] VkDescriptorImageInfo brdf_lookup_info() const;
+
+        [[nodiscard]] uint32_t prefiltered_mip_levels() const;
 
     public:
         skybox_t& operator=(skybox_t const&) = delete;
