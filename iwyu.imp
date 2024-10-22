@@ -52,6 +52,7 @@
   { include: [ "<__fwd/fstream.h>", private, "<fstream>", public ] },
   { include: [ "<__fwd/ios.h>", private, "<ios>", public ] },
   { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
+  { include: [ "<__math/rounding_functions.h>", private, "<cmath>", public ] },
   
   # Catch2 aliases
   { include: [ "<catch2/catch_message.hpp>", public, "<catch2/catch_test_macros.hpp>", public ] },

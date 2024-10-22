@@ -108,9 +108,9 @@ std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
     vkrndr::cubemap_t const& cubemap,
     uint32_t const mip_level)
 {
-    std::array<VkImageView, 6> rv;
+    std::array<VkImageView, 6> rv; // NOLINT
 
-    for (uint32_t i{}; i != 6; ++i)
+    for (uint32_t i{}; i != rv.size(); ++i)
     {
         VkImageViewCreateInfo face_view_info{};
         face_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
