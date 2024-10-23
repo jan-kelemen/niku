@@ -38,7 +38,7 @@ void main() {
     }
 
     if (pc.gamma != 0.0) {
-        result = gammaCorrection(result, pc.gamma);
+        result = fromLinear(result);
     }
 
     outColor = result;
