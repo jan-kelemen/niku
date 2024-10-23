@@ -34,7 +34,7 @@ void main() {
 
     vec4 result = resolve(UV);
     if (pc.exposure != 0.0) {
-        result = exposureToneMapping(result, pc.exposure);
+        result = pbrNeutralToneMapping(result);
     }
 
     if (pc.gamma != 0.0) {

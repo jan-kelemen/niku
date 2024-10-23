@@ -1,3 +1,7 @@
+#extension GL_GOOGLE_include_directive : require
+
+#include "pbrNeutral.glsl"
+
 // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
 vec4 fromLinear(vec4 linearRGB) {
     bvec3 cutoff = lessThan(linearRGB.rgb, vec3(0.0031308));
@@ -13,6 +17,10 @@ vec4 toLinear(vec4 sRGB) {
     vec3 lower = sRGB.rgb/vec3(12.92);
 
     return vec4(mix(higher, lower, cutoff), sRGB.a);
+}
+
+vec4 pbrNeutralToneMapping(vec4 linearRGB) {
+    return vec4(PBRNeutralToneMapping(linearRGB.rgb), linearRGB.a);
 }
 
 vec4 exposureToneMapping(vec4 linearRGB, float exposure) {
