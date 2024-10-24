@@ -96,11 +96,9 @@ vkrndr::pipeline_layout_builder_t::add_push_constants(
 }
 
 vkrndr::pipeline_builder_t::pipeline_builder_t(device_t& device,
-    std::shared_ptr<VkPipelineLayout> pipeline_layout,
-    VkFormat const image_format)
+    std::shared_ptr<VkPipelineLayout> pipeline_layout)
     : device_{&device}
     , pipeline_layout_{std::move(pipeline_layout)}
-    , image_format_{image_format}
     , dynamic_states_{{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR}}
 {
 }
@@ -150,23 +148,28 @@ vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
     multisampling.minSampleShading = .2f;
     multisampling.rasterizationSamples = rasterization_samples_;
 
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
-    VkPipelineColorBlendAttachmentState const color_blend_attachment{
-        color_blending_.value_or(
-            VkPipelineColorBlendAttachmentState{.blendEnable = VK_FALSE,
-                .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                    VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-                    VK_COLOR_COMPONENT_A_BIT})};
-    DISABLE_WARNING_POP
+    if (color_blending_.empty())
+    {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
+        VkPipelineColorBlendAttachmentState const default_color_blending{
+            .blendEnable = VK_FALSE,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                VK_COLOR_COMPONENT_A_BIT};
+        DISABLE_WARNING_POP
+        color_blending_ = std::vector<VkPipelineColorBlendAttachmentState>(
+            color_attachments_.size(),
+            default_color_blending);
+    }
 
     VkPipelineColorBlendStateCreateInfo color_blending{};
     color_blending.sType =
         VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     color_blending.logicOpEnable = VK_FALSE;
     color_blending.logicOp = VK_LOGIC_OP_COPY;
-    color_blending.attachmentCount = 1;
-    color_blending.pAttachments = &color_blend_attachment;
+    color_blending.attachmentCount = count_cast(color_blending_.size());
+    color_blending.pAttachments = color_blending_.data();
     std::ranges::fill(color_blending.blendConstants, 0.0f);
 
     VkPipelineDynamicStateCreateInfo dynamic_state{};
@@ -177,8 +180,9 @@ vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
     VkPipelineRenderingCreateInfo rendering_create_info{};
     rendering_create_info.sType =
         VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-    rendering_create_info.colorAttachmentCount = 1;
-    rendering_create_info.pColorAttachmentFormats = &image_format_;
+    rendering_create_info.colorAttachmentCount =
+        count_cast(color_attachments_.size());
+    rendering_create_info.pColorAttachmentFormats = color_attachments_.data();
     if (depth_stencil_)
     {
         rendering_create_info.depthAttachmentFormat = depth_format_;
@@ -229,6 +233,14 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_shader(
     return *this;
 }
 
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_color_attachment(
+    VkFormat format)
+{
+    color_attachments_.push_back(format);
+
+    return *this;
+}
+
 vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_vertex_input(
     std::span<VkVertexInputBindingDescription const> binding_descriptions,
     std::span<VkVertexInputAttributeDescription const> attribute_descriptions)
@@ -273,10 +285,10 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_primitive_topology(
     return *this;
 }
 
-vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_color_blending(
+vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_color_blending(
     VkPipelineColorBlendAttachmentState const color_blending)
 {
-    color_blending_ = color_blending;
+    color_blending_.push_back(color_blending);
 
     return *this;
 }

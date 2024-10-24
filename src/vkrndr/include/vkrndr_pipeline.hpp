@@ -42,10 +42,10 @@ namespace vkrndr
     public:
         explicit pipeline_layout_builder_t(device_t& device);
 
-        pipeline_layout_builder_t(pipeline_layout_builder_t const&) = delete;
+        pipeline_layout_builder_t(pipeline_layout_builder_t const&) = default;
 
         pipeline_layout_builder_t(
-            pipeline_layout_builder_t&&) noexcept = delete;
+            pipeline_layout_builder_t&&) noexcept = default;
 
     public:
         ~pipeline_layout_builder_t() = default;
@@ -65,10 +65,10 @@ namespace vkrndr
 
     public:
         pipeline_layout_builder_t& operator=(
-            pipeline_layout_builder_t const&) = delete;
+            pipeline_layout_builder_t const&) = default;
 
         pipeline_layout_builder_t& operator=(
-            pipeline_layout_builder_t&&) = delete;
+            pipeline_layout_builder_t&&) = default;
 
     private:
         device_t* device_;
@@ -91,12 +91,11 @@ namespace vkrndr
     {
     public: // Construction
         pipeline_builder_t(device_t& device,
-            std::shared_ptr<VkPipelineLayout> pipeline_layout,
-            VkFormat image_format);
+            std::shared_ptr<VkPipelineLayout> pipeline_layout);
 
-        pipeline_builder_t(pipeline_builder_t const&) = delete;
+        pipeline_builder_t(pipeline_builder_t const&) = default;
 
-        pipeline_builder_t(pipeline_builder_t&&) noexcept = delete;
+        pipeline_builder_t(pipeline_builder_t&&) noexcept = default;
 
     public: // Destruction
         ~pipeline_builder_t();
@@ -105,6 +104,8 @@ namespace vkrndr
         [[nodiscard]] pipeline_t build();
 
         pipeline_builder_t& add_shader(VkPipelineShaderStageCreateInfo shader);
+
+        pipeline_builder_t& add_color_attachment(VkFormat format);
 
         pipeline_builder_t& add_vertex_input(
             std::span<VkVertexInputBindingDescription const>
@@ -121,7 +122,7 @@ namespace vkrndr
         pipeline_builder_t& with_primitive_topology(
             VkPrimitiveTopology primitive_topology);
 
-        pipeline_builder_t& with_color_blending(
+        pipeline_builder_t& add_color_blending(
             VkPipelineColorBlendAttachmentState color_blending);
 
         pipeline_builder_t& with_depth_test(VkFormat depth_format,
@@ -133,10 +134,10 @@ namespace vkrndr
 
         pipeline_builder_t& with_dynamic_state(VkDynamicState state);
 
-    public: // Operators
-        pipeline_builder_t& operator=(pipeline_builder_t const&) = delete;
+    public: // Operators#include "math_constants.glsl"
+        pipeline_builder_t& operator=(pipeline_builder_t const&) = default;
 
-        pipeline_builder_t& operator=(pipeline_builder_t&&) noexcept = delete;
+        pipeline_builder_t& operator=(pipeline_builder_t&&) noexcept = default;
 
     private: // Helpers
         void cleanup();
@@ -146,14 +147,14 @@ namespace vkrndr
         std::shared_ptr<VkPipelineLayout> pipeline_layout_;
         VkPrimitiveTopology primitive_topology_{
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
-        VkFormat image_format_{};
+        std::vector<VkFormat> color_attachments_;
         std::vector<VkPipelineShaderStageCreateInfo> shaders_;
         std::vector<VkVertexInputBindingDescription> vertex_input_binding_;
         std::vector<VkVertexInputAttributeDescription> vertex_input_attributes_;
         VkSampleCountFlagBits rasterization_samples_{VK_SAMPLE_COUNT_1_BIT};
         VkCullModeFlags cull_mode_{VK_CULL_MODE_NONE};
         VkFrontFace front_face_{VK_FRONT_FACE_COUNTER_CLOCKWISE};
-        std::optional<VkPipelineColorBlendAttachmentState> color_blending_;
+        std::vector<VkPipelineColorBlendAttachmentState> color_blending_;
         VkFormat depth_format_{VK_FORMAT_UNDEFINED};
         std::optional<VkPipelineDepthStencilStateCreateInfo> depth_stencil_;
         std::vector<VkDynamicState> dynamic_states_;
@@ -165,10 +166,10 @@ namespace vkrndr
         compute_pipeline_builder_t(device_t& device,
             std::shared_ptr<VkPipelineLayout> pipeline_layout);
 
-        compute_pipeline_builder_t(compute_pipeline_builder_t const&) = delete;
+        compute_pipeline_builder_t(compute_pipeline_builder_t const&) = default;
 
         compute_pipeline_builder_t(
-            compute_pipeline_builder_t&&) noexcept = delete;
+            compute_pipeline_builder_t&&) noexcept = default;
 
     public: // Destruction
         ~compute_pipeline_builder_t() = default;
@@ -181,10 +182,10 @@ namespace vkrndr
 
     public: // Operators
         compute_pipeline_builder_t& operator=(
-            compute_pipeline_builder_t const&) = delete;
+            compute_pipeline_builder_t const&) = default;
 
         compute_pipeline_builder_t& operator=(
-            compute_pipeline_builder_t&&) noexcept = delete;
+            compute_pipeline_builder_t&&) noexcept = default;
 
     private: // Data
         device_t* device_{};
