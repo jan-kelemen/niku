@@ -1,5 +1,9 @@
 #version 460
 
+#extension GL_GOOGLE_include_directive : require
+
+#include "math_constants.glsl"
+
 layout(location = 0) in vec3 inPosition;
 
 layout(constant_id = 0) const uint SAMPLES = 1024;
@@ -13,8 +17,6 @@ layout(push_constant) uniform PushConsts {
 layout(set = 1, binding = 0) uniform samplerCube environmentMap;
 
 layout(location = 0) out vec4 outColor;
-
-const float PI = 3.14159265359;
 
 float DistributionGGX(vec3 N, vec3 H, float roughness) {
     float a = roughness*roughness;

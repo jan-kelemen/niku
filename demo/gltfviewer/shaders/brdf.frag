@@ -1,12 +1,14 @@
 #version 460
 
+#extension GL_GOOGLE_include_directive : require
+
+#include "math_constants.glsl"
+
 layout(location = 0) in vec2 inUV;
 
 layout(constant_id = 0) const uint SAMPLES = 1024;
 
 layout(location = 0) out vec2 outColor;
-
-const float PI = 3.14159265359;
 
 float RadicalInverse_VdC(uint bits) {
      bits = (bits << 16u) | (bits >> 16u);

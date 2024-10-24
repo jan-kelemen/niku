@@ -4,6 +4,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 #include "color_conversion.glsl"
+#include "math_constants.glsl"
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
@@ -49,9 +50,6 @@ layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer {
 } materials;
 
 layout(location = 0) out vec4 outColor;
-
-const uint UINT_MAX = ~0;
-const float M_PI = 3.141592653589793;
 
 vec4 baseColor(Material m) {
     vec4 color = vec4(1);
@@ -134,11 +132,11 @@ float geometricOcclusion(float roughness, float NdotL, float NdotV) {
 float microfacetDistribution(float roughness, float NdotH) {
     const float r = roughness * roughness;
     const float f = (NdotH * r - NdotH) * NdotH + 1.0;
-    return r / (M_PI * f * f);
+    return r / (PI * f * f);
 }
 
 vec3 diffuse(vec3 diffuseColor) {
-    return diffuseColor / M_PI;
+    return diffuseColor / PI;
 }
 
 vec3 IBLContribution(vec3 N, vec3 reflection, float NdotV, float roughness, vec3 diffuseColor, vec3 specularColor) {

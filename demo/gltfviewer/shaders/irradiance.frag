@@ -1,12 +1,14 @@
 #version 460
 
+#extension GL_GOOGLE_include_directive : require
+
+#include "math_constants.glsl"
+
 layout(location = 0) in vec3 inPosition;
 
 layout(set = 1, binding = 0) uniform samplerCube environmentMap;
 
 layout(location = 0) out vec4 outColor;
-
-const float PI = 3.14159265359;
 
 void main() {		
     vec3 N = normalize(inPosition);

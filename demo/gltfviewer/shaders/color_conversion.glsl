@@ -1,3 +1,6 @@
+#ifndef GLTFVIEWER_COLOR_CONVERSION_INCLUDED
+#define GLTFVIEWER_COLOR_CONVERSION_INCLUDED
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "pbrNeutral.glsl"
@@ -30,3 +33,5 @@ vec4 exposureToneMapping(vec4 linearRGB, float exposure) {
 vec4 gammaCorrection(vec4 linearRGB, float gamma) {
     return vec4(pow(linearRGB.rgb, vec3(1.0 / gamma)), linearRGB.a);
 }
+
+#endif

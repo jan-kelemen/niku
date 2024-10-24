@@ -1,7 +1,5 @@
 #version 460 
 
-#extension GL_GOOGLE_include_directive : require
-
 layout(location = 0) in vec3 inPosition;
 
 layout(push_constant) uniform PushConsts {
