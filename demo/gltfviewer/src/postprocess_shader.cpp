@@ -129,11 +129,11 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(descriptor_set_layout_)
             .add_push_constants<push_constants_t>(VK_SHADER_STAGE_FRAGMENT_BIT)
-            .build(),
-        backend_->image_format()}
+            .build()}
                     .add_shader(as_pipeline_shader(vertex_shader))
                     .add_shader(as_pipeline_shader(fragment_shader,
                         &fragment_specialization))
+                    .add_color_attachment(backend_->image_format())
                     .with_culling(VK_CULL_MODE_FRONT_BIT,
                         VK_FRONT_FACE_COUNTER_CLOCKWISE)
                     .build();

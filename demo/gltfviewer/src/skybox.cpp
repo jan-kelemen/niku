@@ -498,10 +498,10 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(skybox_descriptor_layout_)
-                .build(),
-            VK_FORMAT_R16G16B16A16_SFLOAT}
+                .build()}
             .add_shader(as_pipeline_shader(skybox_vertex_shader))
             .add_shader(as_pipeline_shader(skybox_fragment_shader))
+            .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS_OR_EQUAL)
@@ -653,10 +653,10 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
                 .add_descriptor_set_layout(layout)
                 .add_push_constants<cubemap_push_constants_t>(
                     VK_SHADER_STAGE_VERTEX_BIT)
-                .build(),
-            cubemap_.format}
+                .build()}
             .add_shader(as_pipeline_shader(cubemap_vertex_shader))
             .add_shader(as_pipeline_shader(cubemap_fragment_shader))
+            .add_color_attachment(cubemap_.format)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .add_vertex_input(binding_description(), attribute_descriptions())
@@ -692,10 +692,10 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
                 .add_descriptor_set_layout(skybox_descriptor_layout_)
                 .add_push_constants<cubemap_push_constants_t>(
                     VK_SHADER_STAGE_VERTEX_BIT)
-                .build(),
-            irradiance_cubemap_.format}
+                .build()}
             .add_shader(as_pipeline_shader(irradiance_vertex_shader))
             .add_shader(as_pipeline_shader(irradiance_fragment_shader))
+            .add_color_attachment(irradiance_cubemap_.format)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .add_vertex_input(binding_description(), attribute_descriptions())
@@ -753,11 +753,11 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                 .add_descriptor_set_layout(skybox_descriptor_layout_)
                 .add_push_constants<cubemap_push_constants_t>(
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-                .build(),
-            prefilter_cubemap_.format}
+                .build()}
             .add_shader(as_pipeline_shader(prefilter_vertex_shader))
             .add_shader(as_pipeline_shader(prefilter_fragment_shader,
                 &fragment_specialization))
+            .add_color_attachment(prefilter_cubemap_.format)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .add_vertex_input(binding_description(), attribute_descriptions())
@@ -895,11 +895,11 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
 
     auto pipeline =
         vkrndr::pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}.build(),
-            brdf_lookup_.format}
+            vkrndr::pipeline_layout_builder_t{backend_->device()}.build()}
             .add_shader(as_pipeline_shader(brdf_vertex_shader))
             .add_shader(as_pipeline_shader(brdf_fragment_shader,
                 &fragment_specialization))
+            .add_color_attachment(brdf_lookup_.format)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .build();

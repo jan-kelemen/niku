@@ -3,6 +3,7 @@
 
 #include <vkgltf_model.hpp>
 
+#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
 
@@ -10,11 +11,11 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <vector>
 
 namespace vkrndr
 {
     class backend_t;
-    struct image_t;
 } // namespace vkrndr
 
 namespace gltfviewer
@@ -60,9 +61,19 @@ namespace gltfviewer
         std::filesystem::file_time_type fragment_write_time_;
         vkrndr::shader_module_t fragment_shader_;
 
+        std::filesystem::file_time_type ibl_fragment_write_time_;
+        vkrndr::shader_module_t ibl_fragment_shader_;
+
         vkrndr::pipeline_t double_sided_pipeline_;
         vkrndr::pipeline_t culling_pipeline_;
         vkrndr::pipeline_t blending_pipeline_;
+
+        vkrndr::pipeline_t ibl_double_sided_pipeline_;
+        vkrndr::pipeline_t ibl_culling_pipeline_;
+        vkrndr::pipeline_t ibl_blending_pipeline_;
+
+        std::vector<vkrndr::image_t> ibl_color_attachments_;
+        vkrndr::image_t ibl_depth_attachment_;
 
         uint32_t debug_{0};
         float ibl_factor_{0.0f};
