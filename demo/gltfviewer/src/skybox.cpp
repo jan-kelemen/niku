@@ -166,8 +166,8 @@ namespace
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        sampler_info.magFilter = VK_FILTER_NEAREST;
-        sampler_info.minFilter = VK_FILTER_NEAREST;
+        sampler_info.magFilter = VK_FILTER_LINEAR;
+        sampler_info.minFilter = VK_FILTER_LINEAR;
         sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -177,7 +177,7 @@ namespace
         sampler_info.unnormalizedCoordinates = VK_FALSE;
         sampler_info.compareEnable = VK_FALSE;
         sampler_info.compareOp = VK_COMPARE_OP_NEVER;
-        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         sampler_info.mipLodBias = 0.0f;
         sampler_info.minLod = 0.0f;
         sampler_info.maxLod = cppext::as_fp(mip_levels);
@@ -468,8 +468,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     generate_cubemap_faces(cubemap_descriptor_layout, cubemap_descriptor);
 
-    skybox_sampler_ =
-        create_skybox_sampler(backend_->device(), cubemap_.mip_levels);
+    skybox_sampler_ = create_skybox_sampler(backend_->device(),
+        vkrndr::max_mip_levels(512, 512));
 
     skybox_descriptor_layout_ =
         create_skybox_descriptor_set_layout(backend_->device());
