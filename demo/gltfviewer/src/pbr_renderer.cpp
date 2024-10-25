@@ -33,7 +33,7 @@
 
 namespace
 {
-    constexpr size_t ca_count{2};
+    constexpr size_t ca_count{8};
 
     constexpr std::array debug_options{"None",
         "Albedo",
@@ -258,7 +258,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         ImGui::EndCombo();
     }
 
-    ImGui::SliderFloat("IBL factor", &ibl_factor_, 0.0f, 1.0f);
+    ImGui::SliderFloat("IBL factor", &ibl_factor_, 0.0f, 9.0f);
 
     ImGui::End();
 

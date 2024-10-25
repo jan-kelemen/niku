@@ -49,8 +49,14 @@ layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer {
     Material v[];
 } materials;
 
-layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outNormal;
+layout(location = 0) out vec4 outN;
+layout(location = 1) out vec4 outV;
+layout(location = 2) out vec4 outReflection;
+layout(location = 3) out vec4 outSpecularColor;
+layout(location = 4) out vec4 outLod;
+layout(location = 5) out vec4 outBrdf;
+layout(location = 6) out vec4 outSpecularLight;
+layout(location = 7) out vec4 outSpecular;
 
 vec4 baseColor(Material m) {
     vec4 color = vec4(1);
@@ -102,19 +108,21 @@ vec3 worldNormal(Material m) {
 
 vec3 IBLContribution(vec3 N, vec3 reflection, float NdotV, float roughness, vec3 diffuseColor, vec3 specularColor) {
 	float lod = roughness * env.prefilteredMipLevels;
+    outLod = vec4(vec3(lod), 1.0);
 
 	vec2 brdf = texture(samplerBRDF, vec2(NdotV, 1.0 - roughness)).rg;
+    outBrdf = vec4(brdf, 0.0, 1.0);
+
 	vec3 diffuseLight = texture(irradianceMap, N).rgb;
 
 	vec3 specularLight = textureLod(prefilteredMap, reflection, lod).rgb;
+    outSpecularLight = vec4(specularLight, 1.0);
 
 	vec3 diffuse = diffuseLight * diffuseColor;
 	vec3 specular = specularLight * (specularColor * brdf.x + brdf.y);
+    outSpecular = vec4(specular, 1.0);
 
-	diffuse *= pc.ibl_factor;
-	specular *= pc.ibl_factor;
-
-	return diffuse + specular;
+	return (diffuse + specular) * pc.ibl_factor;
 }
 
 void main() {
@@ -132,15 +140,19 @@ void main() {
     const float alphaRoughness = roughness * roughness;
 
     const vec3 N = worldNormal(m);
-    outNormal = vec4(N, 1.0);
+    outN = vec4(N, 1.0);
 
     const vec3 V = normalize(env.cameraPosition - inPosition);
+    outV = vec4(V, 1.0);
     const float NdotV = clamp(abs(dot(N, V)), 0.001, 1.0);
+
     const vec3 reflection = normalize(reflect(-V, N));
+    outReflection = vec4(reflection, 1.0);
 
     const vec3 F0 = vec3(0.04);
     const vec3 diffuseColor = (1.0 - metallic) * (vec3(1.0) - F0) * albedo.rgb;
     const vec3 specularColor = mix(F0, albedo.rgb, metallic);
+    outSpecularColor = vec4(specularColor, 1.0);
 
-    outColor = vec4(IBLContribution(N, reflection, NdotV, roughness, diffuseColor, specularColor), albedo.a);
+    IBLContribution(N, reflection, NdotV, roughness, diffuseColor, specularColor);
 }
