@@ -269,14 +269,13 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             return;
         }
 
-        vkrndr::bind_pipeline(command_buffer, culling_pipeline_);
-
-        auto switch_pipeline = [command_buffer,
-                                   bound = &culling_pipeline_,
-                                   this](bool const double_sided,
-                                   vkgltf::alpha_mode_t const mode) mutable
+        auto switch_pipeline =
+            [command_buffer,
+                bound = static_cast<vkrndr::pipeline_t*>(nullptr),
+                this](bool const double_sided,
+                vkgltf::alpha_mode_t const mode) mutable
         {
-            auto* required_pipeline{bound};
+            auto* required_pipeline{&culling_pipeline_};
             if (mode == vkgltf::alpha_mode_t::blend)
             {
                 required_pipeline = &blending_pipeline_;
