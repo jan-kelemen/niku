@@ -31,7 +31,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <string>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 // IWYU pragma: no_include <memory>
