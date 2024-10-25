@@ -97,9 +97,8 @@ vec3 worldNormal(Material m)
     {
         vec3 tangentNormal =
             texture(sampler2D(textures[nonuniformEXT(m.normalTextureIndex)],
-                        samplers[nonuniformEXT(m.normalSamplerIndex)]),
-                inUV)
-                .rgb;
+                        samplers[nonuniformEXT(m.normalSamplerIndex)]), inUV).rgb;
+
         tangentNormal =
             normalize(tangentNormal * 2.0 - 1.0) * vec3(m.normalScale);
 
@@ -127,9 +126,7 @@ float ambientOcclusion(Material m)
     {
         occlusion =
             texture(sampler2D(textures[nonuniformEXT(m.occlusionTextureIndex)],
-                        samplers[nonuniformEXT(m.occlusionSamplerIndex)]),
-                inUV)
-                .r;
+                        samplers[nonuniformEXT(m.occlusionSamplerIndex)]), inUV).r;
     }
 
     return occlusion;
@@ -142,9 +139,7 @@ vec3 emissiveColor(Material m)
     {
         emissive *=
             texture(sampler2D(textures[nonuniformEXT(m.emissiveTextureIndex)],
-                        samplers[nonuniformEXT(m.emissiveSamplerIndex)]),
-                inUV)
-                .rgb;
+                        samplers[nonuniformEXT(m.emissiveSamplerIndex)]), inUV).rgb;
     };
 
     return emissive;

@@ -13,9 +13,7 @@ layout(push_constant) uniform PushConsts
 {
     uint direction;
     float roughness;
-}
-
-pc;
+} pc;
 
 layout(set = 1, binding = 0) uniform samplerCube environmentMap;
 

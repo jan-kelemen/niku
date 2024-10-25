@@ -12,9 +12,7 @@ layout(std430, set = 0, binding = 0) readonly buffer Environment
     uint prefilteredMipLevels;
     uint lightCount;
     Light lights[];
-}
-
-env;
+} env;
 
 layout(set = 0, binding = 1) uniform samplerCube irradianceMap;
 layout(set = 0, binding = 2) uniform samplerCube prefilteredMap;

@@ -14,9 +14,7 @@ layout(push_constant) uniform PushConsts
     uint materialIndex;
     uint debug;
     float ibl_factor;
-}
-
-pc;
+} pc;
 
 #include "environment.glsl" // (set = 0)
 

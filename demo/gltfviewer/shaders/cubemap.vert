@@ -6,17 +6,13 @@ layout(push_constant) uniform PushConsts
 {
     uint direction;
     float roughness;
-}
-
-pc;
+} pc;
 
 layout(set = 0, binding = 1) uniform Projection
 {
     mat4 projection;
     mat4 directions[6];
-}
-
-proj;
+} proj;
 
 layout(location = 0) out vec3 outPosition;
 

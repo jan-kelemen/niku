@@ -12,9 +12,7 @@ layout(push_constant) uniform PushConsts
 {
     bool colorConversion;
     bool toneMapping;
-}
-
-pc;
+} pc;
 
 layout(set = 0, binding = 0) uniform sampler2DMS backbuffer;
 
