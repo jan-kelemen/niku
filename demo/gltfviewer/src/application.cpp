@@ -168,17 +168,10 @@ void gltfviewer::application_t::update(float delta_time)
         spdlog::info("End loading: {}", model_path);
     }
 
-    bool postprocess_updated{false};
     ImGui::Begin("Postprocess");
-    postprocess_updated |= ImGui::SliderFloat("Gamma", &gamma_, 0.0f, 3.0f);
-    postprocess_updated |=
-        ImGui::SliderFloat("Exposure", &exposure_, 0.0f, 10.f);
+    ImGui::Checkbox("Color conversion", &color_conversion_);
+    ImGui::Checkbox("Tone mapping", &tone_mapping_);
     ImGui::End();
-
-    if (postprocess_updated)
-    {
-        postprocess_shader_->update(gamma_, exposure_);
-    }
 
     camera_controller_.update(delta_time);
 
@@ -261,7 +254,11 @@ void gltfviewer::application_t::draw()
 
     vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
 
-    postprocess_shader_->draw(command_buffer, color_image_, target_image);
+    postprocess_shader_->draw(color_conversion_,
+        tone_mapping_,
+        command_buffer,
+        color_image_,
+        target_image);
 
     imgui_->render(command_buffer, target_image);
 
@@ -286,8 +283,6 @@ void gltfviewer::application_t::on_startup()
     camera_.update();
 
     environment_->load_skybox("aviation_museum_4k.hdr", depth_buffer_.format);
-
-    postprocess_shader_->update(gamma_, exposure_);
 }
 
 void gltfviewer::application_t::on_shutdown()

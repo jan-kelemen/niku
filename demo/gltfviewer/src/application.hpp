@@ -93,8 +93,8 @@ namespace gltfviewer
         model_selector_t selector_;
         vkgltf::loader_t gltf_loader_;
 
-        float gamma_{2.2f};
-        float exposure_{1.0f};
+        bool color_conversion_{true};
+        bool tone_mapping_{true};
     };
 } // namespace gltfviewer
 #endif

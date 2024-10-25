@@ -26,8 +26,8 @@ namespace
 {
     struct [[nodiscard]] push_constants_t final
     {
-        float gamma;
-        float exposure;
+        uint32_t color_conversion;
+        uint32_t tone_mapping;
     };
 
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
@@ -165,14 +165,9 @@ gltfviewer::postprocess_shader_t::~postprocess_shader_t()
         nullptr);
 }
 
-void gltfviewer::postprocess_shader_t::update(float const gamma,
-    float const exposure)
-{
-    gamma_ = gamma;
-    exposure_ = exposure;
-}
-
-void gltfviewer::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
+void gltfviewer::postprocess_shader_t::draw(bool const color_conversion,
+    bool const tone_mapping,
+    VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& target_image)
 {
@@ -182,7 +177,9 @@ void gltfviewer::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
         *descriptor_sets_,
         vkrndr::combined_sampler_descriptor(combined_sampler_, color_image));
 
-    push_constants_t const pc{.gamma = gamma_, .exposure = exposure_};
+    push_constants_t const pc{
+        .color_conversion = static_cast<uint32_t>(color_conversion),
+        .tone_mapping = static_cast<uint32_t>(tone_mapping)};
     vkCmdPushConstants(command_buffer,
         *pipeline_.layout,
         VK_SHADER_STAGE_FRAGMENT_BIT,

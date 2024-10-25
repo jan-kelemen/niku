@@ -9,8 +9,8 @@ layout(location = 0) in vec2 inUV;
 layout(constant_id = 0) const int SAMPLES = 8;
 
 layout(push_constant) uniform PushConsts {
-    float gamma;
-    float exposure;
+    bool colorConversion;
+    bool toneMapping;
 } pc;
 
 layout(set = 0, binding = 0) uniform sampler2DMS backbuffer;
@@ -33,11 +33,11 @@ void main() {
     ivec2 UV = ivec2(inUV * attDim);
 
     vec4 result = resolve(UV);
-    if (pc.exposure != 0.0) {
+    if (pc.colorConversion) {
         result = pbrNeutralToneMapping(result);
     }
 
-    if (pc.gamma != 0.0) {
+    if (pc.toneMapping) {
         result = fromLinear(result);
     }
 

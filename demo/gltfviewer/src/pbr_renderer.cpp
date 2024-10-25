@@ -5,7 +5,6 @@
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -33,8 +32,6 @@
 
 namespace
 {
-    constexpr size_t ca_count{8};
-
     constexpr std::array debug_options{"None",
         "Albedo",
         "Normals",
@@ -204,18 +201,9 @@ gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
 
 gltfviewer::pbr_renderer_t::~pbr_renderer_t()
 {
-    destroy(&backend_->device(), &ibl_depth_attachment_);
-    for (vkrndr::image_t& image : ibl_color_attachments_)
-    {
-        destroy(&backend_->device(), &image);
-    }
-    destroy(&backend_->device(), &ibl_blending_pipeline_);
-    destroy(&backend_->device(), &ibl_culling_pipeline_);
-    destroy(&backend_->device(), &ibl_double_sided_pipeline_);
     destroy(&backend_->device(), &blending_pipeline_);
     destroy(&backend_->device(), &culling_pipeline_);
     destroy(&backend_->device(), &double_sided_pipeline_);
-    destroy(&backend_->device(), &ibl_fragment_shader_);
     destroy(&backend_->device(), &fragment_shader_);
     destroy(&backend_->device(), &vertex_shader_);
     destroy(&backend_->device(), &model_);
@@ -319,101 +307,6 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         traversal.alpha_mode = vkgltf::alpha_mode_t::blend;
         traversal.draw(switch_pipeline);
     }
-
-    {
-        if (ibl_color_attachments_.empty() ||
-            ibl_color_attachments_[0].extent.width != color_image.extent.width)
-        {
-            for (vkrndr::image_t& image : ibl_color_attachments_)
-            {
-                destroy(&backend_->device(), &image);
-            }
-
-            ibl_color_attachments_.clear();
-
-            for (size_t i{}; i != ca_count; ++i)
-            {
-                ibl_color_attachments_.push_back(
-                    vkrndr::create_image_and_view(backend_->device(),
-                        backend_->extent(),
-                        1,
-                        backend_->device().max_msaa_samples,
-                        VK_FORMAT_R16G16B16A16_SFLOAT,
-                        VK_IMAGE_TILING_OPTIMAL,
-                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                            VK_IMAGE_USAGE_SAMPLED_BIT,
-                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                        VK_IMAGE_ASPECT_COLOR_BIT));
-            }
-
-            destroy(&backend_->device(), &ibl_depth_attachment_);
-            ibl_depth_attachment_ =
-                vkrndr::create_depth_buffer(backend_->device(),
-                    backend_->extent(),
-                    false,
-                    backend_->device().max_msaa_samples);
-        }
-
-        vkrndr::render_pass_t color_render_pass;
-        for (vkrndr::image_t const image : ibl_color_attachments_)
-        {
-            color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-                VK_ATTACHMENT_STORE_OP_STORE,
-                image.view,
-                VkClearValue{.color = {{1.0f, 0.5f, 0.5f}}});
-        }
-
-        color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            ibl_depth_attachment_.view,
-            VkClearValue{.depthStencil = {1.0f, 0}});
-
-        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, ibl_color_attachments_[0].extent})};
-
-        if (model_.vertex_count == 0)
-        {
-            return;
-        }
-
-        vkrndr::bind_pipeline(command_buffer, ibl_culling_pipeline_);
-
-        auto switch_pipeline = [command_buffer,
-                                   bound = &ibl_culling_pipeline_,
-                                   this](bool const double_sided,
-                                   vkgltf::alpha_mode_t const mode) mutable
-        {
-            auto* required_pipeline{bound};
-            if (mode == vkgltf::alpha_mode_t::blend)
-            {
-                required_pipeline = &ibl_blending_pipeline_;
-            }
-            else if (double_sided)
-            {
-                required_pipeline = &ibl_double_sided_pipeline_;
-            }
-
-            if (bound != required_pipeline)
-            {
-                vkrndr::bind_pipeline(command_buffer, *required_pipeline);
-                bound = required_pipeline;
-            }
-        };
-
-        draw_traversal_t traversal{.model = &model_,
-            .layout = *double_sided_pipeline_.layout,
-            .command_buffer = command_buffer,
-            .debug = debug_,
-            .ibl_factor = ibl_factor_,
-            .alpha_mode = vkgltf::alpha_mode_t::opaque};
-        traversal.draw(switch_pipeline);
-
-        traversal.alpha_mode = vkgltf::alpha_mode_t::mask;
-        traversal.draw(switch_pipeline);
-
-        traversal.alpha_mode = vkgltf::alpha_mode_t::blend;
-        traversal.draw(switch_pipeline);
-    }
 }
 
 void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
@@ -455,22 +348,6 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             VK_SHADER_STAGE_FRAGMENT_BIT,
             "main");
         fragment_write_time_ = wt;
-    }
-
-    std::filesystem::path const ibl_fragment_path{"ibl_debug.frag.spv"};
-    if (auto const wt{last_write_time(ibl_fragment_path)};
-        ibl_fragment_write_time_ != wt)
-    {
-        if (ibl_fragment_shader_.handle)
-        {
-            destroy(&backend_->device(), &ibl_fragment_shader_);
-        }
-
-        ibl_fragment_shader_ = vkrndr::create_shader_module(backend_->device(),
-            ibl_fragment_path.c_str(),
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            "main");
-        ibl_fragment_write_time_ = wt;
     }
 
     if (double_sided_pipeline_.pipeline != VK_NULL_HANDLE)
@@ -543,66 +420,4 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .add_vertex_input(binding_description(), attribute_descriptions())
             .add_color_blending(color_blending)
             .build();
-
-    if (ibl_double_sided_pipeline_.pipeline != VK_NULL_HANDLE)
-    {
-        destroy(&backend_->device(), &ibl_double_sided_pipeline_);
-    }
-
-    auto ibl_double_sided_pipeline_builder{
-        vkrndr::pipeline_builder_t{backend_->device(),
-            double_sided_pipeline_.layout}
-            .add_shader(as_pipeline_shader(vertex_shader_))
-            .add_shader(as_pipeline_shader(ibl_fragment_shader_))
-            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_format)
-            .add_vertex_input(binding_description(), attribute_descriptions())};
-
-    if (ibl_culling_pipeline_.pipeline != VK_NULL_HANDLE)
-    {
-        destroy(&backend_->device(), &ibl_culling_pipeline_);
-    }
-
-    auto ibl_culling_pipeline_builder{
-        vkrndr::pipeline_builder_t{backend_->device(),
-            double_sided_pipeline_.layout}
-            .add_shader(as_pipeline_shader(vertex_shader_))
-            .add_shader(as_pipeline_shader(ibl_fragment_shader_))
-            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_format)
-            .add_vertex_input(binding_description(), attribute_descriptions())
-            .with_culling(VK_CULL_MODE_BACK_BIT,
-                VK_FRONT_FACE_COUNTER_CLOCKWISE)};
-
-    if (ibl_blending_pipeline_.pipeline != VK_NULL_HANDLE)
-    {
-        destroy(&backend_->device(), &ibl_blending_pipeline_);
-    }
-
-    auto ibl_blending_pipeline_builder{
-        vkrndr::pipeline_builder_t{backend_->device(),
-            double_sided_pipeline_.layout}
-            .add_shader(as_pipeline_shader(vertex_shader_))
-            .add_shader(as_pipeline_shader(ibl_fragment_shader_))
-            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_format)
-            .add_vertex_input(binding_description(), attribute_descriptions())};
-
-    for (size_t i{}; i != ca_count; ++i)
-    {
-        ibl_culling_pipeline_builder.add_color_attachment(
-            VK_FORMAT_R16G16B16A16_SFLOAT);
-        ibl_double_sided_pipeline_builder.add_color_attachment(
-            VK_FORMAT_R16G16B16A16_SFLOAT);
-        ibl_blending_pipeline_builder.add_color_attachment(
-            VK_FORMAT_R16G16B16A16_SFLOAT);
-        ibl_blending_pipeline_builder.add_color_blending(color_blending);
-    }
-
-    ibl_blending_pipeline_ = ibl_blending_pipeline_builder.build();
-    ibl_culling_pipeline_ = ibl_culling_pipeline_builder.build();
-    ibl_double_sided_pipeline_ = ibl_double_sided_pipeline_builder.build();
 }

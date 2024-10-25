@@ -77,13 +77,6 @@ compile_shader(
 
 compile_shader(
     SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ibl_debug.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/ibl_debug.frag.spv
-)
-
-compile_shader(
-    SHADER
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.frag
     SPIRV
         ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
@@ -137,7 +130,6 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/cubemap.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/fullscreen.vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/ibl_debug.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv

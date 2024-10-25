@@ -246,7 +246,7 @@ void gltfviewer::environment_t::update(niku::camera_t const& camera)
         ImGui::SliderFloat3("Color",
             glm::value_ptr(lights_[i].color),
             0.0f,
-            1.0f);
+            10.0f);
         ImGui::PopID();
     }
     ImGui::End();
