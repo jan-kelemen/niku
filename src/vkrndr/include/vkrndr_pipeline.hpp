@@ -134,7 +134,7 @@ namespace vkrndr
 
         pipeline_builder_t& with_dynamic_state(VkDynamicState state);
 
-    public: // Operators#include "math_constants.glsl"
+    public: // Operators
         pipeline_builder_t& operator=(pipeline_builder_t const&) = default;
 
         pipeline_builder_t& operator=(pipeline_builder_t&&) noexcept = default;
