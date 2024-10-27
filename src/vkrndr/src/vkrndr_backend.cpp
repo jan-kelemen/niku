@@ -291,7 +291,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
 void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
     buffer_t const& target)
 {
-    auto transient{request_transient_operation(true)};
+    auto transient{request_transient_operation(false)};
     copy_buffer_to_buffer(transient.command_buffer(),
         source.buffer,
         source.size,
