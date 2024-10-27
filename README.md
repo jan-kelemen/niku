@@ -27,8 +27,9 @@ git clone git@github.com:jan-kelemen/conan-recipes.git
 conan export conan-recipes/recipes/fastgltf/all --version 0.8.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3
 conan export conan-recipes/recipes/sdl/all --version 2.30.8
-conan export conan-recipes/recipes/simdjson/all --version 3.10.1
 conan export conan-recipes/recipes/spdlog/all --version 1.14.1
+conan export conan-recipes/recipes/vulkan-headers/all --version 1.3.296.0
+conan export conan-recipes/recipes/volk/all --version 1.3.296.0
 conan export conan-recipes/recipes/vulkan-memory-allocator/all --version 3.1.0
 ```
 
