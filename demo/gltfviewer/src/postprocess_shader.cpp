@@ -2,6 +2,8 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <vkglsl_shader_set.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
@@ -14,9 +16,12 @@
 #include <volk.h>
 
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <span>
 
+// IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <vector>
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <string_view>
@@ -107,10 +112,25 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     , descriptor_sets_{backend_->frames_in_flight(),
           backend_->frames_in_flight()}
 {
+    vkglsl::shader_set_t shaders;
+    [[maybe_unused]] auto const vtx_added{
+        shaders.add_shader(VK_SHADER_STAGE_VERTEX_BIT, "fullscreen.vert")};
+    assert(vtx_added);
+
+    //[[maybe_unused]] auto const frag_added{
+    //    shaders.add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "postprocess.frag")};
+    // assert(frag_added);
+
+    [[maybe_unused]] auto const built{shaders.build()};
+    assert(built);
+
+    auto vertex_shader_code{shaders.shader_binary(VK_SHADER_STAGE_VERTEX_BIT)};
+    assert(vertex_shader_code);
     auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "fullscreen.vert.spv",
+        *vertex_shader_code,
         VK_SHADER_STAGE_VERTEX_BIT,
         "main")};
+
     auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
         "postprocess.frag.spv",
         VK_SHADER_STAGE_FRAGMENT_BIT,

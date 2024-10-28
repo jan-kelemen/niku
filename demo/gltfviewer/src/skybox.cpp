@@ -34,6 +34,7 @@
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 // IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <string>
 
 namespace
 {
