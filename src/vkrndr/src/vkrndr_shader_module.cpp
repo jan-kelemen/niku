@@ -1,8 +1,10 @@
+#include <string_view>
 #include <vkrndr_shader_module.hpp>
 
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -47,11 +49,22 @@ vkrndr::shader_module_t vkrndr::create_shader_module(device_t& device,
 {
     std::vector<char> const code{read_file(path)};
 
+    return create_shader_module(device,
+        std::span{std::bit_cast<uint32_t const*>(code.data()),
+            code.size() / sizeof(uint32_t)},
+        stage,
+        entry_point);
+}
+
+vkrndr::shader_module_t vkrndr::create_shader_module(device_t& device,
+    std::span<uint32_t const> const& spirv,
+    VkShaderStageFlagBits const stage,
+    std::string_view const entry_point)
+{
     VkShaderModuleCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    create_info.codeSize = code.size();
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    create_info.pCode = reinterpret_cast<uint32_t const*>(code.data());
+    create_info.codeSize = spirv.size_bytes();
+    create_info.pCode = spirv.data();
 
     // TODO-JK: maintenance5 feature - once it's supported by RenderDoc!!
     shader_module_t rv;

@@ -3,7 +3,9 @@
 
 #include <volk.h>
 
+#include <cstdint>
 #include <filesystem>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -25,6 +27,11 @@ namespace vkrndr
 
     shader_module_t create_shader_module(device_t& device,
         std::filesystem::path const& path,
+        VkShaderStageFlagBits stage,
+        std::string_view entry_point);
+
+    shader_module_t create_shader_module(device_t& device,
+        std::span<uint32_t const> const& spirv,
         VkShaderStageFlagBits stage,
         std::string_view entry_point);
 
