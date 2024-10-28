@@ -56,6 +56,7 @@ Following third party libraries are used:
 * [\{fmt}](https://fmt.dev) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [FreeType](https://freetype.org) published under [FTL](https://spdx.org/licenses/FTL.html)
 * [GLM](https://glm.g-truc.net/) published under [MIT](https://spdx.org/licenses/MIT.html)
+* [glslang](https://github.com/KhronosGroup/glslang) published under [LICENSE](https://github.com/KhronosGroup/glslang/blob/main/LICENSE.txt)
 * [Dear ImGui](https://github.com/ocornut/imgui) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [meshoptimizer](https://meshoptimizer.org) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [MikkTSpace](http://www.mikktspace.com) published under [Zlib](https://spdx.org/licenses/Zlib.html)

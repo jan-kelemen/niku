@@ -56,12 +56,6 @@ runs:
         repository: jan-kelemen/conan-recipes
         path: recipes
 
-    - name: Override Linux specific public Conan recipes
-      if: ${{ runner.os == 'Linux' }}
-      shell: ${{ inputs.shell }}
-      run: |
-        conan export recipes/recipes/pulseaudio/meson --version 17.0
-
     - name: Override public Conan recipes
       shell: ${{ inputs.shell }}
       run: |
@@ -69,6 +63,9 @@ runs:
         conan export recipes/recipes/fastgltf/all --version 0.8.0
         conan export recipes/recipes/sdl/all --version 2.30.8
         conan export recipes/recipes/spdlog/all --version 1.14.1
+        conan export recipes/recipes/spirv-headers/all --version 1.3.296.0
+        conan export recipes/recipes/spirv-tools/all --version 1.3.296.0
+        conan export recipes/recipes/glslang/all --version 1.3.296.0
         conan export recipes/recipes/volk/all --version 1.3.296.0
         conan export recipes/recipes/vulkan-memory-allocator/all --version 3.1.0
 
