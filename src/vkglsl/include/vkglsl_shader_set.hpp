@@ -13,7 +13,7 @@ namespace vkglsl
     class [[nodiscard]] shader_set_t final
     {
     public:
-        shader_set_t(bool with_debug_info = false);
+        shader_set_t(bool with_debug_info = false, bool optimize = true);
 
         shader_set_t(shader_set_t const&) = delete;
 

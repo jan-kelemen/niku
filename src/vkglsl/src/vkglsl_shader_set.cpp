@@ -173,12 +173,15 @@ struct [[nodiscard]] vkglsl::shader_set_t::impl_t final
     includer_t includer;
     std::map<EShLanguage, std::vector<uint32_t>> shaders;
     bool with_debug_info{};
+    bool optimize{};
 };
 
-vkglsl::shader_set_t::shader_set_t(bool const with_debug_info)
+vkglsl::shader_set_t::shader_set_t(bool const with_debug_info,
+    bool const optimize)
     : impl_{std::make_unique<impl_t>()}
 {
     impl_->with_debug_info = with_debug_info;
+    impl_->optimize = optimize;
 }
 
 vkglsl::shader_set_t::shader_set_t(shader_set_t&&) noexcept = default;
@@ -264,6 +267,7 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
     spv_options.generateDebugInfo = impl_->with_debug_info;
     spv_options.emitNonSemanticShaderDebugInfo = impl_->with_debug_info;
     spv_options.emitNonSemanticShaderDebugSource = impl_->with_debug_info;
+    spv_options.disableOptimizer = impl_->optimize;
 
     std::vector<uint32_t> binary;
     static_assert(std::is_same_v<uint32_t, unsigned int>);
