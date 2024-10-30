@@ -20,7 +20,9 @@ target_include_directories(vkglsl
 
 target_link_libraries(vkglsl
     PUBLIC
-        volk::volk
+        vkrndr
+    PUBLIC
+        tl::expected
     PRIVATE
         cppext
     PRIVATE

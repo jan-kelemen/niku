@@ -1,12 +1,23 @@
 #ifndef VKGLSL_SHADER_SET_INCLUDED
 #define VKGLSL_SHADER_SET_INCLUDED
 
+#include <vkrndr_shader_module.hpp>
+
+#include <tl/expected.hpp>
+
 #include <volk.h>
 
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <string_view>
+#include <system_error>
 #include <vector>
+
+namespace vkrndr
+{
+    struct device_t;
+} // namespace vkrndr
 
 namespace vkglsl
 {
@@ -27,10 +38,14 @@ namespace vkglsl
             std::filesystem::path const& path);
 
         [[nodiscard]] bool add_shader(VkShaderStageFlagBits stage,
-            std::filesystem::path const& file);
+            std::filesystem::path const& file,
+            std::string_view entry_point = "main");
 
         [[nodiscard]] std::vector<uint32_t>* shader_binary(
             VkShaderStageFlagBits stage);
+
+        [[nodiscard]] tl::expected<vkrndr::shader_module_t, std::error_code>
+        shader_module(vkrndr::device_t& device, VkShaderStageFlagBits stage);
 
     public:
         shader_set_t& operator=(shader_set_t const&) = delete;

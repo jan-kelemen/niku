@@ -1,9 +1,10 @@
-#include <optional>
 #include <vkglsl_shader_set.hpp>
 
 #include <vkglsl_glslang_adapter.hpp>
 
 #include <cppext_numeric.hpp>
+
+#include <vkrndr_shader_module.hpp>
 
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
@@ -35,6 +36,12 @@ namespace glslang
 
 namespace
 {
+    struct [[nodiscard]] compiled_shader_t final
+    {
+        std::string entry_point;
+        std::vector<uint32_t> code;
+    };
+
     [[nodiscard]] std::vector<char> read_file(std::filesystem::path const& file)
     {
         std::ifstream stream{file, std::ios::ate | std::ios::binary};
@@ -123,7 +130,7 @@ namespace
 
     glslang::TShader::Includer::IncludeResult* includer_t::includeLocal(
         char const* const header_name,
-        char const* const includer_name,
+        [[maybe_unused]] char const* const includer_name,
         [[maybe_unused]] size_t const depth)
     {
         auto const local_path{std::filesystem::current_path() / header_name};
@@ -171,7 +178,7 @@ namespace
 struct [[nodiscard]] vkglsl::shader_set_t::impl_t final
 {
     includer_t includer;
-    std::map<EShLanguage, std::vector<uint32_t>> shaders;
+    std::map<EShLanguage, compiled_shader_t> shaders;
     bool with_debug_info{};
     bool optimize{};
 };
@@ -198,7 +205,8 @@ bool vkglsl::shader_set_t::add_include_directory(
 }
 
 bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
-    std::filesystem::path const& file)
+    std::filesystem::path const& file,
+    std::string_view entry_point)
 {
     EShLanguage const language{to_glslang(stage)};
     if (impl_->shaders.contains(language))
@@ -206,6 +214,8 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
         spdlog::error("Shader stage already exists");
         return false;
     }
+
+    std::string entry_point_str{entry_point};
 
     glslang::TShader shader{language};
 
@@ -227,6 +237,8 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
         lengths.data(),
         names.data(),
         1);
+    shader.setEntryPoint(entry_point_str.c_str());
+    shader.setSourceEntryPoint(entry_point_str.c_str());
 
     EShMessages messages{
         static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules)};
@@ -273,7 +285,9 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
     static_assert(std::is_same_v<uint32_t, unsigned int>);
     glslang::GlslangToSpv(*intermediate, binary, &spv_options);
 
-    impl_->shaders[language] = std::move(binary);
+    impl_->shaders.emplace(std::piecewise_construct,
+        std::forward_as_tuple(language),
+        std::forward_as_tuple(std::move(entry_point_str), std::move(binary)));
 
     return true;
 }
@@ -284,8 +298,25 @@ std::vector<uint32_t>* vkglsl::shader_set_t::shader_binary(
     if (auto it{impl_->shaders.find(to_glslang(stage))};
         it != std::cend(impl_->shaders))
     {
-        return &it->second;
+        return &it->second.code;
     }
 
     return nullptr;
+}
+
+tl::expected<vkrndr::shader_module_t, std::error_code>
+vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
+    VkShaderStageFlagBits const stage)
+{
+    if (auto it{impl_->shaders.find(to_glslang(stage))};
+        it != std::cend(impl_->shaders))
+    {
+        return vkrndr::create_shader_module(device,
+            it->second.code,
+            stage,
+            it->second.entry_point);
+    }
+
+    return tl::make_unexpected(
+        std::make_error_code(std::errc::no_such_file_or_directory));
 }
