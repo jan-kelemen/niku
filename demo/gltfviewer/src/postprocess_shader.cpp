@@ -121,20 +121,13 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         shaders.add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "postprocess.frag")};
     assert(frag_added);
 
-    auto vertex_shader_code{shaders.shader_binary(VK_SHADER_STAGE_VERTEX_BIT)};
-    assert(vertex_shader_code);
-    auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        *vertex_shader_code,
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "main")};
+    auto vertex_shader{
+        shaders.shader_module(backend_->device(), VK_SHADER_STAGE_VERTEX_BIT)};
+    assert(vertex_shader);
 
-    auto fragment_shader_code{
-        shaders.shader_binary(VK_SHADER_STAGE_FRAGMENT_BIT)};
-    assert(fragment_shader_code);
-    auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
-        *fragment_shader_code,
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        "main")};
+    auto fragment_shader{shaders.shader_module(backend_->device(),
+        VK_SHADER_STAGE_FRAGMENT_BIT)};
+    assert(fragment_shader);
 
     uint32_t sample_count = backend_->device().max_msaa_samples;
     VkSpecializationMapEntry const sample_specialization{.constantID = 0,
@@ -150,16 +143,16 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
             .add_descriptor_set_layout(descriptor_set_layout_)
             .add_push_constants<push_constants_t>(VK_SHADER_STAGE_FRAGMENT_BIT)
             .build()}
-                    .add_shader(as_pipeline_shader(vertex_shader))
-                    .add_shader(as_pipeline_shader(fragment_shader,
+                    .add_shader(as_pipeline_shader(*vertex_shader))
+                    .add_shader(as_pipeline_shader(*fragment_shader,
                         &fragment_specialization))
                     .add_color_attachment(backend_->image_format())
                     .with_culling(VK_CULL_MODE_FRONT_BIT,
                         VK_FRONT_FACE_COUNTER_CLOCKWISE)
                     .build();
 
-    destroy(&backend_->device(), &vertex_shader);
-    destroy(&backend_->device(), &fragment_shader);
+    destroy(&backend_->device(), &vertex_shader.value());
+    destroy(&backend_->device(), &fragment_shader.value());
 
     for (auto& set : descriptor_sets_.as_span())
     {
