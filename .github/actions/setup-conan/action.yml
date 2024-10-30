@@ -71,3 +71,8 @@ runs:
       shell: ${{ inputs.shell }}
       run: |
         conan install . --build=missing --profile=ci/conan/${{ inputs.profile }}
+
+    - name: Cleanup temporary folders from cache
+      shell: ${{ inputs.shell }}
+      run: |
+        conan cache clean --temp
