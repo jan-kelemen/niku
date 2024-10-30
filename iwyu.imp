@@ -92,6 +92,9 @@
   { symbol: [ "glm::vec4", private, "<glm/vec4.hpp>", public ] },
   { symbol: [ "glm::mat4", private, "<glm/mat4x4.hpp>", public ] },
 
+  # glslang aliases
+  { include: [ "@<glslang/MachineIndependent/.*>", private, "<glslang/Public/ShaderLang.h>", public ] },
+
   # bullet3 aliases
   { symbol: [ "btScalar", private, "<LinearMath/btScalar.h>", public] },
 

@@ -13,12 +13,15 @@
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <tl/expected.hpp>
+
 #include <volk.h>
 
 #include <array>
 #include <cassert>
 #include <cstdint>
 #include <span>
+#include <system_error>
 
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <vector>

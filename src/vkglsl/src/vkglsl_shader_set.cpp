@@ -12,17 +12,20 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <list>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <ranges>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -33,6 +36,7 @@ namespace glslang
 } // namespace glslang
 
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <span>
 
 namespace
 {
@@ -82,10 +86,15 @@ namespace
             size_t depth) override;
 
         IncludeResult* includeLocal(char const* header_name,
-            char const* const includer_name,
+            char const* includer_name,
             size_t depth) override;
 
-        void releaseInclude(IncludeResult*) override;
+        void releaseInclude(IncludeResult* result) override;
+
+    public:
+        includer_t& operator=(includer_t const&) = default;
+
+        includer_t& operator=(includer_t&&) noexcept = default;
 
     private:
         struct [[nodiscard]] include_data_t final
@@ -152,12 +161,14 @@ namespace
         return nullptr;
     }
 
-    void includer_t::releaseInclude(IncludeResult* result)
+    void includer_t::releaseInclude(IncludeResult* const result)
     {
         if (result)
         {
+            // NOLINTBEGIN(cppcoreguidelines-owning-memory)
             delete static_cast<include_data_t*>(result->userData);
             delete result;
+            // NOLINTEND(cppcoreguidelines-owning-memory)
         }
     }
 
@@ -169,6 +180,8 @@ namespace
             user_data->data.data(),
             user_data->data.size(),
             user_data.get())};
+
+        // NOLINTNEXTLINE(bugprone-unused-return-value)
         static_cast<void>(user_data.release());
 
         return rv.release();
@@ -215,6 +228,7 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
         return false;
     }
 
+    // NOLINTNEXTLINE(misc-const-correctness)
     std::string entry_point_str{entry_point};
 
     glslang::TShader shader{language};
