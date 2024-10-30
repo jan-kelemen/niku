@@ -112,17 +112,14 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     , descriptor_sets_{backend_->frames_in_flight(),
           backend_->frames_in_flight()}
 {
-    vkglsl::shader_set_t shaders;
+    vkglsl::shader_set_t shaders{true};
     [[maybe_unused]] auto const vtx_added{
         shaders.add_shader(VK_SHADER_STAGE_VERTEX_BIT, "fullscreen.vert")};
     assert(vtx_added);
 
-    //[[maybe_unused]] auto const frag_added{
-    //    shaders.add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "postprocess.frag")};
-    // assert(frag_added);
-
-    [[maybe_unused]] auto const built{shaders.build()};
-    assert(built);
+    [[maybe_unused]] auto const frag_added{
+        shaders.add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "postprocess.frag")};
+    assert(frag_added);
 
     auto vertex_shader_code{shaders.shader_binary(VK_SHADER_STAGE_VERTEX_BIT)};
     assert(vertex_shader_code);
@@ -131,8 +128,11 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         VK_SHADER_STAGE_VERTEX_BIT,
         "main")};
 
+    auto fragment_shader_code{
+        shaders.shader_binary(VK_SHADER_STAGE_FRAGMENT_BIT)};
+    assert(fragment_shader_code);
     auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
-        "postprocess.frag.spv",
+        *fragment_shader_code,
         VK_SHADER_STAGE_FRAGMENT_BIT,
         "main")};
 

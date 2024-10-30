@@ -8,6 +8,7 @@
 #include <niku_mouse.hpp>
 #include <niku_perspective_camera.hpp>
 
+#include <vkglsl_guard.hpp>
 #include <vkgltf_loader.hpp>
 
 #include <vkrndr_image.hpp>
@@ -75,6 +76,8 @@ namespace gltfviewer
         void on_resize(uint32_t width, uint32_t height) override;
 
     private:
+        vkglsl::guard_t glsl_guard_;
+
         niku::mouse_t mouse_;
         niku::perspective_camera_t camera_;
 
