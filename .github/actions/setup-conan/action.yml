@@ -75,4 +75,4 @@ runs:
     - name: Cleanup temporary folders from cache
       shell: ${{ inputs.shell }}
       run: |
-        conan cache clean --temp
+        conan cache clean --temp --source
