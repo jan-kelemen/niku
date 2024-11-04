@@ -3,6 +3,7 @@
 #include <vkglsl_glslang_adapter.hpp>
 
 #include <cppext_numeric.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_shader_module.hpp>
@@ -220,7 +221,8 @@ bool vkglsl::shader_set_t::add_include_directory(
     return impl_->includer.add_include_directory(path);
 }
 
-bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
+tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
+    VkShaderStageFlagBits const stage,
     std::filesystem::path const& file,
     std::string_view entry_point)
 {
@@ -228,7 +230,8 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
     if (impl_->shaders.contains(language))
     {
         spdlog::error("Shader stage already exists");
-        return false;
+        return tl::make_unexpected(
+            std::make_error_code(std::errc::file_exists));
     }
 
     // NOLINTNEXTLINE(misc-const-correctness)
@@ -275,7 +278,8 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
         spdlog::error("Shader compilation failed: {}\n{}\n",
             shader.getInfoLog(),
             shader.getInfoDebugLog());
-        return false;
+        return tl::make_unexpected(
+            std::make_error_code(std::errc::executable_format_error));
     }
 
     glslang::TProgram program;
@@ -286,7 +290,8 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
         spdlog::error("Shader linking failed: {}\n{}\n",
             program.getInfoLog(),
             program.getInfoDebugLog());
-        return false;
+        return tl::make_unexpected(
+            std::make_error_code(std::errc::executable_format_error));
     }
 
     glslang::TIntermediate* const intermediate{
@@ -306,7 +311,7 @@ bool vkglsl::shader_set_t::add_shader(VkShaderStageFlagBits const stage,
         std::forward_as_tuple(language),
         std::forward_as_tuple(std::move(entry_point_str), std::move(binary)));
 
-    return true;
+    return {};
 }
 
 std::vector<uint32_t>* vkglsl::shader_set_t::shader_binary(
@@ -369,6 +374,9 @@ vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t& device,
 
         spirv_cross::ShaderResources resources{compiler.get_shader_resources()};
 
+        DISABLE_WARNING_PUSH
+        // bind_point.stageFlags |= to_vulkan(lang)
+        DISABLE_WARNING_SIGN_CONVERSION
         for (spirv_cross::Resource const& resource : resources.sampled_images)
         {
             if (!compiler.has_decoration(resource.id,
@@ -438,7 +446,19 @@ vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t& device,
             bind_point.descriptorCount = 1;
             bind_point.stageFlags |= to_vulkan(lang);
         }
+        DISABLE_WARNING_POP
     }
 
     return vkrndr::create_descriptor_set_layout(device, bindings);
+}
+
+tl::expected<vkrndr::shader_module_t, std::error_code>
+vkglsl::add_shader_module_from_path(shader_set_t& set,
+    vkrndr::device_t& device,
+    VkShaderStageFlagBits const stage,
+    std::filesystem::path const& file,
+    std::string_view entry_point)
+{
+    return set.add_shader(stage, file, entry_point)
+        .and_then([&]() { return set.shader_module(device, stage); });
 }

@@ -38,7 +38,8 @@ namespace vkglsl
         [[nodiscard]] bool add_include_directory(
             std::filesystem::path const& path);
 
-        [[nodiscard]] bool add_shader(VkShaderStageFlagBits stage,
+        [[nodiscard]] tl::expected<void, std::error_code> add_shader(
+            VkShaderStageFlagBits stage,
             std::filesystem::path const& file,
             std::string_view entry_point = "main");
 
@@ -60,6 +61,13 @@ namespace vkglsl
         struct impl_t;
         std::unique_ptr<impl_t> impl_;
     };
+
+    [[nodiscard]] tl::expected<vkrndr::shader_module_t, std::error_code>
+    add_shader_module_from_path(shader_set_t& set,
+        vkrndr::device_t& device,
+        VkShaderStageFlagBits stage,
+        std::filesystem::path const& file,
+        std::string_view entry_point = "main");
 } // namespace vkglsl
 
 #endif
