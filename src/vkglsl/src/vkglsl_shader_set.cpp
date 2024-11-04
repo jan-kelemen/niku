@@ -1,6 +1,7 @@
 #include <vkglsl_shader_set.hpp>
 
 #include <vkglsl_glslang_adapter.hpp>
+#include <vkglsl_spirv_cross_adapter.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
@@ -371,82 +372,50 @@ vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t& device,
     for (auto const& [lang, shader] : impl_->shaders)
     {
         spirv_cross::Compiler compiler{shader.code};
+        auto const filter_descriptor_set =
+            [&compiler, set](spirv_cross::Resource const& resource)
+        {
+            return resource_decoration(compiler,
+                       resource,
+                       spv::DecorationDescriptorSet) == set;
+        };
+
+        auto const declare_resources =
+            [&](spirv_cross::SmallVector<spirv_cross::Resource> const&
+                    resources,
+                VkDescriptorType const type)
+        {
+            for (spirv_cross::Resource const& resource :
+                std::views::filter(resources, filter_descriptor_set))
+            {
+                uint32_t const binding{compiler.get_decoration(resource.id,
+                    spv::DecorationBinding)};
+
+                auto& bind_point{binding_for(binding)};
+                bind_point.descriptorType = type;
+                bind_point.descriptorCount = 1;
+
+                DISABLE_WARNING_PUSH
+                DISABLE_WARNING_SIGN_CONVERSION
+                bind_point.stageFlags |= to_vulkan(lang);
+                DISABLE_WARNING_POP
+            }
+        };
 
         spirv_cross::ShaderResources resources{compiler.get_shader_resources()};
 
-        DISABLE_WARNING_PUSH
-        // bind_point.stageFlags |= to_vulkan(lang)
-        DISABLE_WARNING_SIGN_CONVERSION
-        for (spirv_cross::Resource const& resource : resources.sampled_images)
-        {
-            if (!compiler.has_decoration(resource.id,
-                    spv::DecorationDescriptorSet))
-            {
-                continue;
-            }
-
-            if (compiler.get_decoration(resource.id,
-                    spv::DecorationDescriptorSet) != set)
-            {
-                continue;
-            }
-
-            uint32_t const binding{
-                compiler.get_decoration(resource.id, spv::DecorationBinding)};
-
-            auto& bind_point{binding_for(binding)};
-            bind_point.descriptorType =
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            bind_point.descriptorCount = 1;
-            bind_point.stageFlags |= to_vulkan(lang);
-        }
-
-        for (spirv_cross::Resource const& resource : resources.uniform_buffers)
-        {
-            if (!compiler.has_decoration(resource.id,
-                    spv::DecorationDescriptorSet))
-            {
-                continue;
-            }
-
-            if (compiler.get_decoration(resource.id,
-                    spv::DecorationDescriptorSet) != set)
-            {
-                continue;
-            }
-
-            uint32_t const binding{
-                compiler.get_decoration(resource.id, spv::DecorationBinding)};
-
-            auto& bind_point{binding_for(binding)};
-            bind_point.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            bind_point.descriptorCount = 1;
-            bind_point.stageFlags |= to_vulkan(lang);
-        }
-
-        for (spirv_cross::Resource const& resource : resources.storage_buffers)
-        {
-            if (!compiler.has_decoration(resource.id,
-                    spv::DecorationDescriptorSet))
-            {
-                continue;
-            }
-
-            if (compiler.get_decoration(resource.id,
-                    spv::DecorationDescriptorSet) != set)
-            {
-                continue;
-            }
-
-            uint32_t const binding{
-                compiler.get_decoration(resource.id, spv::DecorationBinding)};
-
-            auto& bind_point{binding_for(binding)};
-            bind_point.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            bind_point.descriptorCount = 1;
-            bind_point.stageFlags |= to_vulkan(lang);
-        }
-        DISABLE_WARNING_POP
+        declare_resources(resources.sampled_images,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        declare_resources(resources.uniform_buffers,
+            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        declare_resources(resources.storage_buffers,
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        declare_resources(resources.separate_samplers,
+            VK_DESCRIPTOR_TYPE_SAMPLER);
+        declare_resources(resources.separate_images,
+            VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+        declare_resources(resources.storage_images,
+            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
     }
 
     return vkrndr::create_descriptor_set_layout(device, bindings);

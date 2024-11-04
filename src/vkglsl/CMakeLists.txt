@@ -8,6 +8,8 @@ target_sources(vkglsl
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkglsl_guard.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkglsl_glslang_adapter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkglsl_glslang_adapter.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkglsl_spirv_cross_adapter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkglsl_spirv_cross_adapter.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkglsl_shader_set.cpp
 )
 
