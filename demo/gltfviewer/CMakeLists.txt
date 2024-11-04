@@ -104,13 +104,6 @@ compile_shader(
         ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
 )
 
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
-)
-
 add_custom_target(gltfviewer_shaders
     DEPENDS
         ${CMAKE_CURRENT_BINARY_DIR}/brdf.frag.spv
