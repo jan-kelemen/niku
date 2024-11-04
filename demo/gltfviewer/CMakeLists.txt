@@ -114,7 +114,6 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
 )
 
 add_custom_target(gltfviewer_assets
