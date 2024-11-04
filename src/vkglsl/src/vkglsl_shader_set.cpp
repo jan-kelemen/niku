@@ -4,6 +4,7 @@
 
 #include <cppext_numeric.hpp>
 
+#include <vkrndr_descriptors.hpp>
 #include <vkrndr_shader_module.hpp>
 
 #include <glslang/Public/ResourceLimits.h>
@@ -11,6 +12,8 @@
 #include <glslang/SPIRV/GlslangToSpv.h>
 
 #include <spdlog/spdlog.h>
+
+#include <spirv_cross.hpp>
 
 #include <algorithm>
 #include <array>
@@ -329,6 +332,39 @@ vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
             it->second.code,
             stage,
             it->second.entry_point);
+    }
+
+    return tl::make_unexpected(
+        std::make_error_code(std::errc::no_such_file_or_directory));
+}
+
+tl::expected<VkDescriptorSetLayout, std::error_code>
+vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t& device)
+{
+    if (auto it{impl_->shaders.find(to_glslang(VK_SHADER_STAGE_FRAGMENT_BIT))};
+        it != std::cend(impl_->shaders))
+    {
+        std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+        spirv_cross::Compiler compiler{it->second.code};
+
+        spirv_cross::ShaderResources resources{compiler.get_shader_resources()};
+
+        for (spirv_cross::Resource const& resource : resources.sampled_images)
+        {
+            uint32_t const set{compiler.get_decoration(resource.id,
+                spv::DecorationDescriptorSet)};
+            uint32_t const binding{
+                compiler.get_decoration(resource.id, spv::DecorationBinding)};
+            bindings.emplace_back(binding, // binding
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, // descriptorType
+                1, // descriptorCount
+                VK_SHADER_STAGE_FRAGMENT_BIT, // stageFlags
+                nullptr // pImmutableSamplers
+            );
+        }
+
+        return vkrndr::create_descriptor_set_layout(device, bindings);
     }
 
     return tl::make_unexpected(
