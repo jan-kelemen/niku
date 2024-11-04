@@ -460,13 +460,17 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         vkrndr::max_mip_levels(512, 512));
 
     vkglsl::shader_set_t skybox_shaders;
-    [[maybe_unused]] auto skybox_vertex_added{
-        skybox_shaders.add_shader(VK_SHADER_STAGE_VERTEX_BIT, "skybox.vert")};
-    assert(skybox_vertex_added);
+    auto skybox_vertex_shader{add_shader_module_from_path(skybox_shaders,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "skybox.vert")};
+    assert(skybox_vertex_shader);
 
-    [[maybe_unused]] auto skybox_fragment_added{
-        skybox_shaders.add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "skybox.frag")};
-    assert(skybox_fragment_added);
+    auto skybox_fragment_shader{add_shader_module_from_path(skybox_shaders,
+        backend_->device(),
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "skybox.frag")};
+    assert(skybox_fragment_shader);
 
     skybox_descriptor_layout_ =
         *skybox_shaders.descriptor_layout(backend_->device(), 1);
@@ -479,14 +483,6 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
     update_skybox_descriptor(backend_->device(),
         skybox_descriptor_,
         vkrndr::combined_sampler_descriptor(skybox_sampler_, cubemap_));
-
-    auto skybox_vertex_shader{skybox_shaders.shader_module(backend_->device(),
-        VK_SHADER_STAGE_VERTEX_BIT)};
-    assert(skybox_vertex_shader);
-
-    auto skybox_fragment_shader{skybox_shaders.shader_module(backend_->device(),
-        VK_SHADER_STAGE_FRAGMENT_BIT)};
-    assert(skybox_fragment_shader);
 
     skybox_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
@@ -503,8 +499,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
 
-    destroy(&backend_->device(), &*skybox_vertex_shader);
-    destroy(&backend_->device(), &*skybox_fragment_shader);
+    destroy(&backend_->device(), &skybox_vertex_shader.value());
+    destroy(&backend_->device(), &skybox_fragment_shader.value());
 
     irradiance_cubemap_ = vkrndr::create_cubemap(backend_->device(),
         32,

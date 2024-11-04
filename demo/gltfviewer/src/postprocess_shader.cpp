@@ -101,25 +101,21 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
           backend_->frames_in_flight()}
 {
     vkglsl::shader_set_t shaders{true};
-    [[maybe_unused]] auto const vtx_added{
-        shaders.add_shader(VK_SHADER_STAGE_VERTEX_BIT, "fullscreen.vert")};
-    assert(vtx_added);
-
-    [[maybe_unused]] auto const frag_added{
-        shaders.add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "postprocess.frag")};
-    assert(frag_added);
-
-    auto vertex_shader{
-        shaders.shader_module(backend_->device(), VK_SHADER_STAGE_VERTEX_BIT)};
+    auto vertex_shader{add_shader_module_from_path(shaders,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "fullscreen.vert")};
     assert(vertex_shader);
+
+    auto fragment_shader{add_shader_module_from_path(shaders,
+        backend_->device(),
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "postprocess.frag")};
+    assert(fragment_shader);
 
     auto const layout{shaders.descriptor_layout(backend_->device(), 0)};
     assert(layout);
     descriptor_set_layout_ = *layout;
-
-    auto fragment_shader{shaders.shader_module(backend_->device(),
-        VK_SHADER_STAGE_FRAGMENT_BIT)};
-    assert(fragment_shader);
 
     uint32_t sample_count = backend_->device().max_msaa_samples;
     VkSpecializationMapEntry const sample_specialization{.constantID = 0,
