@@ -339,34 +339,106 @@ vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
 }
 
 tl::expected<VkDescriptorSetLayout, std::error_code>
-vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t& device)
+vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t& device,
+    uint32_t const set)
 {
-    if (auto it{impl_->shaders.find(to_glslang(VK_SHADER_STAGE_FRAGMENT_BIT))};
-        it != std::cend(impl_->shaders))
-    {
-        std::vector<VkDescriptorSetLayoutBinding> bindings;
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-        spirv_cross::Compiler compiler{it->second.code};
+    auto binding_for =
+        [&bindings](
+            uint32_t const binding) mutable -> VkDescriptorSetLayoutBinding&
+    {
+        if (auto it{std::ranges::find(bindings,
+                binding,
+                &VkDescriptorSetLayoutBinding::binding)};
+            it != std::cend(bindings))
+        {
+            return *it;
+        }
+
+        return bindings.emplace_back(binding,
+            VK_DESCRIPTOR_TYPE_MAX_ENUM,
+            0,
+            0,
+            nullptr);
+    };
+
+    for (auto const& [lang, shader] : impl_->shaders)
+    {
+        spirv_cross::Compiler compiler{shader.code};
 
         spirv_cross::ShaderResources resources{compiler.get_shader_resources()};
 
         for (spirv_cross::Resource const& resource : resources.sampled_images)
         {
-            uint32_t const set{compiler.get_decoration(resource.id,
-                spv::DecorationDescriptorSet)};
+            if (!compiler.has_decoration(resource.id,
+                    spv::DecorationDescriptorSet))
+            {
+                continue;
+            }
+
+            if (compiler.get_decoration(resource.id,
+                    spv::DecorationDescriptorSet) != set)
+            {
+                continue;
+            }
+
             uint32_t const binding{
                 compiler.get_decoration(resource.id, spv::DecorationBinding)};
-            bindings.emplace_back(binding, // binding
-                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, // descriptorType
-                1, // descriptorCount
-                VK_SHADER_STAGE_FRAGMENT_BIT, // stageFlags
-                nullptr // pImmutableSamplers
-            );
+
+            auto& bind_point{binding_for(binding)};
+            bind_point.descriptorType =
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            bind_point.descriptorCount = 1;
+            bind_point.stageFlags |= to_vulkan(lang);
         }
 
-        return vkrndr::create_descriptor_set_layout(device, bindings);
+        for (spirv_cross::Resource const& resource : resources.uniform_buffers)
+        {
+            if (!compiler.has_decoration(resource.id,
+                    spv::DecorationDescriptorSet))
+            {
+                continue;
+            }
+
+            if (compiler.get_decoration(resource.id,
+                    spv::DecorationDescriptorSet) != set)
+            {
+                continue;
+            }
+
+            uint32_t const binding{
+                compiler.get_decoration(resource.id, spv::DecorationBinding)};
+
+            auto& bind_point{binding_for(binding)};
+            bind_point.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            bind_point.descriptorCount = 1;
+            bind_point.stageFlags |= to_vulkan(lang);
+        }
+
+        for (spirv_cross::Resource const& resource : resources.storage_buffers)
+        {
+            if (!compiler.has_decoration(resource.id,
+                    spv::DecorationDescriptorSet))
+            {
+                continue;
+            }
+
+            if (compiler.get_decoration(resource.id,
+                    spv::DecorationDescriptorSet) != set)
+            {
+                continue;
+            }
+
+            uint32_t const binding{
+                compiler.get_decoration(resource.id, spv::DecorationBinding)};
+
+            auto& bind_point{binding_for(binding)};
+            bind_point.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            bind_point.descriptorCount = 1;
+            bind_point.stageFlags |= to_vulkan(lang);
+        }
     }
 
-    return tl::make_unexpected(
-        std::make_error_code(std::errc::no_such_file_or_directory));
+    return vkrndr::create_descriptor_set_layout(device, bindings);
 }

@@ -47,5 +47,44 @@ namespace vkglsl
             return EShLangVertex;
         }
     }
+
+    [[nodiscard]] constexpr VkShaderStageFlagBits to_vulkan(
+        EShLanguage const language)
+    {
+        switch (language)
+        {
+        case EShLangVertex:
+            return VK_SHADER_STAGE_VERTEX_BIT;
+        case EShLangTessControl:
+            return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+        case EShLangTessEvaluation:
+            return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+        case EShLangGeometry:
+            return VK_SHADER_STAGE_GEOMETRY_BIT;
+        case EShLangFragment:
+            return VK_SHADER_STAGE_FRAGMENT_BIT;
+        case EShLangCompute:
+            return VK_SHADER_STAGE_COMPUTE_BIT;
+        case EShLangRayGen:
+            return VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+        case EShLangAnyHit:
+            return VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+        case EShLangClosestHit:
+            return VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+        case EShLangMiss:
+            return VK_SHADER_STAGE_MISS_BIT_KHR;
+        case EShLangIntersect:
+            return VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+        case EShLangCallable:
+            return VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+        case EShLangTask:
+            return VK_SHADER_STAGE_TASK_BIT_EXT;
+        case EShLangMesh:
+            return VK_SHADER_STAGE_MESH_BIT_EXT;
+        default:
+            assert(false);
+            return VK_SHADER_STAGE_VERTEX_BIT;
+        }
+    }
 } // namespace vkglsl
 #endif
