@@ -38,20 +38,6 @@ namespace
         uint32_t tone_mapping;
     };
 
-    [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
-        vkrndr::device_t const& device)
-    {
-        VkDescriptorSetLayoutBinding combined_sampler_binding{};
-        combined_sampler_binding.binding = 0;
-        combined_sampler_binding.descriptorType =
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        combined_sampler_binding.descriptorCount = 1;
-        combined_sampler_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        return vkrndr::create_descriptor_set_layout(device,
-            std::span{&combined_sampler_binding, 1});
-    }
-
     void bind_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
         VkDescriptorImageInfo const combined_sampler_info)
@@ -111,7 +97,6 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     vkrndr::backend_t& backend)
     : backend_{&backend}
     , combined_sampler_{create_sampler(backend_->device())}
-    , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
     , descriptor_sets_{backend_->frames_in_flight(),
           backend_->frames_in_flight()}
 {
@@ -127,6 +112,10 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     auto vertex_shader{
         shaders.shader_module(backend_->device(), VK_SHADER_STAGE_VERTEX_BIT)};
     assert(vertex_shader);
+
+    auto const layout{shaders.descriptor_layout(backend_->device())};
+    assert(layout);
+    descriptor_set_layout_ = *layout;
 
     auto fragment_shader{shaders.shader_module(backend_->device(),
         VK_SHADER_STAGE_FRAGMENT_BIT)};
