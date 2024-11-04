@@ -61,6 +61,7 @@ target_link_libraries(vkrndr
     PUBLIC
         volk::volk
     PRIVATE
+        Boost::headers
         fmt::fmt
         spdlog::spdlog
     PRIVATE

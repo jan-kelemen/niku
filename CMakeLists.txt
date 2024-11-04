@@ -14,6 +14,7 @@ option(NIKU_ENABLE_IWYU "Enable include-what-you-use in build" OFF)
 
 option(NIKU_BUILD_DEMOS "Building demo examples" ON)
 
+find_package(Boost REQUIRED)
 find_package(fmt REQUIRED)
 find_package(imgui REQUIRED)
 find_package(glm REQUIRED)

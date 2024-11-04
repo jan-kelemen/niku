@@ -14,6 +14,9 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <boost/scope/defer.hpp>
+#include <boost/scope/scope_fail.hpp>
+
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp> // IWYU pragma: keep
 #include <fastgltf/tools.hpp>
@@ -38,6 +41,7 @@
 #include <volk.h>
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -355,17 +359,18 @@ namespace
     {
         auto const transfer_image = [backend, as_unorm](int const width,
                                         int const height,
-                                        stbi_uc const* const data)
+                                        stbi_uc* const data)
             -> tl::expected<vkrndr::image_t, std::error_code>
         {
             if (data)
             {
+                boost::scope::defer_guard free_image{
+                    [&data] { stbi_image_free(data); }};
+
                 auto const extent{vkrndr::to_extent(width, height)};
-                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 std::span<std::byte const> const image_data{
-                    reinterpret_cast<std::byte const*>(data),
+                    std::bit_cast<std::byte const*>(data),
                     size_t{extent.width} * extent.height * 4};
-                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
                 return backend->transfer_image(image_data,
                     extent,
@@ -384,15 +389,13 @@ namespace
             int width; // NOLINT
             int height; // NOLINT
             int channels; // NOLINT
-            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             stbi_uc* const data{stbi_load_from_memory(
-                reinterpret_cast<stbi_uc const*>(vector.bytes.data()),
+                std::bit_cast<stbi_uc const*>(vector.bytes.data()),
                 cppext::narrow<int>(vector.bytes.size()),
                 &width,
                 &height,
                 &channels,
                 4)};
-            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             return transfer_image(width, height, data);
         };
 
@@ -401,15 +404,13 @@ namespace
             int width; // NOLINT
             int height; // NOLINT
             int channels; // NOLINT
-            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             stbi_uc* const data{stbi_load_from_memory(
-                reinterpret_cast<stbi_uc const*>(vector.bytes.data()),
+                std::bit_cast<stbi_uc const*>(vector.bytes.data()),
                 cppext::narrow<int>(vector.bytes.size()),
                 &width,
                 &height,
                 &channels,
                 4)};
-            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             return transfer_image(width, height, data);
         };
 
@@ -442,11 +443,7 @@ namespace
                     make_error_code(vkgltf::error_t::unknown));
             }
 
-            auto rv{transfer_image(width, height, data)};
-
-            stbi_image_free(data);
-
-            return rv;
+            return transfer_image(width, height, data);
         };
 
         auto const unsupported_variant = []([[maybe_unused]] auto&& arg)
@@ -967,6 +964,7 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     }
 
     model_t rv;
+
     try
     {
         load_samplers(asset.get(), rv);
@@ -983,9 +981,15 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
             sizeof(vertex_t) * rv.vertex_count);
         auto vertex_map{
             vkrndr::map_memory(backend_->device(), rv.vertex_buffer)};
+        boost::scope::defer_guard unmap_vertex{[this, &vertex_map]()
+            { unmap_memory(backend_->device(), &vertex_map); }};
+
         auto* const vertices{vertex_map.as<vertex_t>()};
 
         vkrndr::mapped_memory_t index_map;
+        boost::scope::scope_exit unmap_index{[this, &index_map]()
+            { unmap_memory(backend_->device(), &index_map); }};
+
         uint32_t* indices{};
         rv.index_count = cppext::narrow<uint32_t>(index_count);
         if (rv.index_count)
@@ -995,17 +999,15 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
             index_map = vkrndr::map_memory(backend_->device(), rv.index_buffer);
             indices = index_map.as<uint32_t>();
         }
+        else
+        {
+            unmap_index.set_active(false);
+        }
 
         rv.nodes.resize(asset->nodes.size());
         rv.meshes.resize(asset->meshes.size());
 
         load_scenes(asset.get(), rv, meshes, vertices, indices);
-
-        unmap_memory(backend_->device(), &vertex_map);
-        if (indices)
-        {
-            unmap_memory(backend_->device(), &index_map);
-        }
     }
     catch (std::exception const& ex)
     {

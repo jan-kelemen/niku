@@ -3,6 +3,8 @@
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
 
+#include <boost/scope/scope_fail.hpp>
+
 #include <volk.h>
 
 #include <spdlog/spdlog.h>
@@ -162,6 +164,7 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const& window,
     create_info.ppEnabledExtensionNames = required_extensions.data();
 
     check_result(vkCreateInstance(&create_info, nullptr, &rv.instance));
+    boost::scope::scope_fail rollback{[&rv] { destroy(&rv); }};
 
     volkLoadInstance(rv.instance);
 

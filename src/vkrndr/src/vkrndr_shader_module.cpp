@@ -70,7 +70,7 @@ vkrndr::shader_module_t vkrndr::create_shader_module(device_t& device,
     shader_module_t rv;
     rv.stage = stage;
     rv.entry_point = std::string{entry_point};
-    vkrndr::check_result(vkCreateShaderModule(device.logical,
+    check_result(vkCreateShaderModule(device.logical,
         &create_info,
         nullptr,
         &rv.handle));

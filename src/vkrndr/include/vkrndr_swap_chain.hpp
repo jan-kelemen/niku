@@ -26,9 +26,9 @@ namespace vkrndr
     {
         struct [[nodiscard]] swap_frame_t final
         {
-            VkSemaphore image_available;
-            VkSemaphore render_finished;
-            VkFence in_flight;
+            VkSemaphore image_available{VK_NULL_HANDLE};
+            VkSemaphore render_finished{VK_NULL_HANDLE};
+            VkFence in_flight{VK_NULL_HANDLE};
         };
 
         void destroy(device_t const* device, swap_frame_t* frame);

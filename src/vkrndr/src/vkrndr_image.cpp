@@ -5,6 +5,8 @@
 
 #include <vma_impl.hpp>
 
+#include <boost/scope/scope_exit.hpp>
+
 void vkrndr::destroy(device_t const* device, image_t* const image)
 {
     if (image)
@@ -105,7 +107,13 @@ vkrndr::image_t vkrndr::create_image_and_view(device_t const& device,
         tiling,
         usage,
         properties)};
+    boost::scope::scope_exit rollback{
+        [&device, &rv] { destroy(&device, &rv); }};
+
     rv.view =
         create_image_view(device, rv.image, format, aspect_flags, mip_levels);
+
+    rollback.set_active(false);
+
     return rv;
 }

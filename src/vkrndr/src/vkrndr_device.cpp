@@ -7,6 +7,8 @@
 
 #include <cppext_pragma_warning.hpp>
 
+#include <boost/scope/scope_fail.hpp>
+
 #include <spdlog/spdlog.h>
 
 #include <vma_impl.hpp>
@@ -301,6 +303,8 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
 
     check_result(
         vkCreateDevice(*device_it, &create_info, nullptr, &rv.logical));
+    boost::scope::scope_fail rollback{[&rv]() { destroy(&rv); }};
+
     volkLoadDevice(rv.logical);
 
     VmaVulkanFunctions vma_vulkan_functions{};

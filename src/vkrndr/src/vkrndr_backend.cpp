@@ -17,6 +17,9 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <boost/scope/defer.hpp>
+#include <boost/scope/scope_fail.hpp>
+
 #include <array>
 #include <cstring>
 #include <span>
@@ -235,17 +238,16 @@ vkrndr::image_t vkrndr::backend_t::transfer_image(
     uint32_t const mip_levels)
 {
     buffer_t staging_buffer{create_staging_buffer(device_, image_data.size())};
+    boost::scope::defer_guard rollback{[this, staging_buffer]() mutable
+        { destroy(&device_, &staging_buffer); }};
 
-    mapped_memory_t staging_map{map_memory(device_, staging_buffer)};
-    memcpy(staging_map.mapped_memory, image_data.data(), image_data.size());
-    unmap_memory(device_, &staging_map);
+    {
+        mapped_memory_t staging_map{map_memory(device_, staging_buffer)};
+        memcpy(staging_map.mapped_memory, image_data.data(), image_data.size());
+        unmap_memory(device_, &staging_map);
+    }
 
-    image_t rv{
-        transfer_buffer_to_image(staging_buffer, extent, format, mip_levels)};
-
-    destroy(&device_, &staging_buffer);
-
-    return rv;
+    return transfer_buffer_to_image(staging_buffer, extent, format, mip_levels);
 }
 
 vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
@@ -264,6 +266,8 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
             VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT)};
+    boost::scope::scope_fail rollback{
+        [this, &image]() mutable { destroy(&device_, &image); }};
 
     {
         auto transient{request_transient_operation(false)};

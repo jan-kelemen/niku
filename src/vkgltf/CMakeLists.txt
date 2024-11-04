@@ -30,6 +30,7 @@ target_link_libraries(vkgltf
         cppext
         stb_impl
     PRIVATE
+        Boost::headers
         fastgltf::fastgltf
         fmt::fmt
         meshoptimizer::meshoptimizer

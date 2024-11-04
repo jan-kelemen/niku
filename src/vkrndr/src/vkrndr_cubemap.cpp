@@ -5,6 +5,8 @@
 
 #include <vma_impl.hpp>
 
+#include <boost/scope/scope_fail.hpp>
+
 #include <volk.h>
 
 void vkrndr::destroy(device_t const* const device, cubemap_t* const cubemap)
@@ -67,6 +69,8 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
         &rv.image,
         &rv.allocation,
         nullptr));
+    boost::scope::scope_fail rollback{
+        [&device, &rv]() { destroy(&device, &rv); }};
 
     VkImageViewCreateInfo view_info{};
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -109,6 +113,13 @@ std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
     uint32_t const mip_level)
 {
     std::array<VkImageView, 6> rv; // NOLINT
+    boost::scope::scope_fail rollback{[&device, &rv]()
+        {
+            for (auto const v : rv)
+            {
+                vkDestroyImageView(device.logical, v, nullptr);
+            }
+        }};
 
     for (uint32_t i{}; i != rv.size(); ++i)
     {
