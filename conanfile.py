@@ -26,6 +26,7 @@ class NikuConan(ConanFile):
         self.requires("sdl/2.30.8")
         self.requires("simdjson/3.10.1")
         self.requires("spdlog/1.14.1")
+        self.requires("spirv-cross/1.3.296.0")
         self.requires("stb/cci.20240531")
         self.requires("tl-expected/1.1.0")
         self.requires("volk/1.3.296.0")

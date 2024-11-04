@@ -30,6 +30,7 @@ target_link_libraries(vkglsl
         glslang::glslang-default-resource-limits
         glslang::SPIRV
         spdlog::spdlog
+        spirv-cross::spirv-cross
     PRIVATE
         project-options
 )
