@@ -2,6 +2,8 @@
 
 #include <cppext_numeric.hpp>
 
+#include <vkglsl_shader_set.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
@@ -187,20 +189,6 @@ namespace
             vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
 
         return rv;
-    }
-
-    [[nodiscard]] VkDescriptorSetLayout create_skybox_descriptor_set_layout(
-        vkrndr::device_t const& device)
-    {
-        VkDescriptorSetLayoutBinding cubemap_binding{};
-        cubemap_binding.binding = 0;
-        cubemap_binding.descriptorType =
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        cubemap_binding.descriptorCount = 1;
-        cubemap_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-        return vkrndr::create_descriptor_set_layout(device,
-            std::span{&cubemap_binding, 1});
     }
 
     void update_skybox_descriptor(vkrndr::device_t const& device,
@@ -471,8 +459,17 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
     skybox_sampler_ = create_skybox_sampler(backend_->device(),
         vkrndr::max_mip_levels(512, 512));
 
+    vkglsl::shader_set_t skybox_shaders;
+    [[maybe_unused]] auto skybox_vertex_added{
+        skybox_shaders.add_shader(VK_SHADER_STAGE_VERTEX_BIT, "skybox.vert")};
+    assert(skybox_vertex_added);
+
+    [[maybe_unused]] auto skybox_fragment_added{
+        skybox_shaders.add_shader(VK_SHADER_STAGE_FRAGMENT_BIT, "skybox.frag")};
+    assert(skybox_fragment_added);
+
     skybox_descriptor_layout_ =
-        create_skybox_descriptor_set_layout(backend_->device());
+        *skybox_shaders.descriptor_layout(backend_->device(), 1);
 
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
@@ -483,15 +480,13 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         skybox_descriptor_,
         vkrndr::combined_sampler_descriptor(skybox_sampler_, cubemap_));
 
-    auto skybox_vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "skybox.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "main")};
+    auto skybox_vertex_shader{skybox_shaders.shader_module(backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT)};
+    assert(skybox_vertex_shader);
 
-    auto skybox_fragment_shader{vkrndr::create_shader_module(backend_->device(),
-        "skybox.frag.spv",
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        "main")};
+    auto skybox_fragment_shader{skybox_shaders.shader_module(backend_->device(),
+        VK_SHADER_STAGE_FRAGMENT_BIT)};
+    assert(skybox_fragment_shader);
 
     skybox_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
@@ -499,8 +494,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(skybox_descriptor_layout_)
                 .build()}
-            .add_shader(as_pipeline_shader(skybox_vertex_shader))
-            .add_shader(as_pipeline_shader(skybox_fragment_shader))
+            .add_shader(as_pipeline_shader(*skybox_vertex_shader))
+            .add_shader(as_pipeline_shader(*skybox_fragment_shader))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
@@ -508,8 +503,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
 
-    destroy(&backend_->device(), &skybox_vertex_shader);
-    destroy(&backend_->device(), &skybox_fragment_shader);
+    destroy(&backend_->device(), &*skybox_vertex_shader);
+    destroy(&backend_->device(), &*skybox_fragment_shader);
 
     irradiance_cubemap_ = vkrndr::create_cubemap(backend_->device(),
         32,

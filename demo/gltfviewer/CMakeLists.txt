@@ -111,20 +111,6 @@ compile_shader(
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
 )
 
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/skybox.frag.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/skybox.vert.spv
-)
-
 add_custom_target(gltfviewer_shaders
     DEPENDS
         ${CMAKE_CURRENT_BINARY_DIR}/brdf.frag.spv
@@ -136,8 +122,6 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/postprocess.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/skybox.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/skybox.vert.spv
 )
 
 add_custom_target(gltfviewer_assets
@@ -145,15 +129,21 @@ add_custom_target(gltfviewer_assets
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/aviation_museum_4k.hdr
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/aviation_museum_4k.hdr
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
 )
 
 set_property(TARGET gltfviewer 

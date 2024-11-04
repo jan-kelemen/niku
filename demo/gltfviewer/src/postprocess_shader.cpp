@@ -113,7 +113,7 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         shaders.shader_module(backend_->device(), VK_SHADER_STAGE_VERTEX_BIT)};
     assert(vertex_shader);
 
-    auto const layout{shaders.descriptor_layout(backend_->device())};
+    auto const layout{shaders.descriptor_layout(backend_->device(), 0)};
     assert(layout);
     descriptor_set_layout_ = *layout;
 
