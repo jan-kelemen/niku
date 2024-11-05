@@ -223,6 +223,8 @@ void gltfviewer::application_t::draw()
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
+    environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
+
     if (VkPipelineLayout const layout{pbr_renderer_->pipeline_layout()})
     {
         environment_->bind_on(command_buffer,
@@ -239,8 +241,6 @@ void gltfviewer::application_t::draw()
     }
 
     pbr_renderer_->draw(command_buffer, color_image_, depth_buffer_);
-
-    environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,

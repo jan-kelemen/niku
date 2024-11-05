@@ -37,6 +37,7 @@
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 // IWYU pragma: no_include <tl/expected.hpp>
 // IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <system_error>
 
@@ -588,12 +589,14 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
         nullptr);
 
     vkrndr::render_pass_t color_render_pass;
-    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
         VK_ATTACHMENT_STORE_OP_STORE,
-        color_image.view);
-    color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-        VK_ATTACHMENT_STORE_OP_NONE,
-        depth_buffer.view);
+        color_image.view,
+        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+    color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        depth_buffer.view,
+        VkClearValue{.depthStencil = {1.0f, 0}});
 
     [[maybe_unused]] auto guard{
         color_render_pass.begin(command_buffer, {{0, 0}, color_image.extent})};
