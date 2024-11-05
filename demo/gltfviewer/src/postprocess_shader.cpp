@@ -113,9 +113,15 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         "postprocess.frag")};
     assert(fragment_shader);
 
-    auto const layout{shaders.descriptor_layout(backend_->device(), 0)};
-    assert(layout);
-    descriptor_set_layout_ = *layout;
+    if (auto const layout{
+            descriptor_set_layout(shaders, backend_->device(), 0)})
+    {
+        descriptor_set_layout_ = *layout;
+    }
+    else
+    {
+        assert(false);
+    }
 
     uint32_t sample_count = backend_->device().max_msaa_samples;
     VkSpecializationMapEntry const sample_specialization{.constantID = 0,

@@ -474,8 +474,15 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         "skybox.frag")};
     assert(skybox_fragment_shader);
 
-    skybox_descriptor_layout_ =
-        *skybox_shaders.descriptor_layout(backend_->device(), 1);
+    if (auto const layout{
+            descriptor_set_layout(skybox_shaders, backend_->device(), 1)})
+    {
+        skybox_descriptor_layout_ = *layout;
+    }
+    else
+    {
+        assert(false);
+    }
 
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
