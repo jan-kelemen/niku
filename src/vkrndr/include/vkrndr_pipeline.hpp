@@ -105,7 +105,9 @@ namespace vkrndr
 
         pipeline_builder_t& add_shader(VkPipelineShaderStageCreateInfo shader);
 
-        pipeline_builder_t& add_color_attachment(VkFormat format);
+        pipeline_builder_t& add_color_attachment(VkFormat format,
+            std::optional<VkPipelineColorBlendAttachmentState> const&
+                color_blending = {});
 
         pipeline_builder_t& add_vertex_input(
             std::span<VkVertexInputBindingDescription const>
@@ -121,9 +123,6 @@ namespace vkrndr
 
         pipeline_builder_t& with_primitive_topology(
             VkPrimitiveTopology primitive_topology);
-
-        pipeline_builder_t& add_color_blending(
-            VkPipelineColorBlendAttachmentState color_blending);
 
         pipeline_builder_t& with_depth_test(VkFormat depth_format,
             VkCompareOp compare = VK_COMPARE_OP_LESS);
@@ -148,13 +147,13 @@ namespace vkrndr
         VkPrimitiveTopology primitive_topology_{
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
         std::vector<VkFormat> color_attachments_;
+        std::vector<VkPipelineColorBlendAttachmentState> color_blending_;
         std::vector<VkPipelineShaderStageCreateInfo> shaders_;
         std::vector<VkVertexInputBindingDescription> vertex_input_binding_;
         std::vector<VkVertexInputAttributeDescription> vertex_input_attributes_;
         VkSampleCountFlagBits rasterization_samples_{VK_SAMPLE_COUNT_1_BIT};
         VkCullModeFlags cull_mode_{VK_CULL_MODE_NONE};
         VkFrontFace front_face_{VK_FRONT_FACE_COUNTER_CLOCKWISE};
-        std::vector<VkPipelineColorBlendAttachmentState> color_blending_;
         VkFormat depth_format_{VK_FORMAT_UNDEFINED};
         std::optional<VkPipelineDepthStencilStateCreateInfo> depth_stencil_;
         std::vector<VkDynamicState> dynamic_states_;

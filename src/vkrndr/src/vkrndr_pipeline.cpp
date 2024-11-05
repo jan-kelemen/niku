@@ -148,21 +148,6 @@ vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
     multisampling.minSampleShading = .2f;
     multisampling.rasterizationSamples = rasterization_samples_;
 
-    if (color_blending_.empty())
-    {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
-        VkPipelineColorBlendAttachmentState const default_color_blending{
-            .blendEnable = VK_FALSE,
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-                VK_COLOR_COMPONENT_A_BIT};
-        DISABLE_WARNING_POP
-        color_blending_ = std::vector<VkPipelineColorBlendAttachmentState>(
-            color_attachments_.size(),
-            default_color_blending);
-    }
-
     VkPipelineColorBlendStateCreateInfo color_blending{};
     color_blending.sType =
         VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -234,9 +219,20 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_shader(
 }
 
 vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_color_attachment(
-    VkFormat format)
+    VkFormat const format,
+    std::optional<VkPipelineColorBlendAttachmentState> const& color_blending)
 {
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
+    static constexpr VkPipelineColorBlendAttachmentState const
+        default_color_blending{.blendEnable = VK_FALSE,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                VK_COLOR_COMPONENT_A_BIT};
+    DISABLE_WARNING_POP
+
     color_attachments_.push_back(format);
+    color_blending_.push_back(color_blending.value_or(default_color_blending));
 
     return *this;
 }
@@ -281,14 +277,6 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_primitive_topology(
     VkPrimitiveTopology const primitive_topology)
 {
     primitive_topology_ = primitive_topology;
-
-    return *this;
-}
-
-vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_color_blending(
-    VkPipelineColorBlendAttachmentState const color_blending)
-{
-    color_blending_.push_back(color_blending);
 
     return *this;
 }
