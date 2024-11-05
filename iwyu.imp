@@ -53,9 +53,18 @@
   { include: [ "<__fwd/ios.h>", private, "<ios>", public ] },
   { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
   { include: [ "<__math/rounding_functions.h>", private, "<cmath>", public ] },
-  
+
+  # bullet3 aliases
+  { symbol: [ "btScalar", private, "<LinearMath/btScalar.h>", public] },
+
   # Catch2 aliases
   { include: [ "<catch2/catch_message.hpp>", public, "<catch2/catch_test_macros.hpp>", public ] },
+
+  # EnTT aliases
+  { include: [ "@<entt/.*>", private, "<entt/entt.hpp>", public] },
+
+  # freetype aliases
+  { include: [ "@<freetype/.*>", private, "<ft2build.h>", public] },
 
   # glm aliases
   { include: [ "<glm/detail/func_common.inl>", private, "<glm/common.hpp>", public] },
@@ -95,15 +104,9 @@
   # glslang aliases
   { include: [ "@<glslang/MachineIndependent/.*>", private, "<glslang/Public/ShaderLang.h>", public ] },
 
-  # bullet3 aliases
-  { symbol: [ "btScalar", private, "<LinearMath/btScalar.h>", public] },
-
-  # EnTT aliases
-  { include: [ "@<entt/.*>", private, "<entt/entt.hpp>", public] },
-
-  # freetype aliases
-  { include: [ "@<freetype/.*>", private, "<ft2build.h>", public] },
-
+  # glm aliases
+  { include: [ "<spirv_cross_containers.hpp>", private, "<spirv_cross.hpp>", public] },
+  
   # vulkan aliases
   { include: [ "@<vulkan/.*>", private, "<volk.h>", public] },
 ]

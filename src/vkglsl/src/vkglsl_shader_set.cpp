@@ -41,6 +41,7 @@ namespace glslang
 } // namespace glslang
 
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <span>
 
 namespace
@@ -329,7 +330,7 @@ std::vector<uint32_t>* vkglsl::shader_set_t::shader_binary(
 
 tl::expected<vkrndr::shader_module_t, std::error_code>
 vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
-    VkShaderStageFlagBits const stage)
+    VkShaderStageFlagBits const stage) const
 {
     if (auto it{impl_->shaders.find(to_glslang(stage))};
         it != std::cend(impl_->shaders))
@@ -345,8 +346,8 @@ vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
 }
 
 tl::expected<VkDescriptorSetLayout, std::error_code>
-vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t& device,
-    uint32_t const set)
+vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t const& device,
+    uint32_t const set) const
 {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
 
@@ -402,7 +403,8 @@ vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t& device,
             }
         };
 
-        spirv_cross::ShaderResources resources{compiler.get_shader_resources()};
+        spirv_cross::ShaderResources const resources{
+            compiler.get_shader_resources()};
 
         declare_resources(resources.sampled_images,
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);

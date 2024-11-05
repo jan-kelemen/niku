@@ -47,10 +47,11 @@ namespace vkglsl
             VkShaderStageFlagBits stage);
 
         [[nodiscard]] tl::expected<vkrndr::shader_module_t, std::error_code>
-        shader_module(vkrndr::device_t& device, VkShaderStageFlagBits stage);
+        shader_module(vkrndr::device_t& device,
+            VkShaderStageFlagBits stage) const;
 
         [[nodiscard]] tl::expected<VkDescriptorSetLayout, std::error_code>
-        descriptor_layout(vkrndr::device_t& device, uint32_t set);
+        descriptor_layout(vkrndr::device_t const& device, uint32_t set) const;
 
     public:
         shader_set_t& operator=(shader_set_t const&) = delete;

@@ -9,6 +9,8 @@
 
 #include <volk.h>
 
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
+
 void vkrndr::destroy(device_t const* const device, cubemap_t* const cubemap)
 {
     if (cubemap)
@@ -69,7 +71,7 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
         &rv.image,
         &rv.allocation,
         nullptr));
-    boost::scope::scope_fail rollback{
+    boost::scope::scope_fail const rollback{
         [&device, &rv]() { destroy(&device, &rv); }};
 
     VkImageViewCreateInfo view_info{};
@@ -112,10 +114,15 @@ std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
     vkrndr::cubemap_t const& cubemap,
     uint32_t const mip_level)
 {
-    std::array<VkImageView, 6> rv; // NOLINT
-    boost::scope::scope_fail rollback{[&device, &rv]()
+    std::array<VkImageView, 6> rv{VK_NULL_HANDLE,
+        VK_NULL_HANDLE,
+        VK_NULL_HANDLE,
+        VK_NULL_HANDLE,
+        VK_NULL_HANDLE,
+        VK_NULL_HANDLE};
+    boost::scope::scope_fail const rollback{[&device, &rv]()
         {
-            for (auto const v : rv)
+            for (VkImageView const v : rv)
             {
                 vkDestroyImageView(device.logical, v, nullptr);
             }

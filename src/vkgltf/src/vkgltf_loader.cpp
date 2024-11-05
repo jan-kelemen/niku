@@ -15,7 +15,7 @@
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
-#include <boost/scope/scope_fail.hpp>
+#include <boost/scope/scope_exit.hpp>
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp> // IWYU pragma: keep
@@ -364,7 +364,7 @@ namespace
         {
             if (data)
             {
-                boost::scope::defer_guard free_image{
+                boost::scope::defer_guard const free_image{
                     [&data] { stbi_image_free(data); }};
 
                 auto const extent{vkrndr::to_extent(width, height)};
@@ -981,7 +981,7 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
             sizeof(vertex_t) * rv.vertex_count);
         auto vertex_map{
             vkrndr::map_memory(backend_->device(), rv.vertex_buffer)};
-        boost::scope::defer_guard unmap_vertex{[this, &vertex_map]()
+        boost::scope::defer_guard const unmap_vertex{[this, &vertex_map]()
             { unmap_memory(backend_->device(), &vertex_map); }};
 
         auto* const vertices{vertex_map.as<vertex_t>()};

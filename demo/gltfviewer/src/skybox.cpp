@@ -35,8 +35,10 @@
 #include <span>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <tl/expected.hpp>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <string>
+// IWYU pragma: no_include <system_error>
 
 namespace
 {

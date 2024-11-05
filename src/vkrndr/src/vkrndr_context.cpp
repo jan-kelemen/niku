@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <spdlog/common.h>
 // IWYU pragma: no_include <functional>
@@ -164,7 +165,7 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const& window,
     create_info.ppEnabledExtensionNames = required_extensions.data();
 
     check_result(vkCreateInstance(&create_info, nullptr, &rv.instance));
-    boost::scope::scope_fail rollback{[&rv] { destroy(&rv); }};
+    boost::scope::scope_fail const rollback{[&rv] { destroy(&rv); }};
 
     volkLoadInstance(rv.instance);
 

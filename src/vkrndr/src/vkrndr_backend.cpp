@@ -25,6 +25,7 @@
 #include <span>
 #include <vector>
 
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <unordered_map>
 
@@ -238,7 +239,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_image(
     uint32_t const mip_levels)
 {
     buffer_t staging_buffer{create_staging_buffer(device_, image_data.size())};
-    boost::scope::defer_guard rollback{[this, staging_buffer]() mutable
+    boost::scope::defer_guard const rollback{[this, staging_buffer]() mutable
         { destroy(&device_, &staging_buffer); }};
 
     {
@@ -266,7 +267,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
             VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT)};
-    boost::scope::scope_fail rollback{
+    boost::scope::scope_fail const rollback{
         [this, &image]() mutable { destroy(&device_, &image); }};
 
     {

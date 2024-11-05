@@ -24,6 +24,7 @@
 #include <string_view>
 #include <vector>
 
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <utility>
@@ -303,7 +304,7 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
 
     check_result(
         vkCreateDevice(*device_it, &create_info, nullptr, &rv.logical));
-    boost::scope::scope_fail rollback{[&rv]() { destroy(&rv); }};
+    boost::scope::scope_fail const rollback{[&rv]() { destroy(&rv); }};
 
     volkLoadDevice(rv.logical);
 
