@@ -345,25 +345,23 @@ vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
         std::make_error_code(std::errc::no_such_file_or_directory));
 }
 
-tl::expected<VkDescriptorSetLayout, std::error_code>
-vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t const& device,
-    uint32_t const set) const
+tl::expected<std::vector<VkDescriptorSetLayoutBinding>, std::error_code>
+vkglsl::shader_set_t::descriptor_bindings(uint32_t const set) const
 {
-    std::vector<VkDescriptorSetLayoutBinding> bindings;
+    std::vector<VkDescriptorSetLayoutBinding> rv;
 
     auto binding_for =
-        [&bindings](
-            uint32_t const binding) mutable -> VkDescriptorSetLayoutBinding&
+        [&rv](uint32_t const binding) mutable -> VkDescriptorSetLayoutBinding&
     {
-        if (auto it{std::ranges::find(bindings,
+        if (auto it{std::ranges::find(rv,
                 binding,
                 &VkDescriptorSetLayoutBinding::binding)};
-            it != std::cend(bindings))
+            it != std::cend(rv))
         {
             return *it;
         }
 
-        return bindings.emplace_back(binding,
+        return rv.emplace_back(binding,
             VK_DESCRIPTOR_TYPE_MAX_ENUM,
             0,
             0,
@@ -420,16 +418,29 @@ vkglsl::shader_set_t::descriptor_layout(vkrndr::device_t const& device,
             VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
     }
 
-    return vkrndr::create_descriptor_set_layout(device, bindings);
+    return rv;
 }
 
 tl::expected<vkrndr::shader_module_t, std::error_code>
-vkglsl::add_shader_module_from_path(shader_set_t& set,
+vkglsl::add_shader_module_from_path(shader_set_t& shader_set,
     vkrndr::device_t& device,
     VkShaderStageFlagBits const stage,
     std::filesystem::path const& file,
     std::string_view entry_point)
 {
-    return set.add_shader(stage, file, entry_point)
-        .and_then([&]() { return set.shader_module(device, stage); });
+    return shader_set.add_shader(stage, file, entry_point)
+        .and_then([&]() { return shader_set.shader_module(device, stage); });
+}
+
+tl::expected<VkDescriptorSetLayout, std::error_code>
+vkglsl::descriptor_set_layout(shader_set_t const& shader_set,
+    vkrndr::device_t const& device,
+    uint32_t const set)
+{
+    return shader_set.descriptor_bindings(set).and_then(
+        [&device](auto&& bindings)
+        {
+            return tl::expected<VkDescriptorSetLayout, std::error_code>{
+                vkrndr::create_descriptor_set_layout(device, bindings)};
+        });
 }

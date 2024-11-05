@@ -50,8 +50,9 @@ namespace vkglsl
         shader_module(vkrndr::device_t& device,
             VkShaderStageFlagBits stage) const;
 
-        [[nodiscard]] tl::expected<VkDescriptorSetLayout, std::error_code>
-        descriptor_layout(vkrndr::device_t const& device, uint32_t set) const;
+        [[nodiscard]] tl::expected<std::vector<VkDescriptorSetLayoutBinding>,
+            std::error_code>
+        descriptor_bindings(uint32_t set) const;
 
     public:
         shader_set_t& operator=(shader_set_t const&) = delete;
@@ -64,11 +65,16 @@ namespace vkglsl
     };
 
     [[nodiscard]] tl::expected<vkrndr::shader_module_t, std::error_code>
-    add_shader_module_from_path(shader_set_t& set,
+    add_shader_module_from_path(shader_set_t& shader_set,
         vkrndr::device_t& device,
         VkShaderStageFlagBits stage,
         std::filesystem::path const& file,
         std::string_view entry_point = "main");
+
+    [[nodiscard]] tl::expected<VkDescriptorSetLayout, std::error_code>
+    descriptor_set_layout(shader_set_t const& shader_set,
+        vkrndr::device_t const& device,
+        uint32_t set);
 } // namespace vkglsl
 
 #endif
