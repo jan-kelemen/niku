@@ -3,6 +3,7 @@
 #include <niku_sdl_window.hpp>
 
 #include <vkrndr_context.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_image.hpp>
@@ -152,6 +153,9 @@ void niku::imgui_layer_t::render(VkCommandBuffer command_buffer,
             VK_ATTACHMENT_STORE_OP_STORE,
             target_image.view);
         {
+            [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+                command_buffer,
+                "ImGUI"};
             [[maybe_unused]] auto const guard{render_pass.begin(command_buffer,
                 {{0, 0}, target_image.extent})};
             ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(),
