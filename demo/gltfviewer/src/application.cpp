@@ -22,6 +22,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -313,9 +314,11 @@ void gltfviewer::application_t::on_resize([[maybe_unused]] uint32_t width,
 {
     destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_);
+    object_name(backend_->device(), color_image_, "Offscreen Image");
 
     destroy(&backend_->device(), &depth_buffer_);
     depth_buffer_ = create_depth_buffer(*backend_);
+    object_name(backend_->device(), depth_buffer_, "Depth Buffer");
 
     camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 }

@@ -7,6 +7,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -246,13 +247,14 @@ namespace
         material_t* const gpu_materials{staging_buffer_map.as<material_t>()};
 
         std::ranges::transform(materials, gpu_materials, to_gpu_material);
+        unmap_memory(backend.device(), &staging_buffer_map);
 
         vkrndr::buffer_t rv{create_buffer(backend.device(),
             staging_buffer.size,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
-        unmap_memory(backend.device(), &staging_buffer_map);
+        object_name(backend.device(), rv, "Materials Storage Buffer");
 
         backend.transfer_buffer(staging_buffer, rv);
 

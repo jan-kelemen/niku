@@ -340,6 +340,7 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             vertex_path.c_str(),
             VK_SHADER_STAGE_VERTEX_BIT,
             "main");
+        object_name(backend_->device(), vertex_shader_, "PBR vertex");
         vertex_write_time_ = wt;
     }
 
@@ -356,6 +357,7 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             fragment_path.c_str(),
             VK_SHADER_STAGE_FRAGMENT_BIT,
             "main");
+        object_name(backend_->device(), fragment_shader_, "PBR fragment");
         fragment_write_time_ = wt;
     }
 
@@ -381,6 +383,9 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .with_depth_test(depth_buffer_format)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
+    object_name(backend_->device(),
+        double_sided_pipeline_,
+        "Double Sided Pipeline");
 
     if (culling_pipeline_.pipeline != VK_NULL_HANDLE)
     {
@@ -400,6 +405,7 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .with_culling(VK_CULL_MODE_BACK_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
+    object_name(backend_->device(), culling_pipeline_, "Culling Pipeline");
 
     if (blending_pipeline_.pipeline != VK_NULL_HANDLE)
     {
@@ -428,4 +434,5 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .with_depth_test(depth_buffer_format)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
+    object_name(backend_->device(), blending_pipeline_, "Blending Pipeline");
 }

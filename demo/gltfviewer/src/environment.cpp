@@ -9,6 +9,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
@@ -172,6 +173,8 @@ gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        object_name(backend_->device(), data.uniform, "Environment Uniform");
+
         data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);
 
         vkrndr::create_descriptor_sets(backend_->device(),
