@@ -125,7 +125,8 @@ namespace vkrndr
             VkPrimitiveTopology primitive_topology);
 
         pipeline_builder_t& with_depth_test(VkFormat depth_format,
-            VkCompareOp compare = VK_COMPARE_OP_LESS);
+            VkCompareOp compare = VK_COMPARE_OP_LESS,
+            bool write = true);
 
         pipeline_builder_t& with_stencil_test(VkFormat depth_format,
             VkStencilOpState front,

@@ -283,7 +283,8 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_primitive_topology(
 
 vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_depth_test(
     VkFormat const depth_format,
-    VkCompareOp const compare)
+    VkCompareOp const compare,
+    bool const write)
 {
     assert(
         depth_format_ == VK_FORMAT_UNDEFINED || depth_format_ == depth_format);
@@ -308,7 +309,7 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_depth_test(
         depth_format_ != VK_FORMAT_UNDEFINED ? VK_TRUE : VK_FALSE};
 
     depth_stencil.depthTestEnable = enabled;
-    depth_stencil.depthWriteEnable = enabled;
+    depth_stencil.depthWriteEnable = write;
     depth_stencil.depthCompareOp = compare;
 
     depth_stencil_ = depth_stencil;
