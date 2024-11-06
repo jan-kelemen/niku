@@ -431,7 +431,7 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT, color_blending)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_format)
+            .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS, false)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
     object_name(backend_->device(), blending_pipeline_, "Blending Pipeline");
