@@ -5,6 +5,7 @@
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -180,6 +181,9 @@ void gltfviewer::postprocess_shader_t::draw(bool const color_conversion,
 {
     descriptor_sets_.cycle();
 
+    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+        command_buffer,
+        "Postprocess"};
     bind_descriptor_set(backend_->device(),
         *descriptor_sets_,
         vkrndr::combined_sampler_descriptor(combined_sampler_, color_image));

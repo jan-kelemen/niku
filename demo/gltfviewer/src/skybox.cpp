@@ -8,6 +8,7 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_cubemap.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -567,6 +568,10 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& depth_buffer)
 {
+    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+        command_buffer,
+        "Skybox"};
+
     VkDeviceSize const zero_offset{};
     vkCmdBindVertexBuffers(command_buffer,
         0,

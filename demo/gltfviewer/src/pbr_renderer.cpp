@@ -5,6 +5,7 @@
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -251,6 +252,9 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
     ImGui::End();
 
     {
+        [[maybe_unused]] vkrndr::command_buffer_scope_t cb_scope{command_buffer,
+            "PBR"};
+
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
             VK_ATTACHMENT_STORE_OP_STORE,
@@ -290,6 +294,8 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             }
         };
 
+        vkrndr::command_buffer_scope_t opaque_pass_scope{command_buffer,
+            "Opaque"};
         draw_traversal_t traversal{.model = &model_,
             .layout = *double_sided_pipeline_.layout,
             .command_buffer = command_buffer,
@@ -297,12 +303,18 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
             .ibl_factor = ibl_factor_,
             .alpha_mode = vkgltf::alpha_mode_t::opaque};
         traversal.draw(switch_pipeline);
+        opaque_pass_scope.close();
 
+        vkrndr::command_buffer_scope_t mask_pass_scope{command_buffer, "Mask"};
         traversal.alpha_mode = vkgltf::alpha_mode_t::mask;
         traversal.draw(switch_pipeline);
+        mask_pass_scope.close();
 
+        vkrndr::command_buffer_scope_t blend_pass_scope{command_buffer,
+            "Blend"};
         traversal.alpha_mode = vkgltf::alpha_mode_t::blend;
         traversal.draw(switch_pipeline);
+        blend_pass_scope.close();
     }
 }
 
