@@ -159,11 +159,10 @@ void gltfviewer::application_t::update(float delta_time)
         vkDeviceWaitIdle(backend_->device().logical);
 
         materials_->load(*model);
-        render_graph_->load(*model);
-        pbr_renderer_->load(std::move(model).value(),
+        render_graph_->load(std::move(model).value());
+        pbr_renderer_->load(*render_graph_,
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
-            render_graph_->descriptor_layout(),
             depth_buffer_.format);
 
         spdlog::info("End loading: {}", model_path);
@@ -241,7 +240,10 @@ void gltfviewer::application_t::draw()
             VK_PIPELINE_BIND_POINT_GRAPHICS);
     }
 
-    pbr_renderer_->draw(command_buffer, color_image_, depth_buffer_);
+    pbr_renderer_->draw(*render_graph_,
+        command_buffer,
+        color_image_,
+        depth_buffer_);
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,

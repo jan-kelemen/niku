@@ -1,5 +1,7 @@
 #include <pbr_renderer.hpp>
 
+#include <render_graph.hpp>
+
 #include <cppext_numeric.hpp>
 
 #include <vkgltf_model.hpp>
@@ -17,11 +19,8 @@
 #include <volk.h>
 
 #include <array>
-#include <cstddef>
 #include <filesystem>
 #include <ranges>
-#include <span>
-#include <utility>
 #include <vector>
 
 // IWYU pragma: no_include <chrono>
@@ -49,45 +48,6 @@ namespace
         uint32_t debug;
         float ibl_factor;
     };
-
-    consteval auto binding_description()
-    {
-        constexpr std::array descriptions{
-            VkVertexInputBindingDescription{.binding = 0,
-                .stride = sizeof(vkgltf::vertex_t),
-                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
-        };
-
-        return descriptions;
-    }
-
-    consteval auto attribute_descriptions()
-    {
-        constexpr std::array descriptions{
-            VkVertexInputAttributeDescription{.location = 0,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(vkgltf::vertex_t, position)},
-            VkVertexInputAttributeDescription{.location = 1,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(vkgltf::vertex_t, normal)},
-            VkVertexInputAttributeDescription{.location = 2,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                .offset = offsetof(vkgltf::vertex_t, tangent)},
-            VkVertexInputAttributeDescription{.location = 3,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                .offset = offsetof(vkgltf::vertex_t, color)},
-            VkVertexInputAttributeDescription{.location = 4,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32_SFLOAT,
-                .offset = offsetof(vkgltf::vertex_t, uv)},
-        };
-
-        return descriptions;
-    }
 
     struct [[nodiscard]] draw_traversal_t final
     {
@@ -207,7 +167,6 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
     destroy(&backend_->device(), &double_sided_pipeline_);
     destroy(&backend_->device(), &fragment_shader_);
     destroy(&backend_->device(), &vertex_shader_);
-    destroy(&backend_->device(), &model_);
 }
 
 VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
@@ -220,7 +179,8 @@ VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
     return VK_NULL_HANDLE;
 }
 
-void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
+void gltfviewer::pbr_renderer_t::draw(render_graph_t const& graph,
+    VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& depth_buffer)
 {
@@ -252,7 +212,8 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
     ImGui::End();
 
     {
-        [[maybe_unused]] vkrndr::command_buffer_scope_t cb_scope{command_buffer,
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
             "PBR"};
 
         vkrndr::render_pass_t color_render_pass;
@@ -266,7 +227,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
             {{0, 0}, color_image.extent})};
 
-        if (model_.vertex_count == 0)
+        if (graph.model().vertex_count == 0)
         {
             return;
         }
@@ -296,7 +257,7 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
 
         vkrndr::command_buffer_scope_t opaque_pass_scope{command_buffer,
             "Opaque"};
-        draw_traversal_t traversal{.model = &model_,
+        draw_traversal_t traversal{.model = &graph.model(),
             .layout = *double_sided_pipeline_.layout,
             .command_buffer = command_buffer,
             .debug = debug_,
@@ -318,16 +279,11 @@ void gltfviewer::pbr_renderer_t::draw(VkCommandBuffer command_buffer,
     }
 }
 
-void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
+void gltfviewer::pbr_renderer_t::load(render_graph_t const& graph,
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
-    VkDescriptorSetLayout graph_layout,
     VkFormat depth_buffer_format)
 {
-    destroy(&backend_->device(), &model_);
-
-    model_ = std::move(model);
-
     std::filesystem::path const vertex_path{"pbr.vert.spv"};
     if (auto const wt{last_write_time(vertex_path)}; vertex_write_time_ != wt)
     {
@@ -371,7 +327,7 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(materials_layout)
-                .add_descriptor_set_layout(graph_layout)
+                .add_descriptor_set_layout(graph.descriptor_layout())
                 .add_push_constants<push_constants_t>(
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
                 .build()}
@@ -381,7 +337,8 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_format)
-            .add_vertex_input(binding_description(), attribute_descriptions())
+            .add_vertex_input(graph.binding_description(),
+                graph.attribute_description())
             .build();
     object_name(backend_->device(),
         double_sided_pipeline_,
@@ -401,7 +358,8 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_format)
-            .add_vertex_input(binding_description(), attribute_descriptions())
+            .add_vertex_input(graph.binding_description(),
+                graph.attribute_description())
             .with_culling(VK_CULL_MODE_BACK_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
@@ -432,7 +390,8 @@ void gltfviewer::pbr_renderer_t::load(vkgltf::model_t&& model,
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS, false)
-            .add_vertex_input(binding_description(), attribute_descriptions())
+            .add_vertex_input(graph.binding_description(),
+                graph.attribute_description())
             .build();
     object_name(backend_->device(), blending_pipeline_, "Blending Pipeline");
 }

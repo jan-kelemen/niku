@@ -15,6 +15,8 @@
 #include <glm/matrix.hpp>
 
 #include <array>
+#include <cstddef>
+#include <utility>
 
 // IWYU pragma: no_include <ranges>
 // IWYU pragma: no_include <vector>
@@ -145,12 +147,58 @@ gltfviewer::render_graph_t::render_graph_t(vkrndr::backend_t& backend)
 
 gltfviewer::render_graph_t::~render_graph_t() { clear(); }
 
+vkgltf::model_t const& gltfviewer::render_graph_t::model() const
+{
+    return model_;
+}
+
 VkDescriptorSetLayout gltfviewer::render_graph_t::descriptor_layout() const
 {
     return descriptor_layout_;
 }
 
-void gltfviewer::render_graph_t::load(vkgltf::model_t& model)
+std::span<VkVertexInputBindingDescription const>
+gltfviewer::render_graph_t::binding_description() const
+{
+    static constexpr std::array descriptions{
+        VkVertexInputBindingDescription{.binding = 0,
+            .stride = sizeof(vkgltf::vertex_t),
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+    };
+
+    return descriptions;
+}
+
+std::span<VkVertexInputAttributeDescription const>
+gltfviewer::render_graph_t::attribute_description() const
+{
+    static constexpr std::array descriptions{
+        VkVertexInputAttributeDescription{.location = 0,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(vkgltf::vertex_t, position)},
+        VkVertexInputAttributeDescription{.location = 1,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(vkgltf::vertex_t, normal)},
+        VkVertexInputAttributeDescription{.location = 2,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+            .offset = offsetof(vkgltf::vertex_t, tangent)},
+        VkVertexInputAttributeDescription{.location = 3,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+            .offset = offsetof(vkgltf::vertex_t, color)},
+        VkVertexInputAttributeDescription{.location = 4,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32_SFLOAT,
+            .offset = offsetof(vkgltf::vertex_t, uv)},
+    };
+
+    return descriptions;
+}
+
+void gltfviewer::render_graph_t::load(vkgltf::model_t&& model)
 {
     clear();
 
@@ -197,6 +245,8 @@ void gltfviewer::render_graph_t::load(vkgltf::model_t& model)
     }
 
     calculate_transforms(model, frame_data_.as_span());
+
+    model_ = std::move(model);
 }
 
 void gltfviewer::render_graph_t::bind_on(VkCommandBuffer command_buffer,
@@ -282,6 +332,8 @@ void gltfviewer::render_graph_t::clear()
         destroy(&backend_->device(), &vertex_buffer_);
         vertex_count_ = 0;
     }
+
+    destroy(&backend_->device(), &model_);
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         descriptor_layout_,

@@ -1,8 +1,6 @@
 #ifndef GLTFVIEWER_PBR_RENDERER_INCLUDED
 #define GLTFVIEWER_PBR_RENDERER_INCLUDED
 
-#include <vkgltf_model.hpp>
-
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
 
@@ -16,6 +14,11 @@ namespace vkrndr
     class backend_t;
     struct image_t;
 } // namespace vkrndr
+
+namespace gltfviewer
+{
+    class render_graph_t;
+} // namespace gltfviewer
 
 namespace gltfviewer
 {
@@ -34,13 +37,13 @@ namespace gltfviewer
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
-        void load(vkgltf::model_t&& model,
+        void load(render_graph_t const& graph,
             VkDescriptorSetLayout environment_layout,
             VkDescriptorSetLayout materials_layout,
-            VkDescriptorSetLayout graph_layout,
             VkFormat depth_buffer_format);
 
-        void draw(VkCommandBuffer command_buffer,
+        void draw(render_graph_t const& graph,
+            VkCommandBuffer command_buffer,
             vkrndr::image_t const& color_image,
             vkrndr::image_t const& depth_buffer);
 
@@ -51,8 +54,6 @@ namespace gltfviewer
 
     private:
         vkrndr::backend_t* backend_;
-
-        vkgltf::model_t model_;
 
         std::filesystem::file_time_type vertex_write_time_;
         vkrndr::shader_module_t vertex_shader_;

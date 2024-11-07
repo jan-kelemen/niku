@@ -3,6 +3,8 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <vkgltf_model.hpp>
+
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
 
@@ -10,11 +12,6 @@
 
 #include <cstdint>
 #include <span>
-
-namespace vkgltf
-{
-    struct model_t;
-} // namespace vkgltf
 
 namespace vkrndr
 {
@@ -36,9 +33,17 @@ namespace gltfviewer
         ~render_graph_t();
 
     public:
+        [[nodiscard]] vkgltf::model_t const& model() const;
+
         [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
 
-        void load(vkgltf::model_t& model);
+        [[nodiscard]] std::span<VkVertexInputBindingDescription const>
+        binding_description() const;
+
+        [[nodiscard]] std::span<VkVertexInputAttributeDescription const>
+        attribute_description() const;
+
+        void load(vkgltf::model_t&& model);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
@@ -67,6 +72,8 @@ namespace gltfviewer
         vkrndr::backend_t* backend_;
 
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
+
+        vkgltf::model_t model_;
 
         uint32_t vertex_count_{};
         vkrndr::buffer_t vertex_buffer_;
