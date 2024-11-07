@@ -1,4 +1,4 @@
-#include <pbr_renderer.hpp>
+#include <pbr_shader.hpp>
 
 #include <render_graph.hpp>
 
@@ -24,12 +24,12 @@
 // IWYU pragma: no_include <string_view>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
-gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
+gltfviewer::pbr_shader_t::pbr_shader_t(vkrndr::backend_t& backend)
     : backend_{&backend}
 {
 }
 
-gltfviewer::pbr_renderer_t::~pbr_renderer_t()
+gltfviewer::pbr_shader_t::~pbr_shader_t()
 {
     destroy(&backend_->device(), &blending_pipeline_);
     destroy(&backend_->device(), &culling_pipeline_);
@@ -38,7 +38,7 @@ gltfviewer::pbr_renderer_t::~pbr_renderer_t()
     destroy(&backend_->device(), &vertex_shader_);
 }
 
-VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
+VkPipelineLayout gltfviewer::pbr_shader_t::pipeline_layout() const
 {
     if (double_sided_pipeline_.pipeline)
     {
@@ -48,7 +48,7 @@ VkPipelineLayout gltfviewer::pbr_renderer_t::pipeline_layout() const
     return VK_NULL_HANDLE;
 }
 
-void gltfviewer::pbr_renderer_t::draw(render_graph_t const& graph,
+void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
     VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& depth_buffer)
@@ -122,7 +122,7 @@ void gltfviewer::pbr_renderer_t::draw(render_graph_t const& graph,
     }
 }
 
-void gltfviewer::pbr_renderer_t::load(render_graph_t const& graph,
+void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)

@@ -7,7 +7,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/environment.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.hpp
@@ -18,7 +18,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gltfviewer.m.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_renderer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.cpp

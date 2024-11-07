@@ -4,7 +4,7 @@
 #include <environment.hpp>
 #include <materials.hpp>
 #include <model_selector.hpp>
-#include <pbr_renderer.hpp>
+#include <pbr_shader.hpp>
 #include <postprocess_shader.hpp>
 #include <render_graph.hpp>
 
@@ -124,7 +124,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , environment_{std::make_unique<environment_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
-    , pbr_renderer_{std::make_unique<pbr_renderer_t>(*backend_)}
+    , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
@@ -176,7 +176,7 @@ void gltfviewer::application_t::update(float delta_time)
 
         materials_->load(*model);
         render_graph_->load(std::move(model).value());
-        pbr_renderer_->load(*render_graph_,
+        pbr_shader_->load(*render_graph_,
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             depth_buffer_.format);
@@ -265,7 +265,7 @@ void gltfviewer::application_t::draw()
 
     environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
 
-    if (VkPipelineLayout const layout{pbr_renderer_->pipeline_layout()})
+    if (VkPipelineLayout const layout{pbr_shader_->pipeline_layout()})
     {
         environment_->bind_on(command_buffer,
             layout,
@@ -288,7 +288,7 @@ void gltfviewer::application_t::draw()
             &pc);
     }
 
-    pbr_renderer_->draw(*render_graph_,
+    pbr_shader_->draw(*render_graph_,
         command_buffer,
         color_image_,
         depth_buffer_);
@@ -342,7 +342,7 @@ void gltfviewer::application_t::on_shutdown()
 
     postprocess_shader_.reset();
 
-    pbr_renderer_.reset();
+    pbr_shader_.reset();
 
     render_graph_.reset();
 

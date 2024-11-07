@@ -32,7 +32,7 @@ namespace gltfviewer
 {
     class environment_t;
     class materials_t;
-    class pbr_renderer_t;
+    class pbr_shader_t;
     class postprocess_shader_t;
     class render_graph_t;
 } // namespace gltfviewer
@@ -88,7 +88,7 @@ namespace gltfviewer
         std::unique_ptr<environment_t> environment_;
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;
-        std::unique_ptr<pbr_renderer_t> pbr_renderer_;
+        std::unique_ptr<pbr_shader_t> pbr_shader_;
         std::unique_ptr<postprocess_shader_t> postprocess_shader_;
 
         camera_controller_t camera_controller_;

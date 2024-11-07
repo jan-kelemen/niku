@@ -21,17 +21,17 @@ namespace gltfviewer
 
 namespace gltfviewer
 {
-    class [[nodiscard]] pbr_renderer_t final
+    class [[nodiscard]] pbr_shader_t final
     {
     public:
-        explicit pbr_renderer_t(vkrndr::backend_t& backend);
+        explicit pbr_shader_t(vkrndr::backend_t& backend);
 
-        pbr_renderer_t(pbr_renderer_t const&) = delete;
+        pbr_shader_t(pbr_shader_t const&) = delete;
 
-        pbr_renderer_t(pbr_renderer_t&&) noexcept = delete;
+        pbr_shader_t(pbr_shader_t&&) noexcept = delete;
 
     public:
-        ~pbr_renderer_t();
+        ~pbr_shader_t();
 
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
@@ -47,9 +47,9 @@ namespace gltfviewer
             vkrndr::image_t const& depth_buffer);
 
     public:
-        pbr_renderer_t& operator=(pbr_renderer_t const&) = delete;
+        pbr_shader_t& operator=(pbr_shader_t const&) = delete;
 
-        pbr_renderer_t& operator=(pbr_renderer_t&&) noexcept = delete;
+        pbr_shader_t& operator=(pbr_shader_t&&) noexcept = delete;
 
     private:
         vkrndr::backend_t* backend_;
