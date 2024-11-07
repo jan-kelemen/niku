@@ -11,6 +11,7 @@
 #include <volk.h>
 
 #include <cstdint>
+#include <functional>
 #include <span>
 
 namespace vkrndr
@@ -49,6 +50,12 @@ namespace gltfviewer
             VkPipelineLayout layout,
             VkPipelineBindPoint bind_point);
 
+        void traverse(vkgltf::alpha_mode_t alpha_mode,
+            VkCommandBuffer command_buffer,
+            VkPipelineLayout layout,
+            std::function<void(vkgltf::alpha_mode_t, bool)> const&
+                switch_pipeline) const;
+
     public:
         render_graph_t& operator=(render_graph_t const&) = delete;
 
@@ -65,6 +72,14 @@ namespace gltfviewer
     private:
         static void calculate_transforms(vkgltf::model_t const& model,
             std::span<frame_data_t> frames);
+
+        uint32_t draw_node(VkCommandBuffer command_buffer,
+            VkPipelineLayout layout,
+            vkgltf::node_t const& node,
+            vkgltf::alpha_mode_t const& alpha_mode,
+            uint32_t index,
+            std::function<void(vkgltf::alpha_mode_t, bool)> const&
+                switch_pipeline) const;
 
         void clear();
 

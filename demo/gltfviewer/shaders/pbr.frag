@@ -14,10 +14,10 @@ layout(location = 4) in vec2 inUV;
 
 layout(push_constant) uniform PushConsts
 {
-    uint modelIndex;
-    uint materialIndex;
     uint debug;
     float ibl_factor;
+    uint modelIndex;
+    uint materialIndex;
 } pc;
 
 #include "environment.glsl" // (set = 0)

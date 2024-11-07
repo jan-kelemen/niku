@@ -96,6 +96,9 @@ namespace gltfviewer
         model_selector_t selector_;
         vkgltf::loader_t gltf_loader_;
 
+        uint32_t debug_{0};
+        float ibl_factor_{0.5f};
+
         bool color_conversion_{true};
         bool tone_mapping_{true};
     };

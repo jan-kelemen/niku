@@ -45,6 +45,7 @@ DISABLE_WARNING_POP
 
 #include <volk.h>
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -60,6 +61,21 @@ DISABLE_WARNING_POP
 
 namespace
 {
+    struct [[nodiscard]] push_constants_t final
+    {
+        uint32_t debug;
+        float ibl_factor;
+    };
+
+    constexpr std::array debug_options{"None",
+        "Albedo",
+        "Normals",
+        "Occlusion",
+        "Emissive",
+        "Metallic",
+        "Roughness",
+        "UV"};
+
     [[nodiscard]] vkrndr::image_t create_color_image(
         vkrndr::backend_t const& backend)
     {
@@ -168,9 +184,33 @@ void gltfviewer::application_t::update(float delta_time)
         spdlog::info("End loading: {}", model_path);
     }
 
-    ImGui::Begin("Postprocess");
-    ImGui::Checkbox("Color conversion", &color_conversion_);
-    ImGui::Checkbox("Tone mapping", &tone_mapping_);
+    ImGui::Begin("Rendering");
+
+    if (ImGui::BeginCombo("PBR Equation", debug_options[debug_], 0))
+    {
+        uint32_t i{};
+        for (auto const& option : debug_options)
+        {
+            auto const selected{debug_ == i};
+
+            if (ImGui::Selectable(option, selected))
+            {
+                debug_ = i;
+            }
+
+            if (selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+
+            ++i;
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::SliderFloat("IBL Factor", &ibl_factor_, 0.0f, 9.0f);
+    ImGui::Checkbox("Color Conversion", &color_conversion_);
+    ImGui::Checkbox("Tone Mapping", &tone_mapping_);
     ImGui::End();
 
     camera_controller_.update(delta_time);
@@ -238,6 +278,14 @@ void gltfviewer::application_t::draw()
         render_graph_->bind_on(command_buffer,
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
+        vkCmdPushConstants(command_buffer,
+            layout,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            8,
+            &pc);
     }
 
     pbr_renderer_->draw(*render_graph_,

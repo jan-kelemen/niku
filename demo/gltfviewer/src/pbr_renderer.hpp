@@ -6,7 +6,6 @@
 
 #include <volk.h>
 
-#include <cstdint>
 #include <filesystem>
 
 namespace vkrndr
@@ -64,9 +63,6 @@ namespace gltfviewer
         vkrndr::pipeline_t double_sided_pipeline_;
         vkrndr::pipeline_t culling_pipeline_;
         vkrndr::pipeline_t blending_pipeline_;
-
-        uint32_t debug_{0};
-        float ibl_factor_{0.5f};
     };
 } // namespace gltfviewer
 #endif

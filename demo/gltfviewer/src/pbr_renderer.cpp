@@ -2,8 +2,6 @@
 
 #include <render_graph.hpp>
 
-#include <cppext_numeric.hpp>
-
 #include <vkgltf_model.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -14,14 +12,10 @@
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 
-#include <imgui.h>
-
 #include <volk.h>
 
-#include <array>
 #include <filesystem>
-#include <ranges>
-#include <vector>
+#include <functional>
 
 // IWYU pragma: no_include <chrono>
 // IWYU pragma: no_include <memory>
@@ -29,131 +23,6 @@
 // IWYU pragma: no_include <type_traits>
 // IWYU pragma: no_include <string_view>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
-
-namespace
-{
-    constexpr std::array debug_options{"None",
-        "Albedo",
-        "Normals",
-        "Occlusion",
-        "Emissive",
-        "Metallic",
-        "Roughness",
-        "UV"};
-
-    struct [[nodiscard]] push_constants_t final
-    {
-        uint32_t transform_index;
-        uint32_t material_index;
-        uint32_t debug;
-        float ibl_factor;
-    };
-
-    struct [[nodiscard]] draw_traversal_t final
-    {
-        // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
-        vkgltf::model_t const* const model;
-        VkPipelineLayout const layout;
-        VkCommandBuffer const command_buffer;
-        uint32_t const debug;
-        float const ibl_factor;
-        // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
-
-        vkgltf::alpha_mode_t alpha_mode;
-
-        void draw(auto& switch_pipeline)
-        {
-            uint32_t drawn{0};
-            for (auto const& graph : model->scenes)
-            {
-                // cppcheck-suppress-begin useStlAlgorithm
-                for (auto const& root : graph.roots(*model))
-                {
-                    drawn += draw_node(root, drawn, switch_pipeline);
-                }
-                // cppcheck-suppress-end useStlAlgorithm
-            }
-        }
-
-    private:
-        [[nodiscard]] uint32_t draw_node(vkgltf::node_t const& node,
-            uint32_t const index,
-            auto& switch_pipeline)
-        {
-            uint32_t drawn{0};
-            if (node.mesh)
-            {
-                // cppcheck-suppress-begin useStlAlgorithm
-                for (auto const& primitive : node.mesh->primitives)
-                {
-                    push_constants_t const pc{.transform_index = index,
-                        .material_index =
-                            cppext::narrow<uint32_t>(primitive.material_index),
-                        .debug = debug,
-                        .ibl_factor = ibl_factor};
-
-                    if (!model->materials.empty())
-                    {
-                        auto const& material{
-                            model->materials[primitive.material_index]};
-                        if (material.alpha_mode != alpha_mode)
-                        {
-                            continue;
-                        }
-
-                        switch_pipeline(material.double_sided, alpha_mode);
-                    }
-                    else if (alpha_mode != vkgltf::alpha_mode_t::opaque)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        switch_pipeline(false, alpha_mode);
-                    }
-
-                    vkCmdPushConstants(command_buffer,
-                        layout,
-                        VK_SHADER_STAGE_VERTEX_BIT |
-                            VK_SHADER_STAGE_FRAGMENT_BIT,
-                        0,
-                        sizeof(pc),
-                        &pc);
-                    if (primitive.is_indexed)
-                    {
-                        vkCmdDrawIndexed(command_buffer,
-                            primitive.count,
-                            1,
-                            primitive.first,
-                            primitive.vertex_offset,
-                            0);
-                    }
-                    else
-                    {
-                        vkCmdDraw(command_buffer,
-                            primitive.count,
-                            1,
-                            primitive.first,
-                            0);
-                    }
-                }
-                // cppcheck-suppress-end useStlAlgorithm
-
-                ++drawn;
-            }
-
-            // cppcheck-suppress-begin useStlAlgorithm
-            for (auto const& child : node.children(*model))
-            {
-                drawn += draw_node(child, index + drawn, switch_pipeline);
-            }
-            // cppcheck-suppress-end useStlAlgorithm
-
-            return drawn;
-        }
-    };
-
-} // namespace
 
 gltfviewer::pbr_renderer_t::pbr_renderer_t(vkrndr::backend_t& backend)
     : backend_{&backend}
@@ -184,33 +53,6 @@ void gltfviewer::pbr_renderer_t::draw(render_graph_t const& graph,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& depth_buffer)
 {
-    ImGui::Begin("PBR debug");
-    if (ImGui::BeginCombo("Equation", debug_options[debug_], 0))
-    {
-        uint32_t i{};
-        for (auto const& option : debug_options)
-        {
-            auto const selected{debug_ == i};
-
-            if (ImGui::Selectable(option, selected))
-            {
-                debug_ = i;
-            }
-
-            if (selected)
-            {
-                ImGui::SetItemDefaultFocus();
-            }
-
-            ++i;
-        }
-        ImGui::EndCombo();
-    }
-
-    ImGui::SliderFloat("IBL factor", &ibl_factor_, 0.0f, 9.0f);
-
-    ImGui::End();
-
     {
         [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
             command_buffer,
@@ -235,8 +77,8 @@ void gltfviewer::pbr_renderer_t::draw(render_graph_t const& graph,
         auto switch_pipeline =
             [command_buffer,
                 bound = static_cast<vkrndr::pipeline_t*>(nullptr),
-                this](bool const double_sided,
-                vkgltf::alpha_mode_t const mode) mutable
+                this](vkgltf::alpha_mode_t const mode,
+                bool const double_sided) mutable
         {
             auto* required_pipeline{&culling_pipeline_};
             if (mode == vkgltf::alpha_mode_t::blend)
@@ -257,24 +99,25 @@ void gltfviewer::pbr_renderer_t::draw(render_graph_t const& graph,
 
         vkrndr::command_buffer_scope_t opaque_pass_scope{command_buffer,
             "Opaque"};
-        draw_traversal_t traversal{.model = &graph.model(),
-            .layout = *double_sided_pipeline_.layout,
-            .command_buffer = command_buffer,
-            .debug = debug_,
-            .ibl_factor = ibl_factor_,
-            .alpha_mode = vkgltf::alpha_mode_t::opaque};
-        traversal.draw(switch_pipeline);
+        graph.traverse(vkgltf::alpha_mode_t::opaque,
+            command_buffer,
+            *double_sided_pipeline_.layout,
+            switch_pipeline);
         opaque_pass_scope.close();
 
         vkrndr::command_buffer_scope_t mask_pass_scope{command_buffer, "Mask"};
-        traversal.alpha_mode = vkgltf::alpha_mode_t::mask;
-        traversal.draw(switch_pipeline);
+        graph.traverse(vkgltf::alpha_mode_t::mask,
+            command_buffer,
+            *double_sided_pipeline_.layout,
+            switch_pipeline);
         mask_pass_scope.close();
 
         vkrndr::command_buffer_scope_t blend_pass_scope{command_buffer,
             "Blend"};
-        traversal.alpha_mode = vkgltf::alpha_mode_t::blend;
-        traversal.draw(switch_pipeline);
+        graph.traverse(vkgltf::alpha_mode_t::blend,
+            command_buffer,
+            *double_sided_pipeline_.layout,
+            switch_pipeline);
         blend_pass_scope.close();
     }
 }
@@ -328,8 +171,11 @@ void gltfviewer::pbr_renderer_t::load(render_graph_t const& graph,
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(materials_layout)
                 .add_descriptor_set_layout(graph.descriptor_layout())
-                .add_push_constants<push_constants_t>(
-                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+                .add_push_constants(VkPushConstantRange{
+                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                        VK_SHADER_STAGE_FRAGMENT_BIT,
+                    .offset = 0,
+                    .size = 16})
                 .build()}
             .add_shader(as_pipeline_shader(vertex_shader_))
             .add_shader(as_pipeline_shader(fragment_shader_))

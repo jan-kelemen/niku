@@ -1,6 +1,7 @@
 #include <render_graph.hpp>
 
 #include <cppext_cycled_buffer.hpp>
+#include <cppext_numeric.hpp>
 
 #include <vkgltf_model.hpp>
 
@@ -16,6 +17,7 @@
 
 #include <array>
 #include <cstddef>
+#include <functional>
 #include <utility>
 
 // IWYU pragma: no_include <ranges>
@@ -23,6 +25,12 @@
 
 namespace
 {
+    struct [[nodiscard]] push_constants_t final
+    {
+        uint32_t transform_index;
+        uint32_t material_index;
+    };
+
     struct [[nodiscard]] transform_t final
     {
         glm::mat4 model;
@@ -283,6 +291,29 @@ void gltfviewer::render_graph_t::bind_on(VkCommandBuffer command_buffer,
     }
 }
 
+void gltfviewer::render_graph_t::traverse(vkgltf::alpha_mode_t alpha_mode,
+    VkCommandBuffer command_buffer,
+    VkPipelineLayout layout,
+    std::function<void(vkgltf::alpha_mode_t, bool)> const& switch_pipeline)
+    const
+{
+    uint32_t drawn{0};
+    for (auto const& graph : model_.scenes)
+    {
+        // cppcheck-suppress-begin useStlAlgorithm
+        for (auto const& root : graph.roots(model_))
+        {
+            drawn += draw_node(command_buffer,
+                layout,
+                root,
+                alpha_mode,
+                drawn,
+                switch_pipeline);
+        }
+        // cppcheck-suppress-end useStlAlgorithm
+    }
+}
+
 void gltfviewer::render_graph_t::calculate_transforms(
     vkgltf::model_t const& model,
     std::span<frame_data_t> frames)
@@ -304,6 +335,79 @@ void gltfviewer::render_graph_t::calculate_transforms(
             // cppcheck-suppress-end useStlAlgorithm
         }
     }
+}
+
+uint32_t gltfviewer::render_graph_t::draw_node(VkCommandBuffer command_buffer,
+    VkPipelineLayout layout,
+    vkgltf::node_t const& node,
+    vkgltf::alpha_mode_t const& alpha_mode,
+    uint32_t const index,
+    std::function<void(vkgltf::alpha_mode_t, bool)> const& switch_pipeline)
+    const
+{
+    uint32_t drawn{0};
+    if (node.mesh)
+    {
+        // cppcheck-suppress-begin useStlAlgorithm
+        for (auto const& primitive : node.mesh->primitives)
+        {
+            push_constants_t const pc{.transform_index = index,
+                .material_index =
+                    cppext::narrow<uint32_t>(primitive.material_index)};
+
+            if (!model_.materials.empty())
+            {
+                auto const& material{
+                    model_.materials[primitive.material_index]};
+                if (material.alpha_mode != alpha_mode)
+                {
+                    continue;
+                }
+                switch_pipeline(alpha_mode, material.double_sided);
+            }
+
+            vkCmdPushConstants(command_buffer,
+                layout,
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                8,
+                sizeof(pc),
+                &pc);
+            if (primitive.is_indexed)
+            {
+                vkCmdDrawIndexed(command_buffer,
+                    primitive.count,
+                    1,
+                    primitive.first,
+                    primitive.vertex_offset,
+                    0);
+            }
+            else
+            {
+                vkCmdDraw(command_buffer,
+                    primitive.count,
+                    1,
+                    primitive.first,
+                    0);
+            }
+        }
+        // cppcheck-suppress-end useStlAlgorithm
+
+        ++drawn;
+    }
+
+    // cppcheck-suppress-begin useStlAlgorithm
+    for (auto const& child : node.children(model_))
+    {
+        drawn += draw_node(command_buffer,
+            layout,
+            child,
+            alpha_mode,
+            index + drawn,
+            switch_pipeline);
+    }
+    // cppcheck-suppress-end useStlAlgorithm
+
+    return drawn;
 }
 
 void gltfviewer::render_graph_t::clear()
