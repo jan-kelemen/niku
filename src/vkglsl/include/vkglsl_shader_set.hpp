@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string_view>
 #include <system_error>
 #include <vector>
@@ -41,6 +42,7 @@ namespace vkglsl
         [[nodiscard]] tl::expected<void, std::error_code> add_shader(
             VkShaderStageFlagBits stage,
             std::filesystem::path const& file,
+            std::span<std::string_view const> const& preprocessor_defines = {},
             std::string_view entry_point = "main");
 
         [[nodiscard]] std::vector<uint32_t>* shader_binary(
@@ -69,6 +71,7 @@ namespace vkglsl
         vkrndr::device_t& device,
         VkShaderStageFlagBits stage,
         std::filesystem::path const& file,
+        std::span<std::string_view const> const& preprocessor_defines = {},
         std::string_view entry_point = "main");
 
     [[nodiscard]] tl::expected<VkDescriptorSetLayout, std::error_code>

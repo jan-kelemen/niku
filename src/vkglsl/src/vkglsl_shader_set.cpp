@@ -9,6 +9,8 @@
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_shader_module.hpp>
 
+#include <fmt/format.h>
+
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
@@ -28,8 +30,10 @@
 #include <map>
 #include <memory>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -42,7 +46,6 @@ namespace glslang
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <optional>
-// IWYU pragma: no_include <span>
 
 namespace
 {
@@ -69,6 +72,19 @@ namespace
         stream.read(buffer.data(), eof);
 
         return buffer;
+    }
+
+    [[nodiscard]] std::string preamble(
+        std::span<std::string_view const> const& defines)
+    {
+        std::string rv;
+
+        for (auto const& define : defines)
+        {
+            rv += fmt::format("#define {0}\n", define);
+        }
+
+        return rv;
     }
 
     class [[nodiscard]] includer_t final : public glslang::TShader::Includer
@@ -226,6 +242,7 @@ bool vkglsl::shader_set_t::add_include_directory(
 tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
     VkShaderStageFlagBits const stage,
     std::filesystem::path const& file,
+    std::span<std::string_view const> const& preprocessor_defines,
     std::string_view entry_point)
 {
     EShLanguage const language{to_glslang(stage)};
@@ -236,10 +253,14 @@ tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
             std::make_error_code(std::errc::file_exists));
     }
 
+    std::string const preamble_str{preamble(preprocessor_defines)};
+
     // NOLINTNEXTLINE(misc-const-correctness)
     std::string entry_point_str{entry_point};
 
     glslang::TShader shader{language};
+
+    shader.setPreamble(preamble_str.c_str());
 
     shader.setEnvInput(glslang::EShSourceGlsl,
         language,
@@ -426,9 +447,10 @@ vkglsl::add_shader_module_from_path(shader_set_t& shader_set,
     vkrndr::device_t& device,
     VkShaderStageFlagBits const stage,
     std::filesystem::path const& file,
+    std::span<std::string_view const> const& preprocessor_defines,
     std::string_view entry_point)
 {
-    return shader_set.add_shader(stage, file, entry_point)
+    return shader_set.add_shader(stage, file, preprocessor_defines, entry_point)
         .and_then([&]() { return shader_set.shader_module(device, stage); });
 }
 
