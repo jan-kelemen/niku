@@ -52,7 +52,12 @@ layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer
     Material v[];
 } materials;
 
+#ifndef OIT
 layout(location = 0) out vec4 outColor;
+#else
+layout(location = 0) out vec4 outAcc;
+layout(location = 1) out float outReveal;
+#endif
 
 vec4 baseColor(Material m)
 {
@@ -262,6 +267,7 @@ void main()
     const vec3 emissive = emissiveColor(m);
     color += emissive;
 
+#ifndef OIT
     outColor = vec4(color, pc.debug > 0 ? 1.0 : albedo.a);
 
     if (pc.debug > 0)
@@ -291,4 +297,14 @@ void main()
             break;
         }
     }
+#else
+    const float alpha = albedo.a;
+
+    const float weight = clamp(pow(min(1.0, alpha * 10.0) + 0.01, 3.0) * 1e8 * 
+                         pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
+    
+    outAcc = vec4(color.rgb * alpha, alpha) * weight;
+    
+    outReveal = alpha;
+#endif
 }

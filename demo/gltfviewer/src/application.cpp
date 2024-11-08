@@ -362,6 +362,8 @@ void gltfviewer::application_t::on_startup()
 {
     auto const extent{backend_->extent()};
 
+    weighted_oit_shader_->resize(extent.width, extent.height);
+
     camera_.set_aspect_ratio(
         cppext::as_fp(extent.width) / cppext::as_fp(extent.height));
     camera_.update();
@@ -394,8 +396,8 @@ void gltfviewer::application_t::on_shutdown()
     backend_.reset();
 }
 
-void gltfviewer::application_t::on_resize([[maybe_unused]] uint32_t width,
-    [[maybe_unused]] uint32_t height)
+void gltfviewer::application_t::on_resize(uint32_t const width,
+    uint32_t const height)
 {
     destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_);
@@ -404,6 +406,8 @@ void gltfviewer::application_t::on_resize([[maybe_unused]] uint32_t width,
     destroy(&backend_->device(), &depth_buffer_);
     depth_buffer_ = create_depth_buffer(*backend_);
     object_name(backend_->device(), depth_buffer_, "Depth Buffer");
+
+    weighted_oit_shader_->resize(width, height);
 
     camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 }

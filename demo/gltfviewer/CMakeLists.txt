@@ -39,6 +39,7 @@ target_link_libraries(gltfviewer
         vkgltf
         vkrndr
     PRIVATE
+        Boost::headers
         fmt::fmt
         glm::glm
         imgui::imgui
@@ -125,6 +126,9 @@ add_custom_target(gltfviewer_assets
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
@@ -135,6 +139,9 @@ add_custom_target(gltfviewer_assets
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
