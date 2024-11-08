@@ -31,7 +31,6 @@ gltfviewer::pbr_shader_t::pbr_shader_t(vkrndr::backend_t& backend)
 
 gltfviewer::pbr_shader_t::~pbr_shader_t()
 {
-    destroy(&backend_->device(), &blending_pipeline_);
     destroy(&backend_->device(), &culling_pipeline_);
     destroy(&backend_->device(), &double_sided_pipeline_);
     destroy(&backend_->device(), &fragment_shader_);
@@ -53,73 +52,49 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& depth_buffer)
 {
+    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+        command_buffer,
+        "PBR"};
+
+    vkrndr::render_pass_t color_render_pass;
+    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        color_image.view);
+    color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_NONE,
+        depth_buffer.view);
+
+    [[maybe_unused]] auto guard{
+        color_render_pass.begin(command_buffer, {{0, 0}, color_image.extent})};
+
+    auto switch_pipeline =
+        [command_buffer,
+            bound = static_cast<vkrndr::pipeline_t*>(nullptr),
+            this]([[maybe_unused]] vkgltf::alpha_mode_t const mode,
+            bool const double_sided) mutable
     {
-        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-            command_buffer,
-            "PBR"};
-
-        vkrndr::render_pass_t color_render_pass;
-        color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            color_image.view);
-        color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-            VK_ATTACHMENT_STORE_OP_NONE,
-            depth_buffer.view);
-
-        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, color_image.extent})};
-
-        if (graph.model().vertex_count == 0)
+        auto* const required_pipeline{
+            double_sided ? &double_sided_pipeline_ : &culling_pipeline_};
+        if (bound != required_pipeline)
         {
-            return;
+            vkrndr::bind_pipeline(command_buffer, *required_pipeline);
+            bound = required_pipeline;
         }
+    };
 
-        auto switch_pipeline =
-            [command_buffer,
-                bound = static_cast<vkrndr::pipeline_t*>(nullptr),
-                this](vkgltf::alpha_mode_t const mode,
-                bool const double_sided) mutable
-        {
-            auto* required_pipeline{&culling_pipeline_};
-            if (mode == vkgltf::alpha_mode_t::blend)
-            {
-                required_pipeline = &blending_pipeline_;
-            }
-            else if (double_sided)
-            {
-                required_pipeline = &double_sided_pipeline_;
-            }
+    vkrndr::command_buffer_scope_t opaque_pass_scope{command_buffer, "Opaque"};
+    graph.traverse(vkgltf::alpha_mode_t::opaque,
+        command_buffer,
+        *double_sided_pipeline_.layout,
+        switch_pipeline);
+    opaque_pass_scope.close();
 
-            if (bound != required_pipeline)
-            {
-                vkrndr::bind_pipeline(command_buffer, *required_pipeline);
-                bound = required_pipeline;
-            }
-        };
-
-        vkrndr::command_buffer_scope_t opaque_pass_scope{command_buffer,
-            "Opaque"};
-        graph.traverse(vkgltf::alpha_mode_t::opaque,
-            command_buffer,
-            *double_sided_pipeline_.layout,
-            switch_pipeline);
-        opaque_pass_scope.close();
-
-        vkrndr::command_buffer_scope_t mask_pass_scope{command_buffer, "Mask"};
-        graph.traverse(vkgltf::alpha_mode_t::mask,
-            command_buffer,
-            *double_sided_pipeline_.layout,
-            switch_pipeline);
-        mask_pass_scope.close();
-
-        vkrndr::command_buffer_scope_t blend_pass_scope{command_buffer,
-            "Blend"};
-        graph.traverse(vkgltf::alpha_mode_t::blend,
-            command_buffer,
-            *double_sided_pipeline_.layout,
-            switch_pipeline);
-        blend_pass_scope.close();
-    }
+    vkrndr::command_buffer_scope_t mask_pass_scope{command_buffer, "Mask"};
+    graph.traverse(vkgltf::alpha_mode_t::mask,
+        command_buffer,
+        *double_sided_pipeline_.layout,
+        switch_pipeline);
+    mask_pass_scope.close();
 }
 
 void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
@@ -210,34 +185,4 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
     object_name(backend_->device(), culling_pipeline_, "Culling Pipeline");
-
-    if (blending_pipeline_.pipeline != VK_NULL_HANDLE)
-    {
-        destroy(&backend_->device(), &blending_pipeline_);
-    }
-
-    VkPipelineColorBlendAttachmentState color_blending{};
-    color_blending.blendEnable = VK_TRUE;
-    color_blending.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-        VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-        VK_COLOR_COMPONENT_A_BIT;
-    color_blending.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    color_blending.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    color_blending.colorBlendOp = VK_BLEND_OP_ADD;
-    color_blending.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    color_blending.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    color_blending.alphaBlendOp = VK_BLEND_OP_ADD;
-    blending_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
-            double_sided_pipeline_.layout}
-            .add_shader(as_pipeline_shader(vertex_shader_))
-            .add_shader(as_pipeline_shader(fragment_shader_))
-            .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT, color_blending)
-            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS, false)
-            .add_vertex_input(graph.binding_description(),
-                graph.attribute_description())
-            .build();
-    object_name(backend_->device(), blending_pipeline_, "Blending Pipeline");
 }

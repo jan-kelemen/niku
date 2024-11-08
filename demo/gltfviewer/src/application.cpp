@@ -7,6 +7,7 @@
 #include <pbr_shader.hpp>
 #include <postprocess_shader.hpp>
 #include <render_graph.hpp>
+#include <weighted_oit_shader.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
@@ -125,6 +126,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
     , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
+    , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
@@ -177,6 +179,10 @@ void gltfviewer::application_t::update(float delta_time)
         materials_->load(*model);
         render_graph_->load(std::move(model).value());
         pbr_shader_->load(*render_graph_,
+            environment_->descriptor_layout(),
+            materials_->descriptor_layout(),
+            depth_buffer_.format);
+        weighted_oit_shader_->load(*render_graph_,
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             depth_buffer_.format);
@@ -265,33 +271,60 @@ void gltfviewer::application_t::draw()
 
     environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
 
-    if (VkPipelineLayout const layout{pbr_shader_->pipeline_layout()})
+    if (render_graph_->model().vertex_count)
     {
+        VkPipelineLayout const pbr_layout{pbr_shader_->pipeline_layout()};
         environment_->bind_on(command_buffer,
-            layout,
+            pbr_layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         materials_->bind_on(command_buffer,
-            layout,
+            pbr_layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         render_graph_->bind_on(command_buffer,
-            layout,
+            pbr_layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
         vkCmdPushConstants(command_buffer,
-            layout,
+            pbr_layout,
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             0,
             8,
             &pc);
-    }
 
-    pbr_shader_->draw(*render_graph_,
-        command_buffer,
-        color_image_,
-        depth_buffer_);
+        pbr_shader_->draw(*render_graph_,
+            command_buffer,
+            color_image_,
+            depth_buffer_);
+
+        VkPipelineLayout const oit_layout{
+            weighted_oit_shader_->pipeline_layout()};
+        environment_->bind_on(command_buffer,
+            oit_layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        materials_->bind_on(command_buffer,
+            oit_layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        render_graph_->bind_on(command_buffer,
+            oit_layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        vkCmdPushConstants(command_buffer,
+            oit_layout,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            8,
+            &pc);
+
+        weighted_oit_shader_->draw(*render_graph_,
+            command_buffer,
+            color_image_,
+            depth_buffer_);
+    }
 
     vkrndr::transition_image(color_image_.image,
         command_buffer,
@@ -341,6 +374,8 @@ void gltfviewer::application_t::on_shutdown()
     vkDeviceWaitIdle(backend_->device().logical);
 
     postprocess_shader_.reset();
+
+    weighted_oit_shader_.reset();
 
     pbr_shader_.reset();
 

@@ -35,6 +35,7 @@ namespace gltfviewer
     class pbr_shader_t;
     class postprocess_shader_t;
     class render_graph_t;
+    class weighted_oit_shader_t;
 } // namespace gltfviewer
 
 namespace gltfviewer
@@ -89,6 +90,7 @@ namespace gltfviewer
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;
         std::unique_ptr<pbr_shader_t> pbr_shader_;
+        std::unique_ptr<weighted_oit_shader_t> weighted_oit_shader_;
         std::unique_ptr<postprocess_shader_t> postprocess_shader_;
 
         camera_controller_t camera_controller_;

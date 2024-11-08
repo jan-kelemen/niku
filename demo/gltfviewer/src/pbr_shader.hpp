@@ -1,5 +1,5 @@
-#ifndef GLTFVIEWER_PBR_RENDERER_INCLUDED
-#define GLTFVIEWER_PBR_RENDERER_INCLUDED
+#ifndef GLTFVIEWER_PBR_SHADER_INCLUDED
+#define GLTFVIEWER_PBR_SHADER_INCLUDED
 
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
@@ -62,7 +62,6 @@ namespace gltfviewer
 
         vkrndr::pipeline_t double_sided_pipeline_;
         vkrndr::pipeline_t culling_pipeline_;
-        vkrndr::pipeline_t blending_pipeline_;
     };
 } // namespace gltfviewer
 #endif
