@@ -194,11 +194,12 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
-            accumulation_image_.view);
+            accumulation_image_.view,
+            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 0.0f}}});
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
             reveal_image_.view,
-            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+            VkClearValue{.color = {{1.0f, 0.0f, 0.0f, 0.0f}}});
         color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
             VK_ATTACHMENT_STORE_OP_NONE,
             depth_buffer.view);
@@ -338,9 +339,7 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
 
     VkPipelineColorBlendAttachmentState reveal_color_blending{};
     reveal_color_blending.blendEnable = VK_TRUE;
-    reveal_color_blending.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-        VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-        VK_COLOR_COMPONENT_A_BIT;
+    reveal_color_blending.colorWriteMask = VK_COLOR_COMPONENT_R_BIT;
     reveal_color_blending.srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
     reveal_color_blending.dstColorBlendFactor =
         VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
