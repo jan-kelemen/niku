@@ -269,7 +269,7 @@ void gltfviewer::application_t::draw()
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
+    push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
 
     if (render_graph_->model().vertex_count)
     {
@@ -286,19 +286,33 @@ void gltfviewer::application_t::draw()
             pbr_layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
         vkCmdPushConstants(command_buffer,
             pbr_layout,
             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
             0,
             8,
             &pc);
+    }
 
-        pbr_shader_->draw(*render_graph_,
-            command_buffer,
-            color_image_,
-            depth_buffer_);
+    pbr_shader_->draw(*render_graph_,
+        command_buffer,
+        color_image_,
+        depth_buffer_);
 
+    vkrndr::transition_image(color_image_.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
+        1);
+
+    environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
+
+    if (render_graph_->model().vertex_count)
+    {
         VkPipelineLayout const oit_layout{
             weighted_oit_shader_->pipeline_layout()};
         environment_->bind_on(command_buffer,

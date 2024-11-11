@@ -57,15 +57,22 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
         "PBR"};
 
     vkrndr::render_pass_t color_render_pass;
-    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
         VK_ATTACHMENT_STORE_OP_STORE,
-        color_image.view);
-    color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-        VK_ATTACHMENT_STORE_OP_NONE,
-        depth_buffer.view);
+        color_image.view,
+        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+    color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        depth_buffer.view,
+        VkClearValue{.depthStencil = {1.0f, 0}});
 
     [[maybe_unused]] auto guard{
         color_render_pass.begin(command_buffer, {{0, 0}, color_image.extent})};
+
+    if (!graph.model().vertex_count)
+    {
+        return;
+    }
 
     auto switch_pipeline =
         [command_buffer,

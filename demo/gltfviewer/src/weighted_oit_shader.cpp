@@ -320,7 +320,7 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
         [this, shd = &fragment_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
-    if (pbr_pipeline_.pipeline != VK_NULL_HANDLE)
+    if (composition_pipeline_.pipeline != VK_NULL_HANDLE)
     {
         destroy(&backend_->device(), &pbr_pipeline_);
     }
@@ -373,6 +373,11 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
                 graph.attribute_description())
             .build();
     object_name(backend_->device(), pbr_pipeline_, "Transparent Pipeline");
+
+    if (pbr_pipeline_.pipeline != VK_NULL_HANDLE)
+    {
+        destroy(&backend_->device(), &composition_pipeline_);
+    }
 
     auto composition_vertex_shader{
         vkrndr::create_shader_module(backend_->device(),
@@ -430,4 +435,7 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
             .with_culling(VK_CULL_MODE_FRONT_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
+    object_name(backend_->device(),
+        composition_pipeline_,
+        "Composition pipeline");
 }
