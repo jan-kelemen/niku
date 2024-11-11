@@ -38,6 +38,7 @@ namespace
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
     constexpr VkPhysicalDeviceFeatures device_features{
+        .independentBlend = VK_TRUE,
         .sampleRateShading = VK_TRUE,
         .wideLines = VK_TRUE,
         .samplerAnisotropy = VK_TRUE};
