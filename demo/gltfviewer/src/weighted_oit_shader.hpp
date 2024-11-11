@@ -56,9 +56,16 @@ namespace gltfviewer
     private:
         vkrndr::backend_t* backend_;
 
+        vkrndr::image_t accumulation_image_;
         vkrndr::image_t reveal_image_;
 
+        VkDescriptorSetLayout descriptor_set_layout_;
+        VkDescriptorSet descriptor_set_{VK_NULL_HANDLE};
+        VkSampler accumulation_sampler_;
+        VkSampler reveal_sampler_;
+
         vkrndr::pipeline_t pbr_pipeline_;
+        vkrndr::pipeline_t composition_pipeline_;
     };
 } // namespace gltfviewer
 #endif

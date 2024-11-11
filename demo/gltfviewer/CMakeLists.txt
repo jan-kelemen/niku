@@ -88,6 +88,13 @@ compile_shader(
 
 compile_shader(
     SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/oit_composition.frag.spv
+)
+
+compile_shader(
+    SHADER
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
     SPIRV
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
@@ -114,6 +121,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/fullscreen.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/oit_composition.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
