@@ -9,9 +9,9 @@
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_shader_module.hpp>
 
-#include <fmt/format.h>
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_STRINGOP_OVERFLOW
+#include <fmt/format.h>
 #include <fmt/std.h> // IWYU pragma: keep
 DISABLE_WARNING_POP
 
