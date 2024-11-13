@@ -374,27 +374,30 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
             .build();
     object_name(backend_->device(), pbr_pipeline_, "Transparent Pipeline");
 
-    if (pbr_pipeline_.pipeline != VK_NULL_HANDLE)
+    if (composition_pipeline_.pipeline != VK_NULL_HANDLE)
     {
         destroy(&backend_->device(), &composition_pipeline_);
     }
 
+    vkglsl::shader_set_t composition_shader_set{true, false};
     auto composition_vertex_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "fullscreen.vert.spv",
+        vkglsl::add_shader_binary_from_path(composition_shader_set,
+            backend_->device(),
             VK_SHADER_STAGE_VERTEX_BIT,
-            "main")};
+            "fullscreen.vert.spv")};
+    assert(composition_vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_cvtx{
-        [this, shd = &composition_vertex_shader]
+        [this, shd = &composition_vertex_shader.value()]
         { destroy(&backend_->device(), shd); }};
 
     auto composition_fragment_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "oit_composition.frag.spv",
+        vkglsl::add_shader_binary_from_path(composition_shader_set,
+            backend_->device(),
             VK_SHADER_STAGE_FRAGMENT_BIT,
-            "main")};
+            "oit_composition.frag.spv")};
+    assert(composition_fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_cfrag{
-        [this, shd = &composition_fragment_shader]
+        [this, shd = &composition_fragment_shader.value()]
         { destroy(&backend_->device(), shd); }};
 
     uint32_t sample_count = backend_->device().max_msaa_samples;
@@ -425,8 +428,8 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(descriptor_set_layout_)
                 .build()}
-            .add_shader(as_pipeline_shader(composition_vertex_shader))
-            .add_shader(as_pipeline_shader(composition_fragment_shader,
+            .add_shader(as_pipeline_shader(*composition_vertex_shader))
+            .add_shader(as_pipeline_shader(*composition_fragment_shader,
                 &fragment_specialization))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT,
                 composition_color_blending)
