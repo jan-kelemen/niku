@@ -25,7 +25,6 @@ target_link_libraries(vkgltf
         vkrndr
     PUBLIC
         glm::glm
-        tl::expected
     PRIVATE
         cppext
         stb_impl

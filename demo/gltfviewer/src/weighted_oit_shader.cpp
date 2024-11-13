@@ -19,8 +19,6 @@
 
 #include <boost/scope/defer.hpp>
 
-#include <tl/expected.hpp>
-
 #include <volk.h>
 
 #include <array>
@@ -29,11 +27,12 @@
 #include <functional>
 #include <span>
 #include <string_view>
-#include <system_error>
 
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_include <system_error>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 namespace
@@ -209,7 +208,7 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
 
         auto const switch_pipeline =
             []([[maybe_unused]] vkgltf::alpha_mode_t const mode,
-                [[maybe_unused]] bool const double_sided) {};
+                [[maybe_unused]] bool const double_sided) { };
 
         vkrndr::bind_pipeline(command_buffer, pbr_pipeline_);
 

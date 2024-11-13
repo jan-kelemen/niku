@@ -3,11 +3,10 @@
 
 #include <vkrndr_shader_module.hpp>
 
-#include <tl/expected.hpp>
-
 #include <volk.h>
 
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <memory>
 #include <span>
@@ -39,13 +38,13 @@ namespace vkglsl
         [[nodiscard]] bool add_include_directory(
             std::filesystem::path const& path);
 
-        [[nodiscard]] tl::expected<void, std::error_code> add_shader(
+        [[nodiscard]] std::expected<void, std::error_code> add_shader(
             VkShaderStageFlagBits stage,
             std::filesystem::path const& file,
             std::span<std::string_view const> const& preprocessor_defines = {},
             std::string_view entry_point = "main");
 
-        [[nodiscard]] tl::expected<void, std::error_code> add_shader_binary(
+        [[nodiscard]] std::expected<void, std::error_code> add_shader_binary(
             VkShaderStageFlagBits stage,
             std::span<uint32_t const> const& binary,
             std::string_view entry_point = "main");
@@ -53,11 +52,11 @@ namespace vkglsl
         [[nodiscard]] std::vector<uint32_t>* shader_binary(
             VkShaderStageFlagBits stage);
 
-        [[nodiscard]] tl::expected<vkrndr::shader_module_t, std::error_code>
+        [[nodiscard]] std::expected<vkrndr::shader_module_t, std::error_code>
         shader_module(vkrndr::device_t& device,
             VkShaderStageFlagBits stage) const;
 
-        [[nodiscard]] tl::expected<std::vector<VkDescriptorSetLayoutBinding>,
+        [[nodiscard]] std::expected<std::vector<VkDescriptorSetLayoutBinding>,
             std::error_code>
         descriptor_bindings(uint32_t set) const;
 
@@ -71,7 +70,7 @@ namespace vkglsl
         std::unique_ptr<impl_t> impl_;
     };
 
-    [[nodiscard]] tl::expected<vkrndr::shader_module_t, std::error_code>
+    [[nodiscard]] std::expected<vkrndr::shader_module_t, std::error_code>
     add_shader_module_from_path(shader_set_t& shader_set,
         vkrndr::device_t& device,
         VkShaderStageFlagBits stage,
@@ -79,14 +78,14 @@ namespace vkglsl
         std::span<std::string_view const> const& preprocessor_defines = {},
         std::string_view entry_point = "main");
 
-    [[nodiscard]] tl::expected<vkrndr::shader_module_t, std::error_code>
+    [[nodiscard]] std::expected<vkrndr::shader_module_t, std::error_code>
     add_shader_binary_from_path(shader_set_t& shader_set,
         vkrndr::device_t& device,
         VkShaderStageFlagBits stage,
         std::filesystem::path const& file,
         std::string_view entry_point = "main");
 
-    [[nodiscard]] tl::expected<VkDescriptorSetLayout, std::error_code>
+    [[nodiscard]] std::expected<VkDescriptorSetLayout, std::error_code>
     descriptor_set_layout(shader_set_t const& shader_set,
         vkrndr::device_t const& device,
         uint32_t set);

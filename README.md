@@ -5,15 +5,15 @@ Cross platform game engine using Vulkan API for rendering. Implemented in C++23 
 ## Building
 Necessary build tools are:
 * CMake 3.27 or higher
-* Conan 2.4 or higher
+* Conan 2.8 or higher
   * See [installation instructions](https://docs.conan.io/2/installation.html)
 * One of supported compilers:
-  * Clang-18 (libstdc++ and libc++)
+  * Clang-19 (libstdc++ and libc++)
   * GCC-14
   * Visual Studio 2022 (MSVC v194)
 
 ```
-conan install . --profile=conan/clang-18-libstdcxx-amd64-linux --profile=conan/dependencies --build=missing --settings build_type=Release
+conan install . --profile=conan/clang-19-libstdcxx-amd64-linux --profile=conan/dependencies --build=missing --settings build_type=Release
 cmake --preset release
 cmake --build --preset=release
 ```

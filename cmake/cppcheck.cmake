@@ -20,9 +20,11 @@ if (NIKU_ENABLE_CPPCHECK)
         # if a file does not have an internalAstError, we get an unmatchedSuppression error
         --suppress=unmatchedSuppression
         # noisy and incorrect sometimes
-        --suppress=passedByValue
         --suppress=knownConditionTrueFalse
         --suppress=functionStatic
+        --suppress=uninitMemberVar
+        --suppress=missingMemberCopy
+        --suppress=passedByValue
         # ignores code that cppcheck thinks is invalid C++
         --suppress=syntaxError
         --suppress=preprocessorErrorDirective

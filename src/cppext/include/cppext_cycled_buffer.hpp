@@ -132,8 +132,8 @@ namespace cppext
 
     template<typename T, typename Container>
     template<typename Action>
-    auto cycled_buffer_t<T, Container>::cycle(
-        Action&& action) -> std::invoke_result_t<Action, T&, T&>
+    auto cycled_buffer_t<T, Container>::cycle(Action&& action)
+        -> std::invoke_result_t<Action, T&, T&>
     {
         auto const next{next_index()};
 
@@ -151,6 +151,7 @@ namespace cppext
                 data_[index_],
                 data_[next]);
             index_ = next;
+            return;
         }
     }
 

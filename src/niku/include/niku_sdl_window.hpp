@@ -8,8 +8,7 @@
 #include <volk.h>
 
 #include <cstdint>
-#include <string_view>
-#include <vector>
+#include <vector> // IWYU pragma: keep
 
 namespace niku
 {
@@ -34,7 +33,7 @@ namespace niku
     class [[nodiscard]] sdl_window_t final : public vkrndr::window_t
     {
     public: // Construction
-        sdl_window_t(std::string_view title,
+        sdl_window_t(char const* title,
             SDL_WindowFlags window_flags,
             bool centered,
             int width,

@@ -18,6 +18,7 @@
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <spdlog/common.h>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <string>

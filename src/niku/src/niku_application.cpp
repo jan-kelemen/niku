@@ -53,7 +53,7 @@ public:
 
 niku::application_t::impl::impl(startup_params_t const& params)
     : guard{to_init_flags(params.init_subsystems)}
-    , window{params.title,
+    , window{params.title.c_str(),
           params.window_flags,
           params.centered,
           params.width,

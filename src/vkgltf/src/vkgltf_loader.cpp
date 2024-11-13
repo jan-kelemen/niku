@@ -36,8 +36,6 @@
 
 #include <stb_image.h>
 
-#include <tl/expected.hpp>
-
 #include <volk.h>
 
 #include <algorithm>
@@ -45,7 +43,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
+#include <exception> // IWYU pragma: keep
+#include <expected>
 #include <iterator>
 #include <optional>
 #include <set>
@@ -60,8 +59,12 @@
 #include <vector>
 
 // IWYU pragma: no_include <fastgltf/math.hpp>
+// IWYU pragma: no_include <fastgltf/util.hpp>
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <cmath>
+// IWYU pragma: no_include <format>
 // IWYU pragma: no_include <functional>
 
 namespace
@@ -350,7 +353,7 @@ namespace
             indices.data());
     }
 
-    [[nodiscard]] tl::expected<vkrndr::image_t, std::error_code> load_image(
+    [[nodiscard]] std::expected<vkrndr::image_t, std::error_code> load_image(
         vkrndr::backend_t* const backend,
         std::filesystem::path const& parent_path,
         bool const as_unorm,
@@ -360,7 +363,7 @@ namespace
         auto const transfer_image = [backend, as_unorm](int const width,
                                         int const height,
                                         stbi_uc* const data)
-            -> tl::expected<vkrndr::image_t, std::error_code>
+            -> std::expected<vkrndr::image_t, std::error_code>
         {
             if (data)
             {
@@ -379,8 +382,8 @@ namespace
                     vkrndr::max_mip_levels(width, height));
             }
 
-            return tl::make_unexpected(
-                make_error_code(vkgltf::error_t::invalid_file));
+            return std::unexpected{
+                make_error_code(vkgltf::error_t::invalid_file)};
         };
 
         auto const load_from_vector =
@@ -416,7 +419,7 @@ namespace
 
         auto const load_from_uri = [&transfer_image, &parent_path](
                                        fastgltf::sources::URI const& filePath)
-            -> tl::expected<vkrndr::image_t, std::error_code>
+            -> std::expected<vkrndr::image_t, std::error_code>
         {
             // No offsets in file
             assert(filePath.fileByteOffset == 0);
@@ -439,20 +442,19 @@ namespace
                 4)};
             if (data == nullptr)
             {
-                return tl::make_unexpected(
-                    make_error_code(vkgltf::error_t::unknown));
+                return std::unexpected{
+                    make_error_code(vkgltf::error_t::unknown)};
             }
 
             return transfer_image(width, height, data);
         };
 
         auto const unsupported_variant = []([[maybe_unused]] auto&& arg)
-            -> tl::expected<vkrndr::image_t, std::error_code>
+            -> std::expected<vkrndr::image_t, std::error_code>
         {
             spdlog::error("Unsupported variant '{}' during image load",
                 typeid(arg).name());
-            return tl::make_unexpected(
-                make_error_code(vkgltf::error_t::unknown));
+            return std::unexpected{make_error_code(vkgltf::error_t::unknown)};
         };
 
         auto const load_from_buffer_view =
@@ -561,9 +563,8 @@ namespace
                 m.pbr_metallic_roughness.metallic_roughness_texture =
                     &model.textures[texture->textureIndex];
 
-                unorm_images.insert(
-                    m.pbr_metallic_roughness.metallic_roughness_texture
-                        ->image_index);
+                unorm_images.insert(m.pbr_metallic_roughness
+                        .metallic_roughness_texture->image_index);
             }
             m.pbr_metallic_roughness.metallic_factor =
                 material.pbrData.metallicFactor;
@@ -596,7 +597,7 @@ namespace
         return unorm_images;
     }
 
-    [[nodiscard]] tl::expected<loaded_mesh_t, std::error_code>
+    [[nodiscard]] std::expected<loaded_mesh_t, std::error_code>
     load_mesh(fastgltf::Asset const& asset, fastgltf::Mesh const& mesh)
     {
         loaded_mesh_t rv{.name = std::string{mesh.name}};
@@ -620,8 +621,8 @@ namespace
                         "Primitive in {} mesh doesn't have position attribute",
                         rv.name);
 
-                    return tl::make_unexpected(make_error_code(
-                        vkgltf::error_t::load_transform_failed));
+                    return std::unexpected{make_error_code(
+                        vkgltf::error_t::load_transform_failed)};
                 }
 
                 p.vertices.resize(accessor.count);
@@ -662,8 +663,8 @@ namespace
                 spdlog::error("Primitive in {} mesh failed to load positions",
                     rv.name);
 
-                return tl::make_unexpected(
-                    make_error_code(vkgltf::error_t::load_transform_failed));
+                return std::unexpected{
+                    make_error_code(vkgltf::error_t::load_transform_failed)};
             }
             assert(vertex_count == p.vertices.size());
 
@@ -713,8 +714,8 @@ namespace
                     spdlog::error("Tangent calculation in {} mesh failed",
                         rv.name);
 
-                    return tl::make_unexpected(make_error_code(
-                        vkgltf::error_t::load_transform_failed));
+                    return std::unexpected{make_error_code(
+                        vkgltf::error_t::load_transform_failed)};
                 }
 
                 if (was_indexed)
@@ -926,20 +927,20 @@ namespace
 
 vkgltf::loader_t::loader_t(vkrndr::backend_t& backend) : backend_{&backend} { }
 
-tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
+std::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     std::filesystem::path const& path)
 {
     std::error_code ec;
     if (auto const file_exists{exists(path, ec)}; !file_exists || ec)
     {
-        return tl::make_unexpected(
-            ec ? ec : make_error_code(error_t::invalid_file));
+        return std::unexpected{
+            ec ? ec : make_error_code(error_t::invalid_file)};
     }
 
     if (auto const regular_file{is_regular_file(path, ec)}; !regular_file || ec)
     {
-        return tl::make_unexpected(
-            ec ? ec : make_error_code(error_t::invalid_file));
+        return std::unexpected{
+            ec ? ec : make_error_code(error_t::invalid_file)};
     }
 
     fastgltf::Parser parser;
@@ -948,8 +949,7 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     if (data.error() != fastgltf::Error::None)
     {
         spdlog::error("Failed to create data buffer: {}", data.error());
-        return tl::make_unexpected(
-            make_error_code(translate_error(data.error())));
+        return std::unexpected{make_error_code(translate_error(data.error()))};
     }
 
     auto const parent_path{path.parent_path()};
@@ -959,8 +959,7 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     if (asset.error() != fastgltf::Error::None)
     {
         spdlog::error("Failed to load asset: {}", data.error());
-        return tl::make_unexpected(
-            make_error_code(translate_error(data.error())));
+        return std::unexpected{make_error_code(translate_error(data.error()))};
     }
 
     model_t rv;
@@ -1013,7 +1012,7 @@ tl::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
     {
         destroy(&backend_->device(), &rv);
         spdlog::error("Failed to load model: {}", ex.what());
-        return tl::make_unexpected(make_error_code(error_t::unknown));
+        return std::unexpected{make_error_code(error_t::unknown)};
     }
 
     return rv;

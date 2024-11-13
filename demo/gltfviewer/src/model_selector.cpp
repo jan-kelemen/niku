@@ -25,6 +25,7 @@ DISABLE_WARNING_POP
 #include <utility>
 
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 
 gltfviewer::model_selector_t::model_selector_t() : index_path_buffer_{}
 {

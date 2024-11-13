@@ -309,7 +309,7 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_depth_test(
         depth_format_ != VK_FORMAT_UNDEFINED ? VK_TRUE : VK_FALSE};
 
     depth_stencil.depthTestEnable = enabled;
-    depth_stencil.depthWriteEnable = write;
+    depth_stencil.depthWriteEnable = static_cast<VkBool32>(write);
     depth_stencil.depthCompareOp = compare;
 
     depth_stencil_ = depth_stencil;

@@ -7,6 +7,7 @@
 #include <utility>
 
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <spdlog/common.h>
 
 VkResult vkrndr::check_result(VkResult const result,

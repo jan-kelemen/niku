@@ -23,8 +23,6 @@ target_include_directories(vkglsl
 target_link_libraries(vkglsl
     PUBLIC
         vkrndr
-    PUBLIC
-        tl::expected
     PRIVATE
         cppext
     PRIVATE

@@ -66,7 +66,6 @@ Following third party libraries are used:
 * [spdlog](https://github.com/gabime/spdlog) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [SPIRV-Cross](https://simdjson.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * [stb](https://github.com/nothings/stb) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [tl-expected](https://github.com/TartanLlama/expected) published under [CC0-1.0](https://spdx.org/licenses/CC0-1.0.html)
 * [volk](https://github.com/zeux/volk) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [Vulkan](https://www.vulkan.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and [MIT](https://spdx.org/licenses/MIT.html)
 * [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) published under [MIT](https://spdx.org/licenses/MIT.html)

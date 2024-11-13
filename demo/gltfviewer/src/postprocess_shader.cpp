@@ -14,21 +14,20 @@
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <tl/expected.hpp>
-
 #include <volk.h>
 
 #include <array>
 #include <cassert>
 #include <cstdint>
 #include <span>
-#include <system_error>
 
-// IWYU pragma: no_include <optional>
-// IWYU pragma: no_include <vector>
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <vector>
 // IWYU pragma: no_include <string_view>
+// IWYU pragma: no_include <system_error>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 namespace

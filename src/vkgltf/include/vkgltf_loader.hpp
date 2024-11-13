@@ -3,8 +3,7 @@
 
 #include <vkgltf_model.hpp>
 
-#include <tl/expected.hpp>
-
+#include <expected>
 #include <filesystem>
 #include <system_error>
 
@@ -28,7 +27,7 @@ namespace vkgltf
         ~loader_t() = default;
 
     public:
-        [[nodiscard]] tl::expected<model_t, std::error_code> load(
+        [[nodiscard]] std::expected<model_t, std::error_code> load(
             std::filesystem::path const& path);
 
     public:

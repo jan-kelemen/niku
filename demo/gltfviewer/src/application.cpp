@@ -42,8 +42,6 @@ DISABLE_WARNING_POP
 
 #include <spdlog/spdlog.h>
 
-#include <tl/expected.hpp>
-
 #include <volk.h>
 
 #include <array>
@@ -51,19 +49,22 @@ DISABLE_WARNING_POP
 #include <filesystem>
 #include <memory>
 #include <string>
-#include <system_error>
 #include <utility>
 #include <variant>
 #include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string_view>
+// IWYU pragma: no_include <system_error>
 
 namespace
 {
     struct [[nodiscard]] push_constants_t final
     {
+        // cppcheck-suppress unusedStructMember
         uint32_t debug;
         float ibl_factor;
     };

@@ -195,8 +195,8 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer()
             std::span{&frame_data_->present_command_buffers.back(), 1});
     }
 
-    VkCommandBuffer rv{frame_data_->present_command_buffers
-                           [frame_data_->used_present_command_buffers++]};
+    VkCommandBuffer rv{frame_data_->present_command_buffers[frame_data_
+            ->used_present_command_buffers++]};
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

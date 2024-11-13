@@ -6,7 +6,7 @@
 
 #include <cstdint>
 #include <memory>
-#include <string_view>
+#include <string>
 
 namespace niku
 {
@@ -25,7 +25,7 @@ namespace niku
     {
         subsystems_t init_subsystems;
 
-        std::string_view title;
+        std::string title;
 
         SDL_WindowFlags window_flags;
         bool centered{true};

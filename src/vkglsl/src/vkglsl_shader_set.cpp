@@ -10,7 +10,10 @@
 #include <vkrndr_shader_module.hpp>
 
 #include <fmt/format.h>
-#include <fmt/std.h>
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_STRINGOP_OVERFLOW
+#include <fmt/std.h> // IWYU pragma: keep
+DISABLE_WARNING_POP
 
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
@@ -22,6 +25,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -130,6 +134,7 @@ namespace
             std::filesystem::path const& path);
 
     private:
+        // cppcheck-suppress unusedStructMember
         std::vector<std::filesystem::path> include_directories_;
     };
 
@@ -240,7 +245,7 @@ bool vkglsl::shader_set_t::add_include_directory(
     return impl_->includer.add_include_directory(path);
 }
 
-tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
+std::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
     VkShaderStageFlagBits const stage,
     std::filesystem::path const& file,
     std::span<std::string_view const> const& preprocessor_defines,
@@ -250,8 +255,7 @@ tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
     if (impl_->shaders.contains(language))
     {
         spdlog::error("Shader stage already exists");
-        return tl::make_unexpected(
-            std::make_error_code(std::errc::file_exists));
+        return std::unexpected{std::make_error_code(std::errc::file_exists)};
     }
 
     std::string const preamble_str{preamble(preprocessor_defines)};
@@ -302,8 +306,8 @@ tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
         spdlog::error("Shader compilation failed: {}\n{}\n",
             shader.getInfoLog(),
             shader.getInfoDebugLog());
-        return tl::make_unexpected(
-            std::make_error_code(std::errc::executable_format_error));
+        return std::unexpected{
+            std::make_error_code(std::errc::executable_format_error)};
     }
 
     glslang::TProgram program;
@@ -314,8 +318,8 @@ tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
         spdlog::error("Shader linking failed: {}\n{}\n",
             program.getInfoLog(),
             program.getInfoDebugLog());
-        return tl::make_unexpected(
-            std::make_error_code(std::errc::executable_format_error));
+        return std::unexpected{
+            std::make_error_code(std::errc::executable_format_error)};
     }
 
     glslang::TIntermediate* const intermediate{
@@ -338,7 +342,7 @@ tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
     return {};
 }
 
-tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader_binary(
+std::expected<void, std::error_code> vkglsl::shader_set_t::add_shader_binary(
     VkShaderStageFlagBits const stage,
     std::span<uint32_t const> const& binary,
     std::string_view entry_point)
@@ -347,10 +351,10 @@ tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader_binary(
     if (impl_->shaders.contains(language))
     {
         spdlog::error("Shader stage already exists");
-        return tl::make_unexpected(
-            std::make_error_code(std::errc::file_exists));
+        return std::unexpected{std::make_error_code(std::errc::file_exists)};
     }
 
+    // NOLINTNEXTLINE(misc-const-correctness)
     std::vector<uint32_t> temp{std::cbegin(binary), std::cend(binary)};
     impl_->shaders.emplace(std::piecewise_construct,
         std::forward_as_tuple(language),
@@ -371,7 +375,7 @@ std::vector<uint32_t>* vkglsl::shader_set_t::shader_binary(
     return nullptr;
 }
 
-tl::expected<vkrndr::shader_module_t, std::error_code>
+std::expected<vkrndr::shader_module_t, std::error_code>
 vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
     VkShaderStageFlagBits const stage) const
 {
@@ -384,11 +388,11 @@ vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
             it->second.entry_point);
     }
 
-    return tl::make_unexpected(
-        std::make_error_code(std::errc::no_such_file_or_directory));
+    return std::unexpected{
+        std::make_error_code(std::errc::no_such_file_or_directory)};
 }
 
-tl::expected<std::vector<VkDescriptorSetLayoutBinding>, std::error_code>
+std::expected<std::vector<VkDescriptorSetLayoutBinding>, std::error_code>
 vkglsl::shader_set_t::descriptor_bindings(uint32_t const set) const
 {
     std::vector<VkDescriptorSetLayoutBinding> rv;
@@ -464,7 +468,7 @@ vkglsl::shader_set_t::descriptor_bindings(uint32_t const set) const
     return rv;
 }
 
-tl::expected<vkrndr::shader_module_t, std::error_code>
+std::expected<vkrndr::shader_module_t, std::error_code>
 vkglsl::add_shader_module_from_path(shader_set_t& shader_set,
     vkrndr::device_t& device,
     VkShaderStageFlagBits const stage,
@@ -476,7 +480,7 @@ vkglsl::add_shader_module_from_path(shader_set_t& shader_set,
         .and_then([&]() { return shader_set.shader_module(device, stage); });
 }
 
-tl::expected<vkrndr::shader_module_t, std::error_code>
+std::expected<vkrndr::shader_module_t, std::error_code>
 vkglsl::add_shader_binary_from_path(shader_set_t& shader_set,
     vkrndr::device_t& device,
     VkShaderStageFlagBits const stage,
@@ -491,8 +495,8 @@ vkglsl::add_shader_binary_from_path(shader_set_t& shader_set,
     catch (std::runtime_error const& ex)
     {
         spdlog::error("Shader binary '{}' not loaded: {}", file, ex.what());
-        return tl::make_unexpected(
-            std::make_error_code(std::errc::no_such_file_or_directory));
+        return std::unexpected{
+            std::make_error_code(std::errc::no_such_file_or_directory)};
     }
 
     return shader_set
@@ -503,7 +507,7 @@ vkglsl::add_shader_binary_from_path(shader_set_t& shader_set,
         .and_then([&]() { return shader_set.shader_module(device, stage); });
 }
 
-tl::expected<VkDescriptorSetLayout, std::error_code>
+std::expected<VkDescriptorSetLayout, std::error_code>
 vkglsl::descriptor_set_layout(shader_set_t const& shader_set,
     vkrndr::device_t const& device,
     uint32_t const set)
@@ -511,7 +515,7 @@ vkglsl::descriptor_set_layout(shader_set_t const& shader_set,
     return shader_set.descriptor_bindings(set).and_then(
         [&device](auto&& bindings)
         {
-            return tl::expected<VkDescriptorSetLayout, std::error_code>{
+            return std::expected<VkDescriptorSetLayout, std::error_code>{
                 vkrndr::create_descriptor_set_layout(device, bindings)};
         });
 }

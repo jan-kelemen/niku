@@ -2,9 +2,9 @@
 os=Linux
 compiler=clang
 compiler.cppstd=23
-compiler.version=18
+compiler.version=19
 
 [buildenv]
-CC=clang-18
-CXX=clang++-18
+CC=clang-19
+CXX=clang++-19
 

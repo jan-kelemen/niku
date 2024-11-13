@@ -1,5 +1,5 @@
 if (NIKU_ENABLE_CLANG_TIDY)
-    find_program(CLANG_TIDY_EXE NAMES clang-tidy-18 clang-tidy REQUIRED)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy-19 clang-tidy REQUIRED)
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
     
     set(CMAKE_CXX_CLANG_TIDY

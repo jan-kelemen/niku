@@ -26,7 +26,6 @@ find_package(SDL2 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(spirv-cross REQUIRED)
 find_package(stb REQUIRED)
-find_package(tl-expected REQUIRED)
 find_package(volk REQUIRED)
 find_package(vulkan-memory-allocator REQUIRED)
 

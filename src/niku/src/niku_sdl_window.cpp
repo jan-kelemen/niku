@@ -22,12 +22,12 @@ niku::sdl_guard_t::sdl_guard_t(uint32_t const flags)
 
 niku::sdl_guard_t::~sdl_guard_t() { SDL_Quit(); }
 
-niku::sdl_window_t::sdl_window_t(std::string_view const title,
+niku::sdl_window_t::sdl_window_t(char const* const title,
     SDL_WindowFlags const window_flags,
     bool const centered,
     int const width,
     int const height)
-    : window_{SDL_CreateWindow(title.data(),
+    : window_{SDL_CreateWindow(title,
           centered ? SDL_WINDOWPOS_CENTERED : SDL_WINDOWPOS_UNDEFINED,
           centered ? SDL_WINDOWPOS_CENTERED : SDL_WINDOWPOS_UNDEFINED,
           width,
