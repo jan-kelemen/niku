@@ -45,6 +45,11 @@ namespace vkglsl
             std::span<std::string_view const> const& preprocessor_defines = {},
             std::string_view entry_point = "main");
 
+        [[nodiscard]] tl::expected<void, std::error_code> add_shader_binary(
+            VkShaderStageFlagBits stage,
+            std::span<uint32_t const> const& binary,
+            std::string_view entry_point = "main");
+
         [[nodiscard]] std::vector<uint32_t>* shader_binary(
             VkShaderStageFlagBits stage);
 
@@ -72,6 +77,13 @@ namespace vkglsl
         VkShaderStageFlagBits stage,
         std::filesystem::path const& file,
         std::span<std::string_view const> const& preprocessor_defines = {},
+        std::string_view entry_point = "main");
+
+    [[nodiscard]] tl::expected<vkrndr::shader_module_t, std::error_code>
+    add_shader_binary_from_path(shader_set_t& shader_set,
+        vkrndr::device_t& device,
+        VkShaderStageFlagBits stage,
+        std::filesystem::path const& file,
         std::string_view entry_point = "main");
 
     [[nodiscard]] tl::expected<VkDescriptorSetLayout, std::error_code>

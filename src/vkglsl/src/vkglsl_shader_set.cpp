@@ -10,6 +10,7 @@
 #include <vkrndr_shader_module.hpp>
 
 #include <fmt/format.h>
+#include <fmt/std.h>
 
 #include <glslang/Public/ResourceLimits.h>
 #include <glslang/Public/ShaderLang.h>
@@ -337,6 +338,27 @@ tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
     return {};
 }
 
+tl::expected<void, std::error_code> vkglsl::shader_set_t::add_shader_binary(
+    VkShaderStageFlagBits const stage,
+    std::span<uint32_t const> const& binary,
+    std::string_view entry_point)
+{
+    EShLanguage const language{to_glslang(stage)};
+    if (impl_->shaders.contains(language))
+    {
+        spdlog::error("Shader stage already exists");
+        return tl::make_unexpected(
+            std::make_error_code(std::errc::file_exists));
+    }
+
+    std::vector<uint32_t> temp{std::cbegin(binary), std::cend(binary)};
+    impl_->shaders.emplace(std::piecewise_construct,
+        std::forward_as_tuple(language),
+        std::forward_as_tuple(std::string{entry_point}, std::move(temp)));
+
+    return {};
+}
+
 std::vector<uint32_t>* vkglsl::shader_set_t::shader_binary(
     VkShaderStageFlagBits const stage)
 {
@@ -451,6 +473,33 @@ vkglsl::add_shader_module_from_path(shader_set_t& shader_set,
     std::string_view entry_point)
 {
     return shader_set.add_shader(stage, file, preprocessor_defines, entry_point)
+        .and_then([&]() { return shader_set.shader_module(device, stage); });
+}
+
+tl::expected<vkrndr::shader_module_t, std::error_code>
+vkglsl::add_shader_binary_from_path(shader_set_t& shader_set,
+    vkrndr::device_t& device,
+    VkShaderStageFlagBits const stage,
+    std::filesystem::path const& file,
+    std::string_view entry_point)
+{
+    std::vector<char> binary;
+    try
+    {
+        binary = read_file(file);
+    }
+    catch (std::runtime_error const& ex)
+    {
+        spdlog::error("Shader binary '{}' not loaded: {}", file, ex.what());
+        return tl::make_unexpected(
+            std::make_error_code(std::errc::no_such_file_or_directory));
+    }
+
+    return shader_set
+        .add_shader_binary(stage,
+            std::span{std::bit_cast<uint32_t*>(binary.data()),
+                binary.size() / 4},
+            entry_point)
         .and_then([&]() { return shader_set.shader_module(device, stage); });
 }
 
