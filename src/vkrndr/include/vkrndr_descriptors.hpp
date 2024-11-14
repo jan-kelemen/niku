@@ -81,6 +81,18 @@ namespace vkrndr
             .imageView = cubemap.view,
             .imageLayout = layout};
     }
+
+    [[nodiscard]] constexpr VkDescriptorImageInfo storage_image_descriptor(
+        image_t const& image,
+        VkImageLayout const layout = VK_IMAGE_LAYOUT_GENERAL)
+    {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
+
+        return {.imageView = image.view, .imageLayout = layout};
+
+        DISABLE_WARNING_POP
+    }
 } // namespace vkrndr
 
 #endif
