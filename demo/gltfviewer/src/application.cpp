@@ -351,13 +351,32 @@ void gltfviewer::application_t::draw()
         VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
         1);
 
-    vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
+    vkrndr::transition_image(target_image.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_NONE,
+        VK_IMAGE_LAYOUT_GENERAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+        1);
 
     postprocess_shader_->draw(color_conversion_,
         tone_mapping_,
         command_buffer,
         color_image_,
         target_image);
+
+    vkrndr::transition_image(target_image.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_GENERAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        1);
 
     imgui_->render(command_buffer, target_image);
 

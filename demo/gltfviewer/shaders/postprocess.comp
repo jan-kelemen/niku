@@ -4,7 +4,7 @@
 
 #include "color_conversion.glsl"
 
-layout(location = 0) in vec2 inUV;
+layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(constant_id = 0) const int SAMPLES = 8;
 
@@ -16,7 +16,7 @@ layout(push_constant) uniform PushConsts
 
 layout(set = 0, binding = 0) uniform sampler2DMS backbuffer;
 
-layout(location = 0) out vec4 outColor;
+layout(rgba16f, set = 0, binding = 1) uniform image2D image;
 
 vec4 resolve(ivec2 uv)
 {
@@ -32,11 +32,9 @@ vec4 resolve(ivec2 uv)
 
 void main()
 {
-    // https://github.com/SaschaWillems/Vulkan/blob/master/shaders/glsl/deferredmultisampling/deferred.frag
-    ivec2 attDim = textureSize(backbuffer);
-    ivec2 UV = ivec2(inUV * attDim);
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
 
-    vec4 result = resolve(UV);
+    vec4 result = resolve(texelCoord);
     if (pc.colorConversion)
     {
         result = pbrNeutralToneMapping(result);
@@ -47,5 +45,5 @@ void main()
         result = fromLinear(result);
     }
 
-    outColor = result;
+    imageStore(image, texelCoord, result);
 }

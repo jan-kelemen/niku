@@ -10,7 +10,6 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
-#include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -38,9 +37,10 @@ namespace
         uint32_t tone_mapping;
     };
 
-    void bind_descriptor_set(vkrndr::device_t const& device,
+    void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
-        VkDescriptorImageInfo const combined_sampler_info)
+        VkDescriptorImageInfo const combined_sampler_info,
+        VkDescriptorImageInfo const target_image_info)
     {
         VkWriteDescriptorSet combined_sampler_uniform_write{};
         combined_sampler_uniform_write.sType =
@@ -53,7 +53,19 @@ namespace
         combined_sampler_uniform_write.descriptorCount = 1;
         combined_sampler_uniform_write.pImageInfo = &combined_sampler_info;
 
-        std::array const descriptor_writes{combined_sampler_uniform_write};
+        VkWriteDescriptorSet target_image_uniform_write{};
+        target_image_uniform_write.sType =
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        target_image_uniform_write.dstSet = descriptor_set;
+        target_image_uniform_write.dstBinding = 1;
+        target_image_uniform_write.dstArrayElement = 0;
+        target_image_uniform_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        target_image_uniform_write.descriptorCount = 1;
+        target_image_uniform_write.pImageInfo = &target_image_info;
+
+        std::array const descriptor_writes{combined_sampler_uniform_write,
+            target_image_uniform_write};
 
         vkUpdateDescriptorSets(device.logical,
             vkrndr::count_cast(descriptor_writes.size()),
@@ -101,17 +113,11 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
           backend_->frames_in_flight()}
 {
     vkglsl::shader_set_t shaders{true};
-    auto vertex_shader{add_shader_module_from_path(shaders,
+    auto shader{add_shader_module_from_path(shaders,
         backend_->device(),
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "fullscreen.vert")};
-    assert(vertex_shader);
-
-    auto fragment_shader{add_shader_module_from_path(shaders,
-        backend_->device(),
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        "postprocess.frag")};
-    assert(fragment_shader);
+        VK_SHADER_STAGE_COMPUTE_BIT,
+        "postprocess.comp")};
+    assert(shader);
 
     if (auto const layout{
             descriptor_set_layout(shaders, backend_->device(), 0)})
@@ -123,7 +129,8 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         assert(false);
     }
 
-    uint32_t sample_count = backend_->device().max_msaa_samples;
+    auto const sample_count{cppext::narrow<uint32_t>(
+        std::to_underlying(backend_->device().max_msaa_samples))};
     VkSpecializationMapEntry const sample_specialization{.constantID = 0,
         .offset = 0,
         .size = sizeof(sample_count)};
@@ -132,21 +139,16 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         .dataSize = sizeof(sample_specialization),
         .pData = &sample_count};
 
-    pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
+    pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(descriptor_set_layout_)
-            .add_push_constants<push_constants_t>(VK_SHADER_STAGE_FRAGMENT_BIT)
+            .add_push_constants<push_constants_t>(VK_SHADER_STAGE_COMPUTE_BIT)
             .build()}
-                    .add_shader(as_pipeline_shader(*vertex_shader))
-                    .add_shader(as_pipeline_shader(*fragment_shader,
-                        &fragment_specialization))
-                    .add_color_attachment(backend_->image_format())
-                    .with_culling(VK_CULL_MODE_FRONT_BIT,
-                        VK_FRONT_FACE_COUNTER_CLOCKWISE)
+                    .with_shader(
+                        as_pipeline_shader(*shader, &fragment_specialization))
                     .build();
 
-    destroy(&backend_->device(), &vertex_shader.value());
-    destroy(&backend_->device(), &fragment_shader.value());
+    destroy(&backend_->device(), &shader.value());
 
     for (auto& set : descriptor_sets_.as_span())
     {
@@ -183,32 +185,30 @@ void gltfviewer::postprocess_shader_t::draw(bool const color_conversion,
     [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
         command_buffer,
         "Postprocess"};
-    bind_descriptor_set(backend_->device(),
+    update_descriptor_set(backend_->device(),
         *descriptor_sets_,
-        vkrndr::combined_sampler_descriptor(combined_sampler_, color_image));
+        vkrndr::combined_sampler_descriptor(combined_sampler_, color_image),
+        vkrndr::storage_image_descriptor(target_image));
 
     push_constants_t const pc{
         .color_conversion = static_cast<uint32_t>(color_conversion),
         .tone_mapping = static_cast<uint32_t>(tone_mapping)};
     vkCmdPushConstants(command_buffer,
         *pipeline_.layout,
-        VK_SHADER_STAGE_FRAGMENT_BIT,
+        VK_SHADER_STAGE_COMPUTE_BIT,
         0,
         sizeof(push_constants_t),
         &pc);
-
-    vkrndr::render_pass_t color_render_pass;
-    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        target_image.view);
-
-    [[maybe_unused]] auto guard{
-        color_render_pass.begin(command_buffer, {{0, 0}, target_image.extent})};
 
     vkrndr::bind_pipeline(command_buffer,
         pipeline_,
         0,
         std::span{&descriptor_sets_.current(), 1});
 
-    vkCmdDraw(command_buffer, 3, 1, 0, 0);
+    vkCmdDispatch(command_buffer,
+        static_cast<uint32_t>(
+            std::ceil(cppext::as_fp(target_image.extent.width) / 16.0f)),
+        static_cast<uint32_t>(
+            std::ceil(cppext::as_fp(target_image.extent.height) / 16.0f)),
+        1);
 }
