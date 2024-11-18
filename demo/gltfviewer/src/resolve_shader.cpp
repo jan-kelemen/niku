@@ -1,4 +1,4 @@
-#include <postprocess_shader.hpp>
+#include <resolve_shader.hpp>
 
 #include <cppext_cycled_buffer.hpp>
 
@@ -31,12 +31,6 @@
 
 namespace
 {
-    struct [[nodiscard]] push_constants_t final
-    {
-        uint32_t color_conversion;
-        uint32_t tone_mapping;
-    };
-
     void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
         VkDescriptorImageInfo const combined_sampler_info,
@@ -49,7 +43,7 @@ namespace
         combined_sampler_uniform_write.dstBinding = 0;
         combined_sampler_uniform_write.dstArrayElement = 0;
         combined_sampler_uniform_write.descriptorType =
-            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         combined_sampler_uniform_write.descriptorCount = 1;
         combined_sampler_uniform_write.pImageInfo = &combined_sampler_info;
 
@@ -74,11 +68,40 @@ namespace
             nullptr);
     }
 
+    [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
+    {
+        VkPhysicalDeviceProperties properties; // NOLINT
+        vkGetPhysicalDeviceProperties(device.physical, &properties);
+
+        VkSamplerCreateInfo sampler_info{};
+        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_info.magFilter = VK_FILTER_NEAREST;
+        sampler_info.minFilter = VK_FILTER_NEAREST;
+        sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.anisotropyEnable = VK_TRUE;
+        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+        sampler_info.unnormalizedCoordinates = VK_FALSE;
+        sampler_info.compareEnable = VK_FALSE;
+        sampler_info.compareOp = VK_COMPARE_OP_NEVER;
+        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        sampler_info.mipLodBias = 0.0f;
+        sampler_info.minLod = 0.0f;
+        sampler_info.maxLod = 1.0f;
+
+        VkSampler rv; // NOLINT
+        vkrndr::check_result(
+            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+
+        return rv;
+    }
 } // namespace
 
-gltfviewer::postprocess_shader_t::postprocess_shader_t(
-    vkrndr::backend_t& backend)
+gltfviewer::resolve_shader_t::resolve_shader_t(vkrndr::backend_t& backend)
     : backend_{&backend}
+    , combined_sampler_{create_sampler(backend_->device())}
     , descriptor_sets_{backend_->frames_in_flight(),
           backend_->frames_in_flight()}
 {
@@ -86,7 +109,7 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     auto shader{add_shader_binary_from_path(shaders,
         backend_->device(),
         VK_SHADER_STAGE_COMPUTE_BIT,
-        "postprocess.comp.spv")};
+        "resolve.comp.spv")};
     assert(shader);
 
     if (auto const layout{
@@ -99,12 +122,21 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         assert(false);
     }
 
+    auto const sample_count{cppext::narrow<uint32_t>(
+        std::to_underlying(backend_->device().max_msaa_samples))};
+    VkSpecializationMapEntry const sample_specialization{.constantID = 0,
+        .offset = 0,
+        .size = sizeof(sample_count)};
+    VkSpecializationInfo const specialization{.mapEntryCount = 1,
+        .pMapEntries = &sample_specialization,
+        .dataSize = sizeof(sample_specialization),
+        .pData = &sample_count};
+
     pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(descriptor_set_layout_)
-            .add_push_constants<push_constants_t>(VK_SHADER_STAGE_COMPUTE_BIT)
             .build()}
-                    .with_shader(as_pipeline_shader(*shader))
+                    .with_shader(as_pipeline_shader(*shader, &specialization))
                     .build();
 
     destroy(&backend_->device(), &shader.value());
@@ -118,8 +150,10 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     }
 }
 
-gltfviewer::postprocess_shader_t::~postprocess_shader_t()
+gltfviewer::resolve_shader_t::~resolve_shader_t()
 {
+    vkDestroySampler(backend_->device().logical, combined_sampler_, nullptr);
+
     destroy(&backend_->device(), &pipeline_);
 
     vkrndr::free_descriptor_sets(backend_->device(),
@@ -131,9 +165,7 @@ gltfviewer::postprocess_shader_t::~postprocess_shader_t()
         nullptr);
 }
 
-void gltfviewer::postprocess_shader_t::draw(bool const color_conversion,
-    bool const tone_mapping,
-    VkCommandBuffer command_buffer,
+void gltfviewer::resolve_shader_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& target_image)
 {
@@ -141,21 +173,11 @@ void gltfviewer::postprocess_shader_t::draw(bool const color_conversion,
 
     [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
         command_buffer,
-        "Color Conversion & Tone Mapping"};
+        "Resolve"};
     update_descriptor_set(backend_->device(),
         *descriptor_sets_,
-        vkrndr::storage_image_descriptor(color_image),
+        vkrndr::combined_sampler_descriptor(combined_sampler_, color_image),
         vkrndr::storage_image_descriptor(target_image));
-
-    push_constants_t const pc{
-        .color_conversion = static_cast<uint32_t>(color_conversion),
-        .tone_mapping = static_cast<uint32_t>(tone_mapping)};
-    vkCmdPushConstants(command_buffer,
-        *pipeline_.layout,
-        VK_SHADER_STAGE_COMPUTE_BIT,
-        0,
-        sizeof(push_constants_t),
-        &pc);
 
     vkrndr::bind_pipeline(command_buffer,
         pipeline_,

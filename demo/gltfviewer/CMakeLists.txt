@@ -10,6 +10,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_oit_shader.hpp
     PRIVATE
@@ -22,6 +23,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_oit_shader.cpp
 )
@@ -109,9 +111,23 @@ compile_shader(
 
 compile_shader(
     SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.comp.spv
+)
+
+compile_shader(
+    SHADER
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
     SPIRV
         ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
+)
+
+compile_shader(
+    SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/resolve.comp
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/resolve.comp.spv
 )
 
 add_custom_target(gltfviewer_shaders
@@ -122,9 +138,11 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/fullscreen.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/oit_composition.frag.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.comp.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/resolve.comp.spv
 )
 
 add_custom_target(gltfviewer_assets
@@ -137,7 +155,6 @@ add_custom_target(gltfviewer_assets
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -150,7 +167,6 @@ add_custom_target(gltfviewer_assets
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
 )

@@ -1,0 +1,26 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(constant_id = 0) const int SAMPLES = 8;
+
+layout(set = 0, binding = 0) uniform sampler2DMS backbuffer;
+
+layout(rgba16f, set = 0, binding = 1) uniform image2D image;
+
+void main()
+{
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+
+    vec4 result = vec4(0.0);
+    for (int i = 0; i < SAMPLES; i++)
+    {
+        vec4 val = texelFetch(backbuffer, texelCoord, i);
+        result += val;
+    }
+    result /= float(SAMPLES);
+
+    imageStore(image, texelCoord, result);
+}

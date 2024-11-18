@@ -35,6 +35,7 @@ namespace gltfviewer
     class pbr_shader_t;
     class postprocess_shader_t;
     class render_graph_t;
+    class resolve_shader_t;
     class weighted_oit_shader_t;
 } // namespace gltfviewer
 
@@ -86,11 +87,13 @@ namespace gltfviewer
         std::unique_ptr<niku::imgui_layer_t> imgui_;
         vkrndr::image_t color_image_;
         vkrndr::image_t depth_buffer_;
+        vkrndr::image_t resolve_image_;
         std::unique_ptr<environment_t> environment_;
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;
         std::unique_ptr<pbr_shader_t> pbr_shader_;
         std::unique_ptr<weighted_oit_shader_t> weighted_oit_shader_;
+        std::unique_ptr<resolve_shader_t> resolve_shader_;
         std::unique_ptr<postprocess_shader_t> postprocess_shader_;
 
         camera_controller_t camera_controller_;
@@ -100,7 +103,6 @@ namespace gltfviewer
 
         uint32_t debug_{0};
         float ibl_factor_{0.5f};
-
         bool color_conversion_{true};
         bool tone_mapping_{true};
     };

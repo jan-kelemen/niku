@@ -7,6 +7,7 @@
 #include <pbr_shader.hpp>
 #include <postprocess_shader.hpp>
 #include <render_graph.hpp>
+#include <resolve_shader.hpp>
 #include <weighted_oit_shader.hpp>
 
 #include <cppext_numeric.hpp>
@@ -92,6 +93,20 @@ namespace
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
+    [[nodiscard]] vkrndr::image_t create_resolve_image(
+        vkrndr::backend_t const& backend)
+    {
+        return vkrndr::create_image_and_view(backend.device(),
+            backend.extent(),
+            1,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_FORMAT_R16G16B16A16_SFLOAT,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+
     [[nodiscard]] vkrndr::image_t create_depth_buffer(
         vkrndr::backend_t const& backend)
     {
@@ -121,13 +136,12 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->context(),
           backend_->device(),
           backend_->swap_chain())}
-    , color_image_{create_color_image(*backend_)}
-    , depth_buffer_{create_depth_buffer(*backend_)}
     , environment_{std::make_unique<environment_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
     , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
     , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
+    , resolve_shader_{std::make_unique<resolve_shader_t>(*backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
@@ -300,16 +314,6 @@ void gltfviewer::application_t::draw()
         color_image_,
         depth_buffer_);
 
-    vkrndr::transition_image(color_image_.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
-        1);
-
     environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
 
     if (render_graph_->model().vertex_count)
@@ -341,42 +345,69 @@ void gltfviewer::application_t::draw()
             depth_buffer_);
     }
 
-    vkrndr::transition_image(color_image_.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-        1);
+    {
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const
+            postprocess_cb_scope{command_buffer, "Postprocess"};
 
-    vkrndr::transition_image(target_image.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_NONE,
-        VK_IMAGE_LAYOUT_GENERAL,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-        1);
-
-    postprocess_shader_->draw(color_conversion_,
-        tone_mapping_,
-        command_buffer,
-        color_image_,
-        target_image);
-
-    vkrndr::transition_image(target_image.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_GENERAL,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
+        vkrndr::transition_image(color_image_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        1);
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+            1);
+
+        vkrndr::transition_image(resolve_image_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            1);
+
+        resolve_shader_->draw(command_buffer, color_image_, resolve_image_);
+
+        vkrndr::transition_image(resolve_image_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+            1);
+
+        vkrndr::transition_image(target_image.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_NONE,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            1);
+
+        postprocess_shader_->draw(color_conversion_,
+            tone_mapping_,
+            command_buffer,
+            resolve_image_,
+            target_image);
+
+        vkrndr::transition_image(target_image.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            1);
+    }
 
     imgui_->render(command_buffer, target_image);
 
@@ -395,12 +426,7 @@ void gltfviewer::application_t::end_frame()
 void gltfviewer::application_t::on_startup()
 {
     auto const extent{backend_->extent()};
-
-    weighted_oit_shader_->resize(extent.width, extent.height);
-
-    camera_.set_aspect_ratio(
-        cppext::as_fp(extent.width) / cppext::as_fp(extent.height));
-    camera_.update();
+    on_resize(extent.width, extent.height);
 
     environment_->load_skybox("aviation_museum_4k.hdr", depth_buffer_.format);
 }
@@ -411,6 +437,8 @@ void gltfviewer::application_t::on_shutdown()
 
     postprocess_shader_.reset();
 
+    resolve_shader_.reset();
+
     weighted_oit_shader_.reset();
 
     pbr_shader_.reset();
@@ -420,6 +448,8 @@ void gltfviewer::application_t::on_shutdown()
     materials_.reset();
 
     environment_.reset();
+
+    destroy(&backend_->device(), &resolve_image_);
 
     destroy(&backend_->device(), &depth_buffer_);
 
@@ -440,6 +470,10 @@ void gltfviewer::application_t::on_resize(uint32_t const width,
     destroy(&backend_->device(), &depth_buffer_);
     depth_buffer_ = create_depth_buffer(*backend_);
     object_name(backend_->device(), depth_buffer_, "Depth Buffer");
+
+    destroy(&backend_->device(), &resolve_image_);
+    resolve_image_ = create_resolve_image(*backend_);
+    object_name(backend_->device(), resolve_image_, "Resolve Image");
 
     weighted_oit_shader_->resize(width, height);
 

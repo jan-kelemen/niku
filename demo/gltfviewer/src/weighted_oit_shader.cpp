@@ -399,7 +399,8 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
         [this, shd = &composition_fragment_shader.value()]
         { destroy(&backend_->device(), shd); }};
 
-    uint32_t sample_count = backend_->device().max_msaa_samples;
+    auto const sample_count{cppext::narrow<uint32_t>(
+        std::to_underlying(backend_->device().max_msaa_samples))};
     VkSpecializationMapEntry const sample_specialization{.constantID = 0,
         .offset = 0,
         .size = sizeof(sample_count)};

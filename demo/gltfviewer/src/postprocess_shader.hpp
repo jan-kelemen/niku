@@ -42,8 +42,6 @@ namespace gltfviewer
     private:
         vkrndr::backend_t* backend_;
 
-        VkSampler combined_sampler_;
-
         VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};
         cppext::cycled_buffer_t<VkDescriptorSet> descriptor_sets_;
 

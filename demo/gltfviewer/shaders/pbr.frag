@@ -45,6 +45,7 @@ struct Material
     uint occlusionSamplerIndex;
     float normalScale;
     uint doubleSided;
+    float emissiveStrength;
 };
 
 layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer
@@ -147,7 +148,7 @@ vec3 emissiveColor(Material m)
                         samplers[nonuniformEXT(m.emissiveSamplerIndex)]), inUV).rgb;
     };
 
-    return emissive;
+    return emissive * m.emissiveStrength;
 }
 
 vec3 fresnelSchlick(vec3 f0, vec3 f90, float VdotH)

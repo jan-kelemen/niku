@@ -40,4 +40,14 @@ vec4 gammaCorrection(vec4 linearRGB, float gamma)
     return vec4(pow(linearRGB.rgb, vec3(1.0 / gamma)), linearRGB.a);
 }
 
+float luminance(vec3 linearRGB)
+{
+    return dot(linearRGB, vec3(0.2126, 0.7152, 0.0722));
+}
+
+float luminance(vec4 linearRGB)
+{
+    return luminance(linearRGB.rgb);
+}
+
 #endif

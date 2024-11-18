@@ -37,7 +37,7 @@ namespace
     struct [[nodiscard]] material_t final
     {
         glm::vec4 base_color_factor;
-        glm::vec3 emmisive_factor;
+        glm::vec3 emissive_factor;
         uint32_t base_color_texture_index{std::numeric_limits<uint32_t>::max()};
         uint32_t base_color_sampler_index{std::numeric_limits<uint32_t>::max()};
         float alpha_cutoff;
@@ -56,7 +56,7 @@ namespace
         uint32_t occlusion_sampler_index{std::numeric_limits<uint32_t>::max()};
         float normal_scale;
         uint32_t double_sided{};
-        uint8_t padding[4];
+        float emissive_strength;
     };
 
     static_assert(sizeof(material_t) % 16 == 0);
@@ -192,7 +192,7 @@ namespace
 
             material_t rv{
                 .base_color_factor = m.pbr_metallic_roughness.base_color_factor,
-                .emmisive_factor = m.emmisive_factor,
+                .emissive_factor = m.emissive_factor,
                 .alpha_cutoff = m.alpha_mode == vkgltf::alpha_mode_t::mask
                     ? m.alpha_cutoff
                     : 0.0f,
@@ -200,7 +200,8 @@ namespace
                 .roughness_factor = m.pbr_metallic_roughness.roughness_factor,
                 .occlusion_strength = m.occlusion_strength,
                 .normal_scale = m.normal_scale,
-                .double_sided = static_cast<uint32_t>(m.double_sided)};
+                .double_sided = static_cast<uint32_t>(m.double_sided),
+                .emissive_strength = m.emissive_strength};
 
             DISABLE_WARNING_POP
 
@@ -225,7 +226,7 @@ namespace
                     image_and_sampler(*texture);
             }
 
-            if (auto const* const texture{m.emmisive_texture})
+            if (auto const* const texture{m.emissive_texture})
             {
                 std::tie(rv.emissive_texture_index, rv.emissive_sampler_index) =
                     image_and_sampler(*texture);
