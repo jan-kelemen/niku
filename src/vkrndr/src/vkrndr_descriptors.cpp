@@ -27,6 +27,11 @@ void vkrndr::free_descriptor_sets(device_t const& device,
     VkDescriptorPool descriptor_pool,
     std::span<VkDescriptorSet> descriptor_sets)
 {
+    if (descriptor_sets.empty())
+    {
+        return;
+    }
+
     vkFreeDescriptorSets(device.logical,
         descriptor_pool,
         count_cast(descriptor_sets.size()),

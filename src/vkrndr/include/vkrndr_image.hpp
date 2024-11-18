@@ -40,7 +40,8 @@ namespace vkrndr
         VkImage image,
         VkFormat format,
         VkImageAspectFlags aspect_flags,
-        uint32_t mip_levels);
+        uint32_t mip_levels,
+        uint32_t base_mip_level = 0);
 
     image_t create_image_and_view(device_t const& device,
         VkExtent2D extent,

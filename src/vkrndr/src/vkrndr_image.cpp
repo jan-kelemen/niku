@@ -70,7 +70,8 @@ VkImageView vkrndr::create_image_view(device_t const& device,
     VkImage const image,
     VkFormat const format,
     VkImageAspectFlags const aspect_flags,
-    uint32_t const mip_levels)
+    uint32_t const mip_levels,
+    uint32_t const base_mip_level)
 {
     VkImageViewCreateInfo view_info{};
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -78,7 +79,7 @@ VkImageView vkrndr::create_image_view(device_t const& device,
     view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     view_info.format = format;
     view_info.subresourceRange.aspectMask = aspect_flags;
-    view_info.subresourceRange.baseMipLevel = 0;
+    view_info.subresourceRange.baseMipLevel = base_mip_level;
     view_info.subresourceRange.levelCount = mip_levels;
     view_info.subresourceRange.baseArrayLayer = 0;
     view_info.subresourceRange.layerCount = 1;
