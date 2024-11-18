@@ -581,9 +581,10 @@ namespace
 
             if (auto const& texture{material.emissiveTexture})
             {
-                m.emmisive_texture = &model.textures[texture->textureIndex];
+                m.emissive_texture = &model.textures[texture->textureIndex];
             }
-            m.emmisive_factor = vkgltf::to_glm(material.emissiveFactor);
+            m.emissive_factor = vkgltf::to_glm(material.emissiveFactor);
+            m.emissive_strength = material.emissiveStrength;
 
             if (auto const& texture{material.occlusionTexture})
             {
@@ -943,7 +944,8 @@ std::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
             ec ? ec : make_error_code(error_t::invalid_file)};
     }
 
-    fastgltf::Parser parser;
+    fastgltf::Parser parser{
+        fastgltf::Extensions::KHR_materials_emissive_strength};
 
     auto data{fastgltf::GltfDataBuffer::FromPath(path)};
     if (data.error() != fastgltf::Error::None)
