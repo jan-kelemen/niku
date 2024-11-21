@@ -23,9 +23,8 @@ void main()
     vec2 resolution = vec2(pc.sourceResolution.x, pc.sourceResolution.y);
     vec2 texelCoord = vec2(float(gl_GlobalInvocationID.x) /resolution.x, float(gl_GlobalInvocationID.y) / resolution.y);
 
-    vec2 texelSize = 1.0 / resolution;
-    float x = texelSize.x;
-    float y = texelSize.y;
+    float x = 0.006;
+    float y = 0.006;
 
     vec3 a = texture(backbuffer[pc.sourceMip + 1], vec2(texelCoord.x - x, texelCoord.y + y)).rgb;
     vec3 b = texture(backbuffer[pc.sourceMip + 1], vec2(texelCoord.x,     texelCoord.y + y)).rgb;
