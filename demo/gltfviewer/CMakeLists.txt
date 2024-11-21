@@ -127,6 +127,13 @@ compile_shader(
 
 compile_shader(
     SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_upsample.comp
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/pyramid_upsample.comp.spv
+)
+
+compile_shader(
+    SHADER
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
     SPIRV
         ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
@@ -152,6 +159,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pyramid_downsample.comp.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/pyramid_upsample.comp.spv
         ${CMAKE_CURRENT_BINARY_DIR}/resolve.comp.spv
 )
 

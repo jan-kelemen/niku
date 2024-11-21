@@ -35,6 +35,10 @@ namespace gltfviewer
 
         void draw(VkCommandBuffer command_buffer);
 
+        void downsample_pass(VkCommandBuffer command_buffer);
+
+        void upsample_pass(VkCommandBuffer command_buffer);
+
         void resize(uint32_t width, uint32_t height);
 
     public:
@@ -50,6 +54,7 @@ namespace gltfviewer
 
     private:
         void create_downsample_resources();
+        void create_upsample_resources();
 
     private:
         vkrndr::backend_t* backend_;
@@ -62,6 +67,7 @@ namespace gltfviewer
 
         VkDescriptorSetLayout downsample_descriptor_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t downsample_pipeline_;
+        vkrndr::pipeline_t upsample_pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };

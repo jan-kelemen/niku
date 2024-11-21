@@ -155,6 +155,8 @@ gltfviewer::pyramid_blur_t::~pyramid_blur_t()
             std::span{&data.downsample_descriptor_, 1});
     }
 
+    destroy(&backend_->device(), &upsample_pipeline_);
+
     destroy(&backend_->device(), &downsample_pipeline_);
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
@@ -182,6 +184,12 @@ void gltfviewer::pyramid_blur_t::draw(VkCommandBuffer command_buffer)
 {
     frame_data_.cycle();
 
+    downsample_pass(command_buffer);
+    upsample_pass(command_buffer);
+}
+
+void gltfviewer::pyramid_blur_t::downsample_pass(VkCommandBuffer command_buffer)
+{
     vkrndr::bind_pipeline(command_buffer,
         downsample_pipeline_,
         0,
@@ -215,6 +223,58 @@ void gltfviewer::pyramid_blur_t::draw(VkCommandBuffer command_buffer)
             .source_mip = mip};
         vkCmdPushConstants(command_buffer,
             *downsample_pipeline_.layout,
+            VK_SHADER_STAGE_COMPUTE_BIT,
+            0,
+            sizeof(pc),
+            &pc);
+
+        vkCmdDispatch(command_buffer,
+            static_cast<uint32_t>(
+                std::ceil(cppext::as_fp(mip_extents_[mip].width) / 16.0f)),
+            static_cast<uint32_t>(
+                std::ceil(cppext::as_fp(mip_extents_[mip].height) / 16.0f)),
+            1);
+    }
+}
+
+void gltfviewer::pyramid_blur_t::upsample_pass(VkCommandBuffer command_buffer)
+{
+    vkrndr::bind_pipeline(command_buffer,
+        upsample_pipeline_,
+        0,
+        std::span{&frame_data_->downsample_descriptor_, 1});
+
+    for (uint32_t mip :
+        std::views::iota(uint32_t{0}, pyramid_image_.mip_levels - 1) |
+            std::views::reverse)
+    {
+        transition_mip(pyramid_image_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+            mip + 1);
+
+        transition_mip(pyramid_image_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            mip);
+
+        downsample_push_constants_t pc{
+            .source_resolution =
+                glm::uvec2{mip_extents_[mip].width, mip_extents_[mip].height},
+            .source_mip = mip};
+        vkCmdPushConstants(command_buffer,
+            *upsample_pipeline_.layout,
             VK_SHADER_STAGE_COMPUTE_BIT,
             0,
             sizeof(pc),
@@ -271,6 +331,7 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
     object_name(backend_->device(), pyramid_image_, "Pyramid Image");
 
     create_downsample_resources();
+    create_upsample_resources();
 }
 
 void gltfviewer::pyramid_blur_t::create_downsample_resources()
@@ -326,4 +387,20 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
                 .build()}
             .with_shader(as_pipeline_shader(*shader))
             .build();
+}
+
+void gltfviewer::pyramid_blur_t::create_upsample_resources()
+{
+    auto shader{vkrndr::create_shader_module(backend_->device(),
+        "pyramid_upsample.comp.spv",
+        VK_SHADER_STAGE_COMPUTE_BIT,
+        "main")};
+    [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
+        [this, shd = &shader]() { destroy(&backend_->device(), shd); }};
+
+    destroy(&backend_->device(), &upsample_pipeline_);
+    upsample_pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
+        downsample_pipeline_.layout}
+                             .with_shader(as_pipeline_shader(shader))
+                             .build();
 }
