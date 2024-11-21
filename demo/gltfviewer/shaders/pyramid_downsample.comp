@@ -16,14 +16,35 @@ layout(rgba16f, set = 0, binding = 1) uniform image2D image[];
 
 void main()
 {
-    vec2 texelCoord = vec2(float(gl_GlobalInvocationID.x) / pc.sourceResolution.x, float(gl_GlobalInvocationID.y) / pc.sourceResolution.y);
+    vec2 resolution = vec2(pc.sourceResolution.x, pc.sourceResolution.y);
+    vec2 texelCoord = vec2(float(gl_GlobalInvocationID.x) /resolution.x, float(gl_GlobalInvocationID.y) / resolution.y);
 
-    vec2 texelSize = 1.0 / pc.sourceResolution;
+    vec2 texelSize = 1.0 / resolution;
     float x = texelSize.x;
     float y = texelSize.y;
 
+    vec3 a = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x - 2*x, texelCoord.y + 2*y)).rgb;
+    vec3 b = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x,       texelCoord.y + 2*y)).rgb;
+    vec3 c = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x + 2*x, texelCoord.y + 2*y)).rgb;
+
+    vec3 d = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x - 2*x, texelCoord.y)).rgb;
     vec3 e = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x,       texelCoord.y)).rgb;
+    vec3 f = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x + 2*x, texelCoord.y)).rgb;
+
+    vec3 g = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x - 2*x, texelCoord.y - 2*y)).rgb;
+    vec3 h = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x,       texelCoord.y - 2*y)).rgb;
+    vec3 i = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x + 2*x, texelCoord.y - 2*y)).rgb;
+
+    vec3 j = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x - x, texelCoord.y + y)).rgb;
+    vec3 k = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x + x, texelCoord.y + y)).rgb;
+    vec3 l = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x - x, texelCoord.y - y)).rgb;
+    vec3 m = texture(backbuffer[pc.sourceMip], vec2(texelCoord.x + x, texelCoord.y - y)).rgb;
+
+    vec3 downsample = e*0.125;
+    downsample += (a+c+g+i)*0.03125;
+    downsample += (b+d+f+h)*0.0625;
+    downsample += (j+k+l+m)*0.125;
 
     ivec2 storePos = ivec2(gl_GlobalInvocationID.xy) / 2;
-    imageStore(image[pc.sourceMip + 1], storePos, vec4(e, 1.0));
+    imageStore(image[pc.sourceMip + 1], storePos, vec4(downsample, 1.0));
 }
