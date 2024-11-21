@@ -9,6 +9,7 @@
 #include <pyramid_blur.hpp>
 #include <render_graph.hpp>
 #include <resolve_shader.hpp>
+#include <weighted_blend_shader.hpp>
 #include <weighted_oit_shader.hpp>
 
 #include <cppext_numeric.hpp>
@@ -144,6 +145,8 @@ gltfviewer::application_t::application_t(bool const debug)
     , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
     , resolve_shader_{std::make_unique<resolve_shader_t>(*backend_)}
     , pyramid_blur_{std::make_unique<pyramid_blur_t>(*backend_)}
+    , weighted_blend_shader_{std::make_unique<weighted_blend_shader_t>(
+          *backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
@@ -387,7 +390,9 @@ void gltfviewer::application_t::draw()
             resolve_image_,
             blur_image);
 
-        vkrndr::transition_image(resolve_image_.image,
+        pyramid_blur_->draw(command_buffer);
+
+        vkrndr::transition_image(blur_image.image,
             command_buffer,
             VK_IMAGE_LAYOUT_GENERAL,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -397,7 +402,31 @@ void gltfviewer::application_t::draw()
             VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
             1);
 
-        pyramid_blur_->draw(command_buffer);
+        vkrndr::transition_image(resolve_image_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            1);
+
+        weighted_blend_shader_->draw(command_buffer,
+            resolve_image_,
+            blur_image);
+
+        vkrndr::transition_image(resolve_image_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            1);
 
         vkrndr::transition_image(target_image.image,
             command_buffer,
@@ -454,6 +483,8 @@ void gltfviewer::application_t::on_shutdown()
     vkDeviceWaitIdle(backend_->device().logical);
 
     postprocess_shader_.reset();
+
+    weighted_blend_shader_.reset();
 
     pyramid_blur_.reset();
 

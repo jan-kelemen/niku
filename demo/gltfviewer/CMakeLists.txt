@@ -13,6 +13,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_blend_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_oit_shader.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
@@ -27,6 +28,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_blend_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_oit_shader.cpp
 )
 
@@ -146,6 +148,13 @@ compile_shader(
         ${CMAKE_CURRENT_BINARY_DIR}/resolve.comp.spv
 )
 
+compile_shader(
+    SHADER
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/weighted_blend.comp
+    SPIRV
+        ${CMAKE_CURRENT_BINARY_DIR}/weighted_blend.comp.spv
+)
+
 add_custom_target(gltfviewer_shaders
     DEPENDS
         ${CMAKE_CURRENT_BINARY_DIR}/brdf.frag.spv
@@ -161,6 +170,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}/pyramid_downsample.comp.spv
         ${CMAKE_CURRENT_BINARY_DIR}/pyramid_upsample.comp.spv
         ${CMAKE_CURRENT_BINARY_DIR}/resolve.comp.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/weighted_blend.comp.spv
 )
 
 add_custom_target(gltfviewer_assets

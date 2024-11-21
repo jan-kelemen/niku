@@ -17,7 +17,7 @@
 
 namespace
 {
-    struct [[nodiscard]] downsample_push_constants_t final
+    struct [[nodiscard]] push_constants_t final
     {
         glm::uvec2 source_resolution;
         uint32_t source_mip;
@@ -217,7 +217,7 @@ void gltfviewer::pyramid_blur_t::downsample_pass(VkCommandBuffer command_buffer)
             VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
             mip + 1);
 
-        downsample_push_constants_t pc{
+        push_constants_t pc{
             .source_resolution =
                 glm::uvec2{mip_extents_[mip].width, mip_extents_[mip].height},
             .source_mip = mip};
@@ -269,7 +269,7 @@ void gltfviewer::pyramid_blur_t::upsample_pass(VkCommandBuffer command_buffer)
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
             mip);
 
-        downsample_push_constants_t pc{
+        push_constants_t pc{
             .source_resolution =
                 glm::uvec2{mip_extents_[mip].width, mip_extents_[mip].height},
             .source_mip = mip};
@@ -381,7 +381,7 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
     downsample_pipeline_ =
         vkrndr::compute_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_push_constants<downsample_push_constants_t>(
+                .add_push_constants<push_constants_t>(
                     VK_SHADER_STAGE_COMPUTE_BIT)
                 .add_descriptor_set_layout(downsample_descriptor_layout_)
                 .build()}

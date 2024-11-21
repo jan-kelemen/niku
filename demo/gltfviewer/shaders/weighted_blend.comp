@@ -1,0 +1,28 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : require
+
+#include "color_conversion.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(push_constant) uniform PushConsts
+{
+    float weight;
+} pc;
+
+layout(set = 0, binding = 0) uniform sampler2D backbuffer;
+layout(rgba16f, set = 0, binding = 1) uniform image2D image;
+
+void main()
+{
+    ivec2 resolution = imageSize(image);
+    vec2 texelCoord = vec2(float(gl_GlobalInvocationID.x) / resolution.x, float(gl_GlobalInvocationID.y) / resolution.y);
+    
+    vec3 e = texture(backbuffer, vec2(texelCoord.x,       texelCoord.y)).rgb;
+
+    ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
+    vec4 current = imageLoad(image, storePos);
+    current = mix(current, current + vec4(e, 0.0), pc.weight);
+    imageStore(image, storePos, current);
+}
