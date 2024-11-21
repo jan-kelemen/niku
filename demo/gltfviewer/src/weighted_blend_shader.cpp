@@ -148,6 +148,10 @@ void gltfviewer::weighted_blend_shader_t::draw(VkCommandBuffer command_buffer,
 {
     frame_data_.cycle();
 
+    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+        command_buffer,
+        "Weighted blend"};
+
     update_descriptor_set(backend_->device(),
         frame_data_->descriptor_,
         vkrndr::storage_image_descriptor(target_image),

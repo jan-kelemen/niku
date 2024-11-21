@@ -152,7 +152,7 @@ gltfviewer::pyramid_blur_t::~pyramid_blur_t()
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.downsample_descriptor_, 1});
+            std::span{&data.descriptor_, 1});
     }
 
     destroy(&backend_->device(), &upsample_pipeline_);
@@ -160,7 +160,7 @@ gltfviewer::pyramid_blur_t::~pyramid_blur_t()
     destroy(&backend_->device(), &downsample_pipeline_);
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
-        downsample_descriptor_layout_,
+        descriptor_layout_,
         nullptr);
 
     for (VkImageView view : mip_views_)
@@ -184,6 +184,10 @@ void gltfviewer::pyramid_blur_t::draw(VkCommandBuffer command_buffer)
 {
     frame_data_.cycle();
 
+    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+        command_buffer,
+        "Pyramid blur"};
+
     downsample_pass(command_buffer);
     upsample_pass(command_buffer);
 }
@@ -193,7 +197,7 @@ void gltfviewer::pyramid_blur_t::downsample_pass(VkCommandBuffer command_buffer)
     vkrndr::bind_pipeline(command_buffer,
         downsample_pipeline_,
         0,
-        std::span{&frame_data_->downsample_descriptor_, 1});
+        std::span{&frame_data_->descriptor_, 1});
 
     for (uint32_t mip{}; mip != pyramid_image_.mip_levels - 1; ++mip)
     {
@@ -242,7 +246,7 @@ void gltfviewer::pyramid_blur_t::upsample_pass(VkCommandBuffer command_buffer)
     vkrndr::bind_pipeline(command_buffer,
         upsample_pipeline_,
         0,
-        std::span{&frame_data_->downsample_descriptor_, 1});
+        std::span{&frame_data_->descriptor_, 1});
 
     for (uint32_t mip :
         std::views::iota(uint32_t{0}, pyramid_image_.mip_levels - 1) |
@@ -352,14 +356,14 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
     (*bindings)[1].descriptorCount = pyramid_image_.mip_levels;
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
-        downsample_descriptor_layout_,
+        descriptor_layout_,
         nullptr);
-    downsample_descriptor_layout_ =
+    descriptor_layout_ =
         vkrndr::create_descriptor_set_layout(backend_->device(), *bindings);
 
     for (frame_data_t& data : frame_data_.as_span())
     {
-        auto ds{std::span{&data.downsample_descriptor_, 1}};
+        auto ds{std::span{&data.descriptor_, 1}};
 
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
@@ -367,11 +371,11 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&downsample_descriptor_layout_, 1},
+            std::span{&descriptor_layout_, 1},
             ds);
 
         update_downsample_descriptor_set(backend_->device(),
-            data.downsample_descriptor_,
+            data.descriptor_,
             bilinear_sampler_,
             pyramid_image_,
             mip_views_);
@@ -383,7 +387,7 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_push_constants<push_constants_t>(
                     VK_SHADER_STAGE_COMPUTE_BIT)
-                .add_descriptor_set_layout(downsample_descriptor_layout_)
+                .add_descriptor_set_layout(descriptor_layout_)
                 .build()}
             .with_shader(as_pipeline_shader(*shader))
             .build();
