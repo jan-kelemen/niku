@@ -1,7 +1,10 @@
 #ifndef GLTFVIEWER_PYRAMID_BLUR_INCLUDED
 #define GLTFVIEWER_PYRAMID_BLUR_INCLUDED
 
+#include <cppext_cycled_buffer.hpp>
+
 #include <vkrndr_image.hpp>
+#include <vkrndr_pipeline.hpp>
 
 #include <volk.h>
 
@@ -30,6 +33,8 @@ namespace gltfviewer
     public:
         [[nodiscard]] vkrndr::image_t source_image() const;
 
+        void draw(VkCommandBuffer command_buffer);
+
         void resize(uint32_t width, uint32_t height);
 
     public:
@@ -38,10 +43,27 @@ namespace gltfviewer
         pyramid_blur_t& operator=(pyramid_blur_t&&) noexcept = delete;
 
     private:
+        struct [[nodiscard]] frame_data_t final
+        {
+            VkDescriptorSet downsample_descriptor_{VK_NULL_HANDLE};
+        };
+
+    private:
+        void create_downsample_resources();
+
+    private:
         vkrndr::backend_t* backend_;
+
+        VkSampler bilinear_sampler_;
 
         vkrndr::image_t pyramid_image_;
         std::vector<VkImageView> mip_views_;
+        std::vector<VkExtent2D> mip_extents_;
+
+        VkDescriptorSetLayout downsample_descriptor_layout_{VK_NULL_HANDLE};
+        vkrndr::pipeline_t downsample_pipeline_;
+
+        cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };
 } // namespace gltfviewer
 

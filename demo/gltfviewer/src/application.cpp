@@ -397,6 +397,8 @@ void gltfviewer::application_t::draw()
             VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
             1);
 
+        pyramid_blur_->draw(command_buffer);
+
         vkrndr::transition_image(target_image.image,
             command_buffer,
             VK_IMAGE_LAYOUT_UNDEFINED,
