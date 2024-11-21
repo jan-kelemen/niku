@@ -131,7 +131,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
-              .preferred_present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR,
+              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
           },
           debug)}
     , imgui_{std::make_unique<niku::imgui_layer_t>(*window(),

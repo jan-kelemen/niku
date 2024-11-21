@@ -35,7 +35,7 @@ void main()
             groups[i] = val * KarisAverage(val.rgb);
         }
         else {
-            groups[i] = vec4(0.0);
+            groups[i] = mix(vec4(0.0), val, luminance(val.rgb));
         }
     }
     result /= float(SAMPLES);
