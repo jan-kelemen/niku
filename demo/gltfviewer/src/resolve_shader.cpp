@@ -34,7 +34,8 @@ namespace
     void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
         VkDescriptorImageInfo const combined_sampler_info,
-        VkDescriptorImageInfo const target_image_info)
+        VkDescriptorImageInfo const target_image_info,
+        VkDescriptorImageInfo const bright_image_info)
     {
         VkWriteDescriptorSet combined_sampler_uniform_write{};
         combined_sampler_uniform_write.sType =
@@ -58,8 +59,20 @@ namespace
         target_image_uniform_write.descriptorCount = 1;
         target_image_uniform_write.pImageInfo = &target_image_info;
 
+        VkWriteDescriptorSet bright_image_uniform_write{};
+        bright_image_uniform_write.sType =
+            VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        bright_image_uniform_write.dstSet = descriptor_set;
+        bright_image_uniform_write.dstBinding = 2;
+        bright_image_uniform_write.dstArrayElement = 0;
+        bright_image_uniform_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        bright_image_uniform_write.descriptorCount = 1;
+        bright_image_uniform_write.pImageInfo = &bright_image_info;
+
         std::array const descriptor_writes{combined_sampler_uniform_write,
-            target_image_uniform_write};
+            target_image_uniform_write,
+            bright_image_uniform_write};
 
         vkUpdateDescriptorSets(device.logical,
             vkrndr::count_cast(descriptor_writes.size()),
@@ -167,7 +180,8 @@ gltfviewer::resolve_shader_t::~resolve_shader_t()
 
 void gltfviewer::resolve_shader_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
-    vkrndr::image_t const& target_image)
+    vkrndr::image_t const& target_image,
+    vkrndr::image_t const& bright_image)
 {
     descriptor_sets_.cycle();
 
@@ -177,7 +191,8 @@ void gltfviewer::resolve_shader_t::draw(VkCommandBuffer command_buffer,
     update_descriptor_set(backend_->device(),
         *descriptor_sets_,
         vkrndr::combined_sampler_descriptor(combined_sampler_, color_image),
-        vkrndr::storage_image_descriptor(target_image));
+        vkrndr::storage_image_descriptor(target_image),
+        vkrndr::storage_image_descriptor(bright_image));
 
     vkrndr::bind_pipeline(command_buffer,
         pipeline_,

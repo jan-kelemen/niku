@@ -30,7 +30,8 @@ namespace gltfviewer
     public:
         void draw(VkCommandBuffer command_buffer,
             vkrndr::image_t const& color_image,
-            vkrndr::image_t const& target_image);
+            vkrndr::image_t const& target_image,
+            vkrndr::image_t const& bright_image);
 
     public:
         resolve_shader_t& operator=(resolve_shader_t const&) = delete;

@@ -34,6 +34,7 @@ namespace gltfviewer
     class materials_t;
     class pbr_shader_t;
     class postprocess_shader_t;
+    class pyramid_blur_t;
     class render_graph_t;
     class resolve_shader_t;
     class weighted_oit_shader_t;
@@ -94,6 +95,7 @@ namespace gltfviewer
         std::unique_ptr<pbr_shader_t> pbr_shader_;
         std::unique_ptr<weighted_oit_shader_t> weighted_oit_shader_;
         std::unique_ptr<resolve_shader_t> resolve_shader_;
+        std::unique_ptr<pyramid_blur_t> pyramid_blur_;
         std::unique_ptr<postprocess_shader_t> postprocess_shader_;
 
         camera_controller_t camera_controller_;

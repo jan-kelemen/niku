@@ -6,6 +6,7 @@
 #include <model_selector.hpp>
 #include <pbr_shader.hpp>
 #include <postprocess_shader.hpp>
+#include <pyramid_blur.hpp>
 #include <render_graph.hpp>
 #include <resolve_shader.hpp>
 #include <weighted_oit_shader.hpp>
@@ -142,6 +143,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
     , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
     , resolve_shader_{std::make_unique<resolve_shader_t>(*backend_)}
+    , pyramid_blur_{std::make_unique<pyramid_blur_t>(*backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
     , gltf_loader_{*backend_}
@@ -369,7 +371,21 @@ void gltfviewer::application_t::draw()
             VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
             1);
 
-        resolve_shader_->draw(command_buffer, color_image_, resolve_image_);
+        auto const& blur_image{pyramid_blur_->source_image()};
+        vkrndr::transition_image(blur_image.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            1);
+
+        resolve_shader_->draw(command_buffer,
+            color_image_,
+            resolve_image_,
+            blur_image);
 
         vkrndr::transition_image(resolve_image_.image,
             command_buffer,
@@ -437,6 +453,8 @@ void gltfviewer::application_t::on_shutdown()
 
     postprocess_shader_.reset();
 
+    pyramid_blur_.reset();
+
     resolve_shader_.reset();
 
     weighted_oit_shader_.reset();
@@ -476,6 +494,8 @@ void gltfviewer::application_t::on_resize(uint32_t const width,
     object_name(backend_->device(), resolve_image_, "Resolve Image");
 
     weighted_oit_shader_->resize(width, height);
+
+    pyramid_blur_->resize(width, height);
 
     camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 }
