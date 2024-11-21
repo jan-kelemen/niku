@@ -1,19 +1,31 @@
 #include <weighted_blend_shader.hpp>
 
+#include <cppext_cycled_buffer.hpp>
+#include <cppext_numeric.hpp>
+
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_pipeline.hpp>
+#include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
 
-#include <glm/vec2.hpp>
-
+#include <array>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
+#include <span>
+
+// IWYU pragma: no_include <expected>
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <system_error>
 
 namespace
 {

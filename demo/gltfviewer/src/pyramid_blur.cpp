@@ -1,19 +1,37 @@
 #include <pyramid_blur.hpp>
 
+#include <cppext_cycled_buffer.hpp>
+#include <cppext_numeric.hpp>
+
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_pipeline.hpp>
+#include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
 
 #include <glm/vec2.hpp>
 
+#include <algorithm>
+#include <array>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
+#include <ranges>
+#include <span>
+#include <vector>
+
+// IWYU pragma: no_include <expected>
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <iterator>
+// IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <system_error>
 
 namespace
 {
@@ -88,10 +106,9 @@ namespace
         vkCmdPipelineBarrier2(command_buffer, &dependency);
     }
 
-    void update_downsample_descriptor_set(vkrndr::device_t const& device,
+    void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
         VkSampler const sampler,
-        vkrndr::image_t const& image,
         std::vector<VkImageView> const& mip_views)
     {
         std::vector<VkDescriptorImageInfo> sampler_info;
@@ -248,7 +265,7 @@ void gltfviewer::pyramid_blur_t::upsample_pass(VkCommandBuffer command_buffer)
         0,
         std::span{&frame_data_->descriptor_, 1});
 
-    for (uint32_t mip :
+    for (uint32_t const mip :
         std::views::iota(uint32_t{0}, pyramid_image_.mip_levels - 1) |
             std::views::reverse)
     {
@@ -301,7 +318,7 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
     destroy(&backend_->device(), &pyramid_image_);
     pyramid_image_ = vkrndr::create_image(backend_->device(),
         half_extent,
-        vkrndr::max_mip_levels(half_extent.width, half_extent.height),
+        std::min(uint32_t{4}, vkrndr::max_mip_levels(half_extent.width, half_extent.height)),
         VK_SAMPLE_COUNT_1_BIT,
         VK_FORMAT_R16G16B16A16_SFLOAT,
         VK_IMAGE_TILING_OPTIMAL,
@@ -374,10 +391,9 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
             std::span{&descriptor_layout_, 1},
             ds);
 
-        update_downsample_descriptor_set(backend_->device(),
+        update_descriptor_set(backend_->device(),
             data.descriptor_,
             bilinear_sampler_,
-            pyramid_image_,
             mip_views_);
     }
 

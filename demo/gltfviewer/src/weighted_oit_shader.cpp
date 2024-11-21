@@ -2,6 +2,8 @@
 
 #include <render_graph.hpp>
 
+#include <cppext_numeric.hpp>
+
 #include <vkglsl_shader_set.hpp>
 
 #include <vkgltf_model.hpp>
@@ -27,6 +29,7 @@
 #include <functional>
 #include <span>
 #include <string_view>
+#include <utility>
 
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <memory>

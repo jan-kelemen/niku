@@ -3,17 +3,14 @@
 
 #include <cppext_cycled_buffer.hpp>
 
-#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 
 #include <volk.h>
 
-#include <cstdint>
-#include <vector>
-
 namespace vkrndr
 {
     class backend_t;
+    struct image_t;
 } // namespace vkrndr
 
 namespace gltfviewer
