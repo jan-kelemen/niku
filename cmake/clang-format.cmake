@@ -13,3 +13,13 @@ add_custom_target(clang-format
         ${CLANG_FORMAT_EXE} -style=file -i ${ALL_SOURCE_FILES}
 )
 
+if (NIKU_ENABLE_GLSL_FORMAT)
+    file(GLOB_RECURSE ALL_SHADER_FILES
+        demo/*.comp demo/*.frag demo/*.glsl demo/*.vert
+    )
+
+    add_custom_target(glsl-format 
+        COMMAND 
+            ${CLANG_FORMAT_EXE} -style=file --qualifier-alignment=Left -i ${ALL_SHADER_FILES}
+    )
+endif()
