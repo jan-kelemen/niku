@@ -33,6 +33,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <ranges>
 #include <span>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
@@ -773,6 +774,18 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
     destroy(&backend_->device(), &prefilter_fragment_shader);
 
     std::array descriptors{descriptor_set, skybox_descriptor_};
+
+    std::vector<VkImageView> face_views;
+    face_views.reserve(6 * prefilter_cubemap_.mip_levels);
+    for (uint32_t mip{}; mip != prefilter_cubemap_.mip_levels; ++mip)
+    {
+        auto mip_views{
+            face_views_for_mip(backend_->device(), prefilter_cubemap_, mip)};
+        face_views.insert(face_views.end(),
+            mip_views.cbegin(),
+            mip_views.cend());
+    }
+
     {
         auto transient{backend_->request_transient_operation(false)};
         VkCommandBuffer command_buffer{transient.command_buffer()};
@@ -808,9 +821,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                 cppext::as_fp(prefilter_cubemap_.extent.width) *
                 std::powf(0.5f, cppext::as_fp(mip))};
 
-            auto face_views{face_views_for_mip(backend_->device(),
-                prefilter_cubemap_,
-                mip)};
+            std::span mip_face_views{face_views.data() + 6 * mip, 6};
 
             VkViewport const viewport{.x = 0.0f,
                 .y = 0.0f,
@@ -825,7 +836,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                     static_cast<uint32_t>(std::round(dimension))}};
             vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-            for (uint32_t i{}; i != face_views.size(); ++i)
+            for (uint32_t i{}; i != mip_face_views.size(); ++i)
             {
                 cubemap_push_constants_t pc{.direction = i,
                     .roughness = cppext::as_fp(mip) /
@@ -842,17 +853,12 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                 color_render_pass.with_color_attachment(
                     VK_ATTACHMENT_LOAD_OP_CLEAR,
                     VK_ATTACHMENT_STORE_OP_STORE,
-                    face_views[i]);
+                    mip_face_views[i]);
 
                 [[maybe_unused]] auto guard{
                     color_render_pass.begin(command_buffer, scissor)};
 
                 vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
-            }
-
-            for (VkImageView view : face_views)
-            {
-                vkDestroyImageView(backend_->device().logical, view, nullptr);
             }
         }
 
@@ -866,6 +872,11 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             prefilter_cubemap_.mip_levels,
             6);
+    }
+
+    for (VkImageView view : face_views)
+    {
+        vkDestroyImageView(backend_->device().logical, view, nullptr);
     }
 
     destroy(&backend_->device(), &pipeline);
