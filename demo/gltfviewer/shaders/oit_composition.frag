@@ -37,13 +37,10 @@ float resolveReveal(ivec2 uv)
 
 bool isApproximatelyEqual(float a, float b)
 {
-	return abs(a - b) <= (abs(a) < abs(b) ? abs(b) : abs(a)) * EPSILON;
+    return abs(a - b) <= (abs(a) < abs(b) ? abs(b) : abs(a)) * EPSILON;
 }
 
-float max3(vec3 v) 
-{
-	return max(max(v.x, v.y), v.z);
-}
+float max3(vec3 v) { return max(max(v.x, v.y), v.z); }
 
 void main()
 {
@@ -51,16 +48,16 @@ void main()
     ivec2 UV = ivec2(inUV * attDim);
 
     const float revealage = resolveReveal(UV);
-	
-	if (isApproximatelyEqual(revealage, 1.0f)) 
-		discard;
- 
-	vec4 accumulation = resolveAccumulation(UV);
-	
-	if (isinf(max3(abs(accumulation.rgb)))) 
-		accumulation.rgb = vec3(accumulation.a);
 
-	vec3 average_color = accumulation.rgb / max(accumulation.a, EPSILON);
+    if (isApproximatelyEqual(revealage, 1.0f))
+        discard;
 
-	outColor = vec4(average_color, revealage);
+    vec4 accumulation = resolveAccumulation(UV);
+
+    if (isinf(max3(abs(accumulation.rgb))))
+        accumulation.rgb = vec3(accumulation.a);
+
+    vec3 average_color = accumulation.rgb / max(accumulation.a, EPSILON);
+
+    outColor = vec4(average_color, revealage);
 }

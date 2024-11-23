@@ -45,9 +45,6 @@ float luminance(vec3 linearRGB)
     return dot(linearRGB, vec3(0.2126, 0.7152, 0.0722));
 }
 
-float luminance(vec4 linearRGB)
-{
-    return luminance(linearRGB.rgb);
-}
+float luminance(vec4 linearRGB) { return luminance(linearRGB.rgb); }
 
 #endif

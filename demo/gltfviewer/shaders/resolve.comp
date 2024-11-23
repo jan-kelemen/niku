@@ -31,10 +31,12 @@ void main()
         vec4 val = texelFetch(backbuffer, texelCoord, i);
         result += val;
 
-        if (luminance(val.rgb) >= 1.0) {
+        if (luminance(val.rgb) >= 1.0)
+        {
             groups[i] = val * KarisAverage(val.rgb);
         }
-        else {
+        else
+        {
             groups[i] = mix(vec4(0.0), val, luminance(val.rgb));
         }
     }
