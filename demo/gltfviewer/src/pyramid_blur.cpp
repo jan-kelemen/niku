@@ -317,12 +317,10 @@ void gltfviewer::pyramid_blur_t::upsample_pass(uint32_t const levels,
 void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
     uint32_t const height)
 {
-    VkExtent2D const half_extent{width / 2, height / 2};
-
     destroy(&backend_->device(), &pyramid_image_);
     pyramid_image_ = vkrndr::create_image(backend_->device(),
-        half_extent,
-        vkrndr::max_mip_levels(half_extent.width, half_extent.height),
+        vkrndr::to_extent(width, height),
+        vkrndr::max_mip_levels(width, height),
         VK_SAMPLE_COUNT_1_BIT,
         VK_FORMAT_R16G16B16A16_SFLOAT,
         VK_IMAGE_TILING_OPTIMAL,

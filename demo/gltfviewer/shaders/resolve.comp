@@ -25,7 +25,7 @@ void main()
     ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
 
     vec4 result = vec4(0.0);
-    vec4 groups[SAMPLES];
+    vec4 brightResult = vec4(0.0);
     for (int i = 0; i < SAMPLES; i++)
     {
         vec4 val = texelFetch(backbuffer, texelCoord, i);
@@ -33,24 +33,19 @@ void main()
 
         if (luminance(val.rgb) >= 1.0)
         {
-            groups[i] = val * KarisAverage(val.rgb);
+            brightResult += val * KarisAverage(val.rgb);
         }
         else
         {
-            groups[i] = mix(vec4(0.0), val, luminance(val.rgb));
+            brightResult += mix(vec4(0.0), val, luminance(val.rgb));
         }
     }
+
     result /= float(SAMPLES);
     result.a = 1.0;
-
     imageStore(image, texelCoord, result);
 
-    result = vec4(0.0);
-    for (int i = 0; i < SAMPLES; i++)
-    {
-        result += groups[i];
-    }
-    result /= float(SAMPLES);
-
-    imageStore(bright, texelCoord / 2, result);
+    brightResult /= float(SAMPLES);
+    brightResult.a = 1.0;
+    imageStore(bright, texelCoord, brightResult);
 }
