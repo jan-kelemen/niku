@@ -19,8 +19,8 @@ float mipWeight() { return 1.0 / pow(2, pc.sourceMip); }
 void main()
 {
     vec2 resolution = vec2(pc.sourceResolution.x, pc.sourceResolution.y);
-    vec2 texelCoord = vec2(float(gl_GlobalInvocationID.x) / resolution.x,
-        float(gl_GlobalInvocationID.y) / resolution.y);
+    vec2 texelCoord = vec2(float(gl_GlobalInvocationID.x + 0.5) / resolution.x,
+        float(gl_GlobalInvocationID.y + 0.5) / resolution.y);
 
     float x = 0.006;
     float y = 0.006;

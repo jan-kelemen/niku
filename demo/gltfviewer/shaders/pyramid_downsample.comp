@@ -16,9 +16,10 @@ layout(rgba16f, set = 0, binding = 1) uniform image2D image[];
 
 void main()
 {
-    vec2 resolution = vec2(pc.sourceResolution.x, pc.sourceResolution.y);
-    vec2 texelCoord = vec2(float(gl_GlobalInvocationID.x) / resolution.x,
-        float(gl_GlobalInvocationID.y) / resolution.y);
+    vec2 resolution = vec2(imageSize(image[pc.sourceMip + 1]).x,
+        imageSize(image[pc.sourceMip + 1]).y);
+    vec2 texelCoord = vec2(float(gl_GlobalInvocationID.x + 0.5) / resolution.x,
+        float(gl_GlobalInvocationID.y + 0.5) / resolution.y);
 
     vec2 texelSize = 1.0 / resolution;
     float x = texelSize.x;
@@ -71,6 +72,6 @@ void main()
     downsample += (b + d + f + h) * 0.0625;
     downsample += (j + k + l + m) * 0.125;
 
-    ivec2 storePos = ivec2(gl_GlobalInvocationID.xy) / 2;
+    ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
     imageStore(image[pc.sourceMip + 1], storePos, vec4(downsample, 1.0));
 }

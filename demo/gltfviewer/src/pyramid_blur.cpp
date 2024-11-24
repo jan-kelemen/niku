@@ -255,9 +255,9 @@ void gltfviewer::pyramid_blur_t::downsample_pass(uint32_t const levels,
 
         vkCmdDispatch(command_buffer,
             static_cast<uint32_t>(
-                std::ceil(cppext::as_fp(mip_extents_[mip].width) / 16.0f)),
+                std::ceil(cppext::as_fp(mip_extents_[mip + 1].width) / 16.0f)),
             static_cast<uint32_t>(
-                std::ceil(cppext::as_fp(mip_extents_[mip].height) / 16.0f)),
+                std::ceil(cppext::as_fp(mip_extents_[mip + 1].height) / 16.0f)),
             1);
     }
 }
