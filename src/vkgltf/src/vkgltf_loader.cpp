@@ -458,14 +458,15 @@ namespace
         };
 
         auto const load_from_buffer_view =
-            [&unsupported_variant, &load_from_vector, &asset](
+            [&unsupported_variant, &load_from_array, &load_from_vector, &asset](
                 fastgltf::sources::BufferView const& view)
         {
             auto const& bufferView = asset.bufferViews[view.bufferViewIndex];
             auto const& buffer = asset.buffers[bufferView.bufferIndex];
 
-            return std::visit(
-                cppext::overloaded{unsupported_variant, load_from_vector},
+            return std::visit(cppext::overloaded{unsupported_variant,
+                                  load_from_array,
+                                  load_from_vector},
                 buffer.data);
         };
 
