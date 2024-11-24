@@ -154,7 +154,8 @@ gltfviewer::weighted_blend_shader_t::~weighted_blend_shader_t()
     vkDestroySampler(backend_->device().logical, bilinear_sampler_, nullptr);
 }
 
-void gltfviewer::weighted_blend_shader_t::draw(VkCommandBuffer command_buffer,
+void gltfviewer::weighted_blend_shader_t::draw(float const bias,
+    VkCommandBuffer command_buffer,
     vkrndr::image_t const& target_image,
     vkrndr::image_t const& other_image)
 {
@@ -176,7 +177,7 @@ void gltfviewer::weighted_blend_shader_t::draw(VkCommandBuffer command_buffer,
         0,
         std::span{&frame_data_->descriptor_, 1});
 
-    push_constants_t pc{.weight = 0.15f};
+    push_constants_t pc{.weight = bias};
     vkCmdPushConstants(command_buffer,
         *pipeline_.layout,
         VK_SHADER_STAGE_COMPUTE_BIT,

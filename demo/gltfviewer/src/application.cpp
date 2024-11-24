@@ -235,6 +235,16 @@ void gltfviewer::application_t::update(float delta_time)
     }
 
     ImGui::SliderFloat("IBL Factor", &ibl_factor_, 0.0f, 9.0f);
+    if (int v{cppext::narrow<int>(blur_levels_)};
+        ImGui::SliderInt("Blur Levels",
+            &v,
+            1,
+            cppext::narrow<int>(pyramid_blur_->source_image().mip_levels) - 1))
+    {
+        blur_levels_ = static_cast<uint32_t>(v);
+    }
+
+    ImGui::SliderFloat("Bloom Strength", &bloom_strength_, 0.0f, 1.0f);
     ImGui::Checkbox("Color Conversion", &color_conversion_);
     ImGui::Checkbox("Tone Mapping", &tone_mapping_);
     ImGui::End();
@@ -390,7 +400,7 @@ void gltfviewer::application_t::draw()
             resolve_image_,
             blur_image);
 
-        pyramid_blur_->draw(command_buffer);
+        pyramid_blur_->draw(blur_levels_, command_buffer);
 
         vkrndr::transition_image(blur_image.image,
             command_buffer,
@@ -413,7 +423,8 @@ void gltfviewer::application_t::draw()
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
             1);
 
-        weighted_blend_shader_->draw(command_buffer,
+        weighted_blend_shader_->draw(bloom_strength_,
+            command_buffer,
             resolve_image_,
             blur_image);
 

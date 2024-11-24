@@ -33,11 +33,7 @@ namespace gltfviewer
     public:
         [[nodiscard]] vkrndr::image_t source_image() const;
 
-        void draw(VkCommandBuffer command_buffer);
-
-        void downsample_pass(VkCommandBuffer command_buffer);
-
-        void upsample_pass(VkCommandBuffer command_buffer);
+        void draw(uint32_t levels, VkCommandBuffer command_buffer);
 
         void resize(uint32_t width, uint32_t height);
 
@@ -53,6 +49,10 @@ namespace gltfviewer
         };
 
     private:
+        void downsample_pass(uint32_t levels, VkCommandBuffer command_buffer);
+
+        void upsample_pass(uint32_t levels, VkCommandBuffer command_buffer);
+
         void create_downsample_resources();
         void create_upsample_resources();
 

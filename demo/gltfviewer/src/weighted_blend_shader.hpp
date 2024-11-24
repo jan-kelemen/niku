@@ -28,7 +28,8 @@ namespace gltfviewer
         ~weighted_blend_shader_t();
 
     public:
-        void draw(VkCommandBuffer command_buffer,
+        void draw(float bias,
+            VkCommandBuffer command_buffer,
             vkrndr::image_t const& target_image,
             vkrndr::image_t const& other_image);
 

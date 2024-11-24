@@ -197,7 +197,8 @@ vkrndr::image_t gltfviewer::pyramid_blur_t::source_image() const
     return rv;
 }
 
-void gltfviewer::pyramid_blur_t::draw(VkCommandBuffer command_buffer)
+void gltfviewer::pyramid_blur_t::draw(uint32_t const levels,
+    VkCommandBuffer command_buffer)
 {
     frame_data_.cycle();
 
@@ -205,18 +206,21 @@ void gltfviewer::pyramid_blur_t::draw(VkCommandBuffer command_buffer)
         command_buffer,
         "Pyramid blur"};
 
-    downsample_pass(command_buffer);
-    upsample_pass(command_buffer);
+    auto const l{
+        std::clamp(levels, uint32_t{1}, pyramid_image_.mip_levels - 1)};
+    downsample_pass(l, command_buffer);
+    upsample_pass(l, command_buffer);
 }
 
-void gltfviewer::pyramid_blur_t::downsample_pass(VkCommandBuffer command_buffer)
+void gltfviewer::pyramid_blur_t::downsample_pass(uint32_t const levels,
+    VkCommandBuffer command_buffer)
 {
     vkrndr::bind_pipeline(command_buffer,
         downsample_pipeline_,
         0,
         std::span{&frame_data_->descriptor_, 1});
 
-    for (uint32_t mip{}; mip != pyramid_image_.mip_levels - 1; ++mip)
+    for (uint32_t mip{}; mip != levels; ++mip)
     {
         transition_mip(pyramid_image_.image,
             command_buffer,
@@ -258,7 +262,8 @@ void gltfviewer::pyramid_blur_t::downsample_pass(VkCommandBuffer command_buffer)
     }
 }
 
-void gltfviewer::pyramid_blur_t::upsample_pass(VkCommandBuffer command_buffer)
+void gltfviewer::pyramid_blur_t::upsample_pass(uint32_t const levels,
+    VkCommandBuffer command_buffer)
 {
     vkrndr::bind_pipeline(command_buffer,
         upsample_pipeline_,
@@ -266,8 +271,7 @@ void gltfviewer::pyramid_blur_t::upsample_pass(VkCommandBuffer command_buffer)
         std::span{&frame_data_->descriptor_, 1});
 
     for (uint32_t const mip :
-        std::views::iota(uint32_t{0}, pyramid_image_.mip_levels - 1) |
-            std::views::reverse)
+        std::views::iota(uint32_t{0}, levels) | std::views::reverse)
     {
         transition_mip(pyramid_image_.image,
             command_buffer,
@@ -318,8 +322,7 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
     destroy(&backend_->device(), &pyramid_image_);
     pyramid_image_ = vkrndr::create_image(backend_->device(),
         half_extent,
-        std::min(uint32_t{4},
-            vkrndr::max_mip_levels(half_extent.width, half_extent.height)),
+        vkrndr::max_mip_levels(half_extent.width, half_extent.height),
         VK_SAMPLE_COUNT_1_BIT,
         VK_FORMAT_R16G16B16A16_SFLOAT,
         VK_IMAGE_TILING_OPTIMAL,

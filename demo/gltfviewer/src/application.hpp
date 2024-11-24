@@ -107,6 +107,8 @@ namespace gltfviewer
 
         uint32_t debug_{0};
         float ibl_factor_{0.5f};
+        uint32_t blur_levels_{4};
+        float bloom_strength_{0.15f};
         bool color_conversion_{true};
         bool tone_mapping_{true};
     };
