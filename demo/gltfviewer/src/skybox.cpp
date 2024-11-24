@@ -33,8 +33,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <ranges>
 #include <span>
+#include <vector>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 // IWYU pragma: no_include <expected>
@@ -776,7 +776,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
     std::array descriptors{descriptor_set, skybox_descriptor_};
 
     std::vector<VkImageView> face_views;
-    face_views.reserve(6 * prefilter_cubemap_.mip_levels);
+    face_views.reserve(size_t{6} * prefilter_cubemap_.mip_levels);
     for (uint32_t mip{}; mip != prefilter_cubemap_.mip_levels; ++mip)
     {
         auto mip_views{
@@ -821,7 +821,8 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                 cppext::as_fp(prefilter_cubemap_.extent.width) *
                 std::powf(0.5f, cppext::as_fp(mip))};
 
-            std::span mip_face_views{face_views.data() + 6 * mip, 6};
+            std::span const mip_face_views{face_views.data() + size_t{6} * mip,
+                6};
 
             VkViewport const viewport{.x = 0.0f,
                 .y = 0.0f,
