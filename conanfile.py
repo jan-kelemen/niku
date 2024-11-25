@@ -11,6 +11,7 @@ class NikuConan(ConanFile):
     exports_sources = "cmake", "src", "CMakeLists.txt", "LICENSE"
 
     def requirements(self):
+        self.requires("angelscript/2.37.0")
         self.requires("boost/1.86.0")
         self.requires("bullet3/3.25")
         self.requires("entt/3.14.0")
