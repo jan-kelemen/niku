@@ -2,7 +2,10 @@ add_executable(galileo)
 
 target_sources(galileo
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
+    PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/galileo.m.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
 )
 
 target_include_directories(galileo
@@ -12,10 +15,13 @@ target_include_directories(galileo
 
 target_link_libraries(galileo
     PRIVATE
+        cppext
+    PRIVATE
         Angelscript::angelscript
         Angelscript::scriptbuilder
         Angelscript::scriptstdstring
         fmt::fmt
+        Jolt::Jolt
         spdlog::spdlog
     PRIVATE
         project-options
