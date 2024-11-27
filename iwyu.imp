@@ -56,9 +56,6 @@
   { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
   { include: [ "<__math/rounding_functions.h>", private, "<cmath>", public ] },
 
-  # bullet3 aliases
-  { symbol: [ "btScalar", private, "<LinearMath/btScalar.h>", public] },
-
   # Catch2 aliases
   { include: [ "<catch2/catch_message.hpp>", public, "<catch2/catch_test_macros.hpp>", public ] },
 
@@ -67,6 +64,9 @@
 
   # freetype aliases
   { include: [ "@<freetype/.*>", private, "<ft2build.h>", public] },
+
+  # Jolt aliases
+  { include: [ "<Jolt/Math/Vec3.inl>", private, "<Jolt/Math/Vec3.h>", public] },
 
   # glm aliases
   { include: [ "<glm/detail/func_common.inl>", private, "<glm/common.hpp>", public] },
