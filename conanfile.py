@@ -13,7 +13,6 @@ class NikuConan(ConanFile):
     def requirements(self):
         self.requires("angelscript/2.37.0")
         self.requires("boost/1.86.0")
-        self.requires("bullet3/3.25")
         self.requires("entt/3.14.0")
         self.requires("fastgltf/0.8.0")
         self.requires("fmt/11.0.2")
@@ -21,6 +20,7 @@ class NikuConan(ConanFile):
         self.requires("glm/1.0.1")
         self.requires("glslang/1.3.296.0")
         self.requires("imgui/1.91.5-docking")
+        self.requires("joltphysics/5.2.0")
         self.requires("mikktspace/cci.20200325")
         self.requires("meshoptimizer/0.22")
         self.requires("perlinnoise/3.0.0")

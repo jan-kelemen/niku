@@ -14,7 +14,6 @@ option(NIKU_ENABLE_IWYU "Enable include-what-you-use in build" OFF)
 
 option(NIKU_BUILD_DEMOS "Building demo examples" ON)
 
-find_package(Angelscript REQUIRED)
 find_package(Boost REQUIRED)
 find_package(fmt REQUIRED)
 find_package(imgui REQUIRED)
@@ -31,6 +30,8 @@ find_package(volk REQUIRED)
 find_package(vulkan-memory-allocator REQUIRED)
 
 if (NIKU_BUILD_DEMOS)
+    find_package(Angelscript REQUIRED)
+    find_package(Jolt REQUIRED)
     find_package(simdjson REQUIRED)
 endif()
 

@@ -83,12 +83,12 @@ https://www.apache.org/licenses/LICENSE-2.0
 Following third party libraries are used:
 * [AngelScript](https://www.angelcode.com/angelscript/) published under [Zlib](https://spdx.org/licenses/Zlib.html)
 * [Boost](https://www.boost.org) published under [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)
-* [bullet3](http://bulletphysics.org) published under [Zlib](https://spdx.org/licenses/Zlib.html)
 * [Catch2](https://github.com/catchorg/Catch2) published under [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)
 * [EnTT](https://github.com/skypjack/entt/wiki) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [fastgltf](https://github.com/spnda/fastgltf) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [\{fmt}](https://fmt.dev) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [FreeType](https://freetype.org) published under [FTL](https://spdx.org/licenses/FTL.html)
+* [Jolt Physics](https://github.com/jrouwe/JoltPhysics) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [GLM](https://glm.g-truc.net/) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [glslang](https://github.com/KhronosGroup/glslang) published under [LICENSE](https://github.com/KhronosGroup/glslang/blob/main/LICENSE.txt)
 * [Dear ImGui](https://github.com/ocornut/imgui) published under [MIT](https://spdx.org/licenses/MIT.html)
