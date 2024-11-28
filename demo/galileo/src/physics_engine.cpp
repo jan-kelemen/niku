@@ -65,15 +65,22 @@ namespace
         // NOLINTBEGIN
         va_list list;
         va_start(list, format_string);
-        std::array<char, 1024> buffer;
+        std::array<char, 1024> buffer{};
         DISABLE_WARNING_PUSH
         DISABLE_WARNING_FORMAT_NONLITERAL
-        vsnprintf(buffer.data(), buffer.size(), format_string, list);
+        int const count{
+            vsnprintf(buffer.data(), buffer.size(), format_string, list)};
         DISABLE_WARNING_POP
         va_end(list);
         // NOLINTEND
 
-        spdlog::info(std::string_view{buffer.data(), buffer.size()});
+        if (count < 0)
+        {
+            return;
+        }
+
+        spdlog::info(
+            std::string_view{buffer.data(), static_cast<size_t>(count)});
     }
 
     DISABLE_WARNING_PUSH
