@@ -25,7 +25,7 @@ Override packages from public Conan2 package index with updated ones from [jan-k
 git clone git@github.com:jan-kelemen/conan-recipes.git
 conan export conan-recipes/recipes/fastgltf/all --version 0.8.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3
-conan export conan-recipes/recipes/joltphysics/all --version 5.20.0
+conan export conan-recipes/recipes/joltphysics/all --version 5.2.0
 conan export conan-recipes/recipes/meshoptimizer/all --version 0.22
 conan export conan-recipes/recipes/sdl/all --version 2.30.9
 conan export conan-recipes/recipes/spirv-cross/all --version 1.3.296.0
