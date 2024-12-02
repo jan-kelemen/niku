@@ -42,4 +42,5 @@ set_property(TARGET galileo
         VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-set_target_properties(galileo PROPERTIES FOLDER "demo")
+set_target_properties(galileo PROPERTIES FOLDER "demo/galileo")
+set_target_properties(galileo_scripts PROPERTIES FOLDER "demo/galileo")
