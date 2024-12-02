@@ -222,9 +222,7 @@ void vkrndr::swap_chain_t::create_swap_frames()
     create_info.imageColorSpace = surface_format.colorSpace;
     create_info.imageExtent = extent_;
     create_info.imageArrayLayers = 1;
-    // TODO-JK: Allow configuration from outside
-    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    create_info.imageUsage = settings_->swapchain_flags;
     create_info.preTransform = swap_details.capabilities.currentTransform;
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     create_info.presentMode = present_mode;
