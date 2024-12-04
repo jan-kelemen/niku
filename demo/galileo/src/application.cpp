@@ -26,6 +26,18 @@ DISABLE_WARNING_POP
 
 #include <imgui.h>
 
+#include <Jolt/Jolt.h>
+
+#include <Jolt/Math/Quat.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Physics/Body/Body.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>
 #include <SDL2/SDL_video.h>
@@ -42,6 +54,76 @@ DISABLE_WARNING_POP
 #include <utility>
 #include <variant>
 #include <vector>
+
+namespace
+{
+    [[nodiscard]] std::vector<JPH::BodyID> setup_world(
+        JPH::BodyInterface& body_interface)
+    {
+        using namespace JPH::literals;
+
+        // Next we can create a rigid body to serve as the floor, we make a
+        // large box Create the settings for the collision volume (the shape).
+        // Note that for simple shapes (like boxes) you can also directly
+        // construct a BoxShape.
+        JPH::BoxShapeSettings const floor_shape_settings{
+            JPH::Vec3{100.0f, 1.0f, 100.0f}};
+        floor_shape_settings
+            .SetEmbedded(); // A ref counted object on the stack (base class
+                            // RefTarget) should be marked as such to prevent it
+                            // from being freed when its reference count goes to
+                            // 0.
+
+        // Create the shape
+        JPH::ShapeSettings::ShapeResult const floor_shape_result{
+            floor_shape_settings.Create()};
+        JPH::ShapeRefC const floor_shape{floor_shape_result
+                .Get()}; // We don't expect an error here, but you can check
+                         // floor_shape_result for HasError() / GetError()
+
+        // Create the settings for the body itself. Note that here you can also
+        // set other properties like the restitution / friction.
+        JPH::BodyCreationSettings const floor_settings{floor_shape,
+            JPH::RVec3{0.0_r, -1.0_r, 0.0_r},
+            JPH::Quat::sIdentity(),
+            JPH::EMotionType::Static,
+            galileo::object_layers::non_moving};
+
+        // Create the actual rigid body
+        JPH::Body* floor{body_interface.CreateBody(
+            floor_settings)}; // Note that if we run out of bodies this can
+                              // return nullptr
+
+        // Add it to the world
+        body_interface.AddBody(floor->GetID(), JPH::EActivation::DontActivate);
+
+        // Now create a dynamic body to bounce on the floor
+        // Note that this uses the shorthand version of creating and adding a
+        // body to the world
+        JPH::BodyCreationSettings const sphere_settings{
+            new JPH::SphereShape{0.5f},
+            JPH::RVec3{0.0_r, 2.0_r, 0.0_r},
+            JPH::Quat::sIdentity(),
+            JPH::EMotionType::Dynamic,
+            galileo::object_layers::moving};
+
+        JPH::BodyID const sphere_id =
+            body_interface.CreateAndAddBody(sphere_settings,
+                JPH::EActivation::Activate);
+
+        // Now you can interact with the dynamic body, in this case we're going
+        // to give it a velocity. (note that if we had used CreateBody then we
+        // could have set the velocity straight on the body before adding it to
+        // the physics system)
+        body_interface.SetLinearVelocity(sphere_id,
+            JPH::Vec3{0.0f, -5.0f, 0.0f});
+
+        std::vector<JPH::BodyID> rv;
+        rv.emplace_back(floor->GetID());
+        rv.emplace_back(sphere_id);
+        return rv;
+    }
+} // namespace
 
 galileo::application_t::application_t(bool const debug)
     : niku::application_t{niku::startup_params_t{
@@ -64,6 +146,7 @@ galileo::application_t::application_t(bool const debug)
           backend_->swap_chain())}
     , camera_controller_{camera_, mouse_}
 {
+    fixed_update_interval(1.0f / 60.0f);
 }
 
 galileo::application_t::~application_t() = default;
@@ -84,6 +167,27 @@ bool galileo::application_t::handle_event(SDL_Event const& event)
     }
 
     return true;
+}
+
+void galileo::application_t::fixed_update(float const delta_time)
+{
+    auto& body_interface{physics_engine_.body_interface()};
+    for (auto const& body_id : bodies_)
+    {
+        JPH::RVec3 const position{
+            body_interface.GetCenterOfMassPosition(body_id)};
+        JPH::Vec3 const velocity{body_interface.GetLinearVelocity(body_id)};
+        spdlog::info("Body {}: Position = ({}, {}, {}), Velocity =({}, {}, {})",
+            body_id.GetIndexAndSequenceNumber(),
+            position.GetX(),
+            position.GetY(),
+            position.GetZ(),
+            velocity.GetX(),
+            velocity.GetY(),
+            velocity.GetZ());
+    }
+
+    physics_engine_.fixed_update(delta_time);
 }
 
 void galileo::application_t::update(float delta_time)
@@ -152,6 +256,8 @@ void galileo::application_t::end_frame()
 
 void galileo::application_t::on_startup()
 {
+    bodies_ = setup_world(physics_engine_.body_interface());
+
     auto const extent{backend_->extent()};
     on_resize(extent.width, extent.height);
 }

@@ -107,13 +107,6 @@ namespace
     DISABLE_WARNING_POP
 } // namespace
 
-namespace object_layers
-{
-    constexpr JPH::ObjectLayer moving{0};
-    constexpr JPH::ObjectLayer non_moving{1};
-    constexpr JPH::ObjectLayer count{2};
-} // namespace object_layers
-
 class [[nodiscard]] object_layer_pair_filter final
     : public JPH::ObjectLayerPairFilter
 {
@@ -122,10 +115,10 @@ class [[nodiscard]] object_layer_pair_filter final
     {
         switch (first)
         {
-        case object_layers::non_moving:
+        case galileo::object_layers::non_moving:
             // Non moving only collides with moving
-            return second == object_layers::moving;
-        case object_layers::moving:
+            return second == galileo::object_layers::moving;
+        case galileo::object_layers::moving:
             // Moving collides with everything
             return true;
         default:
@@ -150,9 +143,9 @@ public:
     broad_phase_layer()
     {
         // Create a mapping table from object to broad phase layer
-        object_to_broad_mapping_[object_layers::non_moving] =
+        object_to_broad_mapping_[galileo::object_layers::non_moving] =
             broad_phase_layers::non_moving;
-        object_to_broad_mapping_[object_layers::moving] =
+        object_to_broad_mapping_[galileo::object_layers::moving] =
             broad_phase_layers::moving;
     }
 
@@ -177,7 +170,7 @@ public:
     [[nodiscard]] JPH::BroadPhaseLayer GetBroadPhaseLayer(
         JPH::ObjectLayer object_layer) const override
     {
-        JPH_ASSERT(object_layer < object_layers::count);
+        JPH_ASSERT(object_layer < galileo::object_layers::count);
         return object_to_broad_mapping_[object_layer];
     }
 
@@ -187,9 +180,9 @@ public:
     {
         switch ((JPH::BroadPhaseLayer::Type) layer)
         {
-        case (JPH::BroadPhaseLayer::Type) object_layers::non_moving:
+        case (JPH::BroadPhaseLayer::Type) galileo::object_layers::non_moving:
             return "non_moving";
-        case (JPH::BroadPhaseLayer::Type) object_layers::moving:
+        case (JPH::BroadPhaseLayer::Type) galileo::object_layers::moving:
             return "moving";
         default:
             JPH_ASSERT(false);
@@ -200,7 +193,8 @@ public:
 
 private:
     // NOLINTNEXTLINE
-    JPH::BroadPhaseLayer object_to_broad_mapping_[object_layers::count];
+    JPH::BroadPhaseLayer
+        object_to_broad_mapping_[galileo::object_layers::count];
 };
 
 class [[nodiscard]] object_vs_broad_phase_layer_filter final
@@ -211,9 +205,9 @@ class [[nodiscard]] object_vs_broad_phase_layer_filter final
     {
         switch (first)
         {
-        case object_layers::non_moving:
+        case galileo::object_layers::non_moving:
             return second == broad_phase_layers::moving;
-        case object_layers::moving:
+        case galileo::object_layers::moving:
             return true;
         default:
             JPH_ASSERT(false);
@@ -277,70 +271,7 @@ class [[nodiscard]] body_activation_listener final
     }
 };
 
-namespace // TODO-JK: Temporary code
-{
-    void setup_world(JPH::BodyInterface& body_interface)
-    {
-        using namespace JPH::literals;
-
-        // Next we can create a rigid body to serve as the floor, we make a
-        // large box Create the settings for the collision volume (the shape).
-        // Note that for simple shapes (like boxes) you can also directly
-        // construct a BoxShape.
-        JPH::BoxShapeSettings const floor_shape_settings{
-            JPH::Vec3{100.0f, 1.0f, 100.0f}};
-        floor_shape_settings
-            .SetEmbedded(); // A ref counted object on the stack (base class
-                            // RefTarget) should be marked as such to prevent it
-                            // from being freed when its reference count goes to
-                            // 0.
-
-        // Create the shape
-        JPH::ShapeSettings::ShapeResult const floor_shape_result{
-            floor_shape_settings.Create()};
-        JPH::ShapeRefC const floor_shape{floor_shape_result
-                .Get()}; // We don't expect an error here, but you can check
-                         // floor_shape_result for HasError() / GetError()
-
-        // Create the settings for the body itself. Note that here you can also
-        // set other properties like the restitution / friction.
-        JPH::BodyCreationSettings const floor_settings{floor_shape,
-            JPH::RVec3{0.0_r, -1.0_r, 0.0_r},
-            JPH::Quat::sIdentity(),
-            JPH::EMotionType::Static,
-            object_layers::non_moving};
-
-        // Create the actual rigid body
-        JPH::Body* floor{body_interface.CreateBody(
-            floor_settings)}; // Note that if we run out of bodies this can
-                              // return nullptr
-
-        // Add it to the world
-        body_interface.AddBody(floor->GetID(), JPH::EActivation::DontActivate);
-
-        // Now create a dynamic body to bounce on the floor
-        // Note that this uses the shorthand version of creating and adding a
-        // body to the world
-        JPH::BodyCreationSettings const sphere_settings{
-            new JPH::SphereShape{0.5f},
-            JPH::RVec3{0.0_r, 2.0_r, 0.0_r},
-            JPH::Quat::sIdentity(),
-            JPH::EMotionType::Dynamic,
-            object_layers::moving};
-        JPH::BodyID const sphere_id =
-            body_interface.CreateAndAddBody(sphere_settings,
-                JPH::EActivation::Activate);
-
-        // Now you can interact with the dynamic body, in this case we're going
-        // to give it a velocity. (note that if we had used CreateBody then we
-        // could have set the velocity straight on the body before adding it to
-        // the physics system)
-        body_interface.SetLinearVelocity(sphere_id,
-            JPH::Vec3{0.0f, -5.0f, 0.0f});
-    }
-} // namespace
-
-class [[nodiscard]] galileo::physics_engine_t::impl final
+struct [[nodiscard]] galileo::physics_engine_t::impl final
 {
 public:
     impl();
@@ -360,7 +291,7 @@ public:
 
     impl& operator=(impl&&) noexcept = delete;
 
-private:
+public:
     std::unique_ptr<JPH::Factory> factory_;
     std::unique_ptr<JPH::TempAllocator> temp_allocator_;
     std::unique_ptr<JPH::JobSystem> job_system_;
@@ -386,7 +317,7 @@ galileo::physics_engine_t::impl::impl()
 
     JPH::RegisterTypes();
 
-    spdlog::error("{}", JPH::GetConfigurationString());
+    spdlog::info("{}", JPH::GetConfigurationString());
 
     temp_allocator_ =
 #ifdef JPH_DISABLE_TEMP_ALLOCATOR
@@ -410,9 +341,6 @@ galileo::physics_engine_t::impl::impl()
         object_vs_object_layer_filter_);
     physics_system_->SetBodyActivationListener(&body_activation_listener_);
     physics_system_->SetContactListener(&contact_listener_);
-
-    auto& body_interface{physics_system_->GetBodyInterface()};
-    setup_world(body_interface);
 }
 
 galileo::physics_engine_t::impl::~impl()
@@ -425,25 +353,6 @@ galileo::physics_engine_t::impl::~impl()
 
 void galileo::physics_engine_t::impl::fixed_update(float delta_time)
 {
-    JPH::Array<JPH::BodyID> bodies;
-    physics_system_->GetBodies(bodies);
-
-    auto& body_interface{physics_system_->GetBodyInterface()};
-    for (auto const& body_id : bodies)
-    {
-        JPH::RVec3 const position{
-            body_interface.GetCenterOfMassPosition(body_id)};
-        JPH::Vec3 const velocity{body_interface.GetLinearVelocity(body_id)};
-        spdlog::info("Body {}: Position = ({}, {}, {}), Velocity =({}, {}, {})",
-            body_id.GetIndexAndSequenceNumber(),
-            position.GetX(),
-            position.GetY(),
-            position.GetZ(),
-            velocity.GetX(),
-            velocity.GetY(),
-            velocity.GetZ());
-    }
-
     constexpr auto collision_steps{1};
     physics_system_->Update(delta_time,
         collision_steps,
@@ -460,4 +369,14 @@ galileo::physics_engine_t::~physics_engine_t() = default;
 void galileo::physics_engine_t::fixed_update(float const delta_time)
 {
     impl_->fixed_update(delta_time);
+}
+
+JPH::BodyInterface& galileo::physics_engine_t::body_interface()
+{
+    return impl_->physics_system_->GetBodyInterface();
+}
+
+JPH::BodyInterface const& galileo::physics_engine_t::body_interface() const
+{
+    return impl_->physics_system_->GetBodyInterface();
 }

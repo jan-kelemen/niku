@@ -2,12 +2,16 @@
 #define GALILEO_APPLICATION_INCLUDED
 
 #include <camera_controller.hpp>
+#include <physics_engine.hpp>
 
 #include <niku_application.hpp>
 #include <niku_mouse.hpp>
 #include <niku_perspective_camera.hpp>
 
 #include <vkrndr_image.hpp>
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/BodyID.h>
 
 #include <SDL2/SDL_events.h>
 
@@ -48,6 +52,8 @@ namespace galileo
     private: // niku::application callback interface
         bool handle_event(SDL_Event const& event) override;
 
+        void fixed_update(float delta_time) override;
+
         void update(float delta_time) override;
 
         bool begin_frame() override;
@@ -65,6 +71,9 @@ namespace galileo
     private:
         niku::mouse_t mouse_;
         niku::perspective_camera_t camera_;
+
+        physics_engine_t physics_engine_;
+        std::vector<JPH::BodyID> bodies_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<niku::imgui_layer_t> imgui_;
