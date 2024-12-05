@@ -4,6 +4,7 @@
 #include <Jolt/Jolt.h>
 
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/PhysicsSystem.h>
 
 #include <memory>
 
@@ -30,6 +31,10 @@ namespace galileo
 
     public:
         void fixed_update(float delta_time);
+
+        [[nodiscard]] JPH::PhysicsSystem& physics_system();
+
+        [[nodiscard]] JPH::PhysicsSystem const& physics_system() const;
 
         [[nodiscard]] JPH::BodyInterface& body_interface();
 

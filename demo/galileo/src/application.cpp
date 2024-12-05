@@ -1,6 +1,7 @@
 #include <application.hpp>
 
 #include <camera_controller.hpp>
+#include <physics_debug.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
@@ -102,7 +103,7 @@ namespace
         // body to the world
         JPH::BodyCreationSettings const sphere_settings{
             new JPH::SphereShape{0.5f},
-            JPH::RVec3{0.0_r, 2.0_r, 0.0_r},
+            JPH::RVec3{0.0_r, 100.0_r, 0.0_r},
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Dynamic,
             galileo::object_layers::moving};
@@ -144,9 +145,12 @@ galileo::application_t::application_t(bool const debug)
           backend_->context(),
           backend_->device(),
           backend_->swap_chain())}
+    , physics_debug_{std::make_unique<physics_debug_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
 {
     fixed_update_interval(1.0f / 60.0f);
+
+    physics_debug_->set_camera(camera_);
 }
 
 galileo::application_t::~application_t() = default;
@@ -193,6 +197,8 @@ void galileo::application_t::fixed_update(float const delta_time)
 void galileo::application_t::update(float delta_time)
 {
     camera_controller_.update(delta_time);
+
+    physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
 }
 
 bool galileo::application_t::begin_frame()
@@ -227,7 +233,7 @@ void galileo::application_t::draw()
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
-    vkrndr::wait_for_color_attachment_read(target_image.image, command_buffer);
+    vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
@@ -239,6 +245,18 @@ void galileo::application_t::draw()
 
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    physics_debug_->draw(command_buffer, target_image);
+
+    vkrndr::transition_image(target_image.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        1);
 
     imgui_->render(command_buffer, target_image);
 
@@ -265,6 +283,8 @@ void galileo::application_t::on_startup()
 void galileo::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device().logical);
+
+    physics_debug_.reset();
 
     imgui_.reset();
 

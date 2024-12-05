@@ -371,6 +371,16 @@ void galileo::physics_engine_t::fixed_update(float const delta_time)
     impl_->fixed_update(delta_time);
 }
 
+JPH::PhysicsSystem& galileo::physics_engine_t::physics_system()
+{
+    return *impl_->physics_system_;
+}
+
+JPH::PhysicsSystem const& galileo::physics_engine_t::physics_system() const
+{
+    return *impl_->physics_system_;
+}
+
 JPH::BodyInterface& galileo::physics_engine_t::body_interface()
 {
     return impl_->physics_system_->GetBodyInterface();

@@ -30,6 +30,11 @@ namespace vkrndr
 
 namespace galileo
 {
+    class physics_debug_t;
+} // namespace galileo
+
+namespace galileo
+{
     class [[nodiscard]] application_t final : public niku::application_t
     {
     public:
@@ -77,6 +82,7 @@ namespace galileo
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<niku::imgui_layer_t> imgui_;
+        std::unique_ptr<physics_debug_t> physics_debug_;
 
         camera_controller_t camera_controller_;
     };
