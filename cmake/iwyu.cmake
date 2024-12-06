@@ -7,6 +7,7 @@ if (NIKU_ENABLE_IWYU)
         -Wno-unknown-warning-option;
         -Wno-unknown-attributes;
         -Xiwyu;--comment_style=long;
+        -Xiwyu;--max_line_length=200;
         -Xiwyu;--cxx17ns;
         -Xiwyu;--mapping_file=${PROJECT_SOURCE_DIR}/iwyu.imp
     )
