@@ -1,0 +1,4 @@
+[conf]
+tools.build:cflags+=["-march=x86-64-v3"]
+tools.build:cxxflags+=["-march=x86-64-v3"]
+

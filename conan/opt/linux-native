@@ -1,0 +1,4 @@
+[conf]
+tools.build:cflags+=["-march=native", "-mtune=native"]
+tools.build:cxxflags+=["-march=native", "-mtune=native"]
+

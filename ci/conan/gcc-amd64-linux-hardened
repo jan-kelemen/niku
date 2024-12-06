@@ -1,5 +1,6 @@
 include(../../conan/gcc-{{ os.getenv("GCC_VER") }}-amd64-linux)
 include(../../conan/opt/gcc-amd64-linux-hardening)
+include(../../conan/opt/amd64-linux-v3)
 include(../../conan/dependencies)
 
 [settings]
