@@ -2,6 +2,7 @@
 
 #include <camera_controller.hpp>
 #include <physics_debug.hpp>
+#include <physics_engine.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
@@ -14,8 +15,6 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
-#include <vkrndr_debug_utils.hpp>
-#include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
@@ -27,17 +26,21 @@ DISABLE_WARNING_POP
 
 #include <imgui.h>
 
-#include <Jolt/Jolt.h>
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Math/Quat.h>
+#include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/EActivation.h>
+#include <Jolt/Physics/PhysicsSystem.h>
 
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>
@@ -47,14 +50,14 @@ DISABLE_WARNING_POP
 
 #include <volk.h>
 
-#include <array>
 #include <cstdint>
-#include <filesystem>
 #include <memory>
 #include <string>
-#include <utility>
 #include <variant>
 #include <vector>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 
 namespace
 {

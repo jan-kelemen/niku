@@ -1,12 +1,17 @@
 #ifndef GALILEO_PHYSICS_ENGINE_INCLUDED
 #define GALILEO_PHYSICS_ENGINE_INCLUDED
 
-#include <Jolt/Jolt.h>
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 
-#include <Jolt/Physics/Body/BodyInterface.h>
-#include <Jolt/Physics/PhysicsSystem.h>
+#include <Jolt/Physics/Collision/ObjectLayer.h>
 
 #include <memory>
+
+namespace JPH
+{
+    class BodyInterface;
+    class PhysicsSystem;
+} // namespace JPH
 
 namespace galileo
 {

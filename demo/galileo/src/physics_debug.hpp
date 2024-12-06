@@ -7,12 +7,23 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 
-#include <Jolt/Jolt.h>
+#include <Jolt/Jolt.h> // IWYU pragma: keep
+
+#include <Jolt/Core/Array.h>
+#include <Jolt/Core/Color.h>
+#include <Jolt/Core/Core.h>
+#include <Jolt/Core/Memory.h>
+#include <Jolt/Core/Reference.h>
+#include <Jolt/Math/Real.h>
 #include <Jolt/Renderer/DebugRenderer.h>
 
 #include <volk.h>
 
+#include <atomic>
 #include <cstdint>
+
+// IWYU pragma: no_include <Jolt/Core/STLAllocator.h>
+// IWYU pragma: no_include <string_view>
 
 namespace niku
 {
@@ -30,7 +41,7 @@ namespace galileo
     class [[nodiscard]] physics_debug_t final : public JPH::DebugRenderer
     {
     public:
-        physics_debug_t(vkrndr::backend_t& backend);
+        explicit physics_debug_t(vkrndr::backend_t& backend);
 
         physics_debug_t(physics_debug_t const&) = delete;
 
@@ -61,7 +72,9 @@ namespace galileo
             void Release() override
             {
                 if (--ref_count_ == 0)
+                {
                     triangles.clear();
+                }
             }
 
             JPH::Array<Triangle> triangles;

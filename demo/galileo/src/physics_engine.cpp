@@ -5,7 +5,6 @@
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/ConfigurationString.h>
-#include <Jolt/Core/Array.h>
 #include <Jolt/Core/Core.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/IssueReporting.h>
@@ -13,21 +12,12 @@
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/Memory.h>
 #include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Math/Quat.h>
+#include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
-#include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Body/BodyID.h>
-#include <Jolt/Physics/Body/BodyInterface.h>
-#include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/Shape.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
@@ -41,10 +31,14 @@
 #include <string_view>
 #include <thread>
 
+namespace JPH
+{
+    class BodyInterface;
+} // namespace JPH
+
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <Jolt/Core/STLAllocator.h>
-// IWYU pragma: no_include <Jolt/Math/Real.h>
 
 namespace
 {
@@ -351,7 +345,8 @@ galileo::physics_engine_t::impl::~impl()
     factory_.reset();
 }
 
-void galileo::physics_engine_t::impl::fixed_update(float delta_time)
+// NOLINTNEXTLINE(readability-make-member-function-const)
+void galileo::physics_engine_t::impl::fixed_update(float const delta_time)
 {
     constexpr auto collision_steps{1};
     physics_system_->Update(delta_time,

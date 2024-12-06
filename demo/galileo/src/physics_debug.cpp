@@ -1,21 +1,42 @@
 #include <physics_debug.hpp>
 
-#include <cppext_numeric.hpp>
+#include <cppext_cycled_buffer.hpp>
 
 #include <niku_camera.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_buffer.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 
-#include <glm/gtc/type_ptr.hpp>
-
 #include <boost/scope/defer.hpp>
+
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/mat4x4.hpp> // for glm::mat4
+#include <glm/vec3.hpp> // for glm::vec3
+#include <glm/vec4.hpp> // for glm::vec4
+
+#include <Jolt/Math/Mat44.h> // for JPH::Mat44
+#include <Jolt/Math/Vec3.h> // for JPH::Vec3
+#include <Jolt/Math/Vec4.h> // for JPH::Vec4
 
 #include <spdlog/spdlog.h>
 
 #include <array>
+#include <cstddef>
+#include <memory>
 #include <span>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <iterator>
+// IWYU pragma: no_include <new>
+// IWYU pragma: no_include <optional>
 
 namespace
 {
@@ -161,10 +182,10 @@ void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer,
     render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
         VK_ATTACHMENT_STORE_OP_STORE,
         target_image.view,
-        VkClearValue{.color = {0.0f, 0.0f, 0.0f, 1.0f}});
+        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
     {
         [[maybe_unused]] auto const guard{
-            render_pass.begin(command_buffer, {0, 0, target_image.extent})};
+            render_pass.begin(command_buffer, {{0, 0}, target_image.extent})};
 
         vkrndr::bind_pipeline(command_buffer, line_pipeline_);
 
@@ -179,6 +200,7 @@ void galileo::physics_debug_t::DrawLine(JPH::RVec3Arg const inFrom,
     auto* const lines{frame_data_->vertex_map.as<line_vertex_t>()};
     if (frame_data_->vertex_count + 2 <= max_line_count)
     {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         auto const color{glm::make_vec4(inColor.ToVec4().mF32)};
 
         line_vertex_t& first{lines[frame_data_->vertex_count++]};
@@ -188,6 +210,7 @@ void galileo::physics_debug_t::DrawLine(JPH::RVec3Arg const inFrom,
         line_vertex_t& second{lines[frame_data_->vertex_count++]};
         second.position = glm::make_vec3(inTo.mF32);
         second.color = color;
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     }
 }
 
@@ -229,7 +252,7 @@ JPH::DebugRenderer::Batch galileo::physics_debug_t::CreateTriangleBatch(
     }
 
     // Convert indexed triangle list to triangle list
-    batch->triangles.resize(inIndexCount / 3);
+    batch->triangles.resize(static_cast<size_t>(inIndexCount) / 3);
     for (size_t t{}; t < batch->triangles.size(); ++t)
     {
         Triangle& triangle{batch->triangles[t]};
@@ -241,7 +264,7 @@ JPH::DebugRenderer::Batch galileo::physics_debug_t::CreateTriangleBatch(
     return batch.release();
 }
 
-void galileo::physics_debug_t::DrawGeometry(JPH::RMat44Arg const inModelMatrix,
+void galileo::physics_debug_t::DrawGeometry(JPH::RMat44Arg inModelMatrix,
     JPH::AABox const& inWorldSpaceBounds,
     float const inLODScaleSq,
     JPH::ColorArg const inModelColor,
@@ -260,9 +283,10 @@ void galileo::physics_debug_t::DrawGeometry(JPH::RMat44Arg const inModelMatrix,
             inLODScaleSq);
     }
 
-    // Draw the batch
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-static-cast-downcast)
     batch_impl_t const* const batch{
         static_cast<batch_impl_t const*>(lod->mTriangleBatch.GetPtr())};
+    // NOLINTEND(cppcoreguidelines-pro-type-static-cast-downcast)
 
     for (Triangle const& triangle : batch->triangles)
     {

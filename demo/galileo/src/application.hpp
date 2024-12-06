@@ -8,15 +8,14 @@
 #include <niku_mouse.hpp>
 #include <niku_perspective_camera.hpp>
 
-#include <vkrndr_image.hpp>
-
-#include <Jolt/Jolt.h>
-#include <Jolt/Physics/Body/BodyID.h>
+#include <Jolt/Jolt.h> // IWYU pragma: keep
+#include <Jolt/Physics/Body/BodyID.h> // IWYU pragma: keep
 
 #include <SDL2/SDL_events.h>
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace niku
 {
