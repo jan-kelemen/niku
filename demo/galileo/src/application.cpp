@@ -137,7 +137,7 @@ galileo::application_t::application_t(bool const debug)
           .height = 512}}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
-              .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_SRGB,
+              .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_SRGB,
               .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
           },
           debug)}
