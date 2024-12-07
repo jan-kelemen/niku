@@ -2,6 +2,8 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <ngnphy_jolt_adapter.hpp>
+
 #include <niku_camera.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -14,13 +16,12 @@
 
 #include <boost/scope/defer.hpp>
 
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 #include <Jolt/Math/Mat44.h>
 #include <Jolt/Math/Vec3.h>
-#include <Jolt/Math/Vec4.h>
 
 #include <spdlog/spdlog.h>
 
@@ -187,17 +188,15 @@ void galileo::physics_debug_t::DrawLine(JPH::RVec3Arg const inFrom,
     auto* const lines{frame_data_->vertex_map.as<line_vertex_t>()};
     if (frame_data_->vertex_count + 2 <= max_line_count)
     {
-        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-        auto const color{glm::make_vec4(inColor.ToVec4().mF32)};
+        auto const color{ngnphy::to_glm(inColor.ToVec4())};
 
         line_vertex_t& first{lines[frame_data_->vertex_count++]};
-        first.position = glm::make_vec3(inFrom.mF32);
+        first.position = ngnphy::to_glm(inFrom);
         first.color = color;
 
         line_vertex_t& second{lines[frame_data_->vertex_count++]};
-        second.position = glm::make_vec3(inTo.mF32);
+        second.position = ngnphy::to_glm(inTo);
         second.color = color;
-        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     }
 }
 

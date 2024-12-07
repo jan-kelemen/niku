@@ -11,6 +11,9 @@
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
+
+#include <ngnphy_jolt_adapter.hpp>
+
 #include <niku_application.hpp>
 #include <niku_imgui_layer.hpp>
 #include <niku_perspective_camera.hpp>
@@ -28,9 +31,6 @@ DISABLE_WARNING_STRINGOP_OVERFLOW
 #include <fmt/std.h> // IWYU pragma: keep
 DISABLE_WARNING_POP
 
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/mat4x4.hpp>
-
 #include <imgui.h>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
@@ -38,7 +38,6 @@ DISABLE_WARNING_POP
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
-#include <Jolt/Math/Vec4.h>
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyID.h>
@@ -234,16 +233,8 @@ void galileo::application_t::update(float delta_time)
     auto& body_interface{physics_engine_.body_interface()};
     for (auto const& body_id : bodies_)
     {
-        JPH::RMat44 const world_transform{
-            body_interface.GetWorldTransform(body_id)};
-        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-        glm::mat4 const m{glm::make_vec4(world_transform.GetColumn4(0).mF32),
-            glm::make_vec4(world_transform.GetColumn4(1).mF32),
-            glm::make_vec4(world_transform.GetColumn4(2).mF32),
-            glm::make_vec4(world_transform.GetColumn4(3).mF32)};
-        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-
-        render_graph_->update(cnt++, m);
+        render_graph_->update(cnt++,
+            ngnphy::to_glm(body_interface.GetWorldTransform(body_id)));
     }
 
     physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
