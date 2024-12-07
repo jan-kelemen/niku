@@ -41,16 +41,19 @@ namespace galileo
     class [[nodiscard]] physics_debug_t final : public JPH::DebugRenderer
     {
     public:
-        explicit physics_debug_t(vkrndr::backend_t& backend);
+        physics_debug_t(vkrndr::backend_t& backend,
+            VkDescriptorSetLayout frame_info_layout);
 
         physics_debug_t(physics_debug_t const&) = delete;
 
         physics_debug_t(physics_debug_t&&) noexcept = delete;
 
     public:
-        ~physics_debug_t();
+        ~physics_debug_t() override;
 
     public:
+        [[nodiscard]] VkPipelineLayout pipeline_layout();
+
         void set_camera(niku::camera_t const& camera);
 
         void draw(VkCommandBuffer command_buffer,

@@ -75,16 +75,10 @@ namespace
     }
 
     constexpr size_t max_line_count{50000};
-
-    struct [[nodiscard]] push_constants_t final
-    {
-        glm::mat4 view;
-        glm::mat4 projection;
-    };
-
 } // namespace
 
-galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend)
+galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
+    VkDescriptorSetLayout frame_info_layout)
     : backend_{&backend}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
@@ -105,18 +99,17 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend)
         [this, shd = &fragment_shader]()
         { destroy(&backend_->device(), shd); }};
 
-    line_pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
-        vkrndr::pipeline_layout_builder_t{backend_->device()}
-            .add_push_constants<push_constants_t>(VK_SHADER_STAGE_VERTEX_BIT)
-            .build()}
-                         .with_primitive_topology(
-                             VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
-                         .add_shader(as_pipeline_shader(vertex_shader))
-                         .add_shader(as_pipeline_shader(fragment_shader))
-                         .add_color_attachment(backend_->image_format())
-                         .add_vertex_input(binding_description(),
-                             attribute_description())
-                         .build();
+    line_pipeline_ =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
+                .add_descriptor_set_layout(frame_info_layout)
+                .build()}
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
+            .add_shader(as_pipeline_shader(vertex_shader))
+            .add_shader(as_pipeline_shader(fragment_shader))
+            .add_color_attachment(backend_->image_format())
+            .add_vertex_input(binding_description(), attribute_description())
+            .build();
 
     for (frame_data_t& data : frame_data_.as_span())
     {
@@ -140,6 +133,11 @@ galileo::physics_debug_t::~physics_debug_t()
     }
 
     destroy(&backend_->device(), &line_pipeline_);
+}
+
+VkPipelineLayout galileo::physics_debug_t::pipeline_layout()
+{
+    return *line_pipeline_.layout;
 }
 
 void galileo::physics_debug_t::set_camera(niku::camera_t const& camera)
@@ -167,16 +165,6 @@ void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer,
         1,
         &frame_data_->vertex_buffer.buffer,
         &zero_offset);
-
-    push_constants_t const pc{.view = camera_->view_matrix(),
-        .projection = camera_->projection_matrix()};
-
-    vkCmdPushConstants(command_buffer,
-        *line_pipeline_.layout,
-        VK_SHADER_STAGE_VERTEX_BIT,
-        0,
-        sizeof(pc),
-        &pc);
 
     vkrndr::render_pass_t render_pass;
     render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,

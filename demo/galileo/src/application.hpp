@@ -29,6 +29,7 @@ namespace vkrndr
 
 namespace galileo
 {
+    class frame_info_t;
     class physics_debug_t;
 } // namespace galileo
 
@@ -81,6 +82,8 @@ namespace galileo
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<niku::imgui_layer_t> imgui_;
+
+        std::unique_ptr<frame_info_t> frame_info_;
         std::unique_ptr<physics_debug_t> physics_debug_;
 
         camera_controller_t camera_controller_;

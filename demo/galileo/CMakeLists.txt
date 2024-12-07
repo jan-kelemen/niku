@@ -4,12 +4,20 @@ target_sources(galileo
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/frame_info.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer_shader.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/frame_info.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/galileo.m.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer_shader.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
 )
@@ -46,24 +54,30 @@ add_custom_target(galileo_scripts
         ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test.as
 )
 
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/physics_debug_line.frag.spv
+set(GALILEO_SHADERS
+    deferred.frag
+    fullscreen.vert
+    gbuffer.frag
+    gbuffer.vert
+    physics_debug_line.frag
+    physics_debug_line.vert
 )
 
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/physics_debug_line.vert.spv
-)
+foreach(shader IN LISTS GALILEO_SHADERS)
+    compile_shader(
+        SHADER
+            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${shader}"
+        SPIRV
+            "${CMAKE_CURRENT_BINARY_DIR}/${shader}.spv"
+    )
+
+    list(APPEND GALILEO_COMPILED_SHADERS
+        "${CMAKE_CURRENT_BINARY_DIR}/${shader}.spv")
+endforeach()
 
 add_custom_target(galileo_shaders
     DEPENDS
-        ${CMAKE_CURRENT_BINARY_DIR}/physics_debug_line.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/physics_debug_line.vert.spv
+        ${GALILEO_COMPILED_SHADERS}
 )
 
 set_property(TARGET galileo 

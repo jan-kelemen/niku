@@ -1,6 +1,7 @@
 #include <application.hpp>
 
 #include <camera_controller.hpp>
+#include <frame_info.hpp>
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
 
@@ -148,7 +149,9 @@ galileo::application_t::application_t(bool const debug)
           backend_->context(),
           backend_->device(),
           backend_->swap_chain())}
-    , physics_debug_{std::make_unique<physics_debug_t>(*backend_)}
+    , frame_info_{std::make_unique<frame_info_t>(*backend_)}
+    , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
+          frame_info_->descriptor_set_layout())}
     , camera_controller_{camera_, mouse_}
 {
     fixed_update_interval(1.0f / 60.0f);
@@ -202,6 +205,8 @@ void galileo::application_t::update(float delta_time)
     camera_controller_.update(delta_time);
 
     physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
+
+    frame_info_->update(camera_);
 }
 
 bool galileo::application_t::begin_frame()
@@ -249,7 +254,13 @@ void galileo::application_t::draw()
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    physics_debug_->draw(command_buffer, target_image);
+    if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
+    {
+        frame_info_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+        physics_debug_->draw(command_buffer, target_image);
+    }
 
     vkrndr::transition_image(target_image.image,
         command_buffer,
@@ -288,6 +299,8 @@ void galileo::application_t::on_shutdown()
     vkDeviceWaitIdle(backend_->device().logical);
 
     physics_debug_.reset();
+
+    frame_info_.reset();
 
     imgui_.reset();
 
