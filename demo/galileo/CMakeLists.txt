@@ -10,6 +10,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
@@ -20,6 +21,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
 )
 
 target_include_directories(galileo

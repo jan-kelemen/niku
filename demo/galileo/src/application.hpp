@@ -13,6 +13,8 @@
 
 #include <SDL2/SDL_events.h>
 
+#include <vkrndr_image.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -30,7 +32,10 @@ namespace vkrndr
 namespace galileo
 {
     class frame_info_t;
+    class gbuffer_t;
+    class gbuffer_shader_t;
     class physics_debug_t;
+    class render_graph_t;
 } // namespace galileo
 
 namespace galileo
@@ -76,6 +81,7 @@ namespace galileo
     private:
         niku::mouse_t mouse_;
         niku::perspective_camera_t camera_;
+        camera_controller_t camera_controller_;
 
         physics_engine_t physics_engine_;
         std::vector<JPH::BodyID> bodies_;
@@ -83,10 +89,13 @@ namespace galileo
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<niku::imgui_layer_t> imgui_;
 
-        std::unique_ptr<frame_info_t> frame_info_;
-        std::unique_ptr<physics_debug_t> physics_debug_;
+        vkrndr::image_t depth_buffer_;
+        std::unique_ptr<gbuffer_t> gbuffer_;
 
-        camera_controller_t camera_controller_;
+        std::unique_ptr<frame_info_t> frame_info_;
+        std::unique_ptr<render_graph_t> render_graph_;
+        std::unique_ptr<gbuffer_shader_t> gbuffer_shader_;
+        std::unique_ptr<physics_debug_t> physics_debug_;
     };
 } // namespace galileo
 #endif

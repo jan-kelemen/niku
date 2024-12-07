@@ -15,13 +15,12 @@
 #include <boost/scope/defer.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/mat4x4.hpp> // for glm::mat4
-#include <glm/vec3.hpp> // for glm::vec3
-#include <glm/vec4.hpp> // for glm::vec4
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
-#include <Jolt/Math/Mat44.h> // for JPH::Mat44
-#include <Jolt/Math/Vec3.h> // for JPH::Vec3
-#include <Jolt/Math/Vec4.h> // for JPH::Vec4
+#include <Jolt/Math/Mat44.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Math/Vec4.h>
 
 #include <spdlog/spdlog.h>
 

@@ -2,13 +2,15 @@
 
 #include <camera_controller.hpp>
 #include <frame_info.hpp>
+#include <gbuffer.hpp>
+#include <gbuffer_shader.hpp>
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
+#include <render_graph.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
-
 #include <niku_application.hpp>
 #include <niku_imgui_layer.hpp>
 #include <niku_perspective_camera.hpp>
@@ -16,6 +18,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
@@ -25,6 +28,9 @@ DISABLE_WARNING_STRINGOP_OVERFLOW
 #include <fmt/std.h> // IWYU pragma: keep
 DISABLE_WARNING_POP
 
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/mat4x4.hpp>
+
 #include <imgui.h>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
@@ -32,6 +38,7 @@ DISABLE_WARNING_POP
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
+#include <Jolt/Math/Vec4.h>
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyID.h>
@@ -51,6 +58,7 @@ DISABLE_WARNING_POP
 
 #include <volk.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -59,9 +67,19 @@ DISABLE_WARNING_POP
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <optional>
 
 namespace
 {
+    [[nodiscard]] vkrndr::image_t create_depth_buffer(
+        vkrndr::backend_t const& backend)
+    {
+        return vkrndr::create_depth_buffer(backend.device(),
+            backend.extent(),
+            false,
+            VK_SAMPLE_COUNT_1_BIT);
+    }
+
     [[nodiscard]] std::vector<JPH::BodyID> setup_world(
         JPH::BodyInterface& body_interface)
     {
@@ -139,6 +157,7 @@ galileo::application_t::application_t(bool const debug)
           .centered = true,
           .width = 512,
           .height = 512}}
+    , camera_controller_{camera_, mouse_}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_SRGB,
@@ -149,10 +168,16 @@ galileo::application_t::application_t(bool const debug)
           backend_->context(),
           backend_->device(),
           backend_->swap_chain())}
+    , depth_buffer_{create_depth_buffer(*backend_)}
+    , gbuffer_{std::make_unique<gbuffer_t>(*backend_)}
     , frame_info_{std::make_unique<frame_info_t>(*backend_)}
+    , render_graph_{std::make_unique<render_graph_t>(*backend_)}
+    , gbuffer_shader_{std::make_unique<gbuffer_shader_t>(*backend_,
+          frame_info_->descriptor_set_layout(),
+          render_graph_->descriptor_set_layout(),
+          depth_buffer_.format)}
     , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
           frame_info_->descriptor_set_layout())}
-    , camera_controller_{camera_, mouse_}
 {
     fixed_update_interval(1.0f / 60.0f);
 
@@ -204,6 +229,23 @@ void galileo::application_t::update(float delta_time)
 {
     camera_controller_.update(delta_time);
 
+    size_t cnt{};
+
+    auto& body_interface{physics_engine_.body_interface()};
+    for (auto const& body_id : bodies_)
+    {
+        JPH::RMat44 const world_transform{
+            body_interface.GetWorldTransform(body_id)};
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+        glm::mat4 const m{glm::make_vec4(world_transform.GetColumn4(0).mF32),
+            glm::make_vec4(world_transform.GetColumn4(1).mF32),
+            glm::make_vec4(world_transform.GetColumn4(2).mF32),
+            glm::make_vec4(world_transform.GetColumn4(3).mF32)};
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+
+        render_graph_->update(cnt++, m);
+    }
+
     physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
 
     frame_info_->update(camera_);
@@ -241,8 +283,6 @@ void galileo::application_t::draw()
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
-    vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
-
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
         .width = cppext::as_fp(target_image.extent.width),
@@ -253,6 +293,29 @@ void galileo::application_t::draw()
 
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    if (VkPipelineLayout const layout{gbuffer_shader_->pipeline_layout()})
+    {
+        gbuffer_->transition(command_buffer,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+
+        frame_info_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        render_graph_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        gbuffer_shader_->draw(command_buffer, *gbuffer_, depth_buffer_);
+    }
+
+    vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
 
     if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
     {
@@ -300,7 +363,15 @@ void galileo::application_t::on_shutdown()
 
     physics_debug_.reset();
 
+    gbuffer_shader_.reset();
+
+    render_graph_.reset();
+
     frame_info_.reset();
+
+    gbuffer_.reset();
+
+    destroy(&backend_->device(), &depth_buffer_);
 
     imgui_.reset();
 
@@ -311,4 +382,9 @@ void galileo::application_t::on_resize(uint32_t const width,
     uint32_t const height)
 {
     camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
+
+    destroy(&backend_->device(), &depth_buffer_);
+    depth_buffer_ = create_depth_buffer(*backend_);
+
+    gbuffer_->resize(width, height);
 }
