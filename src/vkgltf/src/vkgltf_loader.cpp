@@ -1001,7 +1001,7 @@ std::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
         fastgltf::Options::LoadExternalBuffers)};
     if (asset.error() != fastgltf::Error::None)
     {
-        spdlog::error("Failed to load asset: {}", data.error());
+        spdlog::error("Failed to load asset: {}", asset.error());
         return std::unexpected{make_error_code(translate_error(data.error()))};
     }
 
