@@ -99,6 +99,12 @@ namespace
 
         vkgltf::loader_t loader{backend};
         auto model{loader.load(std::filesystem::absolute("world.glb"))};
+        if (!model)
+        {
+            std::terminate();
+        }
+
+        make_node_matrices_absolute(*model);
 
         auto it{std::ranges::find(model->nodes, "Cube", &vkgltf::node_t::name)};
         if (it == std::cend(model->nodes) || !it->aabb)
@@ -113,7 +119,7 @@ namespace
         // Note that for simple shapes (like boxes) you can also directly
         // construct a BoxShape.
         JPH::BoxShapeSettings const floor_shape_settings{
-            JPH::Vec3{half_extents.x, half_extents.y, half_extents.z}};
+            ngnphy::to_jolt(half_extents)};
         floor_shape_settings
             .SetEmbedded(); // A ref counted object on the stack (base class
                             // RefTarget) should be marked as such to prevent it
@@ -130,7 +136,7 @@ namespace
         // Create the settings for the body itself. Note that here you can also
         // set other properties like the restitution / friction.
         JPH::BodyCreationSettings const floor_settings{floor_shape,
-            JPH::RVec3{0.0_r, -1.0_r, 0.0_r},
+            ngnphy::to_jolt(glm::vec3{it->matrix[3]}),
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Static,
             galileo::object_layers::non_moving};
@@ -158,7 +164,7 @@ namespace
         // body to the world
         JPH::BodyCreationSettings const sphere_settings{
             new JPH::SphereShape{half_extents.x},
-            JPH::RVec3{0.0_r, 100.0_r, 0.0_r},
+            ngnphy::to_jolt(glm::vec3{it->matrix[3]}),
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Dynamic,
             galileo::object_layers::moving};
