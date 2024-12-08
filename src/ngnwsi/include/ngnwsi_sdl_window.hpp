@@ -49,7 +49,7 @@ namespace ngnwsi
     public: // Interface
         [[nodiscard]] constexpr SDL_Window* native_handle() const noexcept;
 
-    public: // vulkan_window implementation
+    public: // window_t implementation
         [[nodiscard]] std::vector<char const*>
         required_extensions() const override;
 

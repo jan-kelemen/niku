@@ -41,7 +41,7 @@ namespace ngngfx
 
         [[nodiscard]] glm::vec3 const& right_direction() const;
 
-    public: // niku::camera overrides
+    public: // camera_t overrides
         void update() override;
 
         [[nodiscard]] glm::mat4 const& view_matrix() const override;

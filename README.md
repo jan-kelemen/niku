@@ -8,6 +8,7 @@ Cross platform game engine implemented in C++23 with support for Windows and Lin
 * Support for loading glTF files
 
 ## Demo applications
+* [galileo](https://github.com/jan-kelemen/niku/tree/master/demo/galileo) - Deferred 3D renderer with physics and scripting support 
 * [gltfviewer](https://github.com/jan-kelemen/niku/tree/master/demo/gltfviewer) - 3D renderer for glTF files implementing a Physically Based Rendering workflow
 
 ## Building
