@@ -1,5 +1,5 @@
-#ifndef NIKU_IMGUI_LAYER_INCLUDED
-#define NIKU_IMGUI_LAYER_INCLUDED
+#ifndef NGNWSI_IMGUI_LAYER_INCLUDED
+#define NGNWSI_IMGUI_LAYER_INCLUDED
 
 #include <volk.h>
 
@@ -13,12 +13,12 @@ namespace vkrndr
     class swap_chain_t;
 } // namespace vkrndr
 
-namespace niku
+namespace ngnwsi
 {
     class sdl_window_t;
-} // namespace niku
+} // namespace ngnwsi
 
-namespace niku
+namespace ngnwsi
 {
     class [[nodiscard]] imgui_layer_t final
     {
@@ -60,11 +60,11 @@ namespace niku
         vkrndr::device_t* device_;
         VkDescriptorPool descriptor_pool_;
     };
-} // namespace niku
+} // namespace ngnwsi
 
-constexpr bool niku::imgui_layer_t::enabled() const { return enabled_; }
+constexpr bool ngnwsi::imgui_layer_t::enabled() const { return enabled_; }
 
-constexpr void niku::imgui_layer_t::set_enabled(bool const state)
+constexpr void ngnwsi::imgui_layer_t::set_enabled(bool const state)
 {
     enabled_ = state;
 }

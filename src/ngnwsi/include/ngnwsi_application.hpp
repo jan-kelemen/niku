@@ -1,5 +1,5 @@
-#ifndef NIKU_APPLICATION_INCLUDED
-#define NIKU_APPLICATION_INCLUDED
+#ifndef NGNWSI_APPLICATION_INCLUDED
+#define NGNWSI_APPLICATION_INCLUDED
 
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_video.h>
@@ -8,12 +8,12 @@
 #include <memory>
 #include <string>
 
-namespace niku
+namespace ngnwsi
 {
     class sdl_window_t;
-} // namespace niku
+} // namespace ngnwsi
 
-namespace niku
+namespace ngnwsi
 {
     struct [[nodiscard]] subsystems_t final
     {
@@ -92,6 +92,6 @@ namespace niku
         struct impl;
         std::unique_ptr<impl> impl_;
     };
-} // namespace niku
+} // namespace ngnwsi
 
 #endif

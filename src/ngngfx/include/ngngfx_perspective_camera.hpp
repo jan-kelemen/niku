@@ -1,13 +1,13 @@
-#ifndef NIKU_PERSPECTIVE_CAMERA_INCLUDED
-#define NIKU_PERSPECTIVE_CAMERA_INCLUDED
+#ifndef NGNGFX_PERSPECTIVE_CAMERA_INCLUDED
+#define NGNGFX_PERSPECTIVE_CAMERA_INCLUDED
 
-#include <niku_camera.hpp>
+#include <ngngfx_camera.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
-namespace niku
+namespace ngngfx
 {
     class [[nodiscard]] perspective_camera_t : public camera_t
     {
@@ -73,6 +73,6 @@ namespace niku
         glm::mat4 projection_matrix_;
         glm::mat4 view_projection_matrix_;
     };
-} // namespace niku
+} // namespace ngngfx
 
 #endif

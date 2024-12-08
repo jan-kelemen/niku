@@ -1,6 +1,6 @@
-#include <niku_perspective_camera.hpp>
+#include <ngngfx_perspective_camera.hpp>
 
-#include <niku_camera.hpp>
+#include <ngngfx_camera.hpp>
 
 #include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -10,7 +10,7 @@
 
 #include <cmath>
 
-niku::perspective_camera_t::perspective_camera_t()
+ngngfx::perspective_camera_t::perspective_camera_t()
     : perspective_camera_t({0.0f, 0.0f, 0.0f},
           16.0f / 9.0f,
           45.0f,
@@ -21,7 +21,7 @@ niku::perspective_camera_t::perspective_camera_t()
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-niku::perspective_camera_t::perspective_camera_t(glm::vec3 const& position,
+ngngfx::perspective_camera_t::perspective_camera_t(glm::vec3 const& position,
     float const aspect_ratio,
     float const fov,
     glm::vec3 const& world_up,
@@ -36,37 +36,37 @@ niku::perspective_camera_t::perspective_camera_t(glm::vec3 const& position,
     calculate_view_projection_matrices();
 }
 
-glm::vec2 const& niku::perspective_camera_t::yaw_pitch() const
+glm::vec2 const& ngngfx::perspective_camera_t::yaw_pitch() const
 {
     return yaw_pitch_;
 }
 
-void niku::perspective_camera_t::set_yaw_pitch(glm::vec2 const& yaw_pitch)
+void ngngfx::perspective_camera_t::set_yaw_pitch(glm::vec2 const& yaw_pitch)
 {
     yaw_pitch_ = yaw_pitch;
 }
 
-void niku::perspective_camera_t::set_near_far(glm::vec2 const& near_far)
+void ngngfx::perspective_camera_t::set_near_far(glm::vec2 const& near_far)
 {
     near_far_planes_ = near_far;
 }
 
-glm::vec3 const& niku::perspective_camera_t::up_direction() const
+glm::vec3 const& ngngfx::perspective_camera_t::up_direction() const
 {
     return up_direction_;
 }
 
-glm::vec3 const& niku::perspective_camera_t::front_direction() const
+glm::vec3 const& ngngfx::perspective_camera_t::front_direction() const
 {
     return front_direction_;
 }
 
-glm::vec3 const& niku::perspective_camera_t::right_direction() const
+glm::vec3 const& ngngfx::perspective_camera_t::right_direction() const
 {
     return right_direction_;
 }
 
-void niku::perspective_camera_t::update()
+void ngngfx::perspective_camera_t::update()
 {
     auto const& yaw{yaw_pitch_.x};
     auto const& pitch{yaw_pitch_.y};
@@ -82,22 +82,22 @@ void niku::perspective_camera_t::update()
     calculate_view_projection_matrices();
 }
 
-glm::mat4 const& niku::perspective_camera_t::view_matrix() const
+glm::mat4 const& ngngfx::perspective_camera_t::view_matrix() const
 {
     return view_matrix_;
 }
 
-glm::mat4 const& niku::perspective_camera_t::projection_matrix() const
+glm::mat4 const& ngngfx::perspective_camera_t::projection_matrix() const
 {
     return projection_matrix_;
 }
 
-glm::mat4 const& niku::perspective_camera_t::view_projection_matrix() const
+glm::mat4 const& ngngfx::perspective_camera_t::view_projection_matrix() const
 {
     return view_projection_matrix_;
 }
 
-void niku::perspective_camera_t::calculate_view_projection_matrices()
+void ngngfx::perspective_camera_t::calculate_view_projection_matrices()
 {
     view_matrix_ =
         glm::lookAtRH(position_, position_ + front_direction_, up_direction_);

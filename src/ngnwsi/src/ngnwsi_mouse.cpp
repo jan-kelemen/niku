@@ -1,33 +1,33 @@
-#include <niku_mouse.hpp>
+#include <ngnwsi_mouse.hpp>
 
 #include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_stdinc.h>
 
-niku::mouse_t::mouse_t() : mouse_t(true) { }
+ngnwsi::mouse_t::mouse_t() : mouse_t(true) { }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-niku::mouse_t::mouse_t(bool const capture) : captured_{capture}
+ngnwsi::mouse_t::mouse_t(bool const capture) : captured_{capture}
 {
     set_capture(capture);
 }
 
-glm::ivec2 niku::mouse_t::position() const
+glm::ivec2 ngnwsi::mouse_t::position() const
 {
     glm::ivec2 rv;
     SDL_GetMouseState(&rv.x, &rv.y);
     return rv;
 }
 
-glm::ivec2 niku::mouse_t::relative_offset() const
+glm::ivec2 ngnwsi::mouse_t::relative_offset() const
 {
     glm::ivec2 rv;
     SDL_GetRelativeMouseState(&rv.x, &rv.y);
     return rv;
 }
 
-bool niku::mouse_t::captured() const { return captured_; }
+bool ngnwsi::mouse_t::captured() const { return captured_; }
 
-void niku::mouse_t::set_capture(bool const value)
+void ngnwsi::mouse_t::set_capture(bool const value)
 {
     SDL_SetRelativeMouseMode(value ? SDL_TRUE : SDL_FALSE);
     captured_ = value;

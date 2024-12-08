@@ -1,9 +1,9 @@
-#ifndef NIKU_MOUSE_INCLUDED
-#define NIKU_MOUSE_INCLUDED
+#ifndef NGNWSI_MOUSE_INCLUDED
+#define NGNWSI_MOUSE_INCLUDED
 
 #include <glm/vec2.hpp>
 
-namespace niku
+namespace ngnwsi
 {
     class [[nodiscard]] mouse_t
     {
@@ -36,5 +36,5 @@ namespace niku
     private:
         bool captured_;
     };
-} // namespace niku
+} // namespace ngnwsi
 #endif

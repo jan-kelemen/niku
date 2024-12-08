@@ -1,6 +1,7 @@
 add_subdirectory(cppext)
+add_subdirectory(ngngfx)
 add_subdirectory(ngnphy)
-add_subdirectory(niku)
+add_subdirectory(ngnwsi)
 add_subdirectory(vkrndr)
 add_subdirectory(vkglsl)
 add_subdirectory(vkgltf)

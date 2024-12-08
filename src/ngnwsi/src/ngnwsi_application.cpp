@@ -1,6 +1,6 @@
-#include <niku_application.hpp>
+#include <ngnwsi_application.hpp>
 
-#include <niku_sdl_window.hpp>
+#include <ngnwsi_sdl_window.hpp>
 
 #include <cppext_numeric.hpp>
 
@@ -16,13 +16,13 @@
 namespace
 {
     [[nodiscard]] constexpr uint32_t to_init_flags(
-        niku::subsystems_t const& subsystems)
+        ngnwsi::subsystems_t const& subsystems)
     {
         return subsystems.video ? SDL_INIT_VIDEO : 0;
     }
 } // namespace
 
-struct [[nodiscard]] niku::application_t::impl final
+struct [[nodiscard]] ngnwsi::application_t::impl final
 {
 public:
     explicit impl(startup_params_t const& params);
@@ -51,7 +51,7 @@ public:
     uint64_t last_fixed_tick{};
 };
 
-niku::application_t::impl::impl(startup_params_t const& params)
+ngnwsi::application_t::impl::impl(startup_params_t const& params)
     : guard{to_init_flags(params.init_subsystems)}
     , window{params.title.c_str(),
           params.window_flags,
@@ -61,9 +61,9 @@ niku::application_t::impl::impl(startup_params_t const& params)
 {
 }
 
-niku::application_t::impl::~impl() = default;
+ngnwsi::application_t::impl::~impl() = default;
 
-bool niku::application_t::impl::is_current_window_event(
+bool ngnwsi::application_t::impl::is_current_window_event(
     SDL_Event const& event) const
 {
     if (event.type == SDL_WINDOWEVENT)
@@ -74,14 +74,14 @@ bool niku::application_t::impl::is_current_window_event(
     return true;
 }
 
-niku::application_t::application_t(startup_params_t const& params)
+ngnwsi::application_t::application_t(startup_params_t const& params)
     : impl_{std::make_unique<impl>(params)}
 {
 }
 
-niku::application_t::~application_t() = default;
+ngnwsi::application_t::~application_t() = default;
 
-void niku::application_t::run()
+void ngnwsi::application_t::run()
 {
     on_startup();
 
@@ -146,7 +146,7 @@ void niku::application_t::run()
     on_shutdown();
 }
 
-void niku::application_t::fixed_update_interval(float const delta_time)
+void ngnwsi::application_t::fixed_update_interval(float const delta_time)
 {
     if (delta_time != 0.0f)
     {
@@ -158,14 +158,14 @@ void niku::application_t::fixed_update_interval(float const delta_time)
     }
 }
 
-float niku::application_t::fixed_update_interval() const
+float ngnwsi::application_t::fixed_update_interval() const
 {
     return impl_->fixed_update_interval.value_or(0.0f);
 }
 
-niku::sdl_window_t* niku::application_t::window() { return &impl_->window; }
+ngnwsi::sdl_window_t* ngnwsi::application_t::window() { return &impl_->window; }
 
-bool niku::application_t::is_quit_event(SDL_Event const& event)
+bool ngnwsi::application_t::is_quit_event(SDL_Event const& event)
 {
     switch (event.type)
     {

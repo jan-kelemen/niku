@@ -1,4 +1,4 @@
-#include <niku_sdl_window.hpp>
+#include <ngnwsi_sdl_window.hpp>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_error.h>
@@ -11,7 +11,7 @@
 #include <limits>
 #include <stdexcept>
 
-niku::sdl_guard_t::sdl_guard_t(uint32_t const flags)
+ngnwsi::sdl_guard_t::sdl_guard_t(uint32_t const flags)
 {
     if (SDL_Init(flags) != 0)
     {
@@ -20,9 +20,9 @@ niku::sdl_guard_t::sdl_guard_t(uint32_t const flags)
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 }
 
-niku::sdl_guard_t::~sdl_guard_t() { SDL_Quit(); }
+ngnwsi::sdl_guard_t::~sdl_guard_t() { SDL_Quit(); }
 
-niku::sdl_window_t::sdl_window_t(char const* const title,
+ngnwsi::sdl_window_t::sdl_window_t(char const* const title,
     SDL_WindowFlags const window_flags,
     bool const centered,
     int const width,
@@ -40,9 +40,9 @@ niku::sdl_window_t::sdl_window_t(char const* const title,
     }
 }
 
-niku::sdl_window_t::~sdl_window_t() { SDL_DestroyWindow(window_); }
+ngnwsi::sdl_window_t::~sdl_window_t() { SDL_DestroyWindow(window_); }
 
-std::vector<char const*> niku::sdl_window_t::required_extensions() const
+std::vector<char const*> ngnwsi::sdl_window_t::required_extensions() const
 {
     unsigned int extension_count{};
     SDL_Vulkan_GetInstanceExtensions(window_, &extension_count, nullptr);
@@ -54,7 +54,7 @@ std::vector<char const*> niku::sdl_window_t::required_extensions() const
     return required_extensions;
 }
 
-VkResult niku::sdl_window_t::create_surface(VkInstance instance,
+VkResult ngnwsi::sdl_window_t::create_surface(VkInstance instance,
     VkSurfaceKHR& surface) const
 {
     if (SDL_Vulkan_CreateSurface(window_, instance, &surface) == SDL_TRUE)
@@ -64,7 +64,7 @@ VkResult niku::sdl_window_t::create_surface(VkInstance instance,
     return VK_ERROR_UNKNOWN;
 }
 
-VkExtent2D niku::sdl_window_t::swap_extent(
+VkExtent2D ngnwsi::sdl_window_t::swap_extent(
     VkSurfaceCapabilitiesKHR const& capabilities) const
 {
     if (capabilities.currentExtent.width !=
@@ -90,7 +90,7 @@ VkExtent2D niku::sdl_window_t::swap_extent(
     return actual_extent;
 }
 
-bool niku::sdl_window_t::is_minimized() const
+bool ngnwsi::sdl_window_t::is_minimized() const
 {
     return (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED) != 0;
 }

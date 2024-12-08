@@ -1,5 +1,5 @@
-#ifndef NIKU_SDL_WINDOW_INCLUDED
-#define NIKU_SDL_WINDOW_INCLUDED
+#ifndef NGNWSI_SDL_WINDOW_INCLUDED
+#define NGNWSI_SDL_WINDOW_INCLUDED
 
 #include <vkrndr_window.hpp>
 
@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <vector> // IWYU pragma: keep
 
-namespace niku
+namespace ngnwsi
 {
     class [[nodiscard]] sdl_guard_t final
     {
@@ -69,10 +69,10 @@ namespace niku
     private: // Data
         SDL_Window* window_;
     };
-} // namespace niku
+} // namespace ngnwsi
 
 [[nodiscard]]
-constexpr SDL_Window* niku::sdl_window_t::native_handle() const noexcept
+constexpr SDL_Window* ngnwsi::sdl_window_t::native_handle() const noexcept
 {
     return window_;
 }

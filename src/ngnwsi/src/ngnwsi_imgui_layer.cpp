@@ -1,6 +1,6 @@
-#include <niku_imgui_layer.hpp>
+#include <ngnwsi_imgui_layer.hpp>
 
-#include <niku_sdl_window.hpp>
+#include <ngnwsi_sdl_window.hpp>
 
 #include <vkrndr_context.hpp>
 #include <vkrndr_debug_utils.hpp>
@@ -55,7 +55,7 @@ namespace
     }
 } // namespace
 
-niku::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
+ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     vkrndr::context_t const& context,
     vkrndr::device_t& device,
     vkrndr::swap_chain_t const& swap_chain)
@@ -113,7 +113,7 @@ niku::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     assert(init_vulkan);
 }
 
-niku::imgui_layer_t::~imgui_layer_t()
+ngnwsi::imgui_layer_t::~imgui_layer_t()
 {
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplSDL2_Shutdown();
@@ -122,7 +122,7 @@ niku::imgui_layer_t::~imgui_layer_t()
     vkDestroyDescriptorPool(device_->logical, descriptor_pool_, nullptr);
 }
 
-bool niku::imgui_layer_t::handle_event(SDL_Event const& event) const
+bool ngnwsi::imgui_layer_t::handle_event(SDL_Event const& event) const
 {
     if (enabled_)
     {
@@ -132,7 +132,7 @@ bool niku::imgui_layer_t::handle_event(SDL_Event const& event) const
     return false;
 }
 
-void niku::imgui_layer_t::begin_frame()
+void ngnwsi::imgui_layer_t::begin_frame()
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -140,7 +140,7 @@ void niku::imgui_layer_t::begin_frame()
     frame_rendered_ = false;
 }
 
-void niku::imgui_layer_t::render(VkCommandBuffer command_buffer,
+void ngnwsi::imgui_layer_t::render(VkCommandBuffer command_buffer,
     vkrndr::image_t const& target_image)
 {
     if (enabled_)
@@ -164,7 +164,7 @@ void niku::imgui_layer_t::render(VkCommandBuffer command_buffer,
     }
 }
 
-void niku::imgui_layer_t::end_frame()
+void ngnwsi::imgui_layer_t::end_frame()
 {
     if (!std::exchange(frame_rendered_, true))
     {

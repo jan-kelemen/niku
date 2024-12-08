@@ -1,10 +1,10 @@
-#ifndef NIKU_CAMERA_INCLUDED
-#define NIKU_CAMERA_INCLUDED
+#ifndef NGNGFX_CAMERA_INCLUDED
+#define NGNGFX_CAMERA_INCLUDED
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
-namespace niku
+namespace ngngfx
 {
     class [[nodiscard]] camera_t
     {
@@ -48,5 +48,5 @@ namespace niku
         glm::vec3 position_;
         float aspect_ratio_;
     };
-} // namespace niku
+} // namespace ngngfx
 #endif
