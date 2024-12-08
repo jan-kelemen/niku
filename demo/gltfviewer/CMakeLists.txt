@@ -39,7 +39,8 @@ target_include_directories(gltfviewer
 
 target_link_libraries(gltfviewer
     PRIVATE
-        niku
+        ngngfx
+        ngnwsi
         stb_impl
         vkglsl
         vkgltf

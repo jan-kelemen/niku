@@ -4,9 +4,10 @@
 #include <camera_controller.hpp>
 #include <model_selector.hpp>
 
-#include <niku_application.hpp>
-#include <niku_mouse.hpp>
-#include <niku_perspective_camera.hpp>
+#include <ngngfx_perspective_camera.hpp>
+
+#include <ngnwsi_application.hpp>
+#include <ngnwsi_mouse.hpp>
 
 #include <vkglsl_guard.hpp>
 #include <vkgltf_loader.hpp>
@@ -18,10 +19,10 @@
 #include <cstdint>
 #include <memory>
 
-namespace niku
+namespace ngnwsi
 {
     class imgui_layer_t;
-} // namespace niku
+} // namespace ngnwsi
 
 namespace vkrndr
 {
@@ -43,7 +44,7 @@ namespace gltfviewer
 
 namespace gltfviewer
 {
-    class [[nodiscard]] application_t final : public niku::application_t
+    class [[nodiscard]] application_t final : public ngnwsi::application_t
     {
     public:
         explicit application_t(bool debug);
@@ -62,7 +63,7 @@ namespace gltfviewer
         // cppcheck-suppress duplInheritedMember
         application_t& operator=(application_t&&) noexcept = delete;
 
-    private: // niku::application callback interface
+    private: // ngnwsi::application callback interface
         bool handle_event(SDL_Event const& event) override;
 
         void update(float delta_time) override;
@@ -82,11 +83,11 @@ namespace gltfviewer
     private:
         vkglsl::guard_t glsl_guard_;
 
-        niku::mouse_t mouse_;
-        niku::perspective_camera_t camera_;
+        ngnwsi::mouse_t mouse_;
+        ngngfx::perspective_camera_t camera_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
-        std::unique_ptr<niku::imgui_layer_t> imgui_;
+        std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
         vkrndr::image_t color_image_;
         vkrndr::image_t depth_buffer_;
         vkrndr::image_t resolve_image_;

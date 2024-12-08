@@ -4,7 +4,7 @@
 
 #include <ngnphy_jolt_adapter.hpp>
 
-#include <niku_camera.hpp>
+#include <ngngfx_camera.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
@@ -140,7 +140,7 @@ VkPipelineLayout galileo::physics_debug_t::pipeline_layout()
     return *line_pipeline_.layout;
 }
 
-void galileo::physics_debug_t::set_camera(niku::camera_t const& camera)
+void galileo::physics_debug_t::set_camera(ngngfx::camera_t const& camera)
 {
     camera_ = &camera;
 }

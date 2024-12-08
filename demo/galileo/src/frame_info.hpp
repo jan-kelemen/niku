@@ -8,10 +8,10 @@
 
 #include <volk.h>
 
-namespace niku
+namespace ngngfx
 {
     class camera_t;
-} // namespace niku
+} // namespace ngngfx
 
 namespace vkrndr
 {
@@ -35,7 +35,7 @@ namespace galileo
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
 
-        void update(niku::camera_t const& camera);
+        void update(ngngfx::camera_t const& camera);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,

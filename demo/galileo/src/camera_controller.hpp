@@ -5,19 +5,23 @@
 
 union SDL_Event;
 
-namespace niku
+namespace ngngfx
+{
+    class perspective_camera_t;
+} // namespace ngngfx
+
+namespace ngnwsi
 {
     class mouse_t;
-    class perspective_camera_t;
-} // namespace niku
+} // namespace ngnwsi
 
 namespace galileo
 {
     class [[nodiscard]] camera_controller_t final
     {
     public:
-        camera_controller_t(niku::perspective_camera_t& camera,
-            niku::mouse_t& mouse);
+        camera_controller_t(ngngfx::perspective_camera_t& camera,
+            ngnwsi::mouse_t& mouse);
 
         camera_controller_t(camera_controller_t const&) = delete;
 
@@ -39,8 +43,8 @@ namespace galileo
         camera_controller_t& operator=(camera_controller_t&&) noexcept = delete;
 
     private:
-        niku::perspective_camera_t* camera_;
-        niku::mouse_t* mouse_;
+        ngngfx::perspective_camera_t* camera_;
+        ngnwsi::mouse_t* mouse_;
 
         glm::vec3 velocity_{};
         bool update_needed_{false};

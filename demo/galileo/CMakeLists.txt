@@ -32,8 +32,9 @@ target_include_directories(galileo
 target_link_libraries(galileo
     PRIVATE
         cppext
+        ngngfx
         ngnphy
-        niku
+        ngnwsi
         vkgltf
     PRIVATE
         Angelscript::angelscript

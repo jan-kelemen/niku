@@ -2,8 +2,9 @@
 
 #include <cppext_numeric.hpp>
 
-#include <niku_mouse.hpp>
-#include <niku_perspective_camera.hpp>
+#include <ngngfx_perspective_camera.hpp>
+
+#include <ngnwsi_mouse.hpp>
 
 #include <imgui.h>
 
@@ -16,8 +17,8 @@
 #include <cstdint>
 
 galileo::camera_controller_t::camera_controller_t(
-    niku::perspective_camera_t& camera,
-    niku::mouse_t& mouse)
+    ngngfx::perspective_camera_t& camera,
+    ngnwsi::mouse_t& mouse)
     : camera_{&camera}
     , mouse_{&mouse}
 {

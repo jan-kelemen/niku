@@ -4,9 +4,10 @@
 #include <camera_controller.hpp>
 #include <physics_engine.hpp>
 
-#include <niku_application.hpp>
-#include <niku_mouse.hpp>
-#include <niku_perspective_camera.hpp>
+#include <ngngfx_perspective_camera.hpp>
+
+#include <ngnwsi_application.hpp>
+#include <ngnwsi_mouse.hpp>
 
 #include <vkrndr_image.hpp>
 
@@ -19,10 +20,10 @@
 #include <memory>
 #include <vector>
 
-namespace niku
+namespace ngnwsi
 {
     class imgui_layer_t;
-} // namespace niku
+} // namespace ngnwsi
 
 namespace vkrndr
 {
@@ -40,7 +41,7 @@ namespace galileo
 
 namespace galileo
 {
-    class [[nodiscard]] application_t final : public niku::application_t
+    class [[nodiscard]] application_t final : public ngnwsi::application_t
     {
     public:
         explicit application_t(bool debug);
@@ -59,7 +60,7 @@ namespace galileo
         // cppcheck-suppress duplInheritedMember
         application_t& operator=(application_t&&) noexcept = delete;
 
-    private: // niku::application callback interface
+    private: // ngnwsi::application callback interface
         bool handle_event(SDL_Event const& event) override;
 
         void fixed_update(float delta_time) override;
@@ -79,15 +80,15 @@ namespace galileo
         void on_resize(uint32_t width, uint32_t height) override;
 
     private:
-        niku::mouse_t mouse_;
-        niku::perspective_camera_t camera_;
+        ngnwsi::mouse_t mouse_;
+        ngngfx::perspective_camera_t camera_;
         camera_controller_t camera_controller_;
 
         physics_engine_t physics_engine_;
         std::vector<JPH::BodyID> bodies_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
-        std::unique_ptr<niku::imgui_layer_t> imgui_;
+        std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
 
         vkrndr::image_t depth_buffer_;
         std::unique_ptr<gbuffer_t> gbuffer_;

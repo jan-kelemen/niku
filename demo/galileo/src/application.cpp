@@ -12,12 +12,13 @@
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
 
+#include <ngngfx_perspective_camera.hpp>
+
 #include <ngnphy_jolt_adapter.hpp>
 
-#include <niku_application.hpp>
-#include <niku_imgui_layer.hpp>
-#include <niku_perspective_camera.hpp>
-#include <niku_sdl_window.hpp> // IWYU pragma: keep
+#include <ngnwsi_application.hpp>
+#include <ngnwsi_imgui_layer.hpp>
+#include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
 
 #include <vkgltf_loader.hpp>
 #include <vkgltf_model.hpp>
@@ -191,7 +192,7 @@ namespace
 } // namespace
 
 galileo::application_t::application_t(bool const debug)
-    : niku::application_t{niku::startup_params_t{
+    : ngnwsi::application_t{ngnwsi::startup_params_t{
           .init_subsystems = {.video = true, .debug = debug},
           .title = "galileo",
           .window_flags = static_cast<SDL_WindowFlags>(
@@ -206,7 +207,7 @@ galileo::application_t::application_t(bool const debug)
               .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
           },
           debug)}
-    , imgui_{std::make_unique<niku::imgui_layer_t>(*window(),
+    , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
           backend_->context(),
           backend_->device(),
           backend_->swap_chain())}

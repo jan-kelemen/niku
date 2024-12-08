@@ -2,7 +2,7 @@
 
 #include <cppext_cycled_buffer.hpp>
 
-#include <niku_camera.hpp>
+#include <ngngfx_camera.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
@@ -113,7 +113,7 @@ VkDescriptorSetLayout galileo::frame_info_t::descriptor_set_layout() const
     return descriptor_set_layout_;
 }
 
-void galileo::frame_info_t::update(niku::camera_t const& camera)
+void galileo::frame_info_t::update(ngngfx::camera_t const& camera)
 {
     frame_data_.cycle();
 

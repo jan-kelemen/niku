@@ -25,10 +25,10 @@
 // IWYU pragma: no_include <Jolt/Core/STLAllocator.h>
 // IWYU pragma: no_include <string_view>
 
-namespace niku
+namespace ngngfx
 {
     class camera_t;
-} // namespace niku
+} // namespace ngngfx
 
 namespace vkrndr
 {
@@ -54,7 +54,7 @@ namespace galileo
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout();
 
-        void set_camera(niku::camera_t const& camera);
+        void set_camera(ngngfx::camera_t const& camera);
 
         void draw(VkCommandBuffer command_buffer,
             vkrndr::image_t const& target_image);
@@ -128,7 +128,7 @@ namespace galileo
 
     private:
         vkrndr::backend_t* backend_;
-        niku::camera_t const* camera_{nullptr};
+        ngngfx::camera_t const* camera_{nullptr};
 
         vkrndr::pipeline_t line_pipeline_;
 

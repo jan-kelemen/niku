@@ -15,10 +15,10 @@
 #include <filesystem>
 #include <vector>
 
-namespace niku
+namespace ngngfx
 {
     class camera_t;
-} // namespace niku
+} // namespace ngngfx
 
 namespace vkrndr
 {
@@ -50,7 +50,7 @@ namespace gltfviewer
             vkrndr::image_t const& color_image,
             vkrndr::image_t const& depth_buffer);
 
-        void update(niku::camera_t const& camera);
+        void update(ngngfx::camera_t const& camera);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
