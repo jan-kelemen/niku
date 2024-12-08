@@ -34,6 +34,7 @@ target_link_libraries(galileo
         cppext
         ngnphy
         niku
+        vkgltf
     PRIVATE
         Angelscript::angelscript
         Angelscript::scriptbuilder
@@ -47,7 +48,15 @@ target_link_libraries(galileo
         project-options
 )
 
-add_dependencies(galileo galileo_scripts galileo_shaders)
+add_dependencies(galileo galileo_assets galileo_scripts galileo_shaders)
+
+add_custom_target(galileo_assets
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/world.glb
+        ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/world.glb
+)
 
 add_custom_target(galileo_scripts
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -89,5 +98,6 @@ set_property(TARGET galileo
 )
 
 set_target_properties(galileo PROPERTIES FOLDER "demo/galileo")
+set_target_properties(galileo_assets PROPERTIES FOLDER "demo/galileo")
 set_target_properties(galileo_scripts PROPERTIES FOLDER "demo/galileo")
 set_target_properties(galileo_shaders PROPERTIES FOLDER "demo/galileo")
