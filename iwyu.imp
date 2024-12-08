@@ -67,6 +67,7 @@
 
   # Jolt aliases
   { include: [ "<Jolt/Math/Vec3.inl>", private, "<Jolt/Math/Vec3.h>", public] },
+  { include: [ "<Jolt/Math/Vec4.inl>", private, "<Jolt/Math/Vec4.h>", public] },
   { include: [ "<Jolt/Math/Mat44.inl>", private, "<Jolt/Math/Mat44.h>", public] },
 
   # glm aliases

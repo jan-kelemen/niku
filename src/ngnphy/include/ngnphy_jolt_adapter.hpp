@@ -5,14 +5,12 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-// IWYU pragma: no_include <glm/detail/qualifier.hpp>
+#include <Jolt/Jolt.h> // IWYU pragma: keep
+#include <Jolt/Math/Mat44.h>
+#include <Jolt/Math/Vec3.h>
+#include <Jolt/Math/Vec4.h>
 
-namespace JPH
-{
-    class Vec3;
-    class Vec4;
-    class Mat44;
-} // namespace JPH
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
 namespace ngnphy
 {
@@ -21,6 +19,12 @@ namespace ngnphy
     [[nodiscard]] glm::vec4 to_glm(JPH::Vec4 const& v);
 
     [[nodiscard]] glm::mat4 to_glm(JPH::Mat44 const& v);
+
+    [[nodiscard]] JPH::Vec3 to_jolt(glm::vec3 const& v);
+
+    [[nodiscard]] JPH::Vec4 to_jolt(glm::vec4 const& v);
+
+    [[nodiscard]] JPH::Mat44 to_jolt(glm::mat4 const& v);
 } // namespace ngnphy
 
 #endif
