@@ -7,6 +7,20 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/mat4x4.hpp>
 
+namespace
+{
+    void calculate_node_matrices(vkgltf::model_t& model,
+        vkgltf::node_t& node,
+        glm::mat4 const& matrix)
+    {
+        node.matrix = matrix * node.matrix;
+        for (vkgltf::node_t& child : node.children(model))
+        {
+            calculate_node_matrices(model, child, node.matrix);
+        }
+    }
+} // namespace
+
 vkgltf::bounding_box_t vkgltf::calculate_aabb(bounding_box_t const& box,
     glm::mat4 const& matrix)
 {
@@ -45,5 +59,16 @@ void vkgltf::destroy(vkrndr::device_t* const device, model_t* const model)
 
         destroy(device, &model->index_buffer);
         destroy(device, &model->vertex_buffer);
+    }
+}
+
+void vkgltf::make_node_matrices_absolute(model_t& model)
+{
+    for (scene_graph_t& scene : model.scenes)
+    {
+        for (node_t& node : scene.roots(model))
+        {
+            calculate_node_matrices(model, node, glm::mat4{1.0f});
+        }
     }
 }
