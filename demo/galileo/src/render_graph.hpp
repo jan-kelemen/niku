@@ -3,6 +3,8 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <vkgltf_model.hpp>
+
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
 
@@ -11,6 +13,7 @@
 #include <volk.h>
 
 #include <cstddef>
+#include <span>
 
 namespace vkrndr
 {
@@ -21,6 +24,13 @@ namespace galileo
 {
     class [[nodiscard]] render_graph_t final
     {
+    public:
+        [[nodiscard]] static std::span<VkVertexInputBindingDescription const>
+        binding_description();
+
+        [[nodiscard]] static std::span<VkVertexInputAttributeDescription const>
+        attribute_description();
+
     public:
         explicit render_graph_t(vkrndr::backend_t& backend);
 
@@ -34,6 +44,8 @@ namespace galileo
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
 
+        void load(vkgltf::model_t&& model);
+
         void begin_frame();
 
         void update(size_t index, glm::mat4 const& position);
@@ -41,6 +53,8 @@ namespace galileo
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
             VkPipelineBindPoint bind_point);
+
+        void draw_node(size_t index, VkCommandBuffer command_buffer) const;
 
     public:
         render_graph_t& operator=(render_graph_t const&) = delete;
@@ -60,6 +74,11 @@ namespace galileo
         vkrndr::backend_t* backend_;
 
         VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};
+
+        vkrndr::buffer_t vertex_buffer_;
+        vkrndr::buffer_t index_buffer_;
+
+        vkgltf::model_t model_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };

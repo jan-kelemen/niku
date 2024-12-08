@@ -19,6 +19,9 @@
 #include <niku_perspective_camera.hpp>
 #include <niku_sdl_window.hpp> // IWYU pragma: keep
 
+#include <vkgltf_loader.hpp>
+#include <vkgltf_model.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_depth_buffer.hpp>
@@ -32,6 +35,8 @@ DISABLE_WARNING_STRINGOP_OVERFLOW
 DISABLE_WARNING_POP
 
 #include <imgui.h>
+
+#include <glm/vec3.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
@@ -57,15 +62,21 @@ DISABLE_WARNING_POP
 
 #include <volk.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
+#include <filesystem>
+#include <iterator>
 #include <memory>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <optional>
 
 namespace
@@ -80,16 +91,29 @@ namespace
     }
 
     [[nodiscard]] std::vector<JPH::BodyID> setup_world(
+        vkrndr::backend_t& backend,
+        galileo::render_graph_t& graph,
         JPH::BodyInterface& body_interface)
     {
         using namespace JPH::literals;
 
+        vkgltf::loader_t loader{backend};
+        auto model{loader.load(std::filesystem::absolute("world.glb"))};
+
+        auto it{std::ranges::find(model->nodes, "Cube", &vkgltf::node_t::name)};
+        if (it == std::cend(model->nodes) || !it->aabb)
+        {
+            std::terminate();
+        }
+
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+        glm::vec3 half_extents{(it->aabb->max - it->aabb->min) / 2.0f};
         // Next we can create a rigid body to serve as the floor, we make a
         // large box Create the settings for the collision volume (the shape).
         // Note that for simple shapes (like boxes) you can also directly
         // construct a BoxShape.
         JPH::BoxShapeSettings const floor_shape_settings{
-            JPH::Vec3{100.0f, 1.0f, 100.0f}};
+            JPH::Vec3{half_extents.x, half_extents.y, half_extents.z}};
         floor_shape_settings
             .SetEmbedded(); // A ref counted object on the stack (base class
                             // RefTarget) should be marked as such to prevent it
@@ -119,11 +143,21 @@ namespace
         // Add it to the world
         body_interface.AddBody(floor->GetID(), JPH::EActivation::DontActivate);
 
+        it =
+            std::ranges::find(model->nodes, "Icosphere", &vkgltf::node_t::name);
+        if (it == std::cend(model->nodes) || !it->aabb)
+        {
+            std::terminate();
+        }
+
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+        half_extents = (it->aabb->max - it->aabb->min) / 2.0f;
+
         // Now create a dynamic body to bounce on the floor
         // Note that this uses the shorthand version of creating and adding a
         // body to the world
         JPH::BodyCreationSettings const sphere_settings{
-            new JPH::SphereShape{0.5f},
+            new JPH::SphereShape{half_extents.x},
             JPH::RVec3{0.0_r, 100.0_r, 0.0_r},
             JPH::Quat::sIdentity(),
             JPH::EMotionType::Dynamic,
@@ -143,6 +177,9 @@ namespace
         std::vector<JPH::BodyID> rv;
         rv.emplace_back(floor->GetID());
         rv.emplace_back(sphere_id);
+
+        graph.load(std::move(model).value());
+
         return rv;
     }
 } // namespace
@@ -303,7 +340,10 @@ void galileo::application_t::draw()
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        gbuffer_shader_->draw(command_buffer, *gbuffer_, depth_buffer_);
+        gbuffer_shader_->draw(*render_graph_,
+            command_buffer,
+            *gbuffer_,
+            depth_buffer_);
     }
 
     vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
@@ -342,7 +382,9 @@ void galileo::application_t::end_frame()
 
 void galileo::application_t::on_startup()
 {
-    bodies_ = setup_world(physics_engine_.body_interface());
+    bodies_ = setup_world(*backend_,
+        *render_graph_,
+        physics_engine_.body_interface());
 
     auto const extent{backend_->extent()};
     on_resize(extent.width, extent.height);

@@ -1,7 +1,6 @@
 #ifndef GALILEO_GBUFFER_SHADER_INCLUDED
 #define GALILEO_GBUFFER_SHADER_INCLUDED
 
-#include <vkrndr_buffer.hpp>
 #include <vkrndr_pipeline.hpp>
 
 #include <volk.h>
@@ -15,6 +14,7 @@ namespace vkrndr
 namespace galileo
 {
     class gbuffer_t;
+    class render_graph_t;
 } // namespace galileo
 
 namespace galileo
@@ -37,9 +37,10 @@ namespace galileo
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
-        void draw(VkCommandBuffer command_buffer,
+        void draw(render_graph_t const& graph,
+            VkCommandBuffer command_buffer,
             gbuffer_t& gbuffer,
-            vkrndr::image_t const& depth_buffer);
+            vkrndr::image_t const& depth_buffer) const;
 
     public:
         gbuffer_shader_t& operator=(gbuffer_shader_t const&) = delete;
@@ -48,9 +49,6 @@ namespace galileo
 
     private:
         vkrndr::backend_t* backend_;
-
-        vkrndr::buffer_t vertex_buffer_;
-        vkrndr::buffer_t index_buffer_;
 
         vkrndr::pipeline_t pipeline_;
     };
