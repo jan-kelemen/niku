@@ -22,6 +22,7 @@
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 
+#include <glm/common.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/vec2.hpp>
@@ -92,6 +93,8 @@ namespace
         std::vector<unsigned int> indices;
 
         size_t material_index{};
+
+        std::optional<vkgltf::bounding_box_t> bounding_box;
     };
 
     [[nodiscard]] bool make_unindexed(loaded_primitive_t& primitive)
@@ -149,6 +152,8 @@ namespace
     {
         std::string name;
         std::vector<loaded_primitive_t> primitives;
+
+        std::optional<vkgltf::bounding_box_t> bounding_box;
 
         bool consumed{false};
     };
@@ -628,6 +633,19 @@ namespace
                 }
 
                 p.vertices.resize(accessor.count);
+
+                using bounds_t = vkgltf::position_accessor_bounds_t;
+                if (holds_alternative<bounds_t>(accessor.min) &&
+                    holds_alternative<bounds_t>(accessor.max))
+                {
+                    auto const& min{std::get<bounds_t>(accessor.min)};
+                    auto const& max{std::get<bounds_t>(accessor.max)};
+
+                    auto const to_glm = [](bounds_t const& v)
+                    { return glm::make_vec3(v.data()); };
+
+                    p.bounding_box = {to_glm(min), to_glm(max)};
+                }
             }
             load_indices(asset, primitive, p.indices);
 
@@ -754,6 +772,24 @@ namespace
             rv.primitives.push_back(std::move(p));
         }
 
+        for (auto const& primitive : rv.primitives)
+        {
+            if (!primitive.bounding_box)
+            {
+                continue;
+            }
+
+            if (!rv.bounding_box)
+            {
+                rv.bounding_box = primitive.bounding_box;
+            }
+
+            rv.bounding_box->min =
+                glm::min(rv.bounding_box->min, primitive.bounding_box->min);
+            rv.bounding_box->max =
+                glm::max(rv.bounding_box->max, primitive.bounding_box->max);
+        }
+
         return rv;
     }
 
@@ -805,15 +841,15 @@ namespace
                 auto& model_mesh{model.meshes[*node.meshIndex]};
                 model_mesh.name = std::move(mesh.name);
                 model_mesh.primitives.reserve(mesh.primitives.size());
+                model_mesh.bb = mesh.bounding_box;
                 std::ranges::transform(mesh.primitives,
                     std::back_inserter(model_mesh.primitives),
                     [&](loaded_primitive_t& p) mutable
                     {
-                        vkgltf::primitive_t rv{
-                            .topology = p.topology,
+                        vkgltf::primitive_t rv{.topology = p.topology,
                             .is_indexed = !p.indices.empty(),
                             .material_index = p.material_index,
-                        };
+                            .bb = p.bounding_box};
 
                         vertices = std::ranges::transform(p.vertices,
                             vertices,
@@ -869,6 +905,10 @@ namespace
             }
 
             n.mesh = &model.meshes[*node.meshIndex];
+            if (n.mesh->bb)
+            {
+                n.aabb = calculate_aabb(*n.mesh->bb, n.matrix);
+            }
         }
 
         n.matrix = vkgltf::to_glm(fastgltf::getTransformMatrix(node));

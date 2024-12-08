@@ -17,11 +17,14 @@
 
 #include <cassert>
 #include <cstddef>
+#include <vector>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
 namespace vkgltf
 {
+    using position_accessor_bounds_t = FASTGLTF_STD_PMR_NS::vector<double>;
+
     [[nodiscard]] constexpr error_t translate_error(fastgltf::Error const err)
     {
         using fastgltf::Error;

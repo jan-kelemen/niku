@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <vector>
@@ -27,6 +28,15 @@ namespace vkrndr
 namespace vkgltf
 {
     struct model_t;
+
+    struct [[nodiscard]] bounding_box_t final
+    {
+        glm::vec3 min;
+        glm::vec3 max;
+    };
+
+    bounding_box_t calculate_aabb(bounding_box_t const& box,
+        glm::mat4 const& matrix);
 
     struct [[nodiscard]] vertex_t final
     {
@@ -98,12 +108,15 @@ namespace vkgltf
         int32_t vertex_offset{};
 
         size_t material_index{};
+
+        std::optional<bounding_box_t> bb;
     };
 
     struct [[nodiscard]] mesh_t final
     {
         std::string name;
         std::vector<primitive_t> primitives;
+        std::optional<bounding_box_t> bb;
     };
 
     struct [[nodiscard]] node_t final
@@ -113,6 +126,8 @@ namespace vkgltf
         mesh_t* mesh{nullptr};
 
         glm::mat4 matrix{1.0f};
+
+        std::optional<bounding_box_t> aabb;
 
         std::vector<size_t> child_indices;
 
