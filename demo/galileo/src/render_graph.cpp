@@ -28,10 +28,12 @@
 
 namespace
 {
-    struct [[nodiscard]] line_vertex_t final
+    struct [[nodiscard]] graph_vertex_t final
     {
         glm::vec3 position;
-        char padding;
+        char padding1;
+        glm::vec3 normal;
+        char padding2;
         glm::vec4 color;
     };
 
@@ -83,7 +85,7 @@ galileo::render_graph_t::binding_description()
 {
     static constexpr std::array descriptions{
         VkVertexInputBindingDescription{.binding = 0,
-            .stride = sizeof(line_vertex_t),
+            .stride = sizeof(graph_vertex_t),
             .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
     };
 
@@ -97,11 +99,15 @@ galileo::render_graph_t::attribute_description()
         VkVertexInputAttributeDescription{.location = 0,
             .binding = 0,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(line_vertex_t, position)},
+            .offset = offsetof(graph_vertex_t, position)},
         VkVertexInputAttributeDescription{.location = 1,
             .binding = 0,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(graph_vertex_t, normal)},
+        VkVertexInputAttributeDescription{.location = 2,
+            .binding = 0,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(line_vertex_t, color)},
+            .offset = offsetof(graph_vertex_t, color)},
     };
 
     return descriptions;
@@ -154,7 +160,7 @@ void galileo::render_graph_t::load(vkgltf::model_t&& model)
 {
     destroy(&backend_->device(), &vertex_buffer_);
     vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
-        sizeof(line_vertex_t) *
+        sizeof(graph_vertex_t) *
             (model.vertex_buffer.size / sizeof(vkgltf::vertex_t)),
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -162,7 +168,7 @@ void galileo::render_graph_t::load(vkgltf::model_t&& model)
         auto staging{vkrndr::create_staging_buffer(backend_->device(),
             vertex_buffer_.size)};
         auto staging_map{vkrndr::map_memory(backend_->device(), staging)};
-        auto* const vertices{staging_map.as<line_vertex_t>()};
+        auto* const vertices{staging_map.as<graph_vertex_t>()};
 
         auto gltf_map{
             vkrndr::map_memory(backend_->device(), model.vertex_buffer)};
@@ -171,6 +177,7 @@ void galileo::render_graph_t::load(vkgltf::model_t&& model)
         for (uint32_t i{}; i != model.vertex_count; ++i)
         {
             vertices[i].position = gltf_vertices[i].position;
+            vertices[i].normal = gltf_vertices[i].normal;
             vertices[i].color = gltf_vertices[i].color;
         }
 
