@@ -1,6 +1,7 @@
 #include <application.hpp>
 
 #include <camera_controller.hpp>
+#include <deferred_shader.hpp>
 #include <frame_info.hpp>
 #include <gbuffer.hpp>
 #include <gbuffer_shader.hpp>
@@ -219,9 +220,11 @@ galileo::application_t::application_t(bool const debug)
     , frame_info_{std::make_unique<frame_info_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
-
-    , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
+    , deferred_shader_{std::make_unique<deferred_shader_t>(*backend_,
           frame_info_->descriptor_set_layout())}
+    , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
+          frame_info_->descriptor_set_layout(),
+          depth_buffer_.format)}
 {
     fixed_update_interval(1.0f / 60.0f);
 
@@ -360,12 +363,39 @@ void galileo::application_t::draw()
 
     vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
 
+    if (VkPipelineLayout const layout{deferred_shader_->pipeline_layout()})
+    {
+        gbuffer_->transition(command_buffer,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+
+        frame_info_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+        deferred_shader_->draw(command_buffer, *gbuffer_, target_image);
+
+        vkrndr::transition_image(target_image.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            1);
+    }
+
     if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
     {
         frame_info_->bind_on(command_buffer,
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
-        physics_debug_->draw(command_buffer, target_image);
+        physics_debug_->draw(command_buffer, target_image, depth_buffer_);
     }
 
     vkrndr::transition_image(target_image.image,
@@ -414,6 +444,8 @@ void galileo::application_t::on_shutdown()
     vkDeviceWaitIdle(backend_->device().logical);
 
     physics_debug_.reset();
+
+    deferred_shader_.reset();
 
     gbuffer_shader_.reset();
 

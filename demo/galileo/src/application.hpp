@@ -32,6 +32,7 @@ namespace vkrndr
 
 namespace galileo
 {
+    class deferred_shader_t;
     class frame_info_t;
     class gbuffer_t;
     class gbuffer_shader_t;
@@ -98,6 +99,7 @@ namespace galileo
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;
         std::unique_ptr<gbuffer_shader_t> gbuffer_shader_;
+        std::unique_ptr<deferred_shader_t> deferred_shader_;
         std::unique_ptr<physics_debug_t> physics_debug_;
     };
 } // namespace galileo

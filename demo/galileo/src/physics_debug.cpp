@@ -78,7 +78,8 @@ namespace
 } // namespace
 
 galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
-    VkDescriptorSetLayout frame_info_layout)
+    VkDescriptorSetLayout frame_info_layout,
+    VkFormat depth_buffer_format)
     : backend_{&backend}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
@@ -108,6 +109,7 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
             .add_shader(as_pipeline_shader(vertex_shader))
             .add_shader(as_pipeline_shader(fragment_shader))
             .add_color_attachment(backend_->image_format())
+            .with_depth_test(depth_buffer_format)
             .add_vertex_input(binding_description(), attribute_description())
             .build();
 
@@ -146,7 +148,8 @@ void galileo::physics_debug_t::set_camera(ngngfx::camera_t const& camera)
 }
 
 void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer,
-    vkrndr::image_t const& target_image)
+    vkrndr::image_t const& target_image,
+    vkrndr::image_t const& depth_buffer)
 {
     [[maybe_unused]] boost::scope::defer_guard const on_exit{[this]()
         {
@@ -167,10 +170,13 @@ void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer,
         &zero_offset);
 
     vkrndr::render_pass_t render_pass;
-    render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+    render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
         VK_ATTACHMENT_STORE_OP_STORE,
-        target_image.view,
-        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+        target_image.view);
+    render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_NONE,
+        depth_buffer.view);
+
     {
         [[maybe_unused]] auto const guard{
             render_pass.begin(command_buffer, {{0, 0}, target_image.extent})};

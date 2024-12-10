@@ -12,6 +12,7 @@
 #include <vkrndr_utility.hpp>
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 #include <volk.h>
 
@@ -24,6 +25,7 @@ namespace
     {
         glm::mat4 view;
         glm::mat4 projection;
+        glm::vec3 position;
     };
 
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
@@ -120,6 +122,7 @@ void galileo::frame_info_t::update(ngngfx::camera_t const& camera)
     auto* const gpu{frame_data_->uniform_map.as<gpu_frame_info_t>()};
     gpu->view = camera.view_matrix();
     gpu->projection = camera.projection_matrix();
+    gpu->position = camera.position();
 }
 
 void galileo::frame_info_t::bind_on(VkCommandBuffer command_buffer,

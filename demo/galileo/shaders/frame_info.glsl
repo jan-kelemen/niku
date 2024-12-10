@@ -5,6 +5,7 @@ layout(std430, set = 0, binding = 0) readonly buffer FrameInfo
 {
     mat4 view;
     mat4 projection;
+    vec3 position;
 } frame;
 
 #endif

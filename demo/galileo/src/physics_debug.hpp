@@ -42,7 +42,8 @@ namespace galileo
     {
     public:
         physics_debug_t(vkrndr::backend_t& backend,
-            VkDescriptorSetLayout frame_info_layout);
+            VkDescriptorSetLayout frame_info_layout,
+            VkFormat depth_buffer_format);
 
         physics_debug_t(physics_debug_t const&) = delete;
 
@@ -57,7 +58,8 @@ namespace galileo
         void set_camera(ngngfx::camera_t const& camera);
 
         void draw(VkCommandBuffer command_buffer,
-            vkrndr::image_t const& target_image);
+            vkrndr::image_t const& target_image,
+            vkrndr::image_t const& depth_buffer);
 
     public:
         physics_debug_t& operator=(physics_debug_t const&) = delete;
