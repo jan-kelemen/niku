@@ -18,6 +18,7 @@
 
 galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
     VkDescriptorSetLayout frame_info_layout,
+    VkDescriptorSetLayout materials_layout,
     VkDescriptorSetLayout graph_layout,
     VkFormat const depth_buffer_format)
     : backend_{&backend}
@@ -40,6 +41,7 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
     pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(frame_info_layout)
+            .add_descriptor_set_layout(materials_layout)
             .add_descriptor_set_layout(graph_layout)
             .build()}
                     .add_shader(as_pipeline_shader(vertex_shader))

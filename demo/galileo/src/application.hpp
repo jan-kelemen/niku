@@ -35,6 +35,7 @@ namespace galileo
     class frame_info_t;
     class gbuffer_t;
     class gbuffer_shader_t;
+    class materials_t;
     class physics_debug_t;
     class render_graph_t;
 } // namespace galileo
@@ -94,6 +95,7 @@ namespace galileo
         std::unique_ptr<gbuffer_t> gbuffer_;
 
         std::unique_ptr<frame_info_t> frame_info_;
+        std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;
         std::unique_ptr<gbuffer_shader_t> gbuffer_shader_;
         std::unique_ptr<physics_debug_t> physics_debug_;

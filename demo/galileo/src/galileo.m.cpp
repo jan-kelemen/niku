@@ -1,5 +1,4 @@
 #include <application.hpp>
-#include <physics_engine.hpp>
 
 #include <angelscript.h>
 #include <scriptbuilder/scriptbuilder.h>
@@ -58,9 +57,6 @@ namespace
 
 int main()
 {
-    galileo::physics_engine_t en;
-    en.fixed_update(0.1f);
-
     // Create the script engine
     asIScriptEngine* engine = asCreateScriptEngine();
 

@@ -13,6 +13,7 @@
 #include <vkrndr_utility.hpp>
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
@@ -35,11 +36,14 @@ namespace
         glm::vec3 normal;
         char padding2;
         glm::vec4 color;
+        glm::vec2 uv;
     };
 
     struct [[nodiscard]] gpu_render_graph_t final
     {
         glm::mat4 position;
+        uint32_t material;
+        uint8_t padding[12];
     };
 
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
@@ -108,6 +112,10 @@ galileo::render_graph_t::attribute_description()
             .binding = 0,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
             .offset = offsetof(graph_vertex_t, color)},
+        VkVertexInputAttributeDescription{.location = 3,
+            .binding = 0,
+            .format = VK_FORMAT_R32G32_SFLOAT,
+            .offset = offsetof(graph_vertex_t, uv)},
     };
 
     return descriptions;
@@ -156,7 +164,7 @@ VkDescriptorSetLayout galileo::render_graph_t::descriptor_set_layout() const
     return descriptor_set_layout_;
 }
 
-void galileo::render_graph_t::load(vkgltf::model_t&& model)
+void galileo::render_graph_t::consume(vkgltf::model_t&& model)
 {
     destroy(&backend_->device(), &vertex_buffer_);
     vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
@@ -179,6 +187,7 @@ void galileo::render_graph_t::load(vkgltf::model_t&& model)
             vertices[i].position = gltf_vertices[i].position;
             vertices[i].normal = gltf_vertices[i].normal;
             vertices[i].color = gltf_vertices[i].color;
+            vertices[i].uv = gltf_vertices[i].uv;
         }
 
         unmap_memory(backend_->device(), &gltf_map);
@@ -230,6 +239,7 @@ void galileo::render_graph_t::update(size_t const index,
 {
     auto* const gpu{frame_data_->uniform_map.as<gpu_render_graph_t>()};
     gpu[index].position = position;
+    gpu[index].material = index;
 }
 
 void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,
@@ -239,7 +249,7 @@ void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,
     vkCmdBindDescriptorSets(command_buffer,
         bind_point,
         layout,
-        1,
+        2,
         1,
         &frame_data_->descriptor_set,
         0,

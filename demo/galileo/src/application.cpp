@@ -4,6 +4,7 @@
 #include <frame_info.hpp>
 #include <gbuffer.hpp>
 #include <gbuffer_shader.hpp>
+#include <materials.hpp>
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
 #include <render_graph.hpp>
@@ -93,6 +94,7 @@ namespace
 
     [[nodiscard]] std::vector<JPH::BodyID> setup_world(
         vkrndr::backend_t& backend,
+        galileo::materials_t& materials,
         galileo::render_graph_t& graph,
         JPH::BodyInterface& body_interface)
     {
@@ -185,7 +187,8 @@ namespace
         rv.emplace_back(floor->GetID());
         rv.emplace_back(sphere_id);
 
-        graph.load(std::move(model).value());
+        materials.consume(*model);
+        graph.consume(std::move(model).value());
 
         return rv;
     }
@@ -214,11 +217,9 @@ galileo::application_t::application_t(bool const debug)
     , depth_buffer_{create_depth_buffer(*backend_)}
     , gbuffer_{std::make_unique<gbuffer_t>(*backend_)}
     , frame_info_{std::make_unique<frame_info_t>(*backend_)}
+    , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
-    , gbuffer_shader_{std::make_unique<gbuffer_shader_t>(*backend_,
-          frame_info_->descriptor_set_layout(),
-          render_graph_->descriptor_set_layout(),
-          depth_buffer_.format)}
+
     , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
           frame_info_->descriptor_set_layout())}
 {
@@ -343,6 +344,10 @@ void galileo::application_t::draw()
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
+        materials_->bind_on(command_buffer,
+            layout,
+            VK_PIPELINE_BIND_POINT_GRAPHICS);
+
         render_graph_->bind_on(command_buffer,
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -390,8 +395,15 @@ void galileo::application_t::end_frame()
 void galileo::application_t::on_startup()
 {
     bodies_ = setup_world(*backend_,
+        *materials_,
         *render_graph_,
         physics_engine_.body_interface());
+
+    gbuffer_shader_ = std::make_unique<gbuffer_shader_t>(*backend_,
+        frame_info_->descriptor_set_layout(),
+        materials_->descriptor_set_layout(),
+        render_graph_->descriptor_set_layout(),
+        depth_buffer_.format);
 
     auto const extent{backend_->extent()};
     on_resize(extent.width, extent.height);
@@ -406,6 +418,8 @@ void galileo::application_t::on_shutdown()
     gbuffer_shader_.reset();
 
     render_graph_.reset();
+
+    materials_.reset();
 
     frame_info_.reset();
 

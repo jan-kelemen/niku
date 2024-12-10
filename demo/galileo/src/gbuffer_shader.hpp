@@ -24,6 +24,7 @@ namespace galileo
     public:
         explicit gbuffer_shader_t(vkrndr::backend_t& backend,
             VkDescriptorSetLayout frame_info_layout,
+            VkDescriptorSetLayout materials_layout,
             VkDescriptorSetLayout graph_layout,
             VkFormat depth_buffer_format);
 

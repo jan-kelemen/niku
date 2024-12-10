@@ -4,21 +4,23 @@ target_sources(galileo
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/frame_info.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer_shader.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/frame_info.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/galileo.m.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer_shader.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp

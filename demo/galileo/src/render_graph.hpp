@@ -44,7 +44,7 @@ namespace galileo
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
 
-        void load(vkgltf::model_t&& model);
+        void consume(vkgltf::model_t&& model);
 
         void begin_frame();
 
