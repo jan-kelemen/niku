@@ -107,6 +107,9 @@ namespace
         {
             std::terminate();
         }
+        spdlog::info("nodes: {} meshes: {}",
+            model->nodes.size(),
+            model->meshes.size());
 
         make_node_matrices_absolute(*model);
 
@@ -152,41 +155,45 @@ namespace
 
         // Add it to the world
         body_interface.AddBody(floor->GetID(), JPH::EActivation::DontActivate);
-
-        it =
-            std::ranges::find(model->nodes, "Icosphere", &vkgltf::node_t::name);
-        if (it == std::cend(model->nodes) || !it->aabb)
-        {
-            std::terminate();
-        }
-
-        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-        half_extents = (it->aabb->max - it->aabb->min) / 2.0f;
-
-        // Now create a dynamic body to bounce on the floor
-        // Note that this uses the shorthand version of creating and adding a
-        // body to the world
-        JPH::BodyCreationSettings const sphere_settings{
-            new JPH::SphereShape{half_extents.x},
-            ngnphy::to_jolt(glm::vec3{it->matrix[3]}),
-            JPH::Quat::sIdentity(),
-            JPH::EMotionType::Dynamic,
-            galileo::object_layers::moving};
-
-        JPH::BodyID const sphere_id =
-            body_interface.CreateAndAddBody(sphere_settings,
-                JPH::EActivation::Activate);
-
-        // Now you can interact with the dynamic body, in this case we're going
-        // to give it a velocity. (note that if we had used CreateBody then we
-        // could have set the velocity straight on the body before adding it to
-        // the physics system)
-        body_interface.SetLinearVelocity(sphere_id,
-            JPH::Vec3{0.0f, -5.0f, 0.0f});
-
         std::vector<JPH::BodyID> rv;
         rv.emplace_back(floor->GetID());
-        rv.emplace_back(sphere_id);
+
+        auto name_filter = [](vkgltf::node_t const& n)
+        { return n.name.starts_with("Icosphere"); };
+        for (vkgltf::node_t const& sphere :
+            model->nodes | std::views::filter(name_filter))
+        {
+            if (!sphere.aabb)
+            {
+                continue;
+            }
+
+            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+            half_extents = (sphere.aabb->max - sphere.aabb->min) / 2.0f;
+
+            // Now create a dynamic body to bounce on the floor
+            // Note that this uses the shorthand version of creating and adding
+            // a body to the world
+            JPH::BodyCreationSettings const sphere_settings{
+                new JPH::SphereShape{half_extents.x},
+                ngnphy::to_jolt(glm::vec3{sphere.matrix[3]}),
+                JPH::Quat::sIdentity(),
+                JPH::EMotionType::Dynamic,
+                galileo::object_layers::moving};
+
+            JPH::BodyID const sphere_id =
+                body_interface.CreateAndAddBody(sphere_settings,
+                    JPH::EActivation::Activate);
+
+            // Now you can interact with the dynamic body, in this case we're
+            // going to give it a velocity. (note that if we had used CreateBody
+            // then we could have set the velocity straight on the body before
+            // adding it to the physics system)
+            body_interface.SetLinearVelocity(sphere_id,
+                JPH::Vec3{0.0f, -5.0f, 0.0f});
+
+            rv.emplace_back(sphere_id);
+        }
 
         materials.consume(*model);
         graph.consume(std::move(model).value());
@@ -199,8 +206,9 @@ galileo::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
           .init_subsystems = {.video = true, .debug = debug},
           .title = "galileo",
-          .window_flags = static_cast<SDL_WindowFlags>(
-              SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI),
+          .window_flags =
+              static_cast<SDL_WindowFlags>(SDL_WINDOW_FULLSCREEN_DESKTOP),
+          //              SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI),
           .centered = true,
           .width = 512,
           .height = 512}}
@@ -226,7 +234,7 @@ galileo::application_t::application_t(bool const debug)
           frame_info_->descriptor_set_layout(),
           depth_buffer_.format)}
 {
-    fixed_update_interval(1.0f / 60.0f);
+    camera_.set_position({-25.0f, 5.0f, -25.0f});
 
     physics_debug_->set_camera(camera_);
 }
@@ -251,33 +259,13 @@ bool galileo::application_t::handle_event(SDL_Event const& event)
     return true;
 }
 
-void galileo::application_t::fixed_update(float const delta_time)
-{
-    auto& body_interface{physics_engine_.body_interface()};
-    for (auto const& body_id : bodies_)
-    {
-        JPH::RVec3 const position{
-            body_interface.GetCenterOfMassPosition(body_id)};
-        JPH::Vec3 const velocity{body_interface.GetLinearVelocity(body_id)};
-        spdlog::info("Body {}: Position = ({}, {}, {}), Velocity =({}, {}, {})",
-            body_id.GetIndexAndSequenceNumber(),
-            position.GetX(),
-            position.GetY(),
-            position.GetZ(),
-            velocity.GetX(),
-            velocity.GetY(),
-            velocity.GetZ());
-    }
-
-    physics_engine_.fixed_update(delta_time);
-}
-
 void galileo::application_t::update(float delta_time)
 {
     camera_controller_.update(delta_time);
 
-    size_t cnt{};
+    physics_engine_.update(delta_time);
 
+    size_t cnt{};
     auto& body_interface{physics_engine_.body_interface()};
     for (auto const& body_id : bodies_)
     {

@@ -1,3 +1,7 @@
+#include <algorithm>
+#include <iterator>
+#include <numeric>
+#include <ranges>
 #include <render_graph.hpp>
 
 #include <cppext_cycled_buffer.hpp>
@@ -39,7 +43,7 @@ namespace
         glm::vec2 uv;
     };
 
-    struct [[nodiscard]] gpu_render_graph_t final
+    struct [[nodiscard]] gpu_render_node_t final
     {
         glm::mat4 position;
         uint32_t material;
@@ -81,6 +85,20 @@ namespace
             descriptor_writes.data(),
             0,
             nullptr);
+    }
+
+    galileo::render_primitive_t to_render_primitive(
+        vkgltf::primitive_t const& p)
+    {
+        return {.current_instance = 0,
+            .first_instance = 0,
+            .instance_count = 0,
+            .topology = p.topology,
+            .count = p.count,
+            .first = p.first,
+            .is_indexed = p.is_indexed,
+            .vertex_offset = p.vertex_offset,
+            .material_index = p.material_index};
     }
 } // namespace
 
@@ -166,6 +184,25 @@ VkDescriptorSetLayout galileo::render_graph_t::descriptor_set_layout() const
 
 void galileo::render_graph_t::consume(vkgltf::model_t&& model)
 {
+    meshes_.clear();
+    primitives_.clear();
+    for (vkgltf::mesh_t const& mesh : model.meshes)
+    {
+        auto const first{primitives_.size()};
+        std::ranges::transform(mesh.primitives,
+            std::back_inserter(primitives_),
+            to_render_primitive);
+        meshes_.emplace_back(first, mesh.primitives.size());
+    }
+    size_t const uniform_buffer_values{calculate_unique_draws(model)};
+
+    uint32_t acc_instance{};
+    for (auto& primitive : primitives_)
+    {
+        primitive.first_instance = acc_instance;
+        acc_instance += primitive.instance_count;
+    }
+
     destroy(&backend_->device(), &vertex_buffer_);
     vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
         sizeof(graph_vertex_t) *
@@ -215,13 +252,23 @@ void galileo::render_graph_t::consume(vkgltf::model_t&& model)
         }
 
         data.uniform = vkrndr::create_buffer(backend_->device(),
-            sizeof(gpu_render_graph_t) * model.nodes.size(),
+            sizeof(gpu_render_node_t) * uniform_buffer_values,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);
+
+        auto* gpu_node{data.uniform_map.as<gpu_render_node_t>()};
+        for (auto const& primitive : primitives_)
+        {
+            for (size_t i{}; i != primitive.instance_count; ++i, ++gpu_node)
+            {
+                gpu_node->material =
+                    cppext::narrow<uint32_t>(primitive.material_index);
+            }
+        }
 
         update_descriptor_set(backend_->device(),
             data.descriptor_set,
@@ -237,9 +284,18 @@ void galileo::render_graph_t::begin_frame() { frame_data_.cycle(); }
 void galileo::render_graph_t::update(size_t const index,
     glm::mat4 const& position)
 {
-    auto* const gpu{frame_data_->uniform_map.as<gpu_render_graph_t>()};
-    gpu[index].position = position;
-    gpu[index].material = cppext::narrow<uint32_t>(index);
+    auto* const gpu{frame_data_->uniform_map.as<gpu_render_node_t>()};
+    vkgltf::node_t const& node{model_.nodes[index]};
+    auto const& mesh{meshes_[*node.mesh_index]};
+
+    auto mesh_primitives{primitives_ | std::views::drop(mesh.first_primitive) |
+        std::views::take(mesh.count)};
+    for (render_primitive_t& primitive : mesh_primitives)
+    {
+        gpu[primitive.first_instance + primitive.current_instance].position =
+            position;
+        ++primitive.current_instance;
+    }
 }
 
 void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,
@@ -268,27 +324,70 @@ void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,
         VK_INDEX_TYPE_UINT32);
 }
 
-void galileo::render_graph_t::draw_node(size_t const index,
-    VkCommandBuffer command_buffer) const
+void galileo::render_graph_t::draw(VkCommandBuffer command_buffer)
 {
-    auto const& node{model_.nodes[index]};
-    auto const& primitive{node.mesh->primitives.front()};
+    uint32_t instance{};
+    for (auto& primitive : primitives_)
+    {
+        if (primitive.is_indexed)
+        {
+            vkCmdDrawIndexed(command_buffer,
+                primitive.count,
+                primitive.instance_count,
+                primitive.first,
+                primitive.vertex_offset,
+                instance);
+        }
+        else
+        {
+            vkCmdDraw(command_buffer,
+                primitive.count,
+                primitive.instance_count,
+                primitive.first,
+                instance);
+        }
 
-    if (primitive.is_indexed)
-    {
-        vkCmdDrawIndexed(command_buffer,
-            primitive.count,
-            1,
-            primitive.first,
-            primitive.vertex_offset,
-            cppext::narrow<uint32_t>(index));
+        primitive.current_instance = 0;
+        instance += primitive.instance_count;
     }
-    else
+}
+
+size_t galileo::render_graph_t::calculate_unique_draws(
+    vkgltf::model_t const& model)
+{
+    auto traverse = [this, &model](vkgltf::node_t const& node,
+                        auto& traverse_ref) mutable -> size_t
     {
-        vkCmdDraw(command_buffer,
-            primitive.count,
-            1,
-            primitive.first,
-            cppext::narrow<uint32_t>(index));
+        size_t rv{};
+        if (node.mesh_index)
+        {
+            auto const& rmesh{meshes_[*node.mesh_index]};
+            auto mesh_primitives{primitives_ |
+                std::views::drop(rmesh.first_primitive) |
+                std::views::take(rmesh.count)};
+            for (render_primitive_t& primitive : mesh_primitives)
+            {
+                ++primitive.instance_count;
+            }
+            rv += rmesh.count;
+        }
+
+        auto const& children{node.children(model)};
+        return std::accumulate(children.begin(),
+            children.end(),
+            rv,
+            [&traverse_ref](auto acc, vkgltf::node_t const& child)
+            { return acc + traverse_ref(child, traverse_ref); });
+    };
+
+    size_t rv{};
+    for (vkgltf::scene_graph_t const& scene : model.scenes)
+    {
+        for (vkgltf::node_t const& node : scene.roots(model))
+        {
+            rv += traverse(node, traverse);
+        }
     }
+
+    return rv;
 }

@@ -35,7 +35,7 @@ namespace galileo
         ~physics_engine_t();
 
     public:
-        void fixed_update(float delta_time);
+        void update(float delta_time);
 
         [[nodiscard]] JPH::PhysicsSystem& physics_system();
 

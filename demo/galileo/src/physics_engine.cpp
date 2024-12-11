@@ -361,7 +361,7 @@ galileo::physics_engine_t::physics_engine_t() : impl_{std::make_unique<impl>()}
 
 galileo::physics_engine_t::~physics_engine_t() = default;
 
-void galileo::physics_engine_t::fixed_update(float const delta_time)
+void galileo::physics_engine_t::update(float const delta_time)
 {
     impl_->fixed_update(delta_time);
 }

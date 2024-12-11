@@ -68,7 +68,7 @@ VkPipelineLayout galileo::gbuffer_shader_t::pipeline_layout() const
     return *pipeline_.layout;
 }
 
-void galileo::gbuffer_shader_t::draw(render_graph_t const& graph,
+void galileo::gbuffer_shader_t::draw(render_graph_t& graph,
     VkCommandBuffer command_buffer,
     gbuffer_t& gbuffer,
     vkrndr::image_t const& depth_buffer) const
@@ -100,6 +100,5 @@ void galileo::gbuffer_shader_t::draw(render_graph_t const& graph,
 
     vkrndr::bind_pipeline(command_buffer, pipeline_);
 
-    graph.draw_node(0, command_buffer);
-    graph.draw_node(1, command_buffer);
+    graph.draw(command_buffer);
 }

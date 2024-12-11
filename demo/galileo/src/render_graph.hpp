@@ -22,6 +22,29 @@ namespace vkrndr
 
 namespace galileo
 {
+    struct [[nodiscard]] render_primitive_t final
+    {
+        uint32_t current_instance;
+        uint32_t first_instance;
+        uint32_t instance_count;
+
+        VkPrimitiveTopology topology;
+
+        uint32_t count;
+        uint32_t first;
+
+        bool is_indexed;
+        int32_t vertex_offset;
+
+        size_t material_index;
+    };
+
+    struct [[nodiscard]] render_mesh_t final
+    {
+        size_t first_primitive;
+        size_t count;
+    };
+
     class [[nodiscard]] render_graph_t final
     {
     public:
@@ -54,7 +77,7 @@ namespace galileo
             VkPipelineLayout layout,
             VkPipelineBindPoint bind_point);
 
-        void draw_node(size_t index, VkCommandBuffer command_buffer) const;
+        void draw(VkCommandBuffer command_buffer);
 
     public:
         render_graph_t& operator=(render_graph_t const&) = delete;
@@ -71,6 +94,10 @@ namespace galileo
         };
 
     private:
+        [[nodiscard]] size_t calculate_unique_draws(
+            vkgltf::model_t const& model);
+
+    private:
         vkrndr::backend_t* backend_;
 
         VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};
@@ -79,6 +106,8 @@ namespace galileo
         vkrndr::buffer_t index_buffer_;
 
         vkgltf::model_t model_;
+        std::vector<render_mesh_t> meshes_;
+        std::vector<render_primitive_t> primitives_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };

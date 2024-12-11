@@ -65,8 +65,6 @@ namespace galileo
     private: // ngnwsi::application callback interface
         bool handle_event(SDL_Event const& event) override;
 
-        void fixed_update(float delta_time) override;
-
         void update(float delta_time) override;
 
         bool begin_frame() override;
