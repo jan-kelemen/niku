@@ -904,10 +904,10 @@ namespace
                 mesh.consumed = true;
             }
 
-            n.mesh = &model.meshes[*node.meshIndex];
-            if (n.mesh->bb)
+            n.mesh_index = *node.meshIndex;
+            if (auto const& bb{model.meshes[*n.mesh_index].bb})
             {
-                n.aabb = calculate_aabb(*n.mesh->bb, n.matrix);
+                n.aabb = calculate_aabb(*bb, n.matrix);
             }
         }
 

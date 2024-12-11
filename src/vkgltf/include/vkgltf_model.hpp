@@ -123,7 +123,7 @@ namespace vkgltf
     {
         std::string name;
 
-        mesh_t* mesh{nullptr};
+        std::optional<size_t> mesh_index;
 
         glm::mat4 matrix{1.0f};
 
