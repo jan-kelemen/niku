@@ -89,7 +89,7 @@ namespace
     [[nodiscard]] uint32_t nodes_with_mesh(vkgltf::node_t const& node,
         vkgltf::model_t const& model)
     {
-        auto rv{static_cast<uint32_t>(node.mesh != nullptr)};
+        auto rv{static_cast<uint32_t>(node.mesh_index.has_value())};
         // cppcheck-suppress-begin useStlAlgorithm
         for (auto const& child : node.children(model))
         {
@@ -123,7 +123,7 @@ namespace
         auto const node_transform{transform * node.matrix};
 
         uint32_t drawn{0};
-        if (node.mesh)
+        if (node.mesh_index)
         {
             transforms[index].model = node_transform;
             transforms[index].model_inverse =
@@ -346,10 +346,12 @@ uint32_t gltfviewer::render_graph_t::draw_node(VkCommandBuffer command_buffer,
     const
 {
     uint32_t drawn{0};
-    if (node.mesh)
+    if (node.mesh_index)
     {
+        auto const& mesh{model_.meshes[*node.mesh_index]};
+
         // cppcheck-suppress-begin useStlAlgorithm
-        for (auto const& primitive : node.mesh->primitives)
+        for (auto const& primitive : mesh.primitives)
         {
             push_constants_t const pc{.transform_index = index,
                 .material_index =
