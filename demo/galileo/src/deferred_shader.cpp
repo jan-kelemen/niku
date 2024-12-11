@@ -2,8 +2,11 @@
 
 #include <gbuffer.hpp>
 
+#include <cppext_cycled_buffer.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_descriptors.hpp>
+#include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
@@ -11,6 +14,8 @@
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
+
+#include <array>
 
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>

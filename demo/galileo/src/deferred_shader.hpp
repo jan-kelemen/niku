@@ -37,7 +37,7 @@ namespace galileo
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
         void draw(VkCommandBuffer command_buffer,
-            gbuffer_t& deferred,
+            gbuffer_t& gbuffer,
             vkrndr::image_t& target_image);
 
     public:

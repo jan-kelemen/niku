@@ -239,7 +239,7 @@ void galileo::render_graph_t::update(size_t const index,
 {
     auto* const gpu{frame_data_->uniform_map.as<gpu_render_graph_t>()};
     gpu[index].position = position;
-    gpu[index].material = index;
+    gpu[index].material = cppext::narrow<uint32_t>(index);
 }
 
 void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,

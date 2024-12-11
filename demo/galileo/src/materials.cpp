@@ -31,6 +31,7 @@
 #include <utility>
 
 // IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_include <string>
 
 namespace
 {
