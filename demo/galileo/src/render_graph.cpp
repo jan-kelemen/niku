@@ -30,6 +30,7 @@
 #include <utility>
 
 // IWYU pragma: no_include <vector>
+// IWYU pragma: no_include <optional>
 
 namespace
 {
@@ -286,6 +287,11 @@ void galileo::render_graph_t::update(size_t const index,
 {
     auto* const gpu{frame_data_->uniform_map.as<gpu_render_node_t>()};
     vkgltf::node_t const& node{model_.nodes[index]};
+    if (!node.mesh_index)
+    {
+        return;
+    }
+
     auto const& mesh{meshes_[*node.mesh_index]};
 
     auto mesh_primitives{primitives_ | std::views::drop(mesh.first_primitive) |
@@ -333,7 +339,7 @@ void galileo::render_graph_t::draw(VkCommandBuffer command_buffer)
         {
             vkCmdDrawIndexed(command_buffer,
                 primitive.count,
-                primitive.instance_count,
+                primitive.current_instance,
                 primitive.first,
                 primitive.vertex_offset,
                 instance);
@@ -342,7 +348,7 @@ void galileo::render_graph_t::draw(VkCommandBuffer command_buffer)
         {
             vkCmdDraw(command_buffer,
                 primitive.count,
-                primitive.instance_count,
+                primitive.current_instance,
                 primitive.first,
                 instance);
         }
@@ -381,6 +387,7 @@ size_t galileo::render_graph_t::calculate_unique_draws(
     };
 
     size_t rv{};
+    // cppcheck-suppress-begin useStlAlgorithm
     for (vkgltf::scene_graph_t const& scene : model.scenes)
     {
         for (vkgltf::node_t const& node : scene.roots(model))
@@ -388,6 +395,7 @@ size_t galileo::render_graph_t::calculate_unique_draws(
             rv += traverse(node, traverse);
         }
     }
+    // cppcheck-suppress-end useStlAlgorithm
 
     return rv;
 }

@@ -72,6 +72,7 @@ DISABLE_WARNING_POP
 #include <filesystem>
 #include <iterator>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <utility>
 #include <variant>

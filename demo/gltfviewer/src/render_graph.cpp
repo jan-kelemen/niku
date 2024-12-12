@@ -20,6 +20,7 @@
 #include <functional>
 #include <utility>
 
+// IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <ranges>
 // IWYU pragma: no_include <vector>
 
