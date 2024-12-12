@@ -47,6 +47,7 @@
   { symbol: [ "std::ranges::find_if", private, "<algorithm>", public ] },
   { symbol: [ "std::ranges::find", private, "<algorithm>", public ] },
   { symbol: [ "std::ranges::fill_n", private, "<algorithm>", public ] },
+  { symbol: [ "std::pair", private, "<utility>", public ] },
   { symbol: [ "std::vector", private, "<vector>", public ] },
 
 
