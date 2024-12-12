@@ -32,6 +32,8 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
 
+#include <boost/scope/defer.hpp>
+
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_STRINGOP_OVERFLOW
 #include <fmt/std.h> // IWYU pragma: keep
@@ -65,14 +67,11 @@ DISABLE_WARNING_POP
 
 #include <volk.h>
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <filesystem>
-#include <iterator>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <utility>
 #include <variant>
@@ -82,6 +81,7 @@ DISABLE_WARNING_POP
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <system_error>
 
 namespace
 {
@@ -94,7 +94,7 @@ namespace
             VK_SAMPLE_COUNT_1_BIT);
     }
 
-    [[nodiscard]] std::vector<JPH::BodyID> setup_world(
+    [[nodiscard]] std::vector<std::pair<size_t, JPH::BodyID>> setup_world(
         vkrndr::backend_t& backend,
         galileo::materials_t& materials,
         galileo::render_graph_t& graph,
@@ -108,96 +108,76 @@ namespace
         {
             std::terminate();
         }
+        [[maybe_unused]] boost::scope::defer_guard const guard{
+            [d = &backend.device(), m = &model.value()]() { destroy(d, m); }};
+
         spdlog::info("nodes: {} meshes: {}",
             model->nodes.size(),
             model->meshes.size());
+        graph.consume(*model);
 
         make_node_matrices_absolute(*model);
 
-        auto it{std::ranges::find(model->nodes, "Cube", &vkgltf::node_t::name)};
-        if (it == std::cend(model->nodes) || !it->aabb)
+        std::vector<std::pair<size_t, JPH::BodyID>> rv;
+        for (vkgltf::scene_graph_t const& scene : model->scenes)
         {
-            std::terminate();
-        }
-
-        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-        glm::vec3 half_extents{(it->aabb->max - it->aabb->min) / 2.0f};
-        // Next we can create a rigid body to serve as the floor, we make a
-        // large box Create the settings for the collision volume (the shape).
-        // Note that for simple shapes (like boxes) you can also directly
-        // construct a BoxShape.
-        JPH::BoxShapeSettings const floor_shape_settings{
-            ngnphy::to_jolt(half_extents)};
-        floor_shape_settings
-            .SetEmbedded(); // A ref counted object on the stack (base class
-                            // RefTarget) should be marked as such to prevent it
-                            // from being freed when its reference count goes to
-                            // 0.
-
-        // Create the shape
-        JPH::ShapeSettings::ShapeResult const floor_shape_result{
-            floor_shape_settings.Create()};
-        JPH::ShapeRefC const floor_shape{floor_shape_result
-                .Get()}; // We don't expect an error here, but you can check
-                         // floor_shape_result for HasError() / GetError()
-
-        // Create the settings for the body itself. Note that here you can also
-        // set other properties like the restitution / friction.
-        JPH::BodyCreationSettings const floor_settings{floor_shape,
-            ngnphy::to_jolt(glm::vec3{it->matrix[3]}),
-            JPH::Quat::sIdentity(),
-            JPH::EMotionType::Static,
-            galileo::object_layers::non_moving};
-
-        // Create the actual rigid body
-        JPH::Body* floor{body_interface.CreateBody(
-            floor_settings)}; // Note that if we run out of bodies this can
-                              // return nullptr
-
-        // Add it to the world
-        body_interface.AddBody(floor->GetID(), JPH::EActivation::DontActivate);
-        std::vector<JPH::BodyID> rv;
-        rv.emplace_back(floor->GetID());
-
-        auto name_filter = [](vkgltf::node_t const& n)
-        { return n.name.starts_with("Icosphere"); };
-        for (vkgltf::node_t const& sphere :
-            model->nodes | std::views::filter(name_filter))
-        {
-            if (!sphere.aabb)
+            for (size_t const& root_index : scene.root_indices)
             {
-                continue;
+                auto const& root{model->nodes[root_index]};
+                if (!root.aabb)
+                {
+                    std::terminate();
+                }
+
+                // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+                glm::vec3 const half_extents{
+                    (root.aabb->max - root.aabb->min) / 2.0f};
+
+                if (root.name == "Cube")
+                {
+                    JPH::BoxShapeSettings const floor_shape_settings{
+                        ngnphy::to_jolt(half_extents)};
+                    floor_shape_settings.SetEmbedded();
+
+                    JPH::ShapeSettings::ShapeResult const floor_shape_result{
+                        floor_shape_settings.Create()};
+                    JPH::ShapeRefC const floor_shape{floor_shape_result.Get()};
+
+                    JPH::BodyCreationSettings const floor_settings{floor_shape,
+                        ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
+                        JPH::Quat::sIdentity(),
+                        JPH::EMotionType::Static,
+                        galileo::object_layers::non_moving};
+
+                    JPH::Body* floor{body_interface.CreateBody(floor_settings)};
+
+                    body_interface.AddBody(floor->GetID(),
+                        JPH::EActivation::DontActivate);
+
+                    rv.emplace_back(root_index, floor->GetID());
+                }
+                else if (root.name.starts_with("Icosphere"))
+                {
+                    JPH::BodyCreationSettings const sphere_settings{
+                        new JPH::SphereShape{half_extents.x},
+                        ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
+                        JPH::Quat::sIdentity(),
+                        JPH::EMotionType::Dynamic,
+                        galileo::object_layers::moving};
+
+                    JPH::BodyID const sphere_id =
+                        body_interface.CreateAndAddBody(sphere_settings,
+                            JPH::EActivation::Activate);
+
+                    body_interface.SetLinearVelocity(sphere_id,
+                        JPH::Vec3{0.0f, -5.0f, 0.0f});
+
+                    rv.emplace_back(root_index, sphere_id);
+                }
             }
-
-            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-            half_extents = (sphere.aabb->max - sphere.aabb->min) / 2.0f;
-
-            // Now create a dynamic body to bounce on the floor
-            // Note that this uses the shorthand version of creating and adding
-            // a body to the world
-            JPH::BodyCreationSettings const sphere_settings{
-                new JPH::SphereShape{half_extents.x},
-                ngnphy::to_jolt(glm::vec3{sphere.matrix[3]}),
-                JPH::Quat::sIdentity(),
-                JPH::EMotionType::Dynamic,
-                galileo::object_layers::moving};
-
-            JPH::BodyID const sphere_id =
-                body_interface.CreateAndAddBody(sphere_settings,
-                    JPH::EActivation::Activate);
-
-            // Now you can interact with the dynamic body, in this case we're
-            // going to give it a velocity. (note that if we had used CreateBody
-            // then we could have set the velocity straight on the body before
-            // adding it to the physics system)
-            body_interface.SetLinearVelocity(sphere_id,
-                JPH::Vec3{0.0f, -5.0f, 0.0f});
-
-            rv.emplace_back(sphere_id);
         }
 
         materials.consume(*model);
-        graph.consume(std::move(model).value());
 
         return rv;
     }
@@ -207,9 +187,8 @@ galileo::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
           .init_subsystems = {.video = true, .debug = debug},
           .title = "galileo",
-          .window_flags =
-              static_cast<SDL_WindowFlags>(SDL_WINDOW_FULLSCREEN_DESKTOP),
-          //              SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI),
+          .window_flags = static_cast<SDL_WindowFlags>(
+              SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI),
           .centered = true,
           .width = 512,
           .height = 512}}
@@ -266,11 +245,10 @@ void galileo::application_t::update(float delta_time)
 
     physics_engine_.update(delta_time);
 
-    size_t cnt{};
     auto& body_interface{physics_engine_.body_interface()};
-    for (auto const& body_id : bodies_)
+    for (auto const& [index, body_id] : bodies_)
     {
-        render_graph_->update(cnt++,
+        render_graph_->update(index,
             ngnphy::to_glm(body_interface.GetWorldTransform(body_id)));
     }
 

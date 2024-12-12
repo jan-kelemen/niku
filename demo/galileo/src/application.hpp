@@ -16,8 +16,10 @@
 
 #include <SDL2/SDL_events.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace ngnwsi
@@ -85,7 +87,7 @@ namespace galileo
         camera_controller_t camera_controller_;
 
         physics_engine_t physics_engine_;
-        std::vector<JPH::BodyID> bodies_;
+        std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;

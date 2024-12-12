@@ -3,8 +3,6 @@
 
 #include <cppext_cycled_buffer.hpp>
 
-#include <vkgltf_model.hpp>
-
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
 
@@ -14,8 +12,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
+
+namespace vkgltf
+{
+    struct model_t;
+} // namespace vkgltf
 
 namespace vkrndr
 {
@@ -47,6 +51,13 @@ namespace galileo
         size_t count;
     };
 
+    struct [[nodiscard]] render_node_t final
+    {
+        glm::mat4 matrix{1.0f};
+        std::optional<size_t> mesh_index;
+        std::vector<size_t> child_indices;
+    };
+
     class [[nodiscard]] render_graph_t final
     {
     public:
@@ -69,7 +80,7 @@ namespace galileo
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
 
-        void consume(vkgltf::model_t&& model);
+        void consume(vkgltf::model_t& model);
 
         void begin_frame();
 
@@ -107,7 +118,7 @@ namespace galileo
         vkrndr::buffer_t vertex_buffer_;
         vkrndr::buffer_t index_buffer_;
 
-        vkgltf::model_t model_;
+        std::vector<render_node_t> nodes_;
         std::vector<render_mesh_t> meshes_;
         std::vector<render_primitive_t> primitives_;
 

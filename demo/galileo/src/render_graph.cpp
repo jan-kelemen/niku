@@ -27,7 +27,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <utility>
 
 // IWYU pragma: no_include <vector>
 // IWYU pragma: no_include <optional>
@@ -101,6 +100,13 @@ namespace
             .vertex_offset = p.vertex_offset,
             .material_index = p.material_index};
     }
+
+    galileo::render_node_t to_render_node(vkgltf::node_t const& n)
+    {
+        return {.matrix = n.matrix,
+            .mesh_index = n.mesh_index,
+            .child_indices = n.child_indices};
+    }
 } // namespace
 
 std::span<VkVertexInputBindingDescription const>
@@ -167,8 +173,6 @@ galileo::render_graph_t::~render_graph_t()
         vkrndr::destroy(&backend_->device(), &data.uniform);
     }
 
-    destroy(&backend_->device(), &model_);
-
     destroy(&backend_->device(), &index_buffer_);
 
     destroy(&backend_->device(), &vertex_buffer_);
@@ -183,8 +187,9 @@ VkDescriptorSetLayout galileo::render_graph_t::descriptor_set_layout() const
     return descriptor_set_layout_;
 }
 
-void galileo::render_graph_t::consume(vkgltf::model_t&& model)
+void galileo::render_graph_t::consume(vkgltf::model_t& model)
 {
+    nodes_.clear();
     meshes_.clear();
     primitives_.clear();
     for (vkgltf::mesh_t const& mesh : model.meshes)
@@ -195,6 +200,10 @@ void galileo::render_graph_t::consume(vkgltf::model_t&& model)
             to_render_primitive);
         meshes_.emplace_back(first, mesh.primitives.size());
     }
+    std::ranges::transform(model.nodes,
+        std::back_inserter(nodes_),
+        to_render_node);
+
     size_t const uniform_buffer_values{calculate_unique_draws(model)};
 
     uint32_t acc_instance{};
@@ -275,9 +284,6 @@ void galileo::render_graph_t::consume(vkgltf::model_t&& model)
             data.descriptor_set,
             vkrndr::buffer_descriptor(data.uniform));
     }
-
-    destroy(&backend_->device(), &model_);
-    model_ = std::move(model);
 }
 
 void galileo::render_graph_t::begin_frame() { frame_data_.cycle(); }
@@ -286,21 +292,29 @@ void galileo::render_graph_t::update(size_t const index,
     glm::mat4 const& position)
 {
     auto* const gpu{frame_data_->uniform_map.as<gpu_render_node_t>()};
-    vkgltf::node_t const& node{model_.nodes[index]};
-    if (!node.mesh_index)
+
+    auto const& node{nodes_[index]};
+
+    glm::mat4 const new_position{position * node.matrix};
+
+    if (node.mesh_index)
     {
-        return;
+        auto const& mesh{meshes_[*node.mesh_index]};
+
+        auto mesh_primitives{primitives_ |
+            std::views::drop(mesh.first_primitive) |
+            std::views::take(mesh.count)};
+        for (render_primitive_t& primitive : mesh_primitives)
+        {
+            gpu[primitive.first_instance + primitive.current_instance]
+                .position = position;
+            ++primitive.current_instance;
+        }
     }
 
-    auto const& mesh{meshes_[*node.mesh_index]};
-
-    auto mesh_primitives{primitives_ | std::views::drop(mesh.first_primitive) |
-        std::views::take(mesh.count)};
-    for (render_primitive_t& primitive : mesh_primitives)
+    for (auto const child : node.child_indices)
     {
-        gpu[primitive.first_instance + primitive.current_instance].position =
-            position;
-        ++primitive.current_instance;
+        update(child, new_position);
     }
 }
 
@@ -361,28 +375,30 @@ void galileo::render_graph_t::draw(VkCommandBuffer command_buffer)
 size_t galileo::render_graph_t::calculate_unique_draws(
     vkgltf::model_t const& model)
 {
-    auto traverse = [this, &model](vkgltf::node_t const& node,
+    auto traverse = [this](size_t const root,
                         auto& traverse_ref) mutable -> size_t
     {
+        auto const& node{nodes_[root]};
+
         size_t rv{};
         if (node.mesh_index)
         {
-            auto const& rmesh{meshes_[*node.mesh_index]};
+            auto const& mesh{meshes_[*node.mesh_index]};
             auto mesh_primitives{primitives_ |
-                std::views::drop(rmesh.first_primitive) |
-                std::views::take(rmesh.count)};
+                std::views::drop(mesh.first_primitive) |
+                std::views::take(mesh.count)};
             for (render_primitive_t& primitive : mesh_primitives)
             {
                 ++primitive.instance_count;
             }
-            rv += rmesh.count;
+            rv += mesh.count;
         }
 
-        auto const& children{node.children(model)};
+        auto const& children{node.child_indices};
         return std::accumulate(children.begin(),
             children.end(),
             rv,
-            [&traverse_ref](auto acc, vkgltf::node_t const& child)
+            [&traverse_ref](auto acc, size_t const child)
             { return acc + traverse_ref(child, traverse_ref); });
     };
 
@@ -390,9 +406,10 @@ size_t galileo::render_graph_t::calculate_unique_draws(
     // cppcheck-suppress-begin useStlAlgorithm
     for (vkgltf::scene_graph_t const& scene : model.scenes)
     {
-        for (vkgltf::node_t const& node : scene.roots(model))
+        for (auto const root : scene.root_indices)
         {
-            rv += traverse(node, traverse);
+            nodes_[root].matrix = glm::mat4{1.0f};
+            rv += traverse(root, traverse);
         }
     }
     // cppcheck-suppress-end useStlAlgorithm
