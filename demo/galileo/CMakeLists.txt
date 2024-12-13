@@ -37,6 +37,7 @@ target_link_libraries(galileo
         ngngfx
         ngnphy
         ngnwsi
+        vkglsl
         vkgltf
     PRIVATE
         Angelscript::angelscript
@@ -69,30 +70,30 @@ add_custom_target(galileo_scripts
         ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test.as
 )
 
-set(GALILEO_SHADERS
-    deferred.frag
-    fullscreen.vert
-    gbuffer.frag
-    gbuffer.vert
-    physics_debug_line.frag
-    physics_debug_line.vert
-)
-
-foreach(shader IN LISTS GALILEO_SHADERS)
-    compile_shader(
-        SHADER
-            "${CMAKE_CURRENT_SOURCE_DIR}/shaders/${shader}"
-        SPIRV
-            "${CMAKE_CURRENT_BINARY_DIR}/${shader}.spv"
-    )
-
-    list(APPEND GALILEO_COMPILED_SHADERS
-        "${CMAKE_CURRENT_BINARY_DIR}/${shader}.spv")
-endforeach()
-
 add_custom_target(galileo_shaders
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
+        ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
-        ${GALILEO_COMPILED_SHADERS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
 )
 
 set_property(TARGET galileo 

@@ -359,16 +359,17 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
 
 void gltfviewer::pyramid_blur_t::create_downsample_resources()
 {
-    vkglsl::shader_set_t set;
-    auto shader{vkglsl::add_shader_binary_from_path(set,
+    vkglsl::shader_set_t shader_set{true, false};
+
+    auto shader{add_shader_module_from_path(shader_set,
         backend_->device(),
         VK_SHADER_STAGE_COMPUTE_BIT,
-        "pyramid_downsample.comp.spv")};
+        "pyramid_downsample.comp")};
     assert(shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
         [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
 
-    auto bindings{set.descriptor_bindings(0)};
+    auto bindings{shader_set.descriptor_bindings(0)};
     assert(bindings);
 
     (*bindings)[0].descriptorCount = pyramid_image_.mip_levels;
@@ -413,16 +414,19 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
 
 void gltfviewer::pyramid_blur_t::create_upsample_resources()
 {
-    auto shader{vkrndr::create_shader_module(backend_->device(),
-        "pyramid_upsample.comp.spv",
+    vkglsl::shader_set_t shader_set{true, false};
+
+    auto shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
         VK_SHADER_STAGE_COMPUTE_BIT,
-        "main")};
+        "pyramid_upsample.comp")};
+    assert(shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-        [this, shd = &shader]() { destroy(&backend_->device(), shd); }};
+        [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
 
     destroy(&backend_->device(), &upsample_pipeline_);
     upsample_pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
         downsample_pipeline_.layout}
-                             .with_shader(as_pipeline_shader(shader))
+                             .with_shader(as_pipeline_shader(*shader))
                              .build();
 }

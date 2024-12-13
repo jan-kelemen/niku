@@ -9,6 +9,8 @@
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
 
+#include <vkglsl_guard.hpp>
+
 #include <vkrndr_image.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
@@ -82,6 +84,8 @@ namespace galileo
         void on_resize(uint32_t width, uint32_t height) override;
 
     private:
+        vkglsl::guard_t glsl_guard_;
+
         ngnwsi::mouse_t mouse_;
         ngngfx::perspective_camera_t camera_;
         camera_controller_t camera_controller_;

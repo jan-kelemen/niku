@@ -19,6 +19,8 @@
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <boost/scope/defer.hpp>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/trigonometric.hpp>
@@ -643,16 +645,25 @@ uint32_t gltfviewer::skybox_t::prefiltered_mip_levels() const
 void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
     VkDescriptorSet descriptor_set)
 {
-    auto cubemap_vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "cubemap.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "main")};
+    vkglsl::shader_set_t shader_set{true, false};
 
-    auto cubemap_fragment_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "equirectangular_to_cubemap.frag.spv",
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            "main")};
+    auto vertex_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "cubemap.vert")};
+    assert(vertex_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+        [this, shd = &vertex_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
+    auto fragment_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "equirectangular_to_cubemap.frag")};
+    assert(fragment_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+        [this, shd = &fragment_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
 
     auto pipeline =
         vkrndr::pipeline_builder_t{backend_->device(),
@@ -661,16 +672,13 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
                 .add_push_constants<cubemap_push_constants_t>(
                     VK_SHADER_STAGE_VERTEX_BIT)
                 .build()}
-            .add_shader(as_pipeline_shader(cubemap_vertex_shader))
-            .add_shader(as_pipeline_shader(cubemap_fragment_shader))
+            .add_shader(as_pipeline_shader(*vertex_shader))
+            .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(cubemap_.format)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
-
-    destroy(&backend_->device(), &cubemap_vertex_shader);
-    destroy(&backend_->device(), &cubemap_fragment_shader);
 
     render_to_cubemap(pipeline, std::span{&descriptor_set, 1}, cubemap_);
 
@@ -680,17 +688,25 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
 void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
     VkDescriptorSet descriptor_set)
 {
-    auto irradiance_vertex_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "cubemap.vert.spv",
-            VK_SHADER_STAGE_VERTEX_BIT,
-            "main")};
+    vkglsl::shader_set_t shader_set{true, false};
 
-    auto irradiance_fragment_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "irradiance.frag.spv",
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            "main")};
+    auto vertex_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "cubemap.vert")};
+    assert(vertex_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+        [this, shd = &vertex_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
+    auto fragment_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "irradiance.frag")};
+    assert(fragment_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+        [this, shd = &fragment_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
 
     auto pipeline =
         vkrndr::pipeline_builder_t{backend_->device(),
@@ -700,16 +716,13 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
                 .add_push_constants<cubemap_push_constants_t>(
                     VK_SHADER_STAGE_VERTEX_BIT)
                 .build()}
-            .add_shader(as_pipeline_shader(irradiance_vertex_shader))
-            .add_shader(as_pipeline_shader(irradiance_fragment_shader))
+            .add_shader(as_pipeline_shader(*vertex_shader))
+            .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(irradiance_cubemap_.format)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
-
-    destroy(&backend_->device(), &irradiance_vertex_shader);
-    destroy(&backend_->device(), &irradiance_fragment_shader);
 
     std::array descriptors{descriptor_set, skybox_descriptor_};
 
@@ -721,17 +734,25 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
 void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
     VkDescriptorSet descriptor_set)
 {
-    auto prefilter_vertex_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "cubemap.vert.spv",
-            VK_SHADER_STAGE_VERTEX_BIT,
-            "main")};
+    vkglsl::shader_set_t shader_set{true, false};
 
-    auto prefilter_fragment_shader{
-        vkrndr::create_shader_module(backend_->device(),
-            "prefilter.frag.spv",
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            "main")};
+    auto vertex_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "cubemap.vert")};
+    assert(vertex_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+        [this, shd = &vertex_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
+    auto fragment_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        "prefilter.frag")};
+    assert(fragment_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+        [this, shd = &fragment_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
 
     struct specialization_t
     {
@@ -761,17 +782,14 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                 .add_push_constants<cubemap_push_constants_t>(
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
                 .build()}
-            .add_shader(as_pipeline_shader(prefilter_vertex_shader))
-            .add_shader(as_pipeline_shader(prefilter_fragment_shader,
-                &fragment_specialization))
+            .add_shader(as_pipeline_shader(*vertex_shader))
+            .add_shader(
+                as_pipeline_shader(*fragment_shader, &fragment_specialization))
             .add_color_attachment(prefilter_cubemap_.format)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
-
-    destroy(&backend_->device(), &prefilter_vertex_shader);
-    destroy(&backend_->device(), &prefilter_fragment_shader);
 
     std::array descriptors{descriptor_set, skybox_descriptor_};
 
@@ -885,15 +903,25 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
 
 void gltfviewer::skybox_t::generate_brdf_lookup()
 {
-    auto brdf_vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "fullscreen.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "main")};
+    vkglsl::shader_set_t shader_set{true, false};
 
-    auto brdf_fragment_shader{vkrndr::create_shader_module(backend_->device(),
-        "brdf.frag.spv",
+    auto vertex_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "fullscreen.vert")};
+    assert(vertex_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+        [this, shd = &vertex_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
+    auto fragment_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
         VK_SHADER_STAGE_FRAGMENT_BIT,
-        "main")};
+        "brdf.frag")};
+    assert(fragment_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+        [this, shd = &fragment_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
 
     struct specialization_t
     {
@@ -914,17 +942,13 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
     auto pipeline =
         vkrndr::pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}.build()}
-            .add_shader(as_pipeline_shader(brdf_vertex_shader))
-            .add_shader(as_pipeline_shader(brdf_fragment_shader,
-                &fragment_specialization))
+            .add_shader(as_pipeline_shader(*vertex_shader))
+            .add_shader(
+                as_pipeline_shader(*fragment_shader, &fragment_specialization))
             .add_color_attachment(brdf_lookup_.format)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .build();
-
-    destroy(&backend_->device(), &brdf_vertex_shader);
-    destroy(&backend_->device(), &brdf_fragment_shader);
-
     {
         auto transient{backend_->request_transient_operation(false)};
         VkCommandBuffer command_buffer{transient.command_buffer()};

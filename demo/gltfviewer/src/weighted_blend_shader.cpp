@@ -104,16 +104,18 @@ gltfviewer::weighted_blend_shader_t::weighted_blend_shader_t(
     , bilinear_sampler_{create_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    vkglsl::shader_set_t set;
-    auto shader{vkglsl::add_shader_binary_from_path(set,
+    vkglsl::shader_set_t shader_set{true, false};
+
+    auto shader{add_shader_module_from_path(shader_set,
         backend_->device(),
         VK_SHADER_STAGE_COMPUTE_BIT,
-        "weighted_blend.comp.spv")};
+        "weighted_blend.comp")};
     assert(shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
         [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
 
-    auto layout{vkglsl::descriptor_set_layout(set, backend_->device(), 0)};
+    auto layout{
+        vkglsl::descriptor_set_layout(shader_set, backend_->device(), 0)};
     assert(layout);
     descriptor_layout_ = *layout;
 

@@ -4,6 +4,8 @@
 
 #include <vkgltf_model.hpp>
 
+#include <vkglsl_shader_set.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
@@ -109,7 +111,9 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)
 {
-    std::filesystem::path const vertex_path{"pbr.vert.spv"};
+    vkglsl::shader_set_t shader_set{true, false};
+
+    std::filesystem::path const vertex_path{"pbr.vert"};
     if (auto const wt{last_write_time(vertex_path)}; vertex_write_time_ != wt)
     {
         if (vertex_shader_.handle)
@@ -117,15 +121,19 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
             destroy(&backend_->device(), &vertex_shader_);
         }
 
-        vertex_shader_ = vkrndr::create_shader_module(backend_->device(),
-            vertex_path.c_str(),
+        auto vertex_shader{add_shader_module_from_path(shader_set,
+            backend_->device(),
             VK_SHADER_STAGE_VERTEX_BIT,
-            "main");
+            vertex_path)};
+        assert(vertex_shader);
+
+        vertex_shader_ = *vertex_shader;
+
         object_name(backend_->device(), vertex_shader_, "PBR vertex");
         vertex_write_time_ = wt;
     }
 
-    std::filesystem::path const fragment_path{"pbr.frag.spv"};
+    std::filesystem::path const fragment_path{"pbr.frag"};
     if (auto const wt{last_write_time(fragment_path)};
         fragment_write_time_ != wt)
     {
@@ -134,10 +142,13 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
             destroy(&backend_->device(), &fragment_shader_);
         }
 
-        fragment_shader_ = vkrndr::create_shader_module(backend_->device(),
-            fragment_path.c_str(),
+        auto fragment_shader{add_shader_module_from_path(shader_set,
+            backend_->device(),
             VK_SHADER_STAGE_FRAGMENT_BIT,
-            "main");
+            fragment_path)};
+
+        fragment_shader_ = *fragment_shader;
+
         object_name(backend_->device(), fragment_shader_, "PBR fragment");
         fragment_write_time_ = wt;
     }

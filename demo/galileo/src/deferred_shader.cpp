@@ -4,6 +4,8 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <vkglsl_shader_set.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
@@ -164,19 +166,24 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
     , sampler_{create_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "fullscreen.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "main")};
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vert{
-        [this, shd = &vertex_shader]() { destroy(&backend_->device(), shd); }};
+    vkglsl::shader_set_t shader_set{true, false};
 
-    auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
-        "deferred.frag.spv",
+    auto vertex_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "fullscreen.vert")};
+    assert(vertex_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+        [this, shd = &vertex_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
+    auto fragment_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
         VK_SHADER_STAGE_FRAGMENT_BIT,
-        "main")};
+        "deferred.frag")};
+    assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader]()
+        [this, shd = &fragment_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
     pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
@@ -184,8 +191,8 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
             .add_descriptor_set_layout(frame_info_layout)
             .add_descriptor_set_layout(descriptor_set_layout_)
             .build()}
-                    .add_shader(as_pipeline_shader(vertex_shader))
-                    .add_shader(as_pipeline_shader(fragment_shader))
+                    .add_shader(as_pipeline_shader(*vertex_shader))
+                    .add_shader(as_pipeline_shader(*fragment_shader))
                     .add_color_attachment(backend_->image_format())
                     .with_culling(VK_CULL_MODE_FRONT_BIT,
                         VK_FRONT_FACE_COUNTER_CLOCKWISE)

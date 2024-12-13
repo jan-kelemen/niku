@@ -3,6 +3,8 @@
 #include <gbuffer.hpp>
 #include <render_graph.hpp>
 
+#include <vkglsl_shader_set.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -23,19 +25,24 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
     VkFormat const depth_buffer_format)
     : backend_{&backend}
 {
-    auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "gbuffer.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "main")};
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vert{
-        [this, shd = &vertex_shader]() { destroy(&backend_->device(), shd); }};
+    vkglsl::shader_set_t shader_set{true, false};
 
-    auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
-        "gbuffer.frag.spv",
+    auto vertex_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "gbuffer.vert")};
+    assert(vertex_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+        [this, shd = &vertex_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
+    auto fragment_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
         VK_SHADER_STAGE_FRAGMENT_BIT,
-        "main")};
+        "gbuffer.frag")};
+    assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader]()
+        [this, shd = &fragment_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
     pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
@@ -44,8 +51,8 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
             .add_descriptor_set_layout(materials_layout)
             .add_descriptor_set_layout(graph_layout)
             .build()}
-                    .add_shader(as_pipeline_shader(vertex_shader))
-                    .add_shader(as_pipeline_shader(fragment_shader))
+                    .add_shader(as_pipeline_shader(*vertex_shader))
+                    .add_shader(as_pipeline_shader(*fragment_shader))
                     .add_color_attachment(gbuffer_t::position_format)
                     .add_color_attachment(gbuffer_t::normal_format)
                     .add_color_attachment(gbuffer_t::albedo_format)

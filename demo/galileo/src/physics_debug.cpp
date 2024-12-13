@@ -6,6 +6,8 @@
 
 #include <ngngfx_camera.hpp>
 
+#include <vkglsl_shader_set.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_image.hpp>
@@ -85,19 +87,24 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
 {
     Initialize();
 
-    auto vertex_shader{vkrndr::create_shader_module(backend_->device(),
-        "physics_debug_line.vert.spv",
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "main")};
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vert{
-        [this, shd = &vertex_shader]() { destroy(&backend_->device(), shd); }};
+    vkglsl::shader_set_t shader_set{true, false};
 
-    auto fragment_shader{vkrndr::create_shader_module(backend_->device(),
-        "physics_debug_line.frag.spv",
+    auto vertex_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_VERTEX_BIT,
+        "physics_debug_line.vert")};
+    assert(vertex_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+        [this, shd = &vertex_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
+    auto fragment_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
         VK_SHADER_STAGE_FRAGMENT_BIT,
-        "main")};
+        "physics_debug_line.frag")};
+    assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader]()
+        [this, shd = &fragment_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
     line_pipeline_ =
@@ -106,8 +113,8 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
                 .add_descriptor_set_layout(frame_info_layout)
                 .build()}
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
-            .add_shader(as_pipeline_shader(vertex_shader))
-            .add_shader(as_pipeline_shader(fragment_shader))
+            .add_shader(as_pipeline_shader(*vertex_shader))
+            .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(backend_->image_format())
             .with_depth_test(depth_buffer_format)
             .add_vertex_input(binding_description(), attribute_description())

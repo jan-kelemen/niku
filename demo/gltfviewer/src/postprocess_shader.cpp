@@ -14,6 +14,8 @@
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <boost/scope/defer.hpp>
+
 #include <volk.h>
 
 #include <array>
@@ -84,15 +86,18 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
     , descriptor_sets_{backend_->frames_in_flight(),
           backend_->frames_in_flight()}
 {
-    vkglsl::shader_set_t shaders{true};
-    auto shader{add_shader_binary_from_path(shaders,
+    vkglsl::shader_set_t shader_set{true, false};
+
+    auto shader{add_shader_module_from_path(shader_set,
         backend_->device(),
         VK_SHADER_STAGE_COMPUTE_BIT,
-        "postprocess.comp.spv")};
+        "postprocess.comp")};
     assert(shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
+        [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
 
     if (auto const layout{
-            descriptor_set_layout(shaders, backend_->device(), 0)})
+            descriptor_set_layout(shader_set, backend_->device(), 0)})
     {
         descriptor_set_layout_ = *layout;
     }
@@ -108,8 +113,6 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
             .build()}
                     .with_shader(as_pipeline_shader(*shader))
                     .build();
-
-    destroy(&backend_->device(), &shader.value());
 
     for (auto& set : descriptor_sets_.as_span())
     {

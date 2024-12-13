@@ -383,20 +383,20 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
 
     vkglsl::shader_set_t composition_shader_set{true, false};
     auto composition_vertex_shader{
-        vkglsl::add_shader_binary_from_path(composition_shader_set,
+        vkglsl::add_shader_module_from_path(composition_shader_set,
             backend_->device(),
             VK_SHADER_STAGE_VERTEX_BIT,
-            "fullscreen.vert.spv")};
+            "fullscreen.vert")};
     assert(composition_vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_cvtx{
         [this, shd = &composition_vertex_shader.value()]
         { destroy(&backend_->device(), shd); }};
 
     auto composition_fragment_shader{
-        vkglsl::add_shader_binary_from_path(composition_shader_set,
+        vkglsl::add_shader_module_from_path(composition_shader_set,
             backend_->device(),
             VK_SHADER_STAGE_FRAGMENT_BIT,
-            "oit_composition.frag.spv")};
+            "oit_composition.frag")};
     assert(composition_fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_cfrag{
         [this, shd = &composition_fragment_shader.value()]

@@ -58,146 +58,58 @@ target_link_libraries(gltfviewer
 
 add_dependencies(gltfviewer gltfviewer_assets gltfviewer_shaders)
 
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/brdf.frag.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/cubemap.vert.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.frag.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/fullscreen.vert.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/oit_composition.frag.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.comp.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_downsample.comp
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/pyramid_downsample.comp.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_upsample.comp
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/pyramid_upsample.comp.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/resolve.comp
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/resolve.comp.spv
-)
-
-compile_shader(
-    SHADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/weighted_blend.comp
-    SPIRV
-        ${CMAKE_CURRENT_BINARY_DIR}/weighted_blend.comp.spv
-)
-
-add_custom_target(gltfviewer_shaders
-    DEPENDS
-        ${CMAKE_CURRENT_BINARY_DIR}/brdf.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/cubemap.vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/equirectangular_to_cubemap.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/fullscreen.vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/irradiance.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/oit_composition.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/postprocess.comp.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/pbr.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/pbr.vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/prefilter.frag.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/pyramid_downsample.comp.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/pyramid_upsample.comp.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/resolve.comp.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/weighted_blend.comp.spv
-)
-
 add_custom_target(gltfviewer_assets
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/aviation_museum_4k.hdr
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbrNeutral.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/aviation_museum_4k.hdr
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbrNeutral.glsl
+)
+
+add_custom_target(gltfviewer_shaders
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbrNeutral.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_downsample.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_upsample.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/resolve.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/weighted_blend.comp
+        ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbrNeutral.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_downsample.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_upsample.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/resolve.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/weighted_blend.comp
 )
 
 set_property(TARGET gltfviewer 
