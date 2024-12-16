@@ -97,7 +97,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
