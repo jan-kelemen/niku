@@ -72,7 +72,7 @@ Thanks to Sergej Majboroda, on [polyhaven.com/a/aviation_museum](https://polyhav
 
 ---
 
-`demo/gltfviewer/shaders/pbrNeutral.glsl` is licensed under `Apache-2.0` license:
+`demo/shared/shaders/pbrNeutral.glsl` is licensed under `Apache-2.0` license:
 
 https://www.apache.org/licenses/LICENSE-2.0
 

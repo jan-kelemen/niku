@@ -68,6 +68,7 @@ add_custom_target(gltfviewer_assets
 
 add_custom_target(gltfviewer_shaders
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
@@ -79,7 +80,6 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_downsample.comp
@@ -90,6 +90,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/weighted_blend.comp
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
+        ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/color_conversion.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
@@ -101,7 +102,6 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_downsample.comp
