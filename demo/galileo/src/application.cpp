@@ -8,6 +8,7 @@
 #include <materials.hpp>
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
+#include <postprocess_shader.hpp>
 #include <render_graph.hpp>
 
 #include <cppext_numeric.hpp>
@@ -27,6 +28,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -85,6 +87,20 @@ DISABLE_WARNING_POP
 
 namespace
 {
+    [[nodiscard]] vkrndr::image_t create_color_image(
+        vkrndr::backend_t const& backend)
+    {
+        return vkrndr::create_image_and_view(backend.device(),
+            backend.extent(),
+            1,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_FORMAT_R16G16B16A16_SFLOAT,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+
     [[nodiscard]] vkrndr::image_t create_depth_buffer(
         vkrndr::backend_t const& backend)
     {
@@ -195,9 +211,10 @@ galileo::application_t::application_t(bool const debug)
     , camera_controller_{camera_, mouse_}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
-              .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_SRGB,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
-          },
+              .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
+              .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                  VK_IMAGE_USAGE_STORAGE_BIT,
+              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
           debug)}
     , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
           backend_->context(),
@@ -205,11 +222,13 @@ galileo::application_t::application_t(bool const debug)
           backend_->swap_chain())}
     , depth_buffer_{create_depth_buffer(*backend_)}
     , gbuffer_{std::make_unique<gbuffer_t>(*backend_)}
+    , color_image_{create_color_image(*backend_)}
     , frame_info_{std::make_unique<frame_info_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
     , deferred_shader_{std::make_unique<deferred_shader_t>(*backend_,
           frame_info_->descriptor_set_layout())}
+    , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
           frame_info_->descriptor_set_layout(),
           depth_buffer_.format)}
@@ -328,7 +347,7 @@ void galileo::application_t::draw()
             depth_buffer_);
     }
 
-    vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
+    vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
 
     if (VkPipelineLayout const layout{deferred_shader_->pipeline_layout()})
     {
@@ -344,16 +363,16 @@ void galileo::application_t::draw()
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        deferred_shader_->draw(command_buffer, *gbuffer_, target_image);
+        deferred_shader_->draw(command_buffer, *gbuffer_, color_image_);
 
-        vkrndr::transition_image(target_image.image,
+        vkrndr::transition_image(color_image_.image,
             command_buffer,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
             1);
     }
 
@@ -362,17 +381,39 @@ void galileo::application_t::draw()
         frame_info_->bind_on(command_buffer,
             layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
-        physics_debug_->draw(command_buffer, target_image, depth_buffer_);
+        physics_debug_->draw(command_buffer, color_image_, depth_buffer_);
+
+        vkrndr::transition_image(color_image_.image,
+            command_buffer,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+            1);
     }
 
     vkrndr::transition_image(target_image.image,
         command_buffer,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_ACCESS_2_NONE,
+        VK_IMAGE_LAYOUT_GENERAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+        1);
+
+    postprocess_shader_->draw(command_buffer, color_image_, target_image);
+
+    vkrndr::transition_image(target_image.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_GENERAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
         1);
 
     imgui_->render(command_buffer, target_image);
@@ -412,6 +453,8 @@ void galileo::application_t::on_shutdown()
 
     physics_debug_.reset();
 
+    postprocess_shader_.reset();
+
     deferred_shader_.reset();
 
     gbuffer_shader_.reset();
@@ -421,6 +464,8 @@ void galileo::application_t::on_shutdown()
     materials_.reset();
 
     frame_info_.reset();
+
+    destroy(&backend_->device(), &color_image_);
 
     gbuffer_.reset();
 
@@ -440,4 +485,8 @@ void galileo::application_t::on_resize(uint32_t const width,
     depth_buffer_ = create_depth_buffer(*backend_);
 
     gbuffer_->resize(width, height);
+
+    destroy(&backend_->device(), &color_image_);
+    color_image_ = create_color_image(*backend_);
+    object_name(backend_->device(), color_image_, "Color image");
 }

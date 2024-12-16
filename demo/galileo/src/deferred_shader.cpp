@@ -193,7 +193,7 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
             .build()}
                     .add_shader(as_pipeline_shader(*vertex_shader))
                     .add_shader(as_pipeline_shader(*fragment_shader))
-                    .add_color_attachment(backend_->image_format())
+                    .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
                     .with_culling(VK_CULL_MODE_FRONT_BIT,
                         VK_FRONT_FACE_COUNTER_CLOCKWISE)
                     .build();

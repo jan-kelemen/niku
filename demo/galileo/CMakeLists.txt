@@ -11,6 +11,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
@@ -23,6 +24,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
 )
 
@@ -72,6 +74,9 @@ add_custom_target(galileo_scripts
 
 add_custom_target(galileo_shaders
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
+        ${NIKU_DEMO_SHARED_DIR}/shaders/Fxaa3_11.h
+        ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
@@ -81,9 +86,13 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
+        ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
+        ${NIKU_DEMO_SHARED_DIR}/shaders/Fxaa3_11.h
+        ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
@@ -93,6 +102,7 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
 )
 

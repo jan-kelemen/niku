@@ -6,23 +6,38 @@
 #include "pbrNeutral.glsl"
 
 // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
-vec4 fromLinear(vec4 linearRGB)
+vec3 fromLinear(vec3 linearRGB)
 {
-    bvec3 cutoff = lessThan(linearRGB.rgb, vec3(0.0031308));
+    bvec3 cutoff = lessThan(linearRGB, vec3(0.0031308));
     vec3 higher =
-        vec3(1.055) * pow(linearRGB.rgb, vec3(1.0 / 2.4)) - vec3(0.055);
-    vec3 lower = linearRGB.rgb * vec3(12.92);
+        vec3(1.055) * pow(linearRGB, vec3(1.0 / 2.4)) - vec3(0.055);
+    vec3 lower = linearRGB * vec3(12.92);
 
-    return vec4(mix(higher, lower, cutoff), linearRGB.a);
+    return mix(higher, lower, cutoff);
 }
 
-vec4 toLinear(vec4 sRGB)
+vec4 fromLinear(vec4 linearRGB) 
 {
-    bvec3 cutoff = lessThan(sRGB.rgb, vec3(0.04045));
-    vec3 higher = pow((sRGB.rgb + vec3(0.055)) / vec3(1.055), vec3(2.4));
-    vec3 lower = sRGB.rgb / vec3(12.92);
+    return vec4(fromLinear(linearRGB.rgb), linearRGB.a);
+}
 
-    return vec4(mix(higher, lower, cutoff), sRGB.a);
+vec3 toLinear(vec3 sRGB)
+{
+    bvec3 cutoff = lessThan(sRGB, vec3(0.04045));
+    vec3 higher = pow((sRGB + vec3(0.055)) / vec3(1.055), vec3(2.4));
+    vec3 lower = sRGB / vec3(12.92);
+
+    return mix(higher, lower, cutoff);
+}
+
+vec4 toLinear(vec4 linearRGB) 
+{
+    return vec4(toLinear(linearRGB.rgb), linearRGB.a);
+}
+
+vec3 pbrNeutralToneMapping(vec3 linearRGB)
+{
+    return PBRNeutralToneMapping(linearRGB.rgb);
 }
 
 vec4 pbrNeutralToneMapping(vec4 linearRGB)
@@ -46,5 +61,12 @@ float luminance(vec3 linearRGB)
 }
 
 float luminance(vec4 linearRGB) { return luminance(linearRGB.rgb); }
+
+float luma(vec3 linearRGB)
+{
+    return dot(linearRGB, vec3(0.299, 0.587, 0.114));
+}
+
+float luma(vec4 linearRGB) { return luma(linearRGB.rgb); }
 
 #endif

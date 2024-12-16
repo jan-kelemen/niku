@@ -42,6 +42,7 @@ namespace galileo
     class gbuffer_shader_t;
     class materials_t;
     class physics_debug_t;
+    class postprocess_shader_t;
     class render_graph_t;
 } // namespace galileo
 
@@ -98,12 +99,14 @@ namespace galileo
 
         vkrndr::image_t depth_buffer_;
         std::unique_ptr<gbuffer_t> gbuffer_;
+        vkrndr::image_t color_image_;
 
         std::unique_ptr<frame_info_t> frame_info_;
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;
         std::unique_ptr<gbuffer_shader_t> gbuffer_shader_;
         std::unique_ptr<deferred_shader_t> deferred_shader_;
+        std::unique_ptr<postprocess_shader_t> postprocess_shader_;
         std::unique_ptr<physics_debug_t> physics_debug_;
     };
 } // namespace galileo

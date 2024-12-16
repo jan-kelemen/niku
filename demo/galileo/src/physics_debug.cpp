@@ -115,7 +115,7 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
-            .add_color_attachment(backend_->image_format())
+            .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
             .with_depth_test(depth_buffer_format)
             .add_vertex_input(binding_description(), attribute_description())
             .build();
