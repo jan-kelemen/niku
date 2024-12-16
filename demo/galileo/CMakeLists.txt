@@ -80,14 +80,15 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fxaa.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tone_mapping.comp
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
         ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
@@ -96,14 +97,15 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fxaa.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tone_mapping.comp
 )
 
 set_property(TARGET galileo 

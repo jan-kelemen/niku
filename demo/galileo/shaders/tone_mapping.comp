@@ -1,0 +1,27 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : require
+
+#include "color_conversion.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 0, binding = 0) uniform sampler2D backbuffer;
+
+layout(set = 0, binding = 1) uniform writeonly image2D image;
+
+void main()
+{
+    const vec2 resolution = vec2(imageSize(image).x, imageSize(image).y);
+
+    const vec2 sampleCoord = vec2(
+        float(gl_GlobalInvocationID.x + 0.5) / resolution.x,
+        float(gl_GlobalInvocationID.y + 0.5) / resolution.y);
+
+    vec3 result = texture(backbuffer, sampleCoord).rgb;
+
+    result = pbrNeutralToneMapping(result);
+    result = fromLinear(result);
+
+    imageStore(image, ivec2(gl_GlobalInvocationID.xy), vec4(result, luma(result)));
+}

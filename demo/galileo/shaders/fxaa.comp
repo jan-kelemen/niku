@@ -2,8 +2,6 @@
 
 #extension GL_GOOGLE_include_directive : require
 
-#include "color_conversion.glsl"
-
 #define FXAA_PC 1
 #define FXAA_GLSL_130 1
 #define FXAA_QUALITY__PRESET 12
@@ -31,12 +29,6 @@ void main()
         float(gl_GlobalInvocationID.x + 0.5) / resolution.x,
         float(gl_GlobalInvocationID.y + 0.5) / resolution.y);
 
-    vec3 result = texture(backbuffer, sampleCoord).rgb;
-
-    result = pbrNeutralToneMapping(result);
-    result = fromLinear(result);
-
-    const vec4 fxaaInput = vec4(result.rgb, luma(result.rgb));
     const vec4 fxaaOut = FxaaPixelShader(
         sampleCoord, // pos
         vec4(sampleCoord.x - 0.5, sampleCoord.y - 0.5, sampleCoord.x + 0.5, sampleCoord.y + 0.5), // fxaaConsolePosPos

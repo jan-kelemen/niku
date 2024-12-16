@@ -6,6 +6,7 @@
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_commands.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
@@ -72,6 +73,21 @@ namespace
             nullptr);
     }
 
+    [[nodiscard]] vkrndr::image_t create_intermediate_image(
+        vkrndr::backend_t const& backend,
+        VkExtent2D const extent)
+    {
+        return vkrndr::create_image_and_view(backend.device(),
+            extent,
+            1,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_FORMAT_R16G16B16A16_SFLOAT,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
@@ -107,56 +123,110 @@ namespace
 galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
     : backend_{&backend}
     , sampler_{create_sampler(backend_->device())}
-    , descriptor_sets_{backend_->frames_in_flight(),
-          backend_->frames_in_flight()}
+    , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    vkglsl::shader_set_t shader_set{true, false};
-
-    auto shader{add_shader_module_from_path(shader_set,
-        backend_->device(),
-        VK_SHADER_STAGE_COMPUTE_BIT,
-        "postprocess.comp")};
-    assert(shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-        [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
-
-    if (auto const layout{
-            descriptor_set_layout(shader_set, backend_->device(), 0)})
     {
-        descriptor_set_layout_ = *layout;
+        vkglsl::shader_set_t shader_set{true, false};
+
+        auto shader{add_shader_module_from_path(shader_set,
+            backend_->device(),
+            VK_SHADER_STAGE_COMPUTE_BIT,
+            "tone_mapping.comp")};
+        assert(shader);
+        [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
+            [this, shd = &shader.value()]()
+            { destroy(&backend_->device(), shd); }};
+
+        if (auto const layout{
+                descriptor_set_layout(shader_set, backend_->device(), 0)})
+        {
+            tone_mapping_descriptor_set_layout_ = *layout;
+        }
+        else
+        {
+            assert(false);
+        }
+
+        tone_mapping_pipeline_ =
+            vkrndr::compute_pipeline_builder_t{backend_->device(),
+                vkrndr::pipeline_layout_builder_t{backend_->device()}
+                    .add_descriptor_set_layout(
+                        tone_mapping_descriptor_set_layout_)
+                    .build()}
+                .with_shader(as_pipeline_shader(*shader))
+                .build();
     }
-    else
+
     {
-        assert(false);
+        vkglsl::shader_set_t shader_set{true, false};
+
+        auto shader{add_shader_module_from_path(shader_set,
+            backend_->device(),
+            VK_SHADER_STAGE_COMPUTE_BIT,
+            "fxaa.comp")};
+        assert(shader);
+        [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
+            [this, shd = &shader.value()]()
+            { destroy(&backend_->device(), shd); }};
+
+        if (auto const layout{
+                descriptor_set_layout(shader_set, backend_->device(), 0)})
+        {
+            fxaa_descriptor_set_layout_ = *layout;
+        }
+        else
+        {
+            assert(false);
+        }
+
+        fxaa_pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
+                .add_descriptor_set_layout(fxaa_descriptor_set_layout_)
+                .build()}
+                             .with_shader(as_pipeline_shader(*shader))
+                             .build();
     }
 
-    pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
-        vkrndr::pipeline_layout_builder_t{backend_->device()}
-            .add_descriptor_set_layout(descriptor_set_layout_)
-            .build()}
-                    .with_shader(as_pipeline_shader(*shader))
-                    .build();
-
-    for (auto& set : descriptor_sets_.as_span())
+    for (auto& data : frame_data_.as_span())
     {
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_set_layout_, 1},
-            std::span{&set, 1});
+            std::span{&tone_mapping_descriptor_set_layout_, 1},
+            std::span{&data.tone_mapping_descriptor_set, 1});
+
+        vkrndr::create_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            std::span{&fxaa_descriptor_set_layout_, 1},
+            std::span{&data.fxaa_descriptor_set, 1});
     }
 }
 
 galileo::postprocess_shader_t::~postprocess_shader_t()
 {
-    destroy(&backend_->device(), &pipeline_);
+    for (auto& data : frame_data_.as_span())
+    {
+        vkrndr::free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            std::span{&data.fxaa_descriptor_set, 1});
 
-    vkrndr::free_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
-        descriptor_sets_.as_span());
+        vkrndr::free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            std::span{&data.tone_mapping_descriptor_set, 1});
+    }
+
+    destroy(&backend_->device(), &fxaa_pipeline_);
+
+    destroy(&backend_->device(), &tone_mapping_pipeline_);
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
-        descriptor_set_layout_,
+        fxaa_descriptor_set_layout_,
         nullptr);
+
+    vkDestroyDescriptorSetLayout(backend_->device().logical,
+        tone_mapping_descriptor_set_layout_,
+        nullptr);
+
+    destroy(&backend_->device(), &intermediate_image_);
 
     vkDestroySampler(backend_->device().logical, sampler_, nullptr);
 }
@@ -165,25 +235,76 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& target_image)
 {
-    descriptor_sets_.cycle();
+    frame_data_.cycle();
 
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+    vkrndr::transition_image(intermediate_image_.image,
         command_buffer,
-        "FXAA & Tone Mapping"};
-    update_descriptor_set(backend_->device(),
-        *descriptor_sets_,
-        vkrndr::combined_sampler_descriptor(sampler_, color_image),
-        vkrndr::storage_image_descriptor(target_image));
-
-    vkrndr::bind_pipeline(command_buffer,
-        pipeline_,
-        0,
-        std::span{&descriptor_sets_.current(), 1});
-
-    vkCmdDispatch(command_buffer,
-        static_cast<uint32_t>(
-            std::ceil(cppext::as_fp(target_image.extent.width) / 16.0f)),
-        static_cast<uint32_t>(
-            std::ceil(cppext::as_fp(target_image.extent.height) / 16.0f)),
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+        VK_IMAGE_LAYOUT_GENERAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
         1);
+
+    {
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
+            "Tone Mapping"};
+        update_descriptor_set(backend_->device(),
+            frame_data_->tone_mapping_descriptor_set,
+            vkrndr::combined_sampler_descriptor(sampler_, color_image),
+            vkrndr::storage_image_descriptor(intermediate_image_));
+
+        vkrndr::bind_pipeline(command_buffer,
+            tone_mapping_pipeline_,
+            0,
+            std::span{&frame_data_->tone_mapping_descriptor_set, 1});
+
+        vkCmdDispatch(command_buffer,
+            static_cast<uint32_t>(std::ceil(
+                cppext::as_fp(intermediate_image_.extent.width) / 16.0f)),
+            static_cast<uint32_t>(std::ceil(
+                cppext::as_fp(intermediate_image_.extent.height) / 16.0f)),
+            1);
+    }
+
+    vkrndr::transition_image(intermediate_image_.image,
+        command_buffer,
+        VK_IMAGE_LAYOUT_GENERAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+        1);
+
+    {
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
+            "FXAA"};
+        update_descriptor_set(backend_->device(),
+            frame_data_->fxaa_descriptor_set,
+            vkrndr::combined_sampler_descriptor(sampler_, intermediate_image_),
+            vkrndr::storage_image_descriptor(target_image));
+
+        vkrndr::bind_pipeline(command_buffer,
+            fxaa_pipeline_,
+            0,
+            std::span{&frame_data_->fxaa_descriptor_set, 1});
+
+        vkCmdDispatch(command_buffer,
+            static_cast<uint32_t>(
+                std::ceil(cppext::as_fp(target_image.extent.width) / 16.0f)),
+            static_cast<uint32_t>(
+                std::ceil(cppext::as_fp(target_image.extent.height) / 16.0f)),
+            1);
+    }
+}
+
+void galileo::postprocess_shader_t::resize(uint32_t width, uint32_t height)
+{
+    destroy(&backend_->device(), &intermediate_image_);
+    intermediate_image_ =
+        create_intermediate_image(*backend_, vkrndr::to_extent(width, height));
 }

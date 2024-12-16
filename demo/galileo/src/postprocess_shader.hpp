@@ -3,14 +3,16 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 
 #include <volk.h>
 
+#include <cstdint>
+
 namespace vkrndr
 {
     class backend_t;
-    struct image_t;
 } // namespace vkrndr
 
 namespace galileo
@@ -32,20 +34,35 @@ namespace galileo
             vkrndr::image_t const& color_image,
             vkrndr::image_t const& target_image);
 
+        void resize(uint32_t width, uint32_t height);
+
     public:
         postprocess_shader_t& operator=(postprocess_shader_t const&) = delete;
 
         postprocess_shader_t& operator=(postprocess_shader_t&&) = delete;
 
     private:
+        struct [[nodiscard]] frame_data_t final
+        {
+            VkDescriptorSet tone_mapping_descriptor_set;
+            VkDescriptorSet fxaa_descriptor_set;
+        };
+
+    private:
         vkrndr::backend_t* backend_;
 
         VkSampler sampler_;
 
-        VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};
-        cppext::cycled_buffer_t<VkDescriptorSet> descriptor_sets_;
+        vkrndr::image_t intermediate_image_;
 
-        vkrndr::pipeline_t pipeline_;
+        VkDescriptorSetLayout tone_mapping_descriptor_set_layout_{
+            VK_NULL_HANDLE};
+        VkDescriptorSetLayout fxaa_descriptor_set_layout_{VK_NULL_HANDLE};
+
+        vkrndr::pipeline_t tone_mapping_pipeline_;
+        vkrndr::pipeline_t fxaa_pipeline_;
+
+        cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };
 } // namespace galileo
 
