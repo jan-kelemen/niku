@@ -79,6 +79,7 @@ namespace galileo
                 if (--ref_count_ == 0)
                 {
                     triangles.clear();
+                    delete this;
                 }
             }
 

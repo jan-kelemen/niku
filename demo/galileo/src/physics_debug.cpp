@@ -28,6 +28,7 @@
 #include <spdlog/spdlog.h>
 
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <span>
@@ -35,10 +36,12 @@
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <iterator>
 // IWYU pragma: no_include <new>
 // IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <system_error>
 
 namespace
 {

@@ -16,14 +16,17 @@
 
 #include <volk.h>
 
+#include <cassert>
 #include <filesystem>
 #include <functional>
 
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <chrono>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <type_traits>
 // IWYU pragma: no_include <string_view>
+// IWYU pragma: no_include <system_error>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 gltfviewer::pbr_shader_t::pbr_shader_t(vkrndr::backend_t& backend)

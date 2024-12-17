@@ -18,11 +18,14 @@
 #include <boost/scope/defer.hpp>
 
 #include <array>
+#include <cassert>
 
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <span>
+// IWYU pragma: no_include <system_error>
 
 namespace
 {
