@@ -19,9 +19,15 @@ void main() {
     const vec3 albedo = texture(albedoTexture, inUV).rgb;
     
     vec3 lighting = albedo * 0.1;
-    vec3 lightDir = normalize(vec3(0, 5, 0) - position);
-    vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo;
-    lighting += diffuse;
+    for(int i = 0; i < frame.lightCount; ++i)
+    {
+        const vec3 lightDir = normalize(lights.v[i].position - position);
+        const vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo * lights.v[i].color.rgb;
+        const float distance = length(lights.v[i].position - position);
+        const float attenuation = 1 / (distance * distance);
+
+        lighting += diffuse * attenuation;
+    }
 
     outColor = vec4(lighting, 1.0);
 }

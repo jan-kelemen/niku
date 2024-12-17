@@ -8,6 +8,8 @@
 
 #include <volk.h>
 
+#include <cstdint>
+
 namespace ngngfx
 {
     class camera_t;
@@ -35,7 +37,7 @@ namespace galileo
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
 
-        void update(ngngfx::camera_t const& camera);
+        void update(ngngfx::camera_t const& camera, uint32_t light_count);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
@@ -49,8 +51,11 @@ namespace galileo
     private:
         struct [[nodiscard]] frame_data_t final
         {
-            vkrndr::buffer_t uniform;
-            vkrndr::mapped_memory_t uniform_map;
+            vkrndr::buffer_t info_buffer;
+            vkrndr::mapped_memory_t info_map;
+
+            vkrndr::buffer_t light_buffer;
+            vkrndr::mapped_memory_t light_map;
 
             VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
         };

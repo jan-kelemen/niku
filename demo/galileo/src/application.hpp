@@ -91,6 +91,8 @@ namespace galileo
         ngngfx::perspective_camera_t camera_;
         camera_controller_t camera_controller_;
 
+        int light_count_{1};
+
         physics_engine_t physics_engine_;
         std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
 

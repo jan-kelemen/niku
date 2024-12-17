@@ -258,8 +258,12 @@ bool galileo::application_t::handle_event(SDL_Event const& event)
     return true;
 }
 
-void galileo::application_t::update(float delta_time)
+void galileo::application_t::update(float const delta_time)
 {
+    ImGui::Begin("Lights");
+    ImGui::SliderInt("Count", &light_count_, 0, 1000);
+    ImGui::End();
+
     camera_controller_.update(delta_time);
 
     physics_engine_.update(delta_time);
@@ -273,7 +277,7 @@ void galileo::application_t::update(float delta_time)
 
     physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
 
-    frame_info_->update(camera_);
+    frame_info_->update(camera_, static_cast<uint32_t>(light_count_));
 }
 
 bool galileo::application_t::begin_frame()
