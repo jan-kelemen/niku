@@ -76,6 +76,7 @@ add_custom_target(galileo_shaders
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/Fxaa3_11.h
+        ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
@@ -84,7 +85,6 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
@@ -93,6 +93,7 @@ add_custom_target(galileo_shaders
     DEPENDS
         ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/Fxaa3_11.h
+        ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
@@ -101,7 +102,6 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl

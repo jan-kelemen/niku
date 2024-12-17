@@ -69,6 +69,7 @@ add_custom_target(gltfviewer_assets
 add_custom_target(gltfviewer_shaders
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
+        ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
@@ -76,7 +77,6 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
@@ -91,6 +91,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
         ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
+        ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
@@ -98,7 +99,6 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/math_constants.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
