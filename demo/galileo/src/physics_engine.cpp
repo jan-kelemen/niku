@@ -335,6 +335,7 @@ galileo::physics_engine_t::impl::impl()
         object_vs_object_layer_filter_);
     physics_system_->SetBodyActivationListener(&body_activation_listener_);
     physics_system_->SetContactListener(&contact_listener_);
+    physics_system_->SetGravity(JPH::Vec3{0.0f, -9.81f, 0.0f});
 }
 
 galileo::physics_engine_t::impl::~impl()

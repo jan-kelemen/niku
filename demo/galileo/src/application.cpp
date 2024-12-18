@@ -49,7 +49,6 @@ DISABLE_WARNING_POP
 
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
-#include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyID.h>
@@ -184,9 +183,6 @@ namespace
                     JPH::BodyID const sphere_id =
                         body_interface.CreateAndAddBody(sphere_settings,
                             JPH::EActivation::Activate);
-
-                    body_interface.SetLinearVelocity(sphere_id,
-                        JPH::Vec3{0.0f, -5.0f, 0.0f});
 
                     rv.emplace_back(root_index, sphere_id);
                 }
