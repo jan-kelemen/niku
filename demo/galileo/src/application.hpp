@@ -36,6 +36,7 @@ namespace vkrndr
 
 namespace galileo
 {
+    class character_t;
     class deferred_shader_t;
     class frame_info_t;
     class gbuffer_t;
@@ -95,6 +96,8 @@ namespace galileo
 
         physics_engine_t physics_engine_;
         std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
+
+        std::unique_ptr<character_t> character_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;

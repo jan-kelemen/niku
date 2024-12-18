@@ -9,6 +9,7 @@
 
 namespace JPH
 {
+    class TempAllocator;
     class BodyInterface;
     class PhysicsSystem;
 } // namespace JPH
@@ -44,6 +45,8 @@ namespace galileo
         [[nodiscard]] JPH::BodyInterface& body_interface();
 
         [[nodiscard]] JPH::BodyInterface const& body_interface() const;
+
+        [[nodiscard]] JPH::TempAllocator& allocator();
 
     public:
         physics_engine_t& operator=(physics_engine_t const&) = delete;

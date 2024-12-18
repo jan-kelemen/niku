@@ -386,3 +386,8 @@ JPH::BodyInterface const& galileo::physics_engine_t::body_interface() const
 {
     return impl_->physics_system_->GetBodyInterface();
 }
+
+JPH::TempAllocator& galileo::physics_engine_t::allocator()
+{
+    return *impl_->temp_allocator_;
+}

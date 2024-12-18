@@ -1,6 +1,7 @@
 #include <application.hpp>
 
 #include <camera_controller.hpp>
+#include <character.hpp>
 #include <deferred_shader.hpp>
 #include <frame_info.hpp>
 #include <gbuffer.hpp>
@@ -262,6 +263,8 @@ void galileo::application_t::update(float const delta_time)
 
     camera_controller_.update(delta_time);
 
+    character_->update(delta_time);
+
     physics_engine_.update(delta_time);
 
     auto& body_interface{physics_engine_.body_interface()};
@@ -272,6 +275,7 @@ void galileo::application_t::update(float const delta_time)
     }
 
     physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
+    character_->debug(physics_debug_.get());
 
     frame_info_->update(camera_, static_cast<uint32_t>(light_count_));
 }
@@ -436,6 +440,9 @@ void galileo::application_t::on_startup()
         *materials_,
         *render_graph_,
         physics_engine_.body_interface());
+
+    character_ = std::make_unique<character_t>(physics_engine_);
+    character_->set_position({5.0f, 5.0f, 5.0f});
 
     gbuffer_shader_ = std::make_unique<gbuffer_shader_t>(*backend_,
         frame_info_->descriptor_set_layout(),
