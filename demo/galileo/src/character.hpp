@@ -8,6 +8,8 @@
 
 #include <glm/vec3.hpp>
 
+union SDL_Event;
+
 namespace galileo
 {
     class physics_engine_t;
@@ -22,14 +24,16 @@ namespace galileo
         explicit character_t(physics_engine_t& physics_engine);
 
     public:
-        void set_position(glm::vec3 position);
-
         void update(float delta_time);
 
         void debug(physics_debug_t* physics_debug);
 
+        void set_position(glm::vec3 position);
+
     private:
         physics_engine_t* physics_engine_;
+
+        glm::vec3 acceleration_;
 
         JPH::Ref<JPH::CharacterVirtual> physics_entity_;
     };

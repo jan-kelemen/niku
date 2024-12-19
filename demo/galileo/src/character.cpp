@@ -25,6 +25,12 @@
 #include <Jolt/Physics/Collision/ShapeFilter.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
+#include <SDL2/SDL_events.h>
+#include <SDL2/SDL_keyboard.h>
+#include <SDL2/SDL_scancode.h>
+
+#include <spdlog/spdlog.h>
+
 namespace
 {
     constexpr JPH::EBackFaceMode sBackFaceMode{
@@ -41,6 +47,8 @@ namespace
 
 galileo::character_t::character_t(physics_engine_t& physics_engine)
     : physics_engine_{&physics_engine}
+    , acceleration_{
+          ngnphy::to_glm(physics_engine_->physics_system().GetGravity())}
 {
     JPH::RotatedTranslatedShapeSettings const shape_settings{
         JPH::Vec3{0.0f,
@@ -76,30 +84,78 @@ galileo::character_t::character_t(physics_engine_t& physics_engine)
         &physics_engine.physics_system()};
 }
 
-void galileo::character_t::set_position(glm::vec3 position)
-{
-    auto& system{physics_engine_->physics_system()};
-
-    physics_entity_->SetPosition(ngnphy::to_jolt(position));
-    physics_entity_->RefreshContacts(
-        system.GetDefaultBroadPhaseLayerFilter(object_layers::moving),
-        system.GetDefaultLayerFilter(object_layers::moving),
-        {},
-        {},
-        physics_engine_->allocator());
-}
-
 void galileo::character_t::update(float const delta_time)
 {
+    static constexpr glm::vec3 world_left{-3.09f, 0.0f, 0.0f};
+    static constexpr glm::vec3 world_right{3.09f, 0.0f, 0.0f};
+    static constexpr glm::vec3 world_front{0.0f, 0.0f, -3.09f};
+    static constexpr glm::vec3 world_back{0.0f, 0.0f, 3.09f};
+
     auto& system{physics_engine_->physics_system()};
+
+    {
+        glm::vec3 const gravity{ngnphy::to_glm(system.GetGravity())};
+
+        glm::vec3 desired_direction{gravity};
+        glm::quat const rotation{
+            ngnphy::to_glm(physics_entity_->GetRotation())};
+
+        int keyboard_state_length; // NOLINT
+        uint8_t const* const keyboard_state{
+            SDL_GetKeyboardState(&keyboard_state_length)};
+
+        bool has_input{false};
+        if (keyboard_state[SDL_SCANCODE_A] != 0)
+        {
+            desired_direction += rotation * world_left;
+            has_input = true;
+        }
+
+        if (keyboard_state[SDL_SCANCODE_D] != 0)
+        {
+            desired_direction += rotation * world_right;
+            has_input = true;
+        }
+
+        if (keyboard_state[SDL_SCANCODE_W] != 0)
+        {
+            desired_direction += rotation * world_front;
+            has_input = true;
+        }
+
+        if (keyboard_state[SDL_SCANCODE_S] != 0)
+        {
+            desired_direction += rotation * world_back;
+            has_input = true;
+        }
+
+        if (has_input)
+        {
+            physics_entity_->SetLinearVelocity(
+                0.5f * physics_entity_->GetLinearVelocity() +
+                0.5f * ngnphy::to_jolt(desired_direction));
+        }
+        else if (physics_entity_->GetGroundState() ==
+            JPH::CharacterBase::EGroundState::OnGround)
+        {
+            auto const slow_down{
+                glm::mix(ngnphy::to_glm(physics_entity_->GetLinearVelocity()),
+                    gravity,
+                    0.05f)};
+            physics_entity_->SetLinearVelocity(ngnphy::to_jolt(slow_down));
+        }
+        else
+        {
+            physics_entity_->SetLinearVelocity(
+                ngnphy::to_jolt(desired_direction));
+        }
+    }
 
     JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;
     update_settings.mStickToFloorStepDown = -physics_entity_->GetUp() *
         update_settings.mStickToFloorStepDown.Length();
     update_settings.mWalkStairsStepUp =
         physics_entity_->GetUp() * update_settings.mWalkStairsStepUp.Length();
-
-    physics_entity_->SetLinearVelocity(system.GetGravity());
 
     physics_entity_->ExtendedUpdate(delta_time,
         -physics_entity_->GetUp() * system.GetGravity().Length(),
@@ -120,4 +176,17 @@ void galileo::character_t::debug(physics_debug_t* const physics_debug)
         JPH::Color::sGreen,
         false,
         true);
+}
+
+void galileo::character_t::set_position(glm::vec3 position)
+{
+    auto& system{physics_engine_->physics_system()};
+
+    physics_entity_->SetPosition(ngnphy::to_jolt(position));
+    physics_entity_->RefreshContacts(
+        system.GetDefaultBroadPhaseLayerFilter(object_layers::moving),
+        system.GetDefaultLayerFilter(object_layers::moving),
+        {},
+        {},
+        physics_engine_->allocator());
 }

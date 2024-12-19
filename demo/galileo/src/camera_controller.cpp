@@ -57,26 +57,22 @@ bool galileo::camera_controller_t::update(float const delta_time)
 
         velocity_ = {0.0f, 0.0f, 0.0f};
 
-        if (keyboard_state[SDL_SCANCODE_LEFT] != 0 ||
-            keyboard_state[SDL_SCANCODE_A] != 0)
+        if (keyboard_state[SDL_SCANCODE_LEFT] != 0)
         {
             velocity_ -= velocity_factor_ * camera_->right_direction();
         }
 
-        if (keyboard_state[SDL_SCANCODE_RIGHT] != 0 ||
-            keyboard_state[SDL_SCANCODE_D] != 0)
+        if (keyboard_state[SDL_SCANCODE_RIGHT] != 0)
         {
             velocity_ += velocity_factor_ * camera_->right_direction();
         }
 
-        if (keyboard_state[SDL_SCANCODE_UP] != 0 ||
-            keyboard_state[SDL_SCANCODE_W] != 0)
+        if (keyboard_state[SDL_SCANCODE_UP] != 0)
         {
             velocity_ += velocity_factor_ * camera_->front_direction();
         }
 
-        if (keyboard_state[SDL_SCANCODE_DOWN] != 0 ||
-            keyboard_state[SDL_SCANCODE_S] != 0)
+        if (keyboard_state[SDL_SCANCODE_DOWN] != 0)
         {
             velocity_ -= velocity_factor_ * camera_->front_direction();
         }
