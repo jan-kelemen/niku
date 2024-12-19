@@ -24,17 +24,20 @@ glm::mat4 ngnphy::to_glm(JPH::Mat44 const& v)
         to_glm(v.GetColumn4(3))};
 }
 
-[[nodiscard]] JPH::Vec3 ngnphy::to_jolt(glm::vec3 const& v)
+glm::quat ngnphy::to_glm(JPH::Quat const& v)
 {
-    return {v.x, v.y, v.z};
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    return glm::make_quat(v.mValue.mF32);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
 
-[[nodiscard]] JPH::Vec4 ngnphy::to_jolt(glm::vec4 const& v)
-{
-    return {v.x, v.y, v.z, v.w};
-}
+JPH::Vec3 ngnphy::to_jolt(glm::vec3 const& v) { return {v.x, v.y, v.z}; }
 
-[[nodiscard]] JPH::Mat44 ngnphy::to_jolt(glm::mat4 const& v)
+JPH::Vec4 ngnphy::to_jolt(glm::vec4 const& v) { return {v.x, v.y, v.z, v.w}; }
+
+JPH::Mat44 ngnphy::to_jolt(glm::mat4 const& v)
 {
     return {to_jolt(v[0]), to_jolt(v[1]), to_jolt(v[2]), to_jolt(v[3])};
 }
+
+JPH::Quat ngnphy::to_jolt(glm::quat const& v) { return {v.x, v.y, v.z, v.w}; }
