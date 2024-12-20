@@ -24,7 +24,8 @@ galileo::camera_controller_t::camera_controller_t(
 {
 }
 
-void galileo::camera_controller_t::handle_event(SDL_Event const& event)
+void galileo::camera_controller_t::handle_event(SDL_Event const& event,
+    float const delta_time)
 {
     if (event.type == SDL_MOUSEMOTION && mouse_->captured())
     {
@@ -32,19 +33,14 @@ void galileo::camera_controller_t::handle_event(SDL_Event const& event)
         auto const& mouse_offset{mouse_->relative_offset()};
 
         auto const yaw{
-            yaw_pitch.x + cppext::as_fp(mouse_offset.x) * mouse_sensitivity_};
+            yaw_pitch.x + cppext::as_fp(mouse_offset.x) * delta_time};
         auto const pitch{
-            yaw_pitch.y + cppext::as_fp(-mouse_offset.y) * mouse_sensitivity_};
+            yaw_pitch.y + cppext::as_fp(-mouse_offset.y) * delta_time};
 
         camera_->set_yaw_pitch(
             {fmodf(yaw, 360), std::clamp(pitch, -85.0f, 85.0f)});
 
         update_needed_ = true;
-    }
-    else if (event.type == SDL_KEYDOWN &&
-        event.key.keysym.scancode == SDL_SCANCODE_F3)
-    {
-        mouse_->set_capture(!mouse_->captured());
     }
 }
 
@@ -60,30 +56,32 @@ bool galileo::camera_controller_t::update(float const delta_time)
         if (keyboard_state[SDL_SCANCODE_LEFT] != 0)
         {
             velocity_ -= velocity_factor_ * camera_->right_direction();
+            update_needed_ = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_RIGHT] != 0)
         {
             velocity_ += velocity_factor_ * camera_->right_direction();
+            update_needed_ = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_UP] != 0)
         {
             velocity_ += velocity_factor_ * camera_->front_direction();
+            update_needed_ = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_DOWN] != 0)
         {
             velocity_ -= velocity_factor_ * camera_->front_direction();
+            update_needed_ = true;
         }
-
-        update_needed_ = true;
     }
 
     if (update_needed_)
     {
-        // camera_->set_position(camera_->position() + velocity_ * delta_time);
-        // camera_->update();
+        camera_->set_position(camera_->position() + velocity_ * delta_time);
+        camera_->update();
 
         update_needed_ = false;
         return true;

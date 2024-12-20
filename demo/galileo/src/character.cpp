@@ -1,5 +1,7 @@
 #include <character.hpp>
 
+#include <cppext_numeric.hpp>
+
 #include <ngnphy_jolt_adapter.hpp>
 
 #include <ngnwsi_mouse.hpp>
@@ -7,8 +9,10 @@
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
 
-#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/common.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/trigonometric.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
@@ -20,6 +24,7 @@
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
+#include <Jolt/Physics/Character/CharacterBase.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/BackFaceMode.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
@@ -34,7 +39,9 @@
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_scancode.h>
 
-#include <spdlog/spdlog.h>
+#include <cstdint>
+
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
 namespace
 {
@@ -113,11 +120,6 @@ void galileo::character_t::handle_event(SDL_Event const& event,
 
         physics_entity_->SetRotation(ngnphy::to_jolt(new_rot));
     }
-    else if (event.type == SDL_KEYDOWN &&
-        event.key.keysym.scancode == SDL_SCANCODE_F3)
-    {
-        mouse_->set_capture(!mouse_->captured());
-    }
 }
 
 void galileo::character_t::update(float const delta_time)
@@ -128,8 +130,7 @@ void galileo::character_t::update(float const delta_time)
         glm::vec3 const gravity{ngnphy::to_glm(system.GetGravity())};
 
         glm::vec3 desired_direction{gravity};
-        glm::quat const rotation{
-            ngnphy::to_glm(physics_entity_->GetRotation())};
+        glm::quat const rot{ngnphy::to_glm(physics_entity_->GetRotation())};
 
         int keyboard_state_length; // NOLINT
         uint8_t const* const keyboard_state{
@@ -138,25 +139,25 @@ void galileo::character_t::update(float const delta_time)
         bool has_input{false};
         if (keyboard_state[SDL_SCANCODE_A] != 0)
         {
-            desired_direction += rotation * world_left * acceleration_factor;
+            desired_direction += rot * world_left * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_D] != 0)
         {
-            desired_direction += rotation * world_right * acceleration_factor;
+            desired_direction += rot * world_right * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_W] != 0)
         {
-            desired_direction += rotation * world_front * acceleration_factor;
+            desired_direction += rot * world_front * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_S] != 0)
         {
-            desired_direction += rotation * world_back * acceleration_factor;
+            desired_direction += rot * world_back * acceleration_factor;
             has_input = true;
         }
 
@@ -211,12 +212,9 @@ void galileo::character_t::debug(physics_debug_t* const physics_debug)
     JPH::Quat const rot{physics_entity_->GetRotation()};
 
     JPH::Vec3 const front_direction{rot * ngnphy::to_jolt(world_front)};
-    JPH::RVec3 const position{physics_entity_->GetCenterOfMassPosition()};
+    JPH::RVec3 const pos{physics_entity_->GetCenterOfMassPosition()};
 
-    physics_debug->DrawArrow(position,
-        position + front_direction,
-        JPH::Color::sRed,
-        .1f);
+    physics_debug->DrawArrow(pos, pos + front_direction, JPH::Color::sRed, .1f);
 }
 
 glm::vec3 galileo::character_t::position() const

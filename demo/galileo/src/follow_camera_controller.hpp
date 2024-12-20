@@ -16,7 +16,8 @@ namespace galileo
     class [[nodiscard]] follow_camera_controller_t final
     {
     public:
-        follow_camera_controller_t(ngngfx::perspective_camera_t& camera);
+        explicit follow_camera_controller_t(
+            ngngfx::perspective_camera_t& camera);
 
         follow_camera_controller_t(follow_camera_controller_t const&) = delete;
 

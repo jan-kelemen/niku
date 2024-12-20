@@ -31,6 +31,9 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
 )
+target_compile_definitions(galileo 
+    PRIVATE
+        GLM_ENABLE_EXPERIMENTAL)
 
 target_include_directories(galileo
     PRIVATE

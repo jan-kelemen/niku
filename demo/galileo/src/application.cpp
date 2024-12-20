@@ -3,6 +3,7 @@
 #include <camera_controller.hpp>
 #include <character.hpp>
 #include <deferred_shader.hpp>
+#include <follow_camera_controller.hpp>
 #include <frame_info.hpp>
 #include <gbuffer.hpp>
 #include <gbuffer_shader.hpp>
@@ -205,7 +206,7 @@ galileo::application_t::application_t(bool const debug)
           .centered = true,
           .width = 512,
           .height = 512}}
-    , camera_controller_{camera_, mouse_}
+    , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
@@ -241,17 +242,26 @@ galileo::application_t::~application_t() = default;
 bool galileo::application_t::handle_event(SDL_Event const& event,
     float const delta_time)
 {
-    // camera_controller_.handle_event(event);
-    character_->handle_event(event, delta_time);
-
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
+
+    free_camera_active_
+        ? free_camera_controller_.handle_event(event, delta_time)
+        : character_->handle_event(event, delta_time);
 
     if (event.type == SDL_KEYDOWN)
     {
         auto const& keyboard{event.key};
-        if (keyboard.keysym.scancode == SDL_SCANCODE_F4)
+        if (keyboard.keysym.scancode == SDL_SCANCODE_F3)
+        {
+            mouse_.set_capture(!mouse_.captured());
+        }
+        else if (keyboard.keysym.scancode == SDL_SCANCODE_F4)
         {
             imgui_->set_enabled(!imgui_->enabled());
+        }
+        else if (keyboard.keysym.scancode == SDL_SCANCODE_C)
+        {
+            free_camera_active_ ^= true;
         }
     }
 
@@ -264,11 +274,16 @@ void galileo::application_t::update(float const delta_time)
     ImGui::SliderInt("Count", &light_count_, 0, 1000);
     ImGui::End();
 
-    // camera_controller_.update(delta_time);
-
     character_->update(delta_time);
 
-    follow_camera_controller_.update(*character_);
+    if (free_camera_active_)
+    {
+        free_camera_controller_.update(delta_time);
+    }
+    else
+    {
+        follow_camera_controller_.update(*character_);
+    }
 
     physics_engine_.update(delta_time);
 
@@ -311,7 +326,10 @@ void galileo::application_t::draw()
 {
     ImGui::ShowMetricsWindow();
 
-    camera_controller_.draw_imgui();
+    if (free_camera_active_)
+    {
+        free_camera_controller_.draw_imgui();
+    }
 
     auto target_image{backend_->swapchain_image()};
 

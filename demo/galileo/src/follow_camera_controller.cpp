@@ -2,18 +2,18 @@
 
 #include <character.hpp>
 
-#include <cppext_numeric.hpp>
-
 #include <ngngfx_perspective_camera.hpp>
 
-#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/trigonometric.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
-#include <algorithm>
 #include <cmath>
-#include <cstdint>
 
-#include <spdlog/spdlog.h>
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <glm/mat3x3.hpp>
 
 galileo::follow_camera_controller_t::follow_camera_controller_t(
     ngngfx::perspective_camera_t& camera)

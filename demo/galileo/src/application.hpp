@@ -91,7 +91,9 @@ namespace galileo
 
         ngnwsi::mouse_t mouse_;
         ngngfx::perspective_camera_t camera_;
-        camera_controller_t camera_controller_;
+
+        bool free_camera_active_{false};
+        camera_controller_t free_camera_controller_;
         follow_camera_controller_t follow_camera_controller_;
 
         int light_count_{1};
