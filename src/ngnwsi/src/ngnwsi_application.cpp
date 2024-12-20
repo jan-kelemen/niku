@@ -91,6 +91,12 @@ void ngnwsi::application_t::run()
     bool done{false};
     while (!done && should_run())
     {
+        auto const frequency{cppext::as_fp(SDL_GetPerformanceFrequency())};
+
+        uint64_t const current_tick{SDL_GetPerformanceCounter()};
+
+        float const delta{cppext::as_fp(current_tick - last_tick) / frequency};
+
         SDL_Event event;
         while (SDL_PollEvent(&event) != 0)
         {
@@ -102,7 +108,7 @@ void ngnwsi::application_t::run()
                 }
                 else
                 {
-                    handle_event(event);
+                    handle_event(event, delta);
                 }
             }
         }
@@ -111,12 +117,6 @@ void ngnwsi::application_t::run()
         {
             break;
         }
-
-        auto const frequency{cppext::as_fp(SDL_GetPerformanceFrequency())};
-
-        uint64_t const current_tick{SDL_GetPerformanceCounter()};
-
-        float const delta{cppext::as_fp(current_tick - last_tick) / frequency};
 
         float const fixed_delta{
             cppext::as_fp(current_tick - last_fixed_tick) / frequency};
