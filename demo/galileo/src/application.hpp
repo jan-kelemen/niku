@@ -2,6 +2,7 @@
 #define GALILEO_APPLICATION_INCLUDED
 
 #include <camera_controller.hpp>
+#include <follow_camera_controller.hpp>
 #include <physics_engine.hpp>
 
 #include <ngngfx_perspective_camera.hpp>
@@ -91,6 +92,7 @@ namespace galileo
         ngnwsi::mouse_t mouse_;
         ngngfx::perspective_camera_t camera_;
         camera_controller_t camera_controller_;
+        follow_camera_controller_t follow_camera_controller_;
 
         int light_count_{1};
 

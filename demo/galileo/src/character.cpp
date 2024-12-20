@@ -2,8 +2,13 @@
 
 #include <ngnphy_jolt_adapter.hpp>
 
+#include <ngnwsi_mouse.hpp>
+
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/euler_angles.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
@@ -43,10 +48,19 @@ namespace
     constexpr float sPenetrationRecoverySpeed{1.0f};
     constexpr float sPredictiveContactDistance{0.1f};
     constexpr bool sEnhancedInternalEdgeRemoval{false};
+
+    constexpr glm::vec3 world_left{-1.0f, 0.0f, 0.0f};
+    constexpr glm::vec3 world_right{1.0f, 0.0f, 0.0f};
+    constexpr glm::vec3 world_front{0.0f, 0.0f, -1.0f};
+    constexpr glm::vec3 world_back{0.0f, 0.0f, 1.0f};
+
+    constexpr float acceleration_factor{3.09f};
 } // namespace
 
-galileo::character_t::character_t(physics_engine_t& physics_engine)
+galileo::character_t::character_t(physics_engine_t& physics_engine,
+    ngnwsi::mouse_t& mouse)
     : physics_engine_{&physics_engine}
+    , mouse_{&mouse}
     , acceleration_{
           ngnphy::to_glm(physics_engine_->physics_system().GetGravity())}
 {
@@ -84,13 +98,28 @@ galileo::character_t::character_t(physics_engine_t& physics_engine)
         &physics_engine.physics_system()};
 }
 
+void galileo::character_t::handle_event(SDL_Event const& event)
+{
+    if (event.type == SDL_MOUSEMOTION && mouse_->captured())
+    {
+        auto const& mouse_offset{mouse_->relative_offset()};
+
+        auto new_rot{glm::quat{glm::vec3{0.0f,
+                         glm::radians(-cppext::as_fp(mouse_offset.x)),
+                         0.0f}} *
+            rotation()};
+
+        physics_entity_->SetRotation(ngnphy::to_jolt(new_rot));
+    }
+    else if (event.type == SDL_KEYDOWN &&
+        event.key.keysym.scancode == SDL_SCANCODE_F3)
+    {
+        mouse_->set_capture(!mouse_->captured());
+    }
+}
+
 void galileo::character_t::update(float const delta_time)
 {
-    static constexpr glm::vec3 world_left{-3.09f, 0.0f, 0.0f};
-    static constexpr glm::vec3 world_right{3.09f, 0.0f, 0.0f};
-    static constexpr glm::vec3 world_front{0.0f, 0.0f, -3.09f};
-    static constexpr glm::vec3 world_back{0.0f, 0.0f, 3.09f};
-
     auto& system{physics_engine_->physics_system()};
 
     {
@@ -107,25 +136,25 @@ void galileo::character_t::update(float const delta_time)
         bool has_input{false};
         if (keyboard_state[SDL_SCANCODE_A] != 0)
         {
-            desired_direction += rotation * world_left;
+            desired_direction += rotation * world_left * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_D] != 0)
         {
-            desired_direction += rotation * world_right;
+            desired_direction += rotation * world_right * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_W] != 0)
         {
-            desired_direction += rotation * world_front;
+            desired_direction += rotation * world_front * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_S] != 0)
         {
-            desired_direction += rotation * world_back;
+            desired_direction += rotation * world_back * acceleration_factor;
             has_input = true;
         }
 
@@ -176,6 +205,21 @@ void galileo::character_t::debug(physics_debug_t* const physics_debug)
         JPH::Color::sGreen,
         false,
         true);
+
+    JPH::Quat const rot{physics_entity_->GetRotation()};
+
+    JPH::Vec3 const front_direction{rot * ngnphy::to_jolt(world_front)};
+    JPH::RVec3 const position{physics_entity_->GetCenterOfMassPosition()};
+
+    physics_debug->DrawArrow(position,
+        position + front_direction,
+        JPH::Color::sRed,
+        .1f);
+}
+
+glm::vec3 galileo::character_t::position() const
+{
+    return ngnphy::to_glm(physics_entity_->GetPosition());
 }
 
 void galileo::character_t::set_position(glm::vec3 position)
@@ -189,4 +233,9 @@ void galileo::character_t::set_position(glm::vec3 position)
         {},
         {},
         physics_engine_->allocator());
+}
+
+glm::quat galileo::character_t::rotation() const
+{
+    return ngnphy::to_glm(physics_entity_->GetRotation());
 }

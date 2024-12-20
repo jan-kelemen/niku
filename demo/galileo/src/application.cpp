@@ -206,6 +206,7 @@ galileo::application_t::application_t(bool const debug)
           .width = 512,
           .height = 512}}
     , camera_controller_{camera_, mouse_}
+    , follow_camera_controller_{camera_}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
@@ -239,7 +240,8 @@ galileo::application_t::~application_t() = default;
 
 bool galileo::application_t::handle_event(SDL_Event const& event)
 {
-    camera_controller_.handle_event(event);
+    // camera_controller_.handle_event(event);
+    character_->handle_event(event);
 
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
@@ -261,9 +263,11 @@ void galileo::application_t::update(float const delta_time)
     ImGui::SliderInt("Count", &light_count_, 0, 1000);
     ImGui::End();
 
-    camera_controller_.update(delta_time);
+    // camera_controller_.update(delta_time);
 
     character_->update(delta_time);
+
+    follow_camera_controller_.update(*character_);
 
     physics_engine_.update(delta_time);
 
@@ -441,7 +445,7 @@ void galileo::application_t::on_startup()
         *render_graph_,
         physics_engine_.body_interface());
 
-    character_ = std::make_unique<character_t>(physics_engine_);
+    character_ = std::make_unique<character_t>(physics_engine_, mouse_);
     character_->set_position({5.0f, 5.0f, 5.0f});
 
     gbuffer_shader_ = std::make_unique<gbuffer_shader_t>(*backend_,

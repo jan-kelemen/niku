@@ -82,8 +82,8 @@ bool galileo::camera_controller_t::update(float const delta_time)
 
     if (update_needed_)
     {
-        camera_->set_position(camera_->position() + velocity_ * delta_time);
-        camera_->update();
+        // camera_->set_position(camera_->position() + velocity_ * delta_time);
+        // camera_->update();
 
         update_needed_ = false;
         return true;
