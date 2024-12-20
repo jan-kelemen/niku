@@ -98,16 +98,18 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
         &physics_engine.physics_system()};
 }
 
-void galileo::character_t::handle_event(SDL_Event const& event)
+void galileo::character_t::handle_event(SDL_Event const& event,
+    float const delta_time)
 {
     if (event.type == SDL_MOUSEMOTION && mouse_->captured())
     {
         auto const& mouse_offset{mouse_->relative_offset()};
 
-        auto new_rot{glm::quat{glm::vec3{0.0f,
-                         glm::radians(-cppext::as_fp(mouse_offset.x)),
-                         0.0f}} *
-            rotation()};
+        auto new_rot{glm::normalize(
+            glm::quat{glm::vec3{0.0f,
+                glm::radians(-cppext::as_fp(mouse_offset.x) * delta_time),
+                0.0f}} *
+            rotation())};
 
         physics_entity_->SetRotation(ngnphy::to_jolt(new_rot));
     }

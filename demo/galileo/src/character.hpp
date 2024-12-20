@@ -31,7 +31,7 @@ namespace galileo
             ngnwsi::mouse_t& mouse);
 
     public:
-        void handle_event(SDL_Event const& event);
+        void handle_event(SDL_Event const& event, float delta_time);
 
         void update(float delta_time);
 

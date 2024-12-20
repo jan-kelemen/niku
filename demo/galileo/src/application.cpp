@@ -238,10 +238,11 @@ galileo::application_t::application_t(bool const debug)
 
 galileo::application_t::~application_t() = default;
 
-bool galileo::application_t::handle_event(SDL_Event const& event)
+bool galileo::application_t::handle_event(SDL_Event const& event,
+    float const delta_time)
 {
     // camera_controller_.handle_event(event);
-    character_->handle_event(event);
+    character_->handle_event(event, delta_time);
 
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
