@@ -70,6 +70,7 @@
   { include: [ "<Jolt/Math/Vec3.inl>", private, "<Jolt/Math/Vec3.h>", public] },
   { include: [ "<Jolt/Math/Vec4.inl>", private, "<Jolt/Math/Vec4.h>", public] },
   { include: [ "<Jolt/Math/Mat44.inl>", private, "<Jolt/Math/Mat44.h>", public] },
+  { include: [ "<Jolt/Math/Quat.inl>", private, "<Jolt/Math/Quat.h>", public ] },
 
   # glm aliases
   { include: [ "<glm/detail/func_common.inl>", private, "<glm/common.hpp>", public] },
@@ -89,6 +90,8 @@
   { include: [ "<glm/ext/vector_int4.hpp>", private, "<glm/vec4.hpp>", public ] },
   { include: [ "<glm/ext/vector_float4.hpp>", private, "<glm/vec4.hpp>", public ] },
   { include: [ "<glm/ext/vector_uint4.hpp>", private, "<glm/vec4.hpp>", public ] },
+  { include: [ "<glm/detail/type_mat3x3.hpp>", private, "<glm/mat3x3.hpp>", public ] },
+  { include: [ "<glm/detail/type_mat3x3.inl>", private, "<glm/mat3x3.hpp>", public ] },
   { include: [ "<glm/detail/type_mat4x4.hpp>", private, "<glm/mat4x4.hpp>", public ] },
   { include: [ "<glm/detail/type_mat4x4.inl>", private, "<glm/mat4x4.hpp>", public ] },
   { include: [ "<glm/ext/matrix_float4x4.hpp>", private, "<glm/mat4x4.hpp>", public ] },
@@ -98,14 +101,17 @@
   { include: [ "<glm/ext/projection.inl>", private, "<glm/gtc/matrix_transform.hpp>", public ] },
   { include: [ "<glm/gtc/type_ptr.inl>", private, "<glm/gtc/type_ptr.hpp>", public ] },
   { include: [ "<glm/gtc/matrix_access.inl>", private, "<glm/gtc/matrix_access.hpp>", public ] },
+  { include: [ "<glm/gtc/quaternion.inl>", private, "<glm/gtc/quaternion.hpp>", public ] },
+  { include: [ "<glm/gtx/euler_angles.inl>", private, "<glm/gtx/euler_angles.hpp>", public ] },
   { include: [ "<glm/detail/type_quat.inl>", private, "<glm/gtc/quaternion.hpp>", public ] },
   { include: [ "<glm/detail/type_quat.hpp>", private, "<glm/gtc/quaternion.hpp>", public ] },
   { include: [ "<glm/detail/func_geometric.inl>", private, "<glm/geometric.hpp>", public ] },
   { include: [ "<glm/detail/func_trigonometric.inl>", private, "<glm/trigonometric.hpp>", public ] },
+  { symbol: [ "glm::mat4", private, "<glm/mat4x4.hpp>", public ] },
   { symbol: [ "glm::vec2", private, "<glm/vec2.hpp>", public ] },
   { symbol: [ "glm::vec3", private, "<glm/vec3.hpp>", public ] },
   { symbol: [ "glm::vec4", private, "<glm/vec4.hpp>", public ] },
-  { symbol: [ "glm::mat4", private, "<glm/mat4x4.hpp>", public ] },
+  { symbol: [ "glm::quat", private, "<glm/gtc/quaternion.hpp>", public ] },
 
   # glslang aliases
   { include: [ "@<glslang/MachineIndependent/.*>", private, "<glslang/Public/ShaderLang.h>", public ] },

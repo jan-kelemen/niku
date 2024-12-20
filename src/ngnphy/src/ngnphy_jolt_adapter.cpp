@@ -2,6 +2,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
+
 glm::vec3 ngnphy::to_glm(JPH::Vec3 const& v)
 {
     // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
