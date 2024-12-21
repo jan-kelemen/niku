@@ -44,11 +44,42 @@ namespace galileo
         [[nodiscard]] glm::quat rotation() const;
 
     private:
+        class contact_listener_t final : public JPH::CharacterContactListener
+        {
+        public:
+            explicit contact_listener_t(physics_engine_t& physics_engine);
+
+            contact_listener_t(contact_listener_t const&) = default;
+
+            contact_listener_t(contact_listener_t&&) noexcept = default;
+
+        public:
+            ~contact_listener_t() override = default;
+
+        public:
+            contact_listener_t& operator=(contact_listener_t const&) = default;
+            contact_listener_t& operator=(
+                contact_listener_t&&) noexcept = default;
+
+        private:
+            void OnContactAdded(JPH::CharacterVirtual const* inCharacter,
+                JPH::BodyID const& inBodyID2,
+                JPH::SubShapeID const& inSubShapeID2,
+                JPH::RVec3Arg inContactPosition,
+                JPH::Vec3Arg inContactNormal,
+                JPH::CharacterContactSettings& ioSettings) override;
+
+        private:
+            physics_engine_t* physics_engine_;
+        };
+
+    private:
         physics_engine_t* physics_engine_;
         ngnwsi::mouse_t* mouse_;
 
         glm::vec3 acceleration_{};
 
+        contact_listener_t listener_;
         JPH::Ref<JPH::CharacterVirtual> physics_entity_;
     };
 } // namespace galileo

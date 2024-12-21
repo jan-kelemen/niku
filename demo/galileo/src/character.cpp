@@ -68,8 +68,9 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
     ngnwsi::mouse_t& mouse)
     : physics_engine_{&physics_engine}
     , mouse_{&mouse}
-    , acceleration_{
-          ngnphy::to_glm(physics_engine_->physics_system().GetGravity())}
+    , acceleration_{ngnphy::to_glm(
+          physics_engine_->physics_system().GetGravity())}
+    , listener_{physics_engine}
 {
     JPH::RotatedTranslatedShapeSettings const shape_settings{
         JPH::Vec3{0.0f,
@@ -103,6 +104,7 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
         JPH::Quat::sIdentity(),
         0,
         &physics_engine.physics_system()};
+    physics_entity_->SetListener(&listener_);
 }
 
 void galileo::character_t::handle_event(SDL_Event const& event,
@@ -238,4 +240,25 @@ void galileo::character_t::set_position(glm::vec3 position)
 glm::quat galileo::character_t::rotation() const
 {
     return ngnphy::to_glm(physics_entity_->GetRotation());
+}
+
+galileo::character_t::contact_listener_t::contact_listener_t(
+    physics_engine_t& physics_engine)
+    : physics_engine_{&physics_engine}
+{
+}
+
+void galileo::character_t::contact_listener_t::OnContactAdded(
+    JPH::CharacterVirtual const* inCharacter,
+    JPH::BodyID const& inBodyID2,
+    [[maybe_unused]] JPH::SubShapeID const& inSubShapeID2,
+    JPH::RVec3Arg inContactPosition,
+    JPH::Vec3Arg inContactNormal,
+    [[maybe_unused]] JPH::CharacterContactSettings& ioSettings)
+{
+    auto& interface{physics_engine_->body_interface()};
+
+    interface.AddForce(inBodyID2,
+        inContactNormal * inCharacter->GetMass() * 100,
+        inContactPosition);
 }
