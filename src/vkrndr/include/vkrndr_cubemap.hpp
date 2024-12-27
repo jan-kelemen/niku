@@ -1,6 +1,8 @@
 #ifndef VKRNDR_CUBEMAP_INCLUDED
 #define VKRNDR_CUBEMAP_INCLUDED
 
+#include <vkrndr_synchronization.hpp>
+
 #include <vma_impl.hpp>
 
 #include <volk.h>
@@ -47,5 +49,13 @@ namespace vkrndr
         device_t const& device,
         cubemap_t const& cubemap,
         uint32_t mip_level);
+
+    [[nodiscard]] constexpr VkImageMemoryBarrier2 image_barrier(
+        vkrndr::cubemap_t const& cubemap,
+        VkImageAspectFlags const aspect = VK_IMAGE_ASPECT_COLOR_BIT)
+    {
+        return image_barrier(cubemap.image,
+            whole_resource(aspect, cubemap.mip_levels, 6));
+    }
 } // namespace vkrndr
 #endif

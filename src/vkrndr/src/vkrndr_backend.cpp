@@ -146,7 +146,7 @@ vkrndr::image_t vkrndr::backend_t::swapchain_image()
         .view = swap_chain_->image_view(image_index_),
         .format = swap_chain_->image_format(),
         .sample_count = VK_SAMPLE_COUNT_1_BIT,
-        .mip_levels = 0,
+        .mip_levels = 1,
         .extent = swap_chain_->extent()};
 }
 

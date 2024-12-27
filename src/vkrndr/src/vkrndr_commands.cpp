@@ -26,9 +26,11 @@ void vkrndr::transition_image(VkImage const image,
     barrier.oldLayout = old_layout;
     barrier.srcStageMask = src_stage_mask;
     barrier.srcAccessMask = src_access_mask;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.newLayout = new_layout;
     barrier.dstStageMask = dst_stage_mask;
     barrier.dstAccessMask = dst_access_mask;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = image;
     barrier.subresourceRange = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
