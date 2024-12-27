@@ -35,6 +35,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
+#include <vkrndr_synchronization.hpp>
 
 #include <boost/scope/defer.hpp>
 
@@ -392,15 +393,13 @@ void galileo::application_t::draw()
 
         deferred_shader_->draw(command_buffer, *gbuffer_, color_image_);
 
-        vkrndr::transition_image(color_image_.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+        auto const barrier{vkrndr::with_access(
+            vkrndr::on_stage(vkrndr::image_barrier(color_image_),
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
-            1);
+            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)};
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
     }
 
     if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
@@ -410,38 +409,45 @@ void galileo::application_t::draw()
             VK_PIPELINE_BIND_POINT_GRAPHICS);
         physics_debug_->draw(command_buffer, color_image_, depth_buffer_);
 
-        vkrndr::transition_image(color_image_.image,
-            command_buffer,
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(color_image_),
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-            1);
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
     }
 
-    vkrndr::transition_image(target_image.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_NONE,
-        VK_IMAGE_LAYOUT_GENERAL,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-        1);
+    {
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                VK_ACCESS_2_NONE,
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_GENERAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+    }
 
     postprocess_shader_->draw(command_buffer, color_image_, target_image);
 
-    vkrndr::transition_image(target_image.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_GENERAL,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
-        1);
+    {
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT),
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+    }
 
     imgui_->render(command_buffer, target_image);
 

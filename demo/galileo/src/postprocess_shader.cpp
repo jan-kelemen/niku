@@ -237,15 +237,18 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
 {
     frame_data_.cycle();
 
-    vkrndr::transition_image(intermediate_image_.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-        VK_IMAGE_LAYOUT_GENERAL,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-        1);
+    {
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(intermediate_image_),
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_GENERAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+    }
 
     {
         [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
@@ -269,15 +272,18 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
             1);
     }
 
-    vkrndr::transition_image(intermediate_image_.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_GENERAL,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-        1);
+    {
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(intermediate_image_),
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+    }
 
     {
         [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{

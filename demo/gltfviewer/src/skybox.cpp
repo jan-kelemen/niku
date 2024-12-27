@@ -16,6 +16,7 @@
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
+#include <vkrndr_synchronization.hpp>
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -822,16 +823,18 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
 
         vkrndr::bind_pipeline(command_buffer, pipeline, 0, descriptors);
 
-        vkrndr::transition_image(prefilter_cubemap_.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            prefilter_cubemap_.mip_levels,
-            6);
+        {
+            auto const barrier{vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(prefilter_cubemap_),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+            vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        }
 
         for (uint32_t mip{}; mip != prefilter_cubemap_.mip_levels; ++mip)
         {
@@ -881,16 +884,18 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
             }
         }
 
-        vkrndr::transition_image(prefilter_cubemap_.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            prefilter_cubemap_.mip_levels,
-            6);
+        {
+            auto const barrier{vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(prefilter_cubemap_),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
+            vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        }
     }
 
     for (VkImageView view : face_views)
@@ -980,15 +985,18 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
             vkCmdDraw(command_buffer, 3, 1, 0, 0);
         }
 
-        vkrndr::transition_image(brdf_lookup_.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            brdf_lookup_.mip_levels);
+        {
+            auto const barrier{vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(brdf_lookup_),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
+            vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        }
     }
 
     destroy(&backend_->device(), &pipeline);
@@ -1026,16 +1034,18 @@ void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
 
     vkrndr::bind_pipeline(command_buffer, pipeline, 0, descriptors);
 
-    vkrndr::transition_image(cubemap.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        cubemap.mip_levels,
-        6);
+    {
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(cubemap),
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+    }
 
     for (uint32_t i{}; i != cubemap.face_views.size(); ++i)
     {
@@ -1058,16 +1068,18 @@ void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
         vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
     }
 
-    vkrndr::transition_image(cubemap.image,
-        command_buffer,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_PIPELINE_STAGE_2_BLIT_BIT,
-        VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
-        cubemap.mip_levels,
-        6);
+    {
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(cubemap),
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_2_BLIT_BIT),
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT),
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+    }
 
     generate_mipmaps(backend_->device(),
         cubemap.image,

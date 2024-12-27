@@ -92,17 +92,26 @@ void galileo::gbuffer_t::transition(VkCommandBuffer command_buffer,
     VkPipelineStageFlags2 const dst_stage_mask,
     VkAccessFlags2 const dst_access_mask) const
 {
+    std::array<VkImageMemoryBarrier2, 4> barriers;
+
+    auto it{std::begin(barriers)};
+
     for (auto const& image :
         {position_image_, normal_image_, albedo_image_, specular_image_})
     {
-        vkrndr::transition_image(image.image,
-            command_buffer,
-            old_layout,
-            src_stage_mask,
+        *it = vkrndr::with_access(vkrndr::on_stage(vkrndr::image_barrier(image),
+                                      src_stage_mask,
+                                      dst_stage_mask),
             src_access_mask,
-            new_layout,
-            dst_stage_mask,
-            dst_access_mask,
-            1);
+            dst_access_mask);
+
+        if (old_layout != new_layout)
+        {
+            *it = vkrndr::with_layout(*it, old_layout, new_layout);
+        }
+
+        ++it;
     }
+
+    vkrndr::wait_for(command_buffer, {}, {}, barriers);
 }

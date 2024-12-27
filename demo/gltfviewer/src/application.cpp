@@ -32,6 +32,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
+#include <vkrndr_synchronization.hpp>
 
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_STRINGOP_OVERFLOW
@@ -367,36 +368,42 @@ void gltfviewer::application_t::draw()
         [[maybe_unused]] vkrndr::command_buffer_scope_t const
             postprocess_cb_scope{command_buffer, "Postprocess"};
 
-        vkrndr::transition_image(color_image_.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-            1);
-
-        vkrndr::transition_image(resolve_image_.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            1);
-
         auto const& blur_image{pyramid_blur_->source_image()};
-        vkrndr::transition_image(blur_image.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            1);
+        {
+            std::array<VkImageMemoryBarrier2, 3> barriers;
+
+            barriers[0] = vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(color_image_),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            barriers[1] = vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_GENERAL);
+
+            barriers[2] = vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(blur_image),
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_GENERAL);
+
+            vkrndr::wait_for(command_buffer, {}, {}, barriers);
+        }
 
         resolve_shader_->draw(command_buffer,
             color_image_,
@@ -405,52 +412,55 @@ void gltfviewer::application_t::draw()
 
         pyramid_blur_->draw(blur_levels_, command_buffer);
 
-        vkrndr::transition_image(blur_image.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
-            1);
+        {
+            std::array<VkImageMemoryBarrier2, 2> barriers;
 
-        vkrndr::transition_image(resolve_image_.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+            barriers[0] = vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            1);
+                VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
+
+            barriers[1] = vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(blur_image),
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
+
+            vkrndr::wait_for(command_buffer, {}, {}, barriers);
+        }
 
         weighted_blend_shader_->draw(bloom_strength_,
             command_buffer,
             resolve_image_,
             blur_image);
 
-        vkrndr::transition_image(resolve_image_.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
-                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            1);
+        {
+            std::array<VkImageMemoryBarrier2, 2> barriers;
 
-        vkrndr::transition_image(target_image.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_NONE,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            1);
+            barriers[0] = vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
+
+            barriers[1] = vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                    VK_ACCESS_2_NONE,
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_GENERAL);
+
+            vkrndr::wait_for(command_buffer, {}, {}, barriers);
+        }
 
         postprocess_shader_->draw(color_conversion_,
             tone_mapping_,
@@ -458,16 +468,18 @@ void gltfviewer::application_t::draw()
             resolve_image_,
             target_image);
 
-        vkrndr::transition_image(target_image.image,
-            command_buffer,
-            VK_IMAGE_LAYOUT_GENERAL,
-            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            1);
+        {
+            auto const barrier{vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT),
+                VK_IMAGE_LAYOUT_GENERAL,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+            vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        }
     }
 
     imgui_->render(command_buffer, target_image);
