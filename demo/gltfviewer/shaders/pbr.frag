@@ -97,7 +97,7 @@ void metallicRoughness(Material m, out float metallic, out float roughness)
 
 vec3 worldNormal(Material m)
 {
-    vec3 normal = inNormal;
+    vec3 normal = normalize(inNormal);
 
     if (m.normalTextureIndex != UINT_MAX)
     {
@@ -110,7 +110,7 @@ vec3 worldNormal(Material m)
         tangentNormal =
             normalize(tangentNormal * 2.0 - 1.0) * vec3(m.normalScale);
 
-        vec3 N = normalize(inNormal);
+        vec3 N = normal;
         vec3 T = normalize(inTangent.xyz);
         vec3 B = normalize(cross(N, T)) * inTangent.w;
         mat3 TBN = mat3(T, B, N);

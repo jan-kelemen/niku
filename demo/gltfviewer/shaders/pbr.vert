@@ -45,7 +45,7 @@ void main()
     gl_Position = env.projection * env.view * worldPosition;
 
     outPosition = worldPosition.xyz;
-    outNormal = mat3(transforms.v[pc.modelIndex].normal) * inNormal;
+    outNormal = mat3(transforms.v[pc.modelIndex].normal) * normalize(inNormal);
     outTangent = vec4(mat3(transforms.v[pc.modelIndex].normal) * inTangent.xyz,
         inTangent.w);
     outColor = inColor;
