@@ -827,9 +827,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
             auto const barrier{vkrndr::with_layout(
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(prefilter_cubemap_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
@@ -888,9 +886,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
             auto const barrier{vkrndr::with_layout(
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(prefilter_cubemap_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
@@ -989,9 +985,7 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
             auto const barrier{vkrndr::with_layout(
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(brdf_lookup_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
@@ -1035,14 +1029,11 @@ void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
     vkrndr::bind_pipeline(command_buffer, pipeline, 0, descriptors);
 
     {
-        auto const barrier{vkrndr::with_layout(
+        auto const barrier{vkrndr::to_layout(
             vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::image_barrier(cubemap),
-                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
-            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
         vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
     }

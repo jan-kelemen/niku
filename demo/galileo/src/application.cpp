@@ -395,7 +395,6 @@ void galileo::application_t::draw()
 
         auto const barrier{vkrndr::with_access(
             vkrndr::on_stage(vkrndr::image_barrier(color_image_),
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)};
@@ -422,14 +421,13 @@ void galileo::application_t::draw()
     }
 
     {
-        auto const barrier{vkrndr::with_layout(
+        auto const barrier{vkrndr::to_layout(
             vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::image_barrier(target_image),
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                     VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                 VK_ACCESS_2_NONE,
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
-            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_GENERAL)};
         vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
     }

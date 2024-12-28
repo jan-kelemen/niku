@@ -382,24 +382,18 @@ void gltfviewer::application_t::draw()
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-            barriers[1] = vkrndr::with_layout(
+            barriers[1] = vkrndr::to_layout(
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
-                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
-                VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_GENERAL);
 
-            barriers[2] = vkrndr::with_layout(
+            barriers[2] = vkrndr::to_layout(
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(blur_image),
-                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
-                VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_GENERAL);
 
             vkrndr::wait_for(command_buffer, {}, {}, barriers);
@@ -417,14 +411,12 @@ void gltfviewer::application_t::draw()
 
             barriers[0] = vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
-                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
                 VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
 
             barriers[1] = vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::image_barrier(blur_image),
-                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
                 VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
@@ -443,20 +435,18 @@ void gltfviewer::application_t::draw()
 
             barriers[0] = vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
-                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                 VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
 
-            barriers[1] = vkrndr::with_layout(
+            barriers[1] = vkrndr::to_layout(
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(target_image),
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                     VK_ACCESS_2_NONE,
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
-                VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_GENERAL);
 
             vkrndr::wait_for(command_buffer, {}, {}, barriers);
