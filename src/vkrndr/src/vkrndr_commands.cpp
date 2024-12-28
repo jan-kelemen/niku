@@ -3,50 +3,45 @@
 #include <vkrndr_command_pool.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
+#include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cppext_numeric.hpp>
 
 #include <algorithm>
+#include <span>
 #include <stdexcept>
 
-void vkrndr::transition_image(VkImage const image,
-    VkCommandBuffer const command_buffer,
-    VkImageLayout const old_layout,
-    VkPipelineStageFlags2 const src_stage_mask,
-    VkAccessFlags2 const src_access_mask,
-    VkImageLayout const new_layout,
-    VkPipelineStageFlags2 const dst_stage_mask,
-    VkAccessFlags2 const dst_access_mask,
-    uint32_t const mip_levels,
-    uint32_t const layers)
+namespace
 {
-    VkImageMemoryBarrier2 barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    barrier.oldLayout = old_layout;
-    barrier.srcStageMask = src_stage_mask;
-    barrier.srcAccessMask = src_access_mask;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.newLayout = new_layout;
-    barrier.dstStageMask = dst_stage_mask;
-    barrier.dstAccessMask = dst_access_mask;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = image;
-    barrier.subresourceRange = {
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .baseMipLevel = 0,
-        .levelCount = mip_levels,
-        .baseArrayLayer = 0,
-        .layerCount = layers,
-    };
+    void transition_image(VkImage const image,
+        VkCommandBuffer const command_buffer,
+        VkImageLayout const old_layout,
+        VkPipelineStageFlags2 const src_stage_mask,
+        VkAccessFlags2 const src_access_mask,
+        VkImageLayout const new_layout,
+        VkPipelineStageFlags2 const dst_stage_mask,
+        VkAccessFlags2 const dst_access_mask,
+        uint32_t const mip_levels = 1,
+        uint32_t const layers = 1)
+    {
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(
+                    vkrndr::image_barrier(image,
+                        vkrndr::whole_resource(VK_IMAGE_ASPECT_COLOR_BIT,
+                            mip_levels,
+                            layers)),
+                    src_stage_mask,
+                    dst_stage_mask),
+                src_access_mask,
+                dst_access_mask),
+            old_layout,
+            new_layout)};
 
-    VkDependencyInfo dependency{};
-    dependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    dependency.imageMemoryBarrierCount = 1;
-    dependency.pImageMemoryBarriers = &barrier;
-
-    vkCmdPipelineBarrier2(command_buffer, &dependency);
-}
+        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+    }
+} // namespace
 
 void vkrndr::begin_single_time_commands(command_pool_t& pool,
     uint32_t count,

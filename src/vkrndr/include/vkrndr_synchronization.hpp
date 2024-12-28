@@ -90,6 +90,16 @@ namespace vkrndr
     }
 
     template<typename T>
+    [[nodiscard]] constexpr T on_stage(T const& barrier,
+        VkPipelineStageFlags2 const stage)
+    requires(std::same_as<T, VkMemoryBarrier2> ||
+        std::same_as<T, VkBufferMemoryBarrier2> ||
+        std::same_as<T, VkImageMemoryBarrier2>)
+    {
+        return on_stage(barrier, stage, stage);
+    }
+
+    template<typename T>
     [[nodiscard]] constexpr T with_access(T const& barrier,
         VkAccessFlags2 const from,
         VkAccessFlags2 const to)
@@ -102,6 +112,16 @@ namespace vkrndr
         rv.dstAccessMask = to;
 
         return rv;
+    }
+
+    template<typename T>
+    [[nodiscard]] constexpr T with_access(T const& barrier,
+        VkAccessFlags2 const access)
+    requires(std::same_as<T, VkMemoryBarrier2> ||
+        std::same_as<T, VkBufferMemoryBarrier2> ||
+        std::same_as<T, VkImageMemoryBarrier2>)
+    {
+        return with_access(barrier, access, access);
     }
 
     template<typename T>
@@ -128,6 +148,12 @@ namespace vkrndr
         rv.newLayout = to;
 
         return rv;
+    }
+
+    [[nodiscard]] constexpr VkImageMemoryBarrier2
+    to_layout(VkImageMemoryBarrier2 const& barrier, VkImageLayout const to)
+    {
+        return with_layout(barrier, VK_IMAGE_LAYOUT_UNDEFINED, to);
     }
 
     void wait_for(VkCommandBuffer command_buffer,

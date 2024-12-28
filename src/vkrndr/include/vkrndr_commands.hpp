@@ -15,17 +15,6 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    void transition_image(VkImage image,
-        VkCommandBuffer command_buffer,
-        VkImageLayout old_layout,
-        VkPipelineStageFlags2 src_stage_mask,
-        VkAccessFlags2 src_access_mask,
-        VkImageLayout new_layout,
-        VkPipelineStageFlags2 dst_stage_mask,
-        VkAccessFlags2 dst_access_mask,
-        uint32_t mip_levels,
-        uint32_t layers = 1);
-
     void begin_single_time_commands(command_pool_t& pool,
         uint32_t count,
         std::span<VkCommandBuffer> buffers);
