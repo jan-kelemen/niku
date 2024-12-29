@@ -76,9 +76,9 @@ namespace vkgltf
 
     enum class alpha_mode_t
     {
-        opaque,
-        mask,
-        blend
+        opaque = 1,
+        mask = 2,
+        blend = 4,
     };
 
     struct [[nodiscard]] material_t final
