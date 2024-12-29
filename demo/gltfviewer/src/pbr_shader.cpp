@@ -93,9 +93,7 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
         vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
         vkrndr::command_buffer_scope_t depth_pass_scope{command_buffer,
             "Depth"};
-        graph.traverse(static_cast<vkgltf::alpha_mode_t>(
-                           std::to_underlying(vkgltf::alpha_mode_t::opaque) |
-                           std::to_underlying(vkgltf::alpha_mode_t::mask)),
+        graph.traverse(vkgltf::alpha_mode_t::opaque,
             command_buffer,
             *double_sided_pipeline_.layout,
             []([[maybe_unused]] vkgltf::alpha_mode_t const mode,
@@ -118,11 +116,11 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
     {
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_NONE,
+            VK_ATTACHMENT_STORE_OP_STORE,
             color_image.view,
             VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
         color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-            VK_ATTACHMENT_STORE_OP_NONE,
+            VK_ATTACHMENT_STORE_OP_STORE,
             depth_buffer.view);
 
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
@@ -224,9 +222,7 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_format,
-                VK_COMPARE_OP_LESS_OR_EQUAL,
-                false)
+            .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS_OR_EQUAL)
             .add_vertex_input(graph.binding_description(),
                 graph.attribute_description())
             .build();
@@ -247,9 +243,7 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_format,
-                VK_COMPARE_OP_LESS_OR_EQUAL,
-                false)
+            .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS_OR_EQUAL)
             .add_vertex_input(graph.binding_description(),
                 graph.attribute_description())
             .with_culling(VK_CULL_MODE_BACK_BIT,
