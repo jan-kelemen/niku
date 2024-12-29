@@ -362,7 +362,8 @@ uint32_t gltfviewer::render_graph_t::draw_node(VkCommandBuffer command_buffer,
             {
                 auto const& material{
                     model_.materials[primitive.material_index]};
-                if (material.alpha_mode != alpha_mode)
+                if ((std::to_underlying(material.alpha_mode) &
+                        std::to_underlying(alpha_mode)) == 0)
                 {
                     continue;
                 }

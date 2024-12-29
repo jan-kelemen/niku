@@ -62,6 +62,7 @@ namespace gltfviewer
 
         vkrndr::pipeline_t double_sided_pipeline_;
         vkrndr::pipeline_t culling_pipeline_;
+        vkrndr::pipeline_t depth_pipeline_;
     };
 } // namespace gltfviewer
 #endif
