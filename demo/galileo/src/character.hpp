@@ -43,6 +43,8 @@ namespace galileo
 
         [[nodiscard]] glm::quat rotation() const;
 
+        [[nodiscard]] glm::mat4 world_transform() const;
+
     private:
         class contact_listener_t final : public JPH::CharacterContactListener
         {

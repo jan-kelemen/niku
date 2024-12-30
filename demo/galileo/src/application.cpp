@@ -189,6 +189,10 @@ namespace
 
                     rv.emplace_back(root_index, sphere_id);
                 }
+                else if (root.name.starts_with("Character"))
+                {
+                    rv.emplace_back(root_index, JPH::BodyID::cInvalidBodyID);
+                }
             }
         }
 
@@ -291,8 +295,15 @@ void galileo::application_t::update(float const delta_time)
     auto& body_interface{physics_engine_.body_interface()};
     for (auto const& [index, body_id] : bodies_)
     {
-        render_graph_->update(index,
-            ngnphy::to_glm(body_interface.GetWorldTransform(body_id)));
+        if (!body_id.IsInvalid())
+        {
+            render_graph_->update(index,
+                ngnphy::to_glm(body_interface.GetWorldTransform(body_id)));
+        }
+        else
+        {
+            render_graph_->update(index, character_->world_transform());
+        }
     }
 
     physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());

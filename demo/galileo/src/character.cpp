@@ -242,6 +242,11 @@ glm::quat galileo::character_t::rotation() const
     return ngnphy::to_glm(physics_entity_->GetRotation());
 }
 
+glm::mat4 galileo::character_t::world_transform() const
+{
+    return ngnphy::to_glm(physics_entity_->GetWorldTransform());
+}
+
 galileo::character_t::contact_listener_t::contact_listener_t(
     physics_engine_t& physics_engine)
     : physics_engine_{&physics_engine}
