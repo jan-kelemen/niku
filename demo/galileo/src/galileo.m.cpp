@@ -1,4 +1,5 @@
 #include <application.hpp>
+#include <config.hpp>
 
 #include <angelscript.h>
 #include <scriptbuilder/scriptbuilder.h>
@@ -16,12 +17,6 @@
 
 namespace
 {
-#ifdef NDEBUG
-    constexpr bool enable_validation_layers{false};
-#else
-    constexpr bool enable_validation_layers{true};
-#endif
-
     void message_callback(asSMessageInfo const* const msg,
         [[maybe_unused]] void* param)
     {
@@ -143,7 +138,7 @@ int main()
     ctx->Release();
     engine->ShutDownAndRelease();
 
-    galileo::application_t app{enable_validation_layers};
+    galileo::application_t app{galileo::enable_validation_layers};
     app.run();
     return EXIT_SUCCESS;
 }

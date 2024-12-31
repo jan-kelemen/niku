@@ -4,6 +4,7 @@ target_sources(gltfviewer
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/config.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/environment.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.hpp
@@ -30,6 +31,13 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_blend_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_oit_shader.cpp
+)
+
+target_compile_definitions(gltfviewer 
+    PRIVATE
+        GLTFVIEWER_SHADER_DEBUG_SYMBOLS=$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>
+        GLTFVIEWER_SHADER_OPTIMIZATION=$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:Release>>
+        GLTFVIEWER_VALIDATION_LAYERS=$<CONFIG:Debug>
 )
 
 target_include_directories(gltfviewer

@@ -1,5 +1,7 @@
 #include <weighted_blend_shader.hpp>
 
+#include <config.hpp>
+
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -104,7 +106,8 @@ gltfviewer::weighted_blend_shader_t::weighted_blend_shader_t(
     , bilinear_sampler_{create_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto shader{add_shader_module_from_path(shader_set,
         backend_->device(),

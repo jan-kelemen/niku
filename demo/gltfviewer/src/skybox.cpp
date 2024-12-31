@@ -1,5 +1,7 @@
 #include <skybox.hpp>
 
+#include <config.hpp>
+
 #include <cppext_numeric.hpp>
 
 #include <vkglsl_shader_set.hpp>
@@ -646,7 +648,8 @@ uint32_t gltfviewer::skybox_t::prefiltered_mip_levels() const
 void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
     VkDescriptorSet descriptor_set)
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -689,7 +692,8 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
 void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
     VkDescriptorSet descriptor_set)
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -735,7 +739,8 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
 void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
     VkDescriptorSet descriptor_set)
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -904,7 +909,8 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
 
 void gltfviewer::skybox_t::generate_brdf_lookup()
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),

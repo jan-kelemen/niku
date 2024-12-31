@@ -1,5 +1,7 @@
 #include <postprocess_shader.hpp>
 
+#include <config.hpp>
+
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -126,7 +128,8 @@ galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
     {
-        vkglsl::shader_set_t shader_set{true, false};
+        vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+            enable_shader_optimization};
 
         auto shader{add_shader_module_from_path(shader_set,
             backend_->device(),
@@ -158,7 +161,8 @@ galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
     }
 
     {
-        vkglsl::shader_set_t shader_set{true, false};
+        vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+            enable_shader_optimization};
 
         auto shader{add_shader_module_from_path(shader_set,
             backend_->device(),

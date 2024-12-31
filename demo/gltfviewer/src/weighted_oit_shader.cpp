@@ -1,5 +1,6 @@
 #include <weighted_oit_shader.hpp>
 
+#include <config.hpp>
 #include <render_graph.hpp>
 
 #include <cppext_numeric.hpp>
@@ -308,7 +309,8 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
 {
     using namespace std::string_view_literals;
 
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),

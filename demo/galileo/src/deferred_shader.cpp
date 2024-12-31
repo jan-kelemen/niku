@@ -1,5 +1,6 @@
 #include <deferred_shader.hpp>
 
+#include <config.hpp>
 #include <gbuffer.hpp>
 
 #include <cppext_cycled_buffer.hpp>
@@ -169,7 +170,8 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
     , sampler_{create_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),

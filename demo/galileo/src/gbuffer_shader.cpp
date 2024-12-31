@@ -1,5 +1,6 @@
 #include <gbuffer_shader.hpp>
 
+#include <config.hpp>
 #include <gbuffer.hpp>
 #include <render_graph.hpp>
 
@@ -29,7 +30,8 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
     VkFormat const depth_buffer_format)
     : backend_{&backend}
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),

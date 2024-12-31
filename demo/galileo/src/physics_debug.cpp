@@ -1,5 +1,7 @@
 #include <physics_debug.hpp>
 
+#include <config.hpp>
+
 #include <cppext_cycled_buffer.hpp>
 
 #include <ngnphy_jolt_adapter.hpp>
@@ -90,7 +92,8 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
 {
     Initialize();
 
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),

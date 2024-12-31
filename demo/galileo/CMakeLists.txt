@@ -5,6 +5,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/character.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/config.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/follow_camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/frame_info.hpp
@@ -31,9 +32,14 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
 )
+
 target_compile_definitions(galileo 
     PRIVATE
-        GLM_ENABLE_EXPERIMENTAL)
+        GLM_ENABLE_EXPERIMENTAL
+        GALILEO_SHADER_DEBUG_SYMBOLS=$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>
+        GALILEO_SHADER_OPTIMIZATION=$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:Release>>
+        GALILEO_VALIDATION_LAYERS=$<CONFIG:Debug>
+)
 
 target_include_directories(galileo
     PRIVATE

@@ -1,5 +1,7 @@
 #include <pyramid_blur.hpp>
 
+#include <config.hpp>
+
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -359,7 +361,8 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
 
 void gltfviewer::pyramid_blur_t::create_downsample_resources()
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -414,7 +417,8 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
 
 void gltfviewer::pyramid_blur_t::create_upsample_resources()
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     auto shader{add_shader_module_from_path(shader_set,
         backend_->device(),

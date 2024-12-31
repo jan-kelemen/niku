@@ -1,5 +1,6 @@
 #include <pbr_shader.hpp>
 
+#include <config.hpp>
 #include <render_graph.hpp>
 
 #include <vkgltf_model.hpp>
@@ -158,7 +159,8 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)
 {
-    vkglsl::shader_set_t shader_set{true, false};
+    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
 
     std::filesystem::path const vertex_path{"pbr.vert"};
     if (auto const wt{last_write_time(vertex_path)}; vertex_write_time_ != wt)
