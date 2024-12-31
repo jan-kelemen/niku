@@ -18,7 +18,7 @@ target_include_directories(ngngfx
 
 target_link_libraries(ngngfx
     PUBLIC
-        glm::glm
+        glm_impl
     PRIVATE
         project-options
 )

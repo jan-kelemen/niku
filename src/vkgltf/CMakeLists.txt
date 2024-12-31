@@ -23,8 +23,7 @@ target_include_directories(vkgltf
 target_link_libraries(vkgltf
     PUBLIC
         vkrndr
-    PUBLIC
-        glm::glm
+        glm_impl
     PRIVATE
         cppext
         stb_impl

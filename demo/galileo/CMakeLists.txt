@@ -35,7 +35,6 @@ target_sources(galileo
 
 target_compile_definitions(galileo 
     PRIVATE
-        GLM_ENABLE_EXPERIMENTAL
         GALILEO_SHADER_DEBUG_SYMBOLS=$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>
         GALILEO_SHADER_OPTIMIZATION=$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:Release>>
         GALILEO_VALIDATION_LAYERS=$<CONFIG:Debug>
@@ -49,6 +48,7 @@ target_include_directories(galileo
 target_link_libraries(galileo
     PRIVATE
         cppext
+        glm_impl
         ngngfx
         ngnphy
         ngnwsi

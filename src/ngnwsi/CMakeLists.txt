@@ -23,8 +23,8 @@ target_include_directories(ngnwsi
 target_link_libraries(ngnwsi
     PUBLIC
         vkrndr
+        glm_impl
     PUBLIC
-        glm::glm
         SDL2::SDL2
     PRIVATE
         imgui::imgui

@@ -49,6 +49,7 @@ target_link_libraries(gltfviewer
     PRIVATE
         ngngfx
         ngnwsi
+        glm_impl
         stb_impl
         vkglsl
         vkgltf
@@ -56,7 +57,6 @@ target_link_libraries(gltfviewer
     PRIVATE
         Boost::headers
         fmt::fmt
-        glm::glm
         imgui::imgui
         simdjson::simdjson
         spdlog::spdlog

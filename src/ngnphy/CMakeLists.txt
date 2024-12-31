@@ -16,8 +16,9 @@ target_include_directories(ngnphy
 
 target_link_libraries(ngnphy
     PUBLIC
+        glm_impl
+    PUBLIC
         Jolt::Jolt
-        glm::glm
     PRIVATE
         project-options
 )
