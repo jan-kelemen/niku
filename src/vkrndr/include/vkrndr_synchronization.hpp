@@ -6,6 +6,7 @@
 #include <volk.h>
 
 #include <concepts>
+#include <cstdint>
 #include <span>
 
 namespace vkrndr

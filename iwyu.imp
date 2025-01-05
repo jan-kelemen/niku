@@ -102,6 +102,7 @@
   { include: [ "<glm/gtc/type_ptr.inl>", private, "<glm/gtc/type_ptr.hpp>", public ] },
   { include: [ "<glm/gtc/matrix_access.inl>", private, "<glm/gtc/matrix_access.hpp>", public ] },
   { include: [ "<glm/gtc/quaternion.inl>", private, "<glm/gtc/quaternion.hpp>", public ] },
+  { include: [ "<glm/ext/quaternion_geometric.inl>", private, "<glm/gtc/quaternion.hpp>", public ] },
   { include: [ "<glm/gtx/euler_angles.inl>", private, "<glm/gtx/euler_angles.hpp>", public ] },
   { include: [ "<glm/detail/type_quat.inl>", private, "<glm/gtc/quaternion.hpp>", public ] },
   { include: [ "<glm/detail/type_quat.hpp>", private, "<glm/gtc/quaternion.hpp>", public ] },

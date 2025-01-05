@@ -18,6 +18,7 @@
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
+#include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -223,27 +224,26 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
     }
 
     {
-        std::array<VkImageMemoryBarrier2, 2> barriers;
+        std::array const barriers{
+            vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(accumulation_image_),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
 
-        barriers[0] = vkrndr::with_layout(
-            vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(accumulation_image_),
-                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        barriers[1] = vkrndr::with_layout(
-            vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(reveal_image_),
-                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(reveal_image_),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
 
         vkrndr::wait_for(command_buffer, {}, {}, barriers);
     }

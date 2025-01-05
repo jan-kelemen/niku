@@ -4,9 +4,12 @@
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Core/Reference.h>
+#include <Jolt/Math/MathTypes.h>
+#include <Jolt/Math/Real.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <glm/gtc/quaternion.hpp>
+#include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
 union SDL_Event;

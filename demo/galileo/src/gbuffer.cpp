@@ -1,11 +1,15 @@
 #include <gbuffer.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_commands.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <array>
+#include <iterator>
+
 // IWYU pragma: no_include <initializer_list>
+// IWYU pragma: no_include <span>
 
 galileo::gbuffer_t::gbuffer_t(vkrndr::backend_t& backend) : backend_{&backend}
 {
@@ -92,9 +96,9 @@ void galileo::gbuffer_t::transition(VkCommandBuffer command_buffer,
     VkPipelineStageFlags2 const dst_stage_mask,
     VkAccessFlags2 const dst_access_mask) const
 {
-    std::array<VkImageMemoryBarrier2, 4> barriers;
+    std::array<VkImageMemoryBarrier2, 4> barriers; // NOLINT
 
-    auto it{std::begin(barriers)};
+    auto it{std::begin(barriers)}; // NOLINT(readability-qualified-auto)
 
     for (auto const& image :
         {position_image_, normal_image_, albedo_image_, specular_image_})

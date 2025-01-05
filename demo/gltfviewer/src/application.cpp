@@ -53,6 +53,7 @@ DISABLE_WARNING_POP
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -370,31 +371,28 @@ void gltfviewer::application_t::draw()
 
         auto const& blur_image{pyramid_blur_->source_image()};
         {
-            std::array<VkImageMemoryBarrier2, 3> barriers;
-
-            barriers[0] = vkrndr::with_layout(
-                vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(color_image_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-            barriers[1] = vkrndr::to_layout(
-                vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
-                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
-                VK_IMAGE_LAYOUT_GENERAL);
-
-            barriers[2] = vkrndr::to_layout(
-                vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(blur_image),
-                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
-                VK_IMAGE_LAYOUT_GENERAL);
+            std::array const barriers{
+                vkrndr::with_layout(
+                    vkrndr::with_access(
+                        vkrndr::on_stage(vkrndr::image_barrier(color_image_),
+                            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+                vkrndr::to_layout(
+                    vkrndr::with_access(
+                        vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
+                            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+                    VK_IMAGE_LAYOUT_GENERAL),
+                vkrndr::to_layout(
+                    vkrndr::with_access(
+                        vkrndr::on_stage(vkrndr::image_barrier(blur_image),
+                            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+                    VK_IMAGE_LAYOUT_GENERAL)};
 
             vkrndr::wait_for(command_buffer, {}, {}, barriers);
         }
@@ -407,20 +405,19 @@ void gltfviewer::application_t::draw()
         pyramid_blur_->draw(blur_levels_, command_buffer);
 
         {
-            std::array<VkImageMemoryBarrier2, 2> barriers;
+            std::array const barriers{
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_STORAGE_READ_BIT),
 
-            barriers[0] = vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
-                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
-
-            barriers[1] = vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(blur_image),
-                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
-                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(blur_image),
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
 
             vkrndr::wait_for(command_buffer, {}, {}, barriers);
         }
@@ -431,23 +428,22 @@ void gltfviewer::application_t::draw()
             blur_image);
 
         {
-            std::array<VkImageMemoryBarrier2, 2> barriers;
-
-            barriers[0] = vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
-                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
-                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
-
-            barriers[1] = vkrndr::to_layout(
+            std::array const barriers{
                 vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(target_image),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                    VK_ACCESS_2_NONE,
+                    VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
-                VK_IMAGE_LAYOUT_GENERAL);
+
+                vkrndr::to_layout(
+                    vkrndr::with_access(
+                        vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                            VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                        VK_ACCESS_2_NONE,
+                        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+                    VK_IMAGE_LAYOUT_GENERAL)};
 
             vkrndr::wait_for(command_buffer, {}, {}, barriers);
         }

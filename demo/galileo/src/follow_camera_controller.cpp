@@ -10,8 +10,6 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
-#include <cmath>
-
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 // IWYU pragma: no_include <glm/mat3x3.hpp>
 

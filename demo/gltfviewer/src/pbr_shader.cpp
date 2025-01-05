@@ -14,12 +14,15 @@
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
+#include <vkrndr_synchronization.hpp>
 
 #include <volk.h>
 
 #include <cassert>
 #include <filesystem>
 #include <functional>
+#include <span>
+#include <utility>
 
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <chrono>

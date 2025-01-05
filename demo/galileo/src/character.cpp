@@ -11,7 +11,6 @@
 
 #include <glm/common.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/euler_angles.hpp>
 #include <glm/trigonometric.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
@@ -24,6 +23,7 @@
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
+#include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Character/CharacterBase.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/BackFaceMode.h>

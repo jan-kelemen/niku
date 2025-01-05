@@ -8,13 +8,13 @@
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_commands.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
+#include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>

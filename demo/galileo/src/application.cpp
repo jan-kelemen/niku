@@ -23,6 +23,7 @@
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
+#include <ngnwsi_mouse.hpp>
 #include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
 
 #include <vkgltf_loader.hpp>
@@ -76,6 +77,7 @@ DISABLE_WARNING_POP
 #include <exception>
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
 #include <utility>
 #include <variant>
@@ -266,7 +268,7 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
         }
         else if (keyboard.keysym.scancode == SDL_SCANCODE_C)
         {
-            free_camera_active_ ^= true;
+            free_camera_active_ ^= true; // NOLINT
         }
     }
 
