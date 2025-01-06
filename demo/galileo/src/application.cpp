@@ -20,6 +20,7 @@
 #include <ngngfx_perspective_camera.hpp>
 
 #include <ngnphy_jolt_adapter.hpp>
+#include <ngnphy_jolt_geometry.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
@@ -35,6 +36,7 @@
 #include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_memory.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
 
@@ -51,6 +53,9 @@ DISABLE_WARNING_POP
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
+#include <Jolt/Geometry/IndexedTriangle.h>
+#include <Jolt/Geometry/Triangle.h>
+#include <Jolt/Math/Float3.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Physics/Body/Body.h>
@@ -58,7 +63,7 @@ DISABLE_WARNING_POP
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/MotionType.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EActivation.h>
@@ -72,10 +77,13 @@ DISABLE_WARNING_POP
 
 #include <volk.h>
 
+#include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <filesystem>
+#include <iterator>
 #include <memory>
 #include <span>
 #include <string>
@@ -112,6 +120,72 @@ namespace
             backend.extent(),
             false,
             VK_SAMPLE_COUNT_1_BIT);
+    }
+
+    [[nodiscard]] JPH::MeshShapeSettings to_jolt_mesh_shape(
+        vkrndr::device_t& device,
+        vkgltf::model_t const& model,
+        vkgltf::node_t const& node)
+    {
+        if (!node.mesh_index)
+        {
+            std::terminate();
+        }
+        assert(node.child_indices.empty());
+
+        vkgltf::mesh_t const& mesh{model.meshes[*node.mesh_index]};
+        assert(mesh.primitives.size() == 1);
+
+        vkgltf::primitive_t const& primitive{mesh.primitives[0]};
+
+        auto vertices_map{vkrndr::map_memory(device, model.vertex_buffer)};
+        [[maybe_unused]] boost::scope::defer_guard const unmap_vtx{
+            [&device, &vertices_map]()
+            { vkrndr::unmap_memory(device, &vertices_map); }};
+        auto* const all_vertices{vertices_map.as<vkgltf::vertex_t>()};
+
+        auto const to_jolt_pos = [](vkgltf::vertex_t const& vtx) -> JPH::Float3
+        { return {vtx.position.x, vtx.position.y, vtx.position.z}; };
+
+        if (primitive.is_indexed)
+        {
+            auto indices_map{vkrndr::map_memory(device, model.index_buffer)};
+            [[maybe_unused]] boost::scope::defer_guard const unmap_idx{
+                [&device, &indices_map]()
+                { vkrndr::unmap_memory(device, &indices_map); }};
+            std::span const indices{
+                indices_map.as<uint32_t>() + primitive.first,
+                primitive.count};
+
+            auto const& [min_vtx, max_vtx] =
+                std::ranges::minmax_element(indices);
+            auto const first_idx{std::distance(indices.begin(), min_vtx)};
+
+            auto const vertex_count{std::distance(min_vtx, max_vtx)};
+            std::span const primitive_vertices{all_vertices + first_idx,
+                cppext::narrow<size_t>(vertex_count)};
+
+            auto const to_jolt_tri =
+                [s = cppext::narrow<uint32_t>(first_idx)](uint32_t const p1,
+                    uint32_t const p2,
+                    uint32_t const p3) -> JPH::IndexedTriangle
+            { return {p1 - s, p2 - s, p3 - s}; };
+
+            return {ngnphy::to_vertices(primitive_vertices, to_jolt_pos),
+                ngnphy::to_indexed_triangles(indices, to_jolt_tri)};
+        }
+
+        std::span const primitive_vertices{all_vertices + primitive.first,
+            primitive.count};
+
+        auto const to_jolt_tri =
+            [&to_jolt_pos](vkgltf::vertex_t const& v1,
+                vkgltf::vertex_t const& v2,
+                vkgltf::vertex_t const& v3) -> JPH::Triangle
+        { return {to_jolt_pos(v1), to_jolt_pos(v2), to_jolt_pos(v3)}; };
+
+        return {
+            ngnphy::to_unindexed_triangles(primitive_vertices, to_jolt_tri)};
     }
 
     [[nodiscard]] std::vector<std::pair<size_t, JPH::BodyID>> setup_world(
@@ -155,8 +229,8 @@ namespace
 
                 if (root.name == "Cube")
                 {
-                    JPH::BoxShapeSettings const floor_shape_settings{
-                        ngnphy::to_jolt(half_extents)};
+                    JPH::MeshShapeSettings const floor_shape_settings{
+                        to_jolt_mesh_shape(backend.device(), *model, root)};
                     floor_shape_settings.SetEmbedded();
 
                     JPH::ShapeSettings::ShapeResult const floor_shape_result{
