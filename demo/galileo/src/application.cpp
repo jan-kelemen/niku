@@ -394,6 +394,7 @@ bool galileo::application_t::begin_frame()
     {
         if (acquired)
         {
+            render_graph_->begin_frame();
             imgui_->begin_frame();
         }
         return acquired;
