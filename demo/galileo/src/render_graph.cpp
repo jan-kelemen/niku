@@ -4,6 +4,7 @@
 #include <ranges>
 #include <render_graph.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -151,22 +152,22 @@ galileo::render_graph_t::render_graph_t(vkrndr::backend_t& backend)
     , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_set_layout_, 1},
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(descriptor_set_layout_),
+            cppext::as_span(data.descriptor_set));
     }
 }
 
 galileo::render_graph_t::~render_graph_t()
 {
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(data.descriptor_set));
 
         vkrndr::unmap_memory(backend_->device(), &data.uniform_map);
 
@@ -252,7 +253,7 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
 
     backend_->transfer_buffer(model.index_buffer, index_buffer_);
 
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         if (data.uniform_map.mapped_memory)
         {

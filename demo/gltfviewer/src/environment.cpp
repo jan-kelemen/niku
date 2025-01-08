@@ -2,6 +2,7 @@
 
 #include <skybox.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -162,7 +163,7 @@ gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
     }
     lights_[5].enabled = true;
 
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         auto const uniform_buffer_size{
             sizeof(environment_uniform_t) + sizeof(::light_t) * lights_.size()};
@@ -179,18 +180,18 @@ gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_layout_, 1},
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(descriptor_layout_),
+            cppext::as_span(data.descriptor_set));
     }
 }
 
 gltfviewer::environment_t::~environment_t()
 {
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(data.descriptor_set));
 
         unmap_memory(backend_->device(), &data.uniform_map);
         destroy(&backend_->device(), &data.uniform);
@@ -212,7 +213,7 @@ void gltfviewer::environment_t::load_skybox(
 {
     skybox_.load_hdr(hdr_image, descriptor_layout_, depth_buffer_format);
 
-    for (auto const& data : frame_data_.as_span())
+    for (auto const& data : cppext::as_span(frame_data_))
     {
         update_descriptor_set(backend_->device(),
             data.descriptor_set,

@@ -3,6 +3,7 @@
 #include <config.hpp>
 #include <render_graph.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
 #include <vkglsl_shader_set.hpp>
@@ -141,8 +142,8 @@ gltfviewer::weighted_oit_shader_t::weighted_oit_shader_t(
 {
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&descriptor_set_layout_, 1},
-        std::span{&descriptor_set_, 1});
+        cppext::as_span(descriptor_set_layout_),
+        cppext::as_span(descriptor_set_));
 }
 
 gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
@@ -157,7 +158,7 @@ gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
 
     vkrndr::free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&descriptor_set_, 1});
+        cppext::as_span(descriptor_set_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         descriptor_set_layout_,
@@ -264,7 +265,7 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
         vkrndr::bind_pipeline(command_buffer,
             composition_pipeline_,
             0,
-            std::span{&descriptor_set_, 1});
+            cppext::as_span(descriptor_set_));
 
         vkCmdDraw(command_buffer, 3, 1, 0, 0);
     }

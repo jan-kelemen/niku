@@ -6,6 +6,7 @@
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
 #include <algorithm>
@@ -39,7 +40,7 @@ namespace
             old_layout,
             new_layout)};
 
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 } // namespace
 
@@ -73,7 +74,7 @@ void vkrndr::end_single_time_commands(command_pool_t& pool,
     submit_info.commandBufferCount = count_cast(command_buffers.size());
     submit_info.pCommandBuffers = command_buffers.data();
 
-    port.submit(std::span{&submit_info, 1});
+    port.submit(cppext::as_span(submit_info));
     port.wait_idle();
 
     pool.free_command_buffers(command_buffers);

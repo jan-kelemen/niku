@@ -126,7 +126,7 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
             .add_vertex_input(binding_description(), attribute_description())
             .build();
 
-    for (frame_data_t& data : frame_data_.as_span())
+    for (frame_data_t& data : cppext::as_span(frame_data_))
     {
         data.vertex_buffer = vkrndr::create_buffer(backend_->device(),
             max_line_count * sizeof(line_vertex_t),
@@ -141,7 +141,7 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
 
 galileo::physics_debug_t::~physics_debug_t()
 {
-    for (frame_data_t& data : frame_data_.as_span())
+    for (frame_data_t& data : cppext::as_span(frame_data_))
     {
         unmap_memory(backend_->device(), &data.vertex_map);
         destroy(&backend_->device(), &data.vertex_buffer);

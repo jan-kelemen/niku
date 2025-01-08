@@ -2,6 +2,7 @@
 
 #include <config.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -117,12 +118,12 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
                     .with_shader(as_pipeline_shader(*shader))
                     .build();
 
-    for (auto& set : descriptor_sets_.as_span())
+    for (auto& set : cppext::as_span(descriptor_sets_))
     {
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_set_layout_, 1},
-            std::span{&set, 1});
+            cppext::as_span(descriptor_set_layout_),
+            cppext::as_span(set));
     }
 }
 
@@ -132,7 +133,7 @@ gltfviewer::postprocess_shader_t::~postprocess_shader_t()
 
     vkrndr::free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        descriptor_sets_.as_span());
+        cppext::as_span(descriptor_sets_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         descriptor_set_layout_,
@@ -168,7 +169,7 @@ void gltfviewer::postprocess_shader_t::draw(bool const color_conversion,
     vkrndr::bind_pipeline(command_buffer,
         pipeline_,
         0,
-        std::span{&descriptor_sets_.current(), 1});
+        cppext::as_span(descriptor_sets_.current()));
 
     vkCmdDispatch(command_buffer,
         static_cast<uint32_t>(

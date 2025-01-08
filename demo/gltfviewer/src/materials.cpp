@@ -1,5 +1,6 @@
 #include <materials.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
 
@@ -283,7 +284,7 @@ gltfviewer::materials_t::~materials_t()
 
     vkrndr::free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&dummy_descriptor_set_, 1});
+        cppext::as_span(dummy_descriptor_set_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         dummy_descriptor_layout_,
@@ -346,12 +347,12 @@ void gltfviewer::materials_t::create_dummy_material()
 
     vkgltf::material_t const dummy_material;
     dummy_uniform_ =
-        create_material_uniform(*backend_, std::span{&dummy_material, 1});
+        create_material_uniform(*backend_, cppext::as_span(dummy_material));
 
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&dummy_descriptor_layout_, 1},
-        std::span{&dummy_descriptor_set_, 1});
+        cppext::as_span(dummy_descriptor_layout_),
+        cppext::as_span(dummy_descriptor_set_));
 
     VkDescriptorImageInfo const image_descriptor{
         vkrndr::sampled_image_descriptor(white_pixel_)};
@@ -361,8 +362,8 @@ void gltfviewer::materials_t::create_dummy_material()
 
     update_descriptor_set(backend_->device(),
         dummy_descriptor_set_,
-        std::span{&image_descriptor, 1},
-        std::span{&sampler_descriptor, 1},
+        cppext::as_span(image_descriptor),
+        cppext::as_span(sampler_descriptor),
         vkrndr::buffer_descriptor(dummy_uniform_));
 }
 
@@ -411,8 +412,8 @@ void gltfviewer::materials_t::transfer_textures(vkgltf::model_t& model)
 
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&descriptor_layout_, 1},
-        std::span{&descriptor_set_, 1});
+        cppext::as_span(descriptor_layout_),
+        cppext::as_span(descriptor_set_));
 
     update_descriptor_set(backend_->device(),
         descriptor_set_,
@@ -444,7 +445,7 @@ void gltfviewer::materials_t::clear()
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_set_, 1});
+            cppext::as_span(descriptor_set_));
         descriptor_set_ = VK_NULL_HANDLE;
     }
 

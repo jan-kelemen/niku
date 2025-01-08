@@ -1,6 +1,7 @@
 #ifndef CPPEXT_CYCLED_BUFFER_INCLUDED
 #define CPPEXT_CYCLED_BUFFER_INCLUDED
 
+#include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
 #include <algorithm>
@@ -90,6 +91,19 @@ namespace cppext
         Container::size_type cycle_{};
         Container::size_type index_{};
     };
+
+    template<typename T, typename Container>
+    [[nodiscard]] std::span<T> as_span(cycled_buffer_t<T, Container>& value)
+    {
+        return value.as_span();
+    }
+
+    template<typename T, typename Container>
+    [[nodiscard]] std::span<T const> as_span(
+        cycled_buffer_t<T, Container> const& value)
+    {
+        return value.as_span();
+    }
 
     template<typename T, typename Container>
     cycled_buffer_t<T, Container>::cycled_buffer_t(size_type const cycle,

@@ -12,6 +12,7 @@
 #include <weighted_blend_shader.hpp>
 #include <weighted_oit_shader.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
@@ -464,7 +465,7 @@ void gltfviewer::application_t::draw()
                     VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT),
                 VK_IMAGE_LAYOUT_GENERAL,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
-            vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
         }
     }
 

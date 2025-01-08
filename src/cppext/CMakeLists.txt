@@ -7,6 +7,7 @@ target_sources(cppext
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_numeric.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_pragma_warning.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_cycled_buffer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_container.hpp
 )
 
 target_include_directories(cppext

@@ -3,6 +3,7 @@
 #include <config.hpp>
 #include <gbuffer.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 
 #include <vkglsl_shader_set.hpp>
@@ -203,22 +204,22 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
                         VK_FRONT_FACE_COUNTER_CLOCKWISE)
                     .build();
 
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_set_layout_, 1},
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(descriptor_set_layout_),
+            cppext::as_span(data.descriptor_set));
     }
 }
 
 galileo::deferred_shader_t::~deferred_shader_t()
 {
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(data.descriptor_set));
     }
 
     destroy(&backend_->device(), &pipeline_);

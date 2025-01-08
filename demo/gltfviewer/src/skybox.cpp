@@ -2,6 +2,7 @@
 
 #include <config.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
 #include <vkglsl_shader_set.hpp>
@@ -265,7 +266,7 @@ gltfviewer::skybox_t::~skybox_t()
 
     vkrndr::free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&skybox_descriptor_, 1});
+        cppext::as_span(skybox_descriptor_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         skybox_descriptor_layout_,
@@ -302,7 +303,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     auto const hdr_extent{vkrndr::to_extent(width, height)};
     vkrndr::image_t cubemap_texture = backend_->transfer_image(
-        vkrndr::as_bytes(std::span{hdr_texture_data,
+        as_bytes(std::span{hdr_texture_data,
             size_t{hdr_extent.width} * hdr_extent.height * 4}),
         hdr_extent,
         VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -456,8 +457,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
     VkDescriptorSet cubemap_descriptor; // NOLINT
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&cubemap_descriptor_layout, 1},
-        std::span{&cubemap_descriptor, 1});
+        cppext::as_span(cubemap_descriptor_layout),
+        cppext::as_span(cubemap_descriptor));
 
     update_cubemap_descriptor(backend_->device(),
         cubemap_descriptor,
@@ -494,8 +495,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&skybox_descriptor_layout_, 1},
-        std::span{&skybox_descriptor_, 1});
+        cppext::as_span(skybox_descriptor_layout_),
+        cppext::as_span(skybox_descriptor_));
 
     update_skybox_descriptor(backend_->device(),
         skybox_descriptor_,
@@ -559,7 +560,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     vkrndr::free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&cubemap_descriptor, 1});
+        cppext::as_span(cubemap_descriptor));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         cubemap_descriptor_layout,
@@ -613,7 +614,7 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
     vkrndr::bind_pipeline(command_buffer,
         skybox_pipeline_,
         1,
-        std::span{&skybox_descriptor_, 1});
+        cppext::as_span(skybox_descriptor_));
 
     vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
 }
@@ -684,7 +685,7 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
 
-    render_to_cubemap(pipeline, std::span{&descriptor_set, 1}, cubemap_);
+    render_to_cubemap(pipeline, cppext::as_span(descriptor_set), cubemap_);
 
     destroy(&backend_->device(), &pipeline);
 }
@@ -836,7 +837,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
                 VK_IMAGE_LAYOUT_UNDEFINED,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
-            vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
         }
 
         for (uint32_t mip{}; mip != prefilter_cubemap_.mip_levels; ++mip)
@@ -895,7 +896,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
-            vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
         }
     }
 
@@ -995,7 +996,7 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
-            vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
         }
     }
 
@@ -1041,7 +1042,7 @@ void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     for (uint32_t i{}; i != cubemap.face_views.size(); ++i)
@@ -1075,7 +1076,7 @@ void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
                 VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     generate_mipmaps(backend_->device(),

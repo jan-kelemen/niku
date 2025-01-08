@@ -3,6 +3,8 @@
 #include <config.hpp>
 #include <render_graph.hpp>
 
+#include <cppext_container.hpp>
+
 #include <vkgltf_model.hpp>
 
 #include <vkglsl_shader_set.hpp>
@@ -114,7 +116,7 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
             VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_2_NONE)};
 
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     {

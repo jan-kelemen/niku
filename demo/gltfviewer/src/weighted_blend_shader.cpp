@@ -2,6 +2,7 @@
 
 #include <config.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -130,24 +131,24 @@ gltfviewer::weighted_blend_shader_t::weighted_blend_shader_t(
                     .with_shader(as_pipeline_shader(*shader))
                     .build();
 
-    for (frame_data_t& data : frame_data_.as_span())
+    for (frame_data_t& data : cppext::as_span(frame_data_))
     {
-        auto ds{std::span{&data.descriptor_, 1}};
+        auto ds{cppext::as_span(data.descriptor_)};
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_layout_, 1},
+            cppext::as_span(descriptor_layout_),
             ds);
     }
 }
 
 gltfviewer::weighted_blend_shader_t::~weighted_blend_shader_t()
 {
-    for (frame_data_t& data : frame_data_.as_span())
+    for (frame_data_t& data : cppext::as_span(frame_data_))
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.descriptor_, 1});
+            cppext::as_span(data.descriptor_));
     }
 
     destroy(&backend_->device(), &pipeline_);
@@ -180,7 +181,7 @@ void gltfviewer::weighted_blend_shader_t::draw(float const bias,
     vkrndr::bind_pipeline(command_buffer,
         pipeline_,
         0,
-        std::span{&frame_data_->descriptor_, 1});
+        cppext::as_span(frame_data_->descriptor_));
 
     push_constants_t pc{.weight = bias};
     vkCmdPushConstants(command_buffer,

@@ -2,6 +2,8 @@
 
 #include <vkrndr_commands.hpp>
 
+#include <cppext_container.hpp>
+
 #include <span>
 #include <utility>
 
@@ -10,7 +12,7 @@ vkrndr::transient_operation_t::transient_operation_t(execution_port_t& port,
     : port_{&port}
     , pool_{&pool}
 {
-    begin_single_time_commands(*pool_, 1, std::span{&command_buffer_, 1});
+    begin_single_time_commands(*pool_, 1, cppext::as_span(command_buffer_));
 }
 
 vkrndr::transient_operation_t::transient_operation_t(
@@ -27,6 +29,6 @@ vkrndr::transient_operation_t::~transient_operation_t()
     {
         end_single_time_commands(*pool_,
             *port_,
-            std::span{&command_buffer_, 1});
+            cppext::as_span(command_buffer_));
     }
 }

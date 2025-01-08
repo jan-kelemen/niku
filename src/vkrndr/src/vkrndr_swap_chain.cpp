@@ -10,6 +10,8 @@
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
 
+#include <cppext_container.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -168,7 +170,7 @@ void vkrndr::swap_chain_t::submit_command_buffers(
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
-    present_queue_->submit(std::span{&submit_info, 1}, frame.in_flight);
+    present_queue_->submit(cppext::as_span(submit_info), frame.in_flight);
 
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

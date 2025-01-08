@@ -2,6 +2,7 @@
 
 #include <config.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -167,11 +168,11 @@ gltfviewer::pyramid_blur_t::pyramid_blur_t(vkrndr::backend_t& backend)
 
 gltfviewer::pyramid_blur_t::~pyramid_blur_t()
 {
-    for (frame_data_t& data : frame_data_.as_span())
+    for (frame_data_t& data : cppext::as_span(frame_data_))
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.descriptor_, 1});
+            cppext::as_span(data.descriptor_));
     }
 
     destroy(&backend_->device(), &upsample_pipeline_);
@@ -220,7 +221,7 @@ void gltfviewer::pyramid_blur_t::downsample_pass(uint32_t const levels,
     vkrndr::bind_pipeline(command_buffer,
         downsample_pipeline_,
         0,
-        std::span{&frame_data_->descriptor_, 1});
+        cppext::as_span(frame_data_->descriptor_));
 
     for (uint32_t mip{}; mip != levels; ++mip)
     {
@@ -270,7 +271,7 @@ void gltfviewer::pyramid_blur_t::upsample_pass(uint32_t const levels,
     vkrndr::bind_pipeline(command_buffer,
         upsample_pipeline_,
         0,
-        std::span{&frame_data_->descriptor_, 1});
+        cppext::as_span(frame_data_->descriptor_));
 
     for (uint32_t const mip :
         std::views::iota(uint32_t{0}, levels) | std::views::reverse)
@@ -384,9 +385,9 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
     descriptor_layout_ =
         vkrndr::create_descriptor_set_layout(backend_->device(), *bindings);
 
-    for (frame_data_t& data : frame_data_.as_span())
+    for (frame_data_t& data : cppext::as_span(frame_data_))
     {
-        auto ds{std::span{&data.descriptor_, 1}};
+        auto ds{cppext::as_span(data.descriptor_)};
 
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
@@ -394,7 +395,7 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_layout_, 1},
+            cppext::as_span(descriptor_layout_),
             ds);
 
         update_descriptor_set(backend_->device(),

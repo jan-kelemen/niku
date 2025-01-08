@@ -1,5 +1,6 @@
 #include <materials.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
 
@@ -362,8 +363,8 @@ void galileo::materials_t::transfer_textures(vkgltf::model_t& model)
 
     vkrndr::create_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
-        std::span{&descriptor_layout_, 1},
-        std::span{&descriptor_set_, 1});
+        cppext::as_span(descriptor_layout_),
+        cppext::as_span(descriptor_set_));
 
     update_descriptor_set(backend_->device(),
         descriptor_set_,
@@ -401,7 +402,7 @@ void galileo::materials_t::clear()
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_set_, 1});
+            cppext::as_span(descriptor_set_));
         descriptor_set_ = VK_NULL_HANDLE;
     }
 

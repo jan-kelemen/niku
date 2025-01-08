@@ -15,6 +15,7 @@
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -88,7 +89,7 @@ vkrndr::backend_t::backend_t(window_t const& window,
     , frame_data_{settings.frames_in_flight, settings.frames_in_flight}
     , descriptor_pool_{create_descriptor_pool(device_)}
 {
-    for (frame_data_t& fd : frame_data_.as_span())
+    for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
         fd.present_queue = device_.present_queue;
         fd.present_command_pool = std::make_unique<command_pool_t>(device_,
@@ -107,7 +108,7 @@ vkrndr::backend_t::backend_t(window_t const& window,
 
 vkrndr::backend_t::~backend_t()
 {
-    for (frame_data_t& fd : frame_data_.as_span())
+    for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
         fd.present_command_pool.reset();
         fd.present_transient_command_pool.reset();
@@ -192,7 +193,7 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer()
 
         frame_data_->present_command_pool->allocate_command_buffers(true,
             1,
-            std::span{&frame_data_->present_command_buffers.back(), 1});
+            cppext::as_span(frame_data_->present_command_buffers.back()));
     }
 
     VkCommandBuffer rv{frame_data_->present_command_buffers[frame_data_

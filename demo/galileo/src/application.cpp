@@ -13,6 +13,7 @@
 #include <postprocess_shader.hpp>
 #include <render_graph.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
@@ -486,7 +487,7 @@ void galileo::application_t::draw()
                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)};
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
@@ -505,7 +506,7 @@ void galileo::application_t::draw()
                 VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     {
@@ -517,7 +518,7 @@ void galileo::application_t::draw()
                 VK_ACCESS_2_NONE,
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
             VK_IMAGE_LAYOUT_GENERAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     postprocess_shader_->draw(command_buffer, color_image_, target_image);
@@ -532,7 +533,7 @@ void galileo::application_t::draw()
                 VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT),
             VK_IMAGE_LAYOUT_GENERAL,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     imgui_->render(command_buffer, target_image);

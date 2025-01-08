@@ -1,5 +1,6 @@
 #include <render_graph.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -233,7 +234,7 @@ void gltfviewer::render_graph_t::load(vkgltf::model_t&& model)
     uint32_t const transform_count{required_transforms(model)};
     VkDeviceSize const transform_buffer_size{
         transform_count * sizeof(transform_t)};
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         data.uniform = create_buffer(backend_->device(),
             transform_buffer_size,
@@ -245,15 +246,15 @@ void gltfviewer::render_graph_t::load(vkgltf::model_t&& model)
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_layout_, 1},
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(descriptor_layout_),
+            cppext::as_span(data.descriptor_set));
 
         update_descriptor_set(backend_->device(),
             data.descriptor_set,
             vkrndr::buffer_descriptor(data.uniform));
     }
 
-    calculate_transforms(model, frame_data_.as_span());
+    calculate_transforms(model, cppext::as_span(frame_data_));
 
     model_ = std::move(model);
 }
@@ -416,11 +417,11 @@ uint32_t gltfviewer::render_graph_t::draw_node(VkCommandBuffer command_buffer,
 
 void gltfviewer::render_graph_t::clear()
 {
-    for (frame_data_t& data : frame_data_.as_span())
+    for (frame_data_t& data : cppext::as_span(frame_data_))
     {
         free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(data.descriptor_set));
 
         if (data.uniform_map.allocation)
         {

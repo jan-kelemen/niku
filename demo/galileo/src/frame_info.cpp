@@ -1,5 +1,6 @@
 #include <frame_info.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 
 #include <ngngfx_camera.hpp>
@@ -131,7 +132,7 @@ galileo::frame_info_t::frame_info_t(vkrndr::backend_t& backend)
 {
     auto const lights{generate_lights()};
 
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         data.info_buffer = vkrndr::create_buffer(backend_->device(),
             sizeof(gpu_frame_info_t),
@@ -156,8 +157,8 @@ galileo::frame_info_t::frame_info_t(vkrndr::backend_t& backend)
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&descriptor_set_layout_, 1},
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(descriptor_set_layout_),
+            cppext::as_span(data.descriptor_set));
 
         update_descriptor_set(backend_->device(),
             data.descriptor_set,
@@ -168,11 +169,11 @@ galileo::frame_info_t::frame_info_t(vkrndr::backend_t& backend)
 
 galileo::frame_info_t::~frame_info_t()
 {
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.descriptor_set, 1});
+            cppext::as_span(data.descriptor_set));
 
         vkrndr::unmap_memory(backend_->device(), &data.light_map);
 

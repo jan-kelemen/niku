@@ -2,6 +2,7 @@
 
 #include <config.hpp>
 
+#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -191,31 +192,31 @@ galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
                              .build();
     }
 
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&tone_mapping_descriptor_set_layout_, 1},
-            std::span{&data.tone_mapping_descriptor_set, 1});
+            cppext::as_span(tone_mapping_descriptor_set_layout_),
+            cppext::as_span(data.tone_mapping_descriptor_set));
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&fxaa_descriptor_set_layout_, 1},
-            std::span{&data.fxaa_descriptor_set, 1});
+            cppext::as_span(fxaa_descriptor_set_layout_),
+            cppext::as_span(data.fxaa_descriptor_set));
     }
 }
 
 galileo::postprocess_shader_t::~postprocess_shader_t()
 {
-    for (auto& data : frame_data_.as_span())
+    for (auto& data : cppext::as_span(frame_data_))
     {
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.fxaa_descriptor_set, 1});
+            cppext::as_span(data.fxaa_descriptor_set));
 
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
-            std::span{&data.tone_mapping_descriptor_set, 1});
+            cppext::as_span(data.tone_mapping_descriptor_set));
     }
 
     destroy(&backend_->device(), &fxaa_pipeline_);
@@ -249,7 +250,7 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
                 VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
             VK_IMAGE_LAYOUT_GENERAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     {
@@ -264,7 +265,7 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
         vkrndr::bind_pipeline(command_buffer,
             tone_mapping_pipeline_,
             0,
-            std::span{&frame_data_->tone_mapping_descriptor_set, 1});
+            cppext::as_span(frame_data_->tone_mapping_descriptor_set));
 
         vkCmdDispatch(command_buffer,
             static_cast<uint32_t>(std::ceil(
@@ -283,7 +284,7 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
                 VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
             VK_IMAGE_LAYOUT_GENERAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, std::span{&barrier, 1});
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
     {
@@ -298,7 +299,7 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
         vkrndr::bind_pipeline(command_buffer,
             fxaa_pipeline_,
             0,
-            std::span{&frame_data_->fxaa_descriptor_set, 1});
+            cppext::as_span(frame_data_->fxaa_descriptor_set));
 
         vkCmdDispatch(command_buffer,
             static_cast<uint32_t>(
