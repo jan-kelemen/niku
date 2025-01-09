@@ -1,6 +1,8 @@
 #ifndef GALILEO_GBUFFER_INCLUDED
 #define GALILEO_GBUFFER_INCLUDED
 
+#include <ngngfx_gbuffer.hpp>
+
 #include <vkrndr_image.hpp>
 
 #include <volk.h>
@@ -24,8 +26,6 @@ namespace galileo
 
         static constexpr VkFormat albedo_format{VK_FORMAT_R8G8B8A8_UNORM};
 
-        static constexpr VkFormat specular_format{VK_FORMAT_R8G8B8A8_UNORM};
-
     public:
         explicit gbuffer_t(vkrndr::backend_t& backend);
 
@@ -42,8 +42,6 @@ namespace galileo
         [[nodiscard]] vkrndr::image_t& normal_image();
 
         [[nodiscard]] vkrndr::image_t& albedo_image();
-
-        [[nodiscard]] vkrndr::image_t& specular_image();
 
         [[nodiscard]] VkExtent2D extent() const;
 
@@ -65,10 +63,7 @@ namespace galileo
     private:
         vkrndr::backend_t* backend_;
 
-        vkrndr::image_t position_image_;
-        vkrndr::image_t normal_image_;
-        vkrndr::image_t albedo_image_;
-        vkrndr::image_t specular_image_;
+        ngngfx::gbuffer_t gbuffer_;
     };
 } // namespace galileo
 

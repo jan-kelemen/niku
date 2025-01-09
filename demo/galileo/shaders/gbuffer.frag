@@ -17,7 +17,6 @@ layout(location = 4) flat in int inInstance;
 layout(location = 0) out vec3 outPosition;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec4 outAlbedo;
-layout(location = 3) out vec4 outSpecular;
 
 vec4 baseColor(Material m)
 {
@@ -47,5 +46,4 @@ void main() {
     outPosition = inPosition;
     outNormal = normalize(inNormal);
     outAlbedo = albedo;
-    outSpecular = inColor;
 }

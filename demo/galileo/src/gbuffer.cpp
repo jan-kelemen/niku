@@ -15,73 +15,35 @@ galileo::gbuffer_t::gbuffer_t(vkrndr::backend_t& backend) : backend_{&backend}
 {
 }
 
-galileo::gbuffer_t::~gbuffer_t()
-{
-    destroy(&backend_->device(), &specular_image_);
-    destroy(&backend_->device(), &albedo_image_);
-    destroy(&backend_->device(), &normal_image_);
-    destroy(&backend_->device(), &position_image_);
-}
+galileo::gbuffer_t::~gbuffer_t() { destroy(&backend_->device(), &gbuffer_); }
 
 vkrndr::image_t& galileo::gbuffer_t::position_image()
 {
-    return position_image_;
+    return gbuffer_.images[0];
 }
 
-vkrndr::image_t& galileo::gbuffer_t::normal_image() { return normal_image_; }
-
-vkrndr::image_t& galileo::gbuffer_t::albedo_image() { return albedo_image_; }
-
-vkrndr::image_t& galileo::gbuffer_t::specular_image()
+vkrndr::image_t& galileo::gbuffer_t::normal_image()
 {
-    return specular_image_;
+    return gbuffer_.images[1];
 }
 
-VkExtent2D galileo::gbuffer_t::extent() const { return position_image_.extent; }
+vkrndr::image_t& galileo::gbuffer_t::albedo_image()
+{
+    return gbuffer_.images[2];
+}
+
+VkExtent2D galileo::gbuffer_t::extent() const
+{
+    return gbuffer_.images[0].extent;
+}
 
 void galileo::gbuffer_t::resize(uint32_t const width, uint32_t const height)
 {
-    auto const new_extent{vkrndr::to_extent(width, height)};
-
-    destroy(&backend_->device(), &position_image_);
-    position_image_ = vkrndr::create_image_and_view(backend_->device(),
-        new_extent,
-        1,
+    destroy(&backend_->device(), &gbuffer_);
+    gbuffer_ = ngngfx::create_gbuffer(backend_->device(),
+        vkrndr::to_extent(width, height),
         VK_SAMPLE_COUNT_1_BIT,
-        position_format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
-
-    destroy(&backend_->device(), &normal_image_);
-    normal_image_ = vkrndr::create_image_and_view(backend_->device(),
-        new_extent,
-        1,
-        VK_SAMPLE_COUNT_1_BIT,
-        normal_format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
-
-    destroy(&backend_->device(), &albedo_image_);
-    albedo_image_ = vkrndr::create_image_and_view(backend_->device(),
-        new_extent,
-        1,
-        VK_SAMPLE_COUNT_1_BIT,
-        albedo_format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        VK_IMAGE_ASPECT_COLOR_BIT);
-
-    destroy(&backend_->device(), &specular_image_);
-    specular_image_ = vkrndr::create_image_and_view(backend_->device(),
-        new_extent,
-        1,
-        VK_SAMPLE_COUNT_1_BIT,
-        specular_format,
+        std::array{position_format, normal_format, albedo_format},
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -96,12 +58,11 @@ void galileo::gbuffer_t::transition(VkCommandBuffer command_buffer,
     VkPipelineStageFlags2 const dst_stage_mask,
     VkAccessFlags2 const dst_access_mask) const
 {
-    std::array<VkImageMemoryBarrier2, 4> barriers; // NOLINT
+    std::array<VkImageMemoryBarrier2, 3> barriers; // NOLINT
 
     auto it{std::begin(barriers)}; // NOLINT(readability-qualified-auto)
 
-    for (auto const& image :
-        {position_image_, normal_image_, albedo_image_, specular_image_})
+    for (auto const& image : gbuffer_.images)
     {
         *it = vkrndr::with_access(vkrndr::on_stage(vkrndr::image_barrier(image),
                                       src_stage_mask,

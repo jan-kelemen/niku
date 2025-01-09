@@ -62,7 +62,6 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
                     .add_color_attachment(gbuffer_t::position_format)
                     .add_color_attachment(gbuffer_t::normal_format)
                     .add_color_attachment(gbuffer_t::albedo_format)
-                    .add_color_attachment(gbuffer_t::specular_format)
                     .with_depth_test(depth_buffer_format)
                     .add_vertex_input(render_graph_t::binding_description(),
                         render_graph_t::attribute_description())
@@ -98,10 +97,6 @@ void galileo::gbuffer_shader_t::draw(render_graph_t& graph,
     color_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
         VK_ATTACHMENT_STORE_OP_STORE,
         gbuffer.albedo_image().view,
-        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
-    color_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        gbuffer.specular_image().view,
         VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
     color_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
         VK_ATTACHMENT_STORE_OP_STORE,
