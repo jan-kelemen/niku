@@ -68,8 +68,6 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
     ngnwsi::mouse_t& mouse)
     : physics_engine_{&physics_engine}
     , mouse_{&mouse}
-    , acceleration_{ngnphy::to_glm(
-          physics_engine_->physics_system().GetGravity())}
     , listener_{physics_engine}
 {
     JPH::RotatedTranslatedShapeSettings const shape_settings{

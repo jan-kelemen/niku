@@ -82,8 +82,6 @@ namespace galileo
         physics_engine_t* physics_engine_;
         ngnwsi::mouse_t* mouse_;
 
-        glm::vec3 acceleration_{};
-
         contact_listener_t listener_;
         JPH::Ref<JPH::CharacterVirtual> physics_entity_;
     };
