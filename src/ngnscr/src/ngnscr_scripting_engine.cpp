@@ -1,0 +1,76 @@
+#include <ngnscr_scripting_engine.hpp>
+
+#include <angelscript.h>
+
+#include <scriptstdstring/scriptstdstring.h>
+
+#include <spdlog/spdlog.h>
+
+#include <cassert>
+
+namespace
+{
+    void message_callback(asSMessageInfo const* const msg,
+        [[maybe_unused]] void* param)
+    {
+        if (msg->type == asMSGTYPE_INFORMATION)
+        {
+            spdlog::info("{} ({}, {}): {}",
+                msg->section,
+                msg->row,
+                msg->col,
+                msg->message);
+        }
+        else if (msg->type == asMSGTYPE_WARNING)
+        {
+            spdlog::warn("{} ({}, {}): {}",
+                msg->section,
+                msg->row,
+                msg->col,
+                msg->message);
+        }
+        else
+        {
+            spdlog::error("{} ({}, {}): {}",
+                msg->section,
+                msg->row,
+                msg->col,
+                msg->message);
+        }
+    }
+} // namespace
+
+ngnscr::scripting_engine_t::scripting_engine_t()
+    : engine_{asCreateScriptEngine()}
+{
+    int const r{engine_->SetMessageCallback(asFUNCTION(message_callback),
+        nullptr,
+        asCALL_CDECL)};
+    assert(r >= 0);
+
+    RegisterStdString(engine_);
+}
+
+ngnscr::scripting_engine_t::scripting_engine_t(
+    scripting_engine_t&& other) noexcept
+    : engine_{std::exchange(other.engine_, nullptr)}
+{
+}
+
+ngnscr::scripting_engine_t::~scripting_engine_t()
+{
+    if (engine_)
+    {
+        engine_->ShutDownAndRelease();
+    }
+}
+
+asIScriptEngine& ngnscr::scripting_engine_t::engine() { return *engine_; }
+
+ngnscr::scripting_engine_t& ngnscr::scripting_engine_t::operator=(
+    scripting_engine_t&& other) noexcept
+{
+    engine_ = std::exchange(other.engine_, nullptr);
+
+    return *this;
+}
