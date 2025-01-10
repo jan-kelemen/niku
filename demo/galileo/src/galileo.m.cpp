@@ -1,9 +1,10 @@
 #include <application.hpp>
 #include <config.hpp>
 
+#include <ngnscr_scripting_engine.hpp>
+
 #include <angelscript.h>
 #include <scriptbuilder/scriptbuilder.h>
-#include <scriptstdstring/scriptstdstring.h>
 
 #include <fmt/format.h>
 
@@ -17,60 +18,17 @@
 
 namespace
 {
-    void message_callback(asSMessageInfo const* const msg,
-        [[maybe_unused]] void* param)
-    {
-        if (msg->type == asMSGTYPE_INFORMATION)
-        {
-            spdlog::info("{} ({}, {}): {}",
-                msg->section,
-                msg->row,
-                msg->col,
-                msg->message);
-        }
-        else if (msg->type == asMSGTYPE_WARNING)
-        {
-            spdlog::warn("{} ({}, {}): {}",
-                msg->section,
-                msg->row,
-                msg->col,
-                msg->message);
-        }
-        else
-        {
-            spdlog::error("{} ({}, {}): {}",
-                msg->section,
-                msg->row,
-                msg->col,
-                msg->message);
-        }
-    }
-
     void print(std::string const& msg) { fmt::print("{}", msg); }
 
 } // namespace
 
 int main()
 {
-    // Create the script engine
-    asIScriptEngine* engine = asCreateScriptEngine();
-
-    // Set the message callback to receive information on errors in human
-    // readable form.
-    int r = engine->SetMessageCallback(asFUNCTION(message_callback),
-        nullptr,
-        asCALL_CDECL);
-    assert(r >= 0);
-
-    // AngelScript doesn't have a built-in string type, as there is no definite
-    // standard string type for C++ applications. Every developer is free to
-    // register its own string type. The SDK do however provide a standard
-    // add-on for registering a string type, so it's not necessary to implement
-    // the registration yourself if you don't want to.
-    RegisterStdString(engine);
+    ngnscr::scripting_engine_t scripting;
 
     // Register the function that we want the scripts to call
-    r = engine->RegisterGlobalFunction("void print(const string &in)",
+    int r = scripting.engine().RegisterGlobalFunction(
+        "void print(const string &in)",
         asFUNCTION(print),
         asCALL_CDECL);
     assert(r >= 0);
@@ -79,7 +37,7 @@ int main()
     // performs a pre-processing pass if necessary, and then tells
     // the engine to build a script module.
     CScriptBuilder builder;
-    r = builder.StartNewModule(engine, "MyModule");
+    r = builder.StartNewModule(&scripting.engine(), "MyModule");
     if (r < 0)
     {
         // If the code fails here it is usually because there
@@ -106,7 +64,7 @@ int main()
     }
 
     // Find the function that is to be called.
-    asIScriptModule* mod = engine->GetModule("MyModule");
+    asIScriptModule* mod = scripting.engine().GetModule("MyModule");
     asIScriptFunction* func = mod->GetFunctionByDecl("void main()");
     if (!func)
     {
@@ -118,7 +76,7 @@ int main()
     }
 
     // Create our context, prepare it, and then execute
-    asIScriptContext* ctx = engine->CreateContext();
+    asIScriptContext* ctx = scripting.engine().CreateContext();
     ctx->Prepare(func);
     r = ctx->Execute();
     if (r != asEXECUTION_FINISHED)
@@ -136,7 +94,6 @@ int main()
 
     // Clean up
     ctx->Release();
-    engine->ShutDownAndRelease();
 
     galileo::application_t app{galileo::enable_validation_layers};
     app.run();

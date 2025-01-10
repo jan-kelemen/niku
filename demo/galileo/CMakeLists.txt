@@ -51,13 +51,11 @@ target_link_libraries(galileo
         glm_impl
         ngngfx
         ngnphy
+        ngnscr
         ngnwsi
         vkglsl
         vkgltf
     PRIVATE
-        Angelscript::angelscript
-        Angelscript::scriptbuilder
-        Angelscript::scriptstdstring
         Boost::headers
         fmt::fmt
         imgui::imgui

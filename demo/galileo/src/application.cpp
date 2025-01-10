@@ -64,6 +64,7 @@ DISABLE_WARNING_POP
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -263,6 +264,22 @@ namespace
                     JPH::BodyID const sphere_id =
                         body_interface.CreateAndAddBody(sphere_settings,
                             JPH::EActivation::Activate);
+
+                    rv.emplace_back(root_index, sphere_id);
+                }
+                else if (root.name == "Spawn")
+                {
+                    JPH::BodyCreationSettings const sphere_settings{
+                        new JPH::BoxShapeSettings{
+                            {half_extents.x, half_extents.y, half_extents.z}},
+                        ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
+                        JPH::Quat::sIdentity(),
+                        JPH::EMotionType::Static,
+                        galileo::object_layers::non_moving};
+
+                    JPH::BodyID const sphere_id =
+                        body_interface.CreateAndAddBody(sphere_settings,
+                            JPH::EActivation::DontActivate);
 
                     rv.emplace_back(root_index, sphere_id);
                 }
