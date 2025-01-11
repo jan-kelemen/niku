@@ -194,114 +194,6 @@ namespace
         return {
             ngnphy::to_unindexed_triangles(primitive_vertices, to_jolt_tri)};
     }
-
-    [[nodiscard]] std::vector<std::pair<size_t, JPH::BodyID>> setup_world(
-        vkrndr::backend_t& backend,
-        galileo::materials_t& materials,
-        galileo::render_graph_t& graph,
-        JPH::BodyInterface& body_interface)
-    {
-        using namespace JPH::literals;
-
-        vkgltf::loader_t loader{backend};
-        auto model{loader.load(std::filesystem::absolute("world.glb"))};
-        if (!model)
-        {
-            std::terminate();
-        }
-        [[maybe_unused]] boost::scope::defer_guard const guard{
-            [d = &backend.device(), m = &model.value()]() { destroy(d, m); }};
-
-        spdlog::info("nodes: {} meshes: {}",
-            model->nodes.size(),
-            model->meshes.size());
-        graph.consume(*model);
-
-        make_node_matrices_absolute(*model);
-
-        std::vector<std::pair<size_t, JPH::BodyID>> rv;
-        for (vkgltf::scene_graph_t const& scene : model->scenes)
-        {
-            for (size_t const& root_index : scene.root_indices)
-            {
-                auto const& root{model->nodes[root_index]};
-                if (!root.aabb)
-                {
-                    std::terminate();
-                }
-
-                // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-                glm::vec3 const half_extents{
-                    (root.aabb->max - root.aabb->min) / 2.0f};
-
-                if (root.name == "Cube")
-                {
-                    JPH::MeshShapeSettings const floor_shape_settings{
-                        to_jolt_mesh_shape(backend.device(), *model, root)};
-                    floor_shape_settings.SetEmbedded();
-
-                    JPH::ShapeSettings::ShapeResult const floor_shape_result{
-                        floor_shape_settings.Create()};
-                    JPH::ShapeRefC const floor_shape{floor_shape_result.Get()};
-
-                    JPH::BodyCreationSettings const floor_settings{floor_shape,
-                        ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
-                        JPH::Quat::sIdentity(),
-                        JPH::EMotionType::Static,
-                        galileo::object_layers::non_moving};
-
-                    JPH::Body* const floor{
-                        body_interface.CreateBody(floor_settings)};
-
-                    body_interface.AddBody(floor->GetID(),
-                        JPH::EActivation::DontActivate);
-
-                    rv.emplace_back(root_index, floor->GetID());
-                }
-                else if (root.name.starts_with("Icosphere"))
-                {
-                    JPH::BodyCreationSettings const sphere_settings{
-                        new JPH::SphereShape{half_extents.x},
-                        ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
-                        JPH::Quat::sIdentity(),
-                        JPH::EMotionType::Dynamic,
-                        galileo::object_layers::moving};
-
-                    JPH::BodyID const sphere_id{
-                        body_interface.CreateAndAddBody(sphere_settings,
-                            JPH::EActivation::Activate)};
-
-                    rv.emplace_back(root_index, sphere_id);
-                }
-                else if (root.name == "Spawn")
-                {
-                    JPH::BodyCreationSettings const spawn_body_settings{
-                        new JPH::BoxShapeSettings{
-                            {half_extents.x, half_extents.y, half_extents.z}},
-                        ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
-                        JPH::Quat::sIdentity(),
-                        JPH::EMotionType::Static,
-                        galileo::object_layers::non_moving};
-
-                    JPH::BodyID const spawn_id{
-                        body_interface.CreateAndAddBody(spawn_body_settings,
-                            JPH::EActivation::DontActivate)};
-
-                    body_interface.SetUserData(spawn_id, 1);
-
-                    rv.emplace_back(root_index, spawn_id);
-                }
-                else if (root.name.starts_with("Character"))
-                {
-                    rv.emplace_back(root_index, JPH::BodyID::cInvalidBodyID);
-                }
-            }
-        }
-
-        materials.consume(*model);
-
-        return rv;
-    }
 } // namespace
 
 galileo::application_t::application_t(bool const debug)
@@ -315,6 +207,7 @@ galileo::application_t::application_t(bool const debug)
           .height = 512}}
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
+    , random_engine_{std::random_device{}()}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
@@ -577,10 +470,7 @@ void galileo::application_t::end_frame()
 
 void galileo::application_t::on_startup()
 {
-    bodies_ = setup_world(*backend_,
-        *materials_,
-        *render_graph_,
-        physics_engine_.body_interface());
+    setup_world();
 
     {
         auto const registered{scripting_engine_.engine().RegisterGlobalFunction(
@@ -661,4 +551,125 @@ void galileo::application_t::on_resize(uint32_t const width,
     postprocess_shader_->resize(width, height);
 }
 
-void galileo::application_t::spawn_sphere() { spdlog::error("hello world"); }
+void galileo::application_t::setup_world()
+{
+    using namespace JPH::literals;
+
+    vkgltf::loader_t loader{*backend_};
+    auto model{loader.load(std::filesystem::absolute("world.glb"))};
+    if (!model)
+    {
+        std::terminate();
+    }
+    [[maybe_unused]] boost::scope::defer_guard const guard{
+        [d = &backend_->device(), m = &model.value()]() { destroy(d, m); }};
+
+    spdlog::info("nodes: {} meshes: {}",
+        model->nodes.size(),
+        model->meshes.size());
+    render_graph_->consume(*model);
+
+    make_node_matrices_absolute(*model);
+
+    auto& body_interface{physics_engine_.body_interface()};
+
+    for (vkgltf::scene_graph_t const& scene : model->scenes)
+    {
+        for (size_t const& root_index : scene.root_indices)
+        {
+            auto const& root{model->nodes[root_index]};
+            if (!root.aabb)
+            {
+                std::terminate();
+            }
+
+            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+            glm::vec3 const half_extents{
+                (root.aabb->max - root.aabb->min) / 2.0f};
+
+            if (root.name == "Cube")
+            {
+                JPH::MeshShapeSettings const floor_shape_settings{
+                    to_jolt_mesh_shape(backend_->device(), *model, root)};
+                floor_shape_settings.SetEmbedded();
+
+                JPH::ShapeSettings::ShapeResult const floor_shape_result{
+                    floor_shape_settings.Create()};
+                JPH::ShapeRefC const floor_shape{floor_shape_result.Get()};
+
+                JPH::BodyCreationSettings const floor_settings{floor_shape,
+                    ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
+                    JPH::Quat::sIdentity(),
+                    JPH::EMotionType::Static,
+                    galileo::object_layers::non_moving};
+
+                JPH::Body* const floor{
+                    body_interface.CreateBody(floor_settings)};
+
+                body_interface.AddBody(floor->GetID(),
+                    JPH::EActivation::DontActivate);
+
+                bodies_.emplace_back(root_index, floor->GetID());
+            }
+            else if (root.name.starts_with("Icosphere"))
+            {
+                JPH::BodyCreationSettings const sphere_settings{
+                    new JPH::SphereShape{half_extents.x},
+                    ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
+                    JPH::Quat::sIdentity(),
+                    JPH::EMotionType::Dynamic,
+                    galileo::object_layers::moving};
+
+                JPH::BodyID const sphere_id{
+                    body_interface.CreateAndAddBody(sphere_settings,
+                        JPH::EActivation::Activate)};
+
+                sphere_idx_ = bodies_.size();
+                bodies_.emplace_back(root_index, sphere_id);
+            }
+            else if (root.name == "Spawn")
+            {
+                JPH::BodyCreationSettings const spawn_body_settings{
+                    new JPH::BoxShapeSettings{
+                        {half_extents.x, half_extents.y, half_extents.z}},
+                    ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
+                    JPH::Quat::sIdentity(),
+                    JPH::EMotionType::Static,
+                    galileo::object_layers::non_moving};
+
+                JPH::BodyID const spawn_id{
+                    body_interface.CreateAndAddBody(spawn_body_settings,
+                        JPH::EActivation::DontActivate)};
+
+                body_interface.SetUserData(spawn_id, 1);
+
+                bodies_.emplace_back(root_index, spawn_id);
+            }
+            else if (root.name.starts_with("Character"))
+            {
+                bodies_.emplace_back(root_index, JPH::BodyID::cInvalidBodyID);
+            }
+        }
+    }
+
+    materials_->consume(*model);
+}
+
+void galileo::application_t::spawn_sphere()
+{
+    auto& body_interface{physics_engine_.body_interface()};
+
+    std::uniform_real_distribution dist{-25.0f, 25.0f};
+
+    JPH::BodyCreationSettings const settings{
+        body_interface.GetShape(bodies_[sphere_idx_].second),
+        JPH::Vec3{dist(random_engine_), 10.0f, dist(random_engine_)},
+        JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic,
+        galileo::object_layers::moving};
+
+    JPH::BodyID const id{
+        body_interface.CreateAndAddBody(settings, JPH::EActivation::Activate)};
+
+    bodies_.emplace_back(bodies_[sphere_idx_].first, id);
+}

@@ -24,6 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -90,6 +91,8 @@ namespace galileo
         void on_resize(uint32_t width, uint32_t height) override;
 
     private:
+        void setup_world();
+
         void spawn_sphere();
 
     private:
@@ -102,10 +105,13 @@ namespace galileo
         camera_controller_t free_camera_controller_;
         follow_camera_controller_t follow_camera_controller_;
 
+        std::default_random_engine random_engine_;
+
         int light_count_{1};
 
         physics_engine_t physics_engine_;
         std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
+        size_t sphere_idx_{};
 
         ngnscr::scripting_engine_t scripting_engine_;
 

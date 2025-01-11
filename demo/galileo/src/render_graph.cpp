@@ -205,7 +205,7 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
         std::back_inserter(nodes_),
         to_render_node);
 
-    size_t const uniform_buffer_values{calculate_unique_draws(model)};
+    size_t const uniform_buffer_values{1000 + calculate_unique_draws(model)};
 
     uint32_t acc_instance{};
     for (auto& primitive : primitives_)
@@ -376,7 +376,7 @@ void galileo::render_graph_t::draw(VkCommandBuffer command_buffer)
 size_t galileo::render_graph_t::calculate_unique_draws(
     vkgltf::model_t const& model)
 {
-    auto traverse = [this](size_t const root,
+    auto traverse = [this, &model](size_t const root,
                         auto& traverse_ref) mutable -> size_t
     {
         auto const& node{nodes_[root]};
@@ -390,7 +390,14 @@ size_t galileo::render_graph_t::calculate_unique_draws(
                 std::views::take(mesh.count)};
             for (render_primitive_t& primitive : mesh_primitives)
             {
-                ++primitive.instance_count;
+                if (model.nodes[root].name.starts_with("Icosphere"))
+                {
+                    primitive.instance_count = 1000;
+                }
+                else
+                {
+                    ++primitive.instance_count;
+                }
             }
             rv += mesh.count;
         }
