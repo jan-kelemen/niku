@@ -16,7 +16,7 @@ namespace ngnscr
     class [[nodiscard]] script_compiler_t final
     {
     public:
-        script_compiler_t(scripting_engine_t& engine);
+        explicit script_compiler_t(scripting_engine_t& engine);
 
         script_compiler_t(script_compiler_t const&) = delete;
 

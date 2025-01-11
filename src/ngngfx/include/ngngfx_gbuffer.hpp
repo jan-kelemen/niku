@@ -5,7 +5,6 @@
 
 #include <volk.h>
 
-#include <cstdint>
 #include <span>
 #include <vector>
 
@@ -21,7 +20,7 @@ namespace ngngfx
         std::vector<vkrndr::image_t> images;
     };
 
-    gbuffer_t create_gbuffer(vkrndr::device_t& device,
+    gbuffer_t create_gbuffer(vkrndr::device_t const& device,
         VkExtent2D extent,
         VkSampleCountFlagBits samples,
         std::span<VkFormat const> const& formats,

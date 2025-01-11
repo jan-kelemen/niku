@@ -1,12 +1,15 @@
 #include <ngnscr_scripting_engine.hpp>
 
 #include <angelscript.h>
-
 #include <scriptstdstring/scriptstdstring.h>
 
 #include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <utility>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 
 namespace
 {

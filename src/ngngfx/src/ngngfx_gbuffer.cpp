@@ -1,9 +1,10 @@
 #include <ngngfx_gbuffer.hpp>
 
-#include <vkrndr_device.hpp>
-#include <vkrndr_utility.hpp>
+#include <vkrndr_image.hpp>
 
-ngngfx::gbuffer_t ngngfx::create_gbuffer(vkrndr::device_t& device,
+#include <utility>
+
+ngngfx::gbuffer_t ngngfx::create_gbuffer(vkrndr::device_t const& device,
     VkExtent2D const extent,
     VkSampleCountFlagBits samples,
     std::span<VkFormat const> const& formats,
@@ -15,6 +16,7 @@ ngngfx::gbuffer_t ngngfx::create_gbuffer(vkrndr::device_t& device,
     std::vector<vkrndr::image_t> images;
     images.reserve(formats.size());
 
+    // cppcheck-suppress-begin useStlAlgorithm
     for (auto const format : formats)
     {
         images.push_back(vkrndr::create_image_and_view(device,
@@ -27,6 +29,7 @@ ngngfx::gbuffer_t ngngfx::create_gbuffer(vkrndr::device_t& device,
             properties,
             aspect_flags));
     }
+    // cppcheck-suppress-end useStlAlgorithm
 
     return {std::move(images)};
 }

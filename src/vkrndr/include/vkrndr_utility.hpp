@@ -8,12 +8,8 @@
 #include <algorithm> // IWYU pragma: keep
 #include <cmath>
 #include <concepts>
-#include <cstddef>
 #include <cstdint>
-#include <optional>
-#include <ranges>
 #include <source_location>
-#include <span>
 
 namespace vkrndr
 {

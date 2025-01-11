@@ -4,9 +4,14 @@
 
 #include <scriptbuilder/scriptbuilder.h>
 
-#include <fmt/std.h> // IWYU: pragma keep
+#include <fmt/std.h> // IWYU pragma: keep
 
 #include <spdlog/spdlog.h>
+
+#include <string>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 
 ngnscr::script_compiler_t::script_compiler_t(scripting_engine_t& engine)
     : engine_{&engine}
