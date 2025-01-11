@@ -55,17 +55,9 @@ namespace
         albedo_binding.descriptorCount = 1;
         albedo_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        VkDescriptorSetLayoutBinding specular_binding{};
-        specular_binding.binding = 3;
-        specular_binding.descriptorType =
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        specular_binding.descriptorCount = 1;
-        specular_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
         std::array const bindings{position_binding,
             normal_binding,
-            albedo_binding,
-            specular_binding};
+            albedo_binding};
 
         return vkrndr::create_descriptor_set_layout(device, bindings);
     }
@@ -109,22 +101,9 @@ namespace
         albedo_write.descriptorCount = 1;
         albedo_write.pImageInfo = &ai;
 
-        auto si{vkrndr::combined_sampler_descriptor(sampler,
-            gbuffer.albedo_image())};
-        VkWriteDescriptorSet specular_write{};
-        specular_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        specular_write.dstSet = descriptor_set;
-        specular_write.dstBinding = 2;
-        specular_write.dstArrayElement = 0;
-        specular_write.descriptorType =
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        specular_write.descriptorCount = 1;
-        specular_write.pImageInfo = &si;
-
         std::array const descriptor_writes{position_write,
             normal_write,
-            albedo_write,
-            specular_write};
+            albedo_write};
 
         vkUpdateDescriptorSets(device.logical,
             vkrndr::count_cast(descriptor_writes.size()),
