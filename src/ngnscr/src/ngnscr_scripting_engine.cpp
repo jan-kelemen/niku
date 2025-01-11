@@ -46,9 +46,10 @@ namespace
 ngnscr::scripting_engine_t::scripting_engine_t()
     : engine_{asCreateScriptEngine()}
 {
-    int const r{engine_->SetMessageCallback(asFUNCTION(message_callback),
-        nullptr,
-        asCALL_CDECL)};
+    [[maybe_unused]] int const r{
+        engine_->SetMessageCallback(asFUNCTION(message_callback),
+            nullptr,
+            asCALL_CDECL)};
     assert(r >= 0);
 
     RegisterStdString(engine_);

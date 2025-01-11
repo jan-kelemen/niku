@@ -476,15 +476,16 @@ void galileo::application_t::on_startup()
     setup_world();
 
     {
-        auto const registered{scripting_engine_.engine().RegisterGlobalFunction(
-            "void spawn_sphere()",
-            asMETHOD(application_t, spawn_sphere),
-            asCALL_THISCALL_ASGLOBAL,
-            this)};
+        [[maybe_unused]] auto const registered{
+            scripting_engine_.engine().RegisterGlobalFunction(
+                "void spawn_sphere()",
+                asMETHOD(application_t, spawn_sphere),
+                asCALL_THISCALL_ASGLOBAL,
+                this)};
         assert(registered);
 
         ngnscr::script_compiler_t compiler{scripting_engine_};
-        bool script_compiled{compiler.new_module("MyModule")};
+        [[maybe_unused]] bool script_compiled{compiler.new_module("MyModule")};
         script_compiled &= compiler.add_section("spawner.as");
         script_compiled &= compiler.build();
         assert(script_compiled);
