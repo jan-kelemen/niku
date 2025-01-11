@@ -67,6 +67,32 @@ ngnscr::scripting_engine_t::~scripting_engine_t()
 
 asIScriptEngine& ngnscr::scripting_engine_t::engine() { return *engine_; }
 
+std::unique_ptr<asIScriptContext, void (*)(asIScriptContext*)>
+ngnscr::scripting_engine_t::execution_context(asIScriptFunction* const function)
+{
+    auto const deleter = [](asIScriptContext* const ctx)
+    {
+        if (ctx)
+        {
+            ctx->Release();
+        }
+    };
+
+    std::unique_ptr<asIScriptContext, void (*)(asIScriptContext*)> rv{
+        engine_->CreateContext(),
+        deleter};
+
+    if (auto const result{rv->Prepare(function)}; result < 0)
+    {
+        spdlog::error("Error {} preparing function {}",
+            result,
+            function ? function->GetName() : "NULL");
+        return {nullptr, deleter};
+    }
+
+    return rv;
+}
+
 ngnscr::scripting_engine_t& ngnscr::scripting_engine_t::operator=(
     scripting_engine_t&& other) noexcept
 {

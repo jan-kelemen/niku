@@ -1,7 +1,11 @@
 #ifndef NGNSCR_SCRIPTING_ENGINE_INCLUDED
 #define NGNSCR_SCRIPTING_ENGINE_INCLUDED
 
+#include <memory>
+
 class asIScriptEngine;
+class asIScriptContext;
+class asIScriptFunction;
 
 namespace ngnscr
 {
@@ -19,6 +23,10 @@ namespace ngnscr
 
     public:
         [[nodiscard]] asIScriptEngine& engine();
+
+        [[nodiscard]] std::unique_ptr<asIScriptContext,
+            void (*)(asIScriptContext*)>
+        execution_context(asIScriptFunction* function);
 
     public:
         scripting_engine_t& operator=(scripting_engine_t const&) = default;
