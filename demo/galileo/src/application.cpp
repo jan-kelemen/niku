@@ -23,6 +23,8 @@
 #include <ngnphy_jolt_adapter.hpp>
 #include <ngnphy_jolt_geometry.hpp>
 
+#include <ngnscr_script_compiler.hpp>
+
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_mouse.hpp>
@@ -40,6 +42,8 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
+
+#include <angelscript.h>
 
 #include <boost/scope/defer.hpp>
 
@@ -574,6 +578,54 @@ void galileo::application_t::on_startup()
         *render_graph_,
         physics_engine_.body_interface());
 
+    auto const registered{
+        scripting_engine_.engine().RegisterGlobalFunction("void spawn_sphere()",
+            asMETHOD(application_t, spawn_sphere),
+            asCALL_THISCALL_ASGLOBAL,
+            this)};
+    assert(registered);
+
+    {
+        ngnscr::script_compiler_t compiler{scripting_engine_};
+        bool script_compiled{compiler.new_module("MyModule")};
+        script_compiled &= compiler.add_section("test.as");
+        script_compiled &= compiler.build();
+        assert(script_compiled);
+
+        // Find the function that is to be called.
+        asIScriptModule* mod = scripting_engine_.engine().GetModule("MyModule");
+        asIScriptFunction* func = mod->GetFunctionByDecl("void main()");
+        if (!func)
+        {
+            // The function couldn't be found. Instruct the script writer
+            // to include the expected function in the script.
+            spdlog::error(
+                "The script must have the function 'void main()'. Please add it and try again.");
+            std::terminate();
+        }
+
+        auto context{scripting_engine_.execution_context(func)};
+        if (!context)
+        {
+            std::terminate();
+        }
+
+        if (auto const execution_result{context->Execute()};
+            execution_result != asEXECUTION_FINISHED)
+        {
+            // The execution didn't complete as expected. Determine what
+            // happened.
+            if (execution_result == asEXECUTION_EXCEPTION)
+            {
+                // An exception occurred, let the script writer know what
+                // happened so it can be corrected.
+                spdlog::error(
+                    "An exception '{}' occurred. Please correct the code and try again.",
+                    context->GetExceptionString());
+            }
+        }
+    }
+
     character_ = std::make_unique<character_t>(physics_engine_, mouse_);
     character_->set_position({5.0f, 5.0f, 5.0f});
 
@@ -632,3 +684,5 @@ void galileo::application_t::on_resize(uint32_t const width,
 
     postprocess_shader_->resize(width, height);
 }
+
+void galileo::application_t::spawn_sphere() { spdlog::error("hello world"); }

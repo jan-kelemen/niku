@@ -7,6 +7,8 @@
 
 #include <ngngfx_perspective_camera.hpp>
 
+#include <ngnscr_scripting_engine.hpp>
+
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
 
@@ -87,6 +89,9 @@ namespace galileo
         void on_resize(uint32_t width, uint32_t height) override;
 
     private:
+        void spawn_sphere();
+
+    private:
         vkglsl::guard_t glsl_guard_;
 
         ngnwsi::mouse_t mouse_;
@@ -100,6 +105,8 @@ namespace galileo
 
         physics_engine_t physics_engine_;
         std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
+
+        ngnscr::scripting_engine_t scripting_engine_;
 
         std::unique_ptr<character_t> character_;
 
