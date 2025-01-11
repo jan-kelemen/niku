@@ -123,6 +123,7 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
             .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
             .with_depth_test(depth_buffer_format)
+            .with_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
             .add_vertex_input(binding_description(), attribute_description())
             .build();
 
@@ -195,6 +196,8 @@ void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer,
             render_pass.begin(command_buffer, {{0, 0}, target_image.extent})};
 
         vkrndr::bind_pipeline(command_buffer, line_pipeline_);
+
+        vkCmdSetLineWidth(command_buffer, 3.0f);
 
         vkCmdDraw(command_buffer, frame_data_->vertex_count, 1, 0, 0);
     }
