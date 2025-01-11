@@ -68,7 +68,6 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
     ngnwsi::mouse_t& mouse)
     : physics_engine_{&physics_engine}
     , mouse_{&mouse}
-    , listener_{physics_engine}
 {
     JPH::RotatedTranslatedShapeSettings const shape_settings{
         JPH::Vec3{0.0f,
@@ -102,7 +101,6 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
         JPH::Quat::sIdentity(),
         0,
         &physics_engine.physics_system()};
-    physics_entity_->SetListener(&listener_);
 }
 
 void galileo::character_t::handle_event(SDL_Event const& event,
@@ -120,6 +118,12 @@ void galileo::character_t::handle_event(SDL_Event const& event,
 
         physics_entity_->SetRotation(ngnphy::to_jolt(new_rot));
     }
+}
+
+void galileo::character_t::set_contact_listener(
+    JPH::CharacterContactListener* const listener)
+{
+    physics_entity_->SetListener(listener);
 }
 
 void galileo::character_t::update(float const delta_time)
@@ -243,25 +247,4 @@ glm::quat galileo::character_t::rotation() const
 glm::mat4 galileo::character_t::world_transform() const
 {
     return ngnphy::to_glm(physics_entity_->GetWorldTransform());
-}
-
-galileo::character_t::contact_listener_t::contact_listener_t(
-    physics_engine_t& physics_engine)
-    : physics_engine_{&physics_engine}
-{
-}
-
-void galileo::character_t::contact_listener_t::OnContactAdded(
-    JPH::CharacterVirtual const* inCharacter,
-    JPH::BodyID const& inBodyID2,
-    [[maybe_unused]] JPH::SubShapeID const& inSubShapeID2,
-    JPH::RVec3Arg inContactPosition,
-    JPH::Vec3Arg inContactNormal,
-    [[maybe_unused]] JPH::CharacterContactSettings& ioSettings)
-{
-    auto& interface{physics_engine_->body_interface()};
-
-    interface.AddForce(inBodyID2,
-        inContactNormal * inCharacter->GetMass() * 100,
-        inContactPosition);
 }

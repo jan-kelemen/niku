@@ -5,6 +5,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/character.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/character_contact_listener.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/follow_camera_controller.hpp
@@ -20,6 +21,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/character.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/character_contact_listener.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/deferred_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/follow_camera_controller.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/frame_info.cpp

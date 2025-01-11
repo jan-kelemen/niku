@@ -2,6 +2,7 @@
 
 #include <camera_controller.hpp>
 #include <character.hpp>
+#include <character_contact_listener.hpp>
 #include <deferred_shader.hpp>
 #include <follow_camera_controller.hpp>
 #include <frame_info.hpp>
@@ -249,7 +250,8 @@ namespace
                         JPH::EMotionType::Static,
                         galileo::object_layers::non_moving};
 
-                    JPH::Body* floor{body_interface.CreateBody(floor_settings)};
+                    JPH::Body* const floor{
+                        body_interface.CreateBody(floor_settings)};
 
                     body_interface.AddBody(floor->GetID(),
                         JPH::EActivation::DontActivate);
@@ -265,15 +267,15 @@ namespace
                         JPH::EMotionType::Dynamic,
                         galileo::object_layers::moving};
 
-                    JPH::BodyID const sphere_id =
+                    JPH::BodyID const sphere_id{
                         body_interface.CreateAndAddBody(sphere_settings,
-                            JPH::EActivation::Activate);
+                            JPH::EActivation::Activate)};
 
                     rv.emplace_back(root_index, sphere_id);
                 }
                 else if (root.name == "Spawn")
                 {
-                    JPH::BodyCreationSettings const sphere_settings{
+                    JPH::BodyCreationSettings const spawn_body_settings{
                         new JPH::BoxShapeSettings{
                             {half_extents.x, half_extents.y, half_extents.z}},
                         ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
@@ -281,11 +283,13 @@ namespace
                         JPH::EMotionType::Static,
                         galileo::object_layers::non_moving};
 
-                    JPH::BodyID const sphere_id =
-                        body_interface.CreateAndAddBody(sphere_settings,
-                            JPH::EActivation::DontActivate);
+                    JPH::BodyID const spawn_id{
+                        body_interface.CreateAndAddBody(spawn_body_settings,
+                            JPH::EActivation::DontActivate)};
 
-                    rv.emplace_back(root_index, sphere_id);
+                    body_interface.SetUserData(spawn_id, 1);
+
+                    rv.emplace_back(root_index, spawn_id);
                 }
                 else if (root.name.starts_with("Character"))
                 {
@@ -578,56 +582,28 @@ void galileo::application_t::on_startup()
         *render_graph_,
         physics_engine_.body_interface());
 
-    auto const registered{
-        scripting_engine_.engine().RegisterGlobalFunction("void spawn_sphere()",
+    {
+        auto const registered{scripting_engine_.engine().RegisterGlobalFunction(
+            "void spawn_sphere()",
             asMETHOD(application_t, spawn_sphere),
             asCALL_THISCALL_ASGLOBAL,
             this)};
-    assert(registered);
+        assert(registered);
 
-    {
         ngnscr::script_compiler_t compiler{scripting_engine_};
         bool script_compiled{compiler.new_module("MyModule")};
         script_compiled &= compiler.add_section("test.as");
         script_compiled &= compiler.build();
         assert(script_compiled);
-
-        // Find the function that is to be called.
-        asIScriptModule* mod = scripting_engine_.engine().GetModule("MyModule");
-        asIScriptFunction* func = mod->GetFunctionByDecl("void main()");
-        if (!func)
-        {
-            // The function couldn't be found. Instruct the script writer
-            // to include the expected function in the script.
-            spdlog::error(
-                "The script must have the function 'void main()'. Please add it and try again.");
-            std::terminate();
-        }
-
-        auto context{scripting_engine_.execution_context(func)};
-        if (!context)
-        {
-            std::terminate();
-        }
-
-        if (auto const execution_result{context->Execute()};
-            execution_result != asEXECUTION_FINISHED)
-        {
-            // The execution didn't complete as expected. Determine what
-            // happened.
-            if (execution_result == asEXECUTION_EXCEPTION)
-            {
-                // An exception occurred, let the script writer know what
-                // happened so it can be corrected.
-                spdlog::error(
-                    "An exception '{}' occurred. Please correct the code and try again.",
-                    context->GetExceptionString());
-            }
-        }
     }
 
     character_ = std::make_unique<character_t>(physics_engine_, mouse_);
     character_->set_position({5.0f, 5.0f, 5.0f});
+
+    character_listener_ =
+        std::make_unique<character_contact_listener_t>(physics_engine_,
+            scripting_engine_);
+    character_->set_contact_listener(character_listener_.get());
 
     gbuffer_shader_ = std::make_unique<gbuffer_shader_t>(*backend_,
         frame_info_->descriptor_set_layout(),

@@ -40,6 +40,7 @@ namespace vkrndr
 namespace galileo
 {
     class character_t;
+    class character_contact_listener_t;
     class deferred_shader_t;
     class frame_info_t;
     class gbuffer_t;
@@ -109,6 +110,7 @@ namespace galileo
         ngnscr::scripting_engine_t scripting_engine_;
 
         std::unique_ptr<character_t> character_;
+        std::unique_ptr<character_contact_listener_t> character_listener_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;

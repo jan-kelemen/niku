@@ -36,6 +36,8 @@ namespace galileo
     public:
         void handle_event(SDL_Event const& event, float delta_time);
 
+        void set_contact_listener(JPH::CharacterContactListener* listener);
+
         void update(float delta_time);
 
         void debug(physics_debug_t* physics_debug);
@@ -49,40 +51,9 @@ namespace galileo
         [[nodiscard]] glm::mat4 world_transform() const;
 
     private:
-        class contact_listener_t final : public JPH::CharacterContactListener
-        {
-        public:
-            explicit contact_listener_t(physics_engine_t& physics_engine);
-
-            contact_listener_t(contact_listener_t const&) = default;
-
-            contact_listener_t(contact_listener_t&&) noexcept = default;
-
-        public:
-            ~contact_listener_t() override = default;
-
-        public:
-            contact_listener_t& operator=(contact_listener_t const&) = default;
-            contact_listener_t& operator=(
-                contact_listener_t&&) noexcept = default;
-
-        private:
-            void OnContactAdded(JPH::CharacterVirtual const* inCharacter,
-                JPH::BodyID const& inBodyID2,
-                JPH::SubShapeID const& inSubShapeID2,
-                JPH::RVec3Arg inContactPosition,
-                JPH::Vec3Arg inContactNormal,
-                JPH::CharacterContactSettings& ioSettings) override;
-
-        private:
-            physics_engine_t* physics_engine_;
-        };
-
-    private:
         physics_engine_t* physics_engine_;
         ngnwsi::mouse_t* mouse_;
 
-        contact_listener_t listener_;
         JPH::Ref<JPH::CharacterVirtual> physics_entity_;
     };
 } // namespace galileo
