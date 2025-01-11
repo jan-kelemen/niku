@@ -79,10 +79,10 @@ add_custom_target(galileo_assets
 
 add_custom_target(galileo_scripts
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test.as
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/spawner.as
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test.as
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/spawner.as
 )
 
 add_custom_target(galileo_shaders

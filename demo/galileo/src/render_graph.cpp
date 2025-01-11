@@ -29,8 +29,9 @@
 #include <cstdint>
 #include <span>
 
-// IWYU pragma: no_include <vector>
 // IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <string>
+// IWYU pragma: no_include <vector>
 
 namespace
 {

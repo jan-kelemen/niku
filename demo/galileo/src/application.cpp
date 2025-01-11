@@ -25,6 +25,7 @@
 #include <ngnphy_jolt_geometry.hpp>
 
 #include <ngnscr_script_compiler.hpp>
+#include <ngnscr_scripting_engine.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
@@ -59,11 +60,13 @@ DISABLE_WARNING_POP
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
+#include <Jolt/Core/Reference.h>
 #include <Jolt/Geometry/IndexedTriangle.h>
 #include <Jolt/Geometry/Triangle.h>
 #include <Jolt/Math/Float3.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
+#include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyID.h>
@@ -482,7 +485,7 @@ void galileo::application_t::on_startup()
 
         ngnscr::script_compiler_t compiler{scripting_engine_};
         bool script_compiled{compiler.new_module("MyModule")};
-        script_compiled &= compiler.add_section("test.as");
+        script_compiled &= compiler.add_section("spawner.as");
         script_compiled &= compiler.build();
         assert(script_compiled);
     }

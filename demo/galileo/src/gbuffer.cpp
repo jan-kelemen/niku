@@ -1,5 +1,7 @@
 #include <gbuffer.hpp>
 
+#include <ngngfx_gbuffer.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -7,6 +9,7 @@
 
 #include <array>
 #include <iterator>
+#include <vector>
 
 // IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <span>

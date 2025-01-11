@@ -3,8 +3,6 @@
 
 #include <ngngfx_gbuffer.hpp>
 
-#include <vkrndr_image.hpp>
-
 #include <volk.h>
 
 #include <cstdint>
@@ -12,6 +10,7 @@
 namespace vkrndr
 {
     class backend_t;
+    struct image_t;
 } // namespace vkrndr
 
 namespace galileo

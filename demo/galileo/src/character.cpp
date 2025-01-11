@@ -23,7 +23,6 @@
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
-#include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Character/CharacterBase.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/BackFaceMode.h>

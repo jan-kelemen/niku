@@ -12,11 +12,8 @@
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/Memory.h>
 #include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
-#include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
-#include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -210,61 +207,6 @@ class [[nodiscard]] object_vs_broad_phase_layer_filter final
     }
 };
 
-class [[nodiscard]] contact_listener final : public JPH::ContactListener
-{
-    JPH::ValidateResult OnContactValidate(
-        [[maybe_unused]] JPH::Body const& first,
-        [[maybe_unused]] JPH::Body const& second,
-        [[maybe_unused]] JPH::RVec3Arg base_offset,
-        [[maybe_unused]] JPH::CollideShapeResult const& collision_result)
-        override
-    {
-        spdlog::info("Contact validate callback");
-
-        // Allows you to ignore a contact before it is created (using layers to
-        // not make objects collide is cheaper!)
-        return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
-    }
-
-    void OnContactAdded([[maybe_unused]] JPH::Body const& first,
-        [[maybe_unused]] JPH::Body const& second,
-        [[maybe_unused]] JPH::ContactManifold const& manifold,
-        [[maybe_unused]] JPH::ContactSettings& settings) override
-    {
-        spdlog::info("A contact was added");
-    }
-
-    void OnContactPersisted([[maybe_unused]] JPH::Body const& first,
-        [[maybe_unused]] JPH::Body const& second,
-        [[maybe_unused]] JPH::ContactManifold const& manifold,
-        [[maybe_unused]] JPH::ContactSettings& settings) override
-    {
-        spdlog::info("A contact was persisted");
-    }
-
-    void OnContactRemoved(
-        [[maybe_unused]] JPH::SubShapeIDPair const& subshape_id_pair) override
-    {
-        spdlog::info("A contact was removed");
-    }
-};
-
-class [[nodiscard]] body_activation_listener final
-    : public JPH::BodyActivationListener
-{
-    void OnBodyActivated([[maybe_unused]] JPH::BodyID const& body,
-        [[maybe_unused]] JPH::uint64 body_user_data) override
-    {
-        spdlog::info("A body got activated");
-    }
-
-    void OnBodyDeactivated([[maybe_unused]] JPH::BodyID const& body,
-        [[maybe_unused]] JPH::uint64 body_user_data) override
-    {
-        spdlog::info("A body went to sleep");
-    }
-};
-
 struct [[nodiscard]] galileo::physics_engine_t::impl final
 {
 public:
@@ -293,8 +235,6 @@ public:
     broad_phase_layer broad_phase_layer_;
     object_vs_broad_phase_layer_filter object_vs_broad_phase_layer_filter_;
     object_layer_pair_filter object_vs_object_layer_filter_;
-    body_activation_listener body_activation_listener_;
-    contact_listener contact_listener_;
     std::unique_ptr<JPH::PhysicsSystem> physics_system_;
 };
 
@@ -333,8 +273,6 @@ galileo::physics_engine_t::impl::impl()
         broad_phase_layer_,
         object_vs_broad_phase_layer_filter_,
         object_vs_object_layer_filter_);
-    physics_system_->SetBodyActivationListener(&body_activation_listener_);
-    physics_system_->SetContactListener(&contact_listener_);
     physics_system_->SetGravity(JPH::Vec3{0.0f, -9.81f, 0.0f});
 }
 

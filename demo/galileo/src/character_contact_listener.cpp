@@ -8,9 +8,17 @@
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
+#include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 
 #include <spdlog/spdlog.h>
+
+#include <exception>
+#include <memory>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <compare>
 
 galileo::character_contact_listener_t::character_contact_listener_t(
     physics_engine_t& physics_engine,
