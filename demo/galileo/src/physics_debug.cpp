@@ -12,10 +12,8 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
-#include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -161,9 +159,7 @@ void galileo::physics_debug_t::set_camera(ngngfx::camera_t const& camera)
     camera_ = &camera;
 }
 
-void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer,
-    vkrndr::image_t const& target_image,
-    vkrndr::image_t const& depth_buffer)
+void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer)
 {
     [[maybe_unused]] boost::scope::defer_guard const on_exit{[this]()
         {
@@ -183,24 +179,11 @@ void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer,
         &frame_data_->vertex_buffer.buffer,
         &zero_offset);
 
-    vkrndr::render_pass_t render_pass;
-    render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        target_image.view);
-    render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-        VK_ATTACHMENT_STORE_OP_NONE,
-        depth_buffer.view);
+    vkrndr::bind_pipeline(command_buffer, line_pipeline_);
 
-    {
-        [[maybe_unused]] auto const guard{
-            render_pass.begin(command_buffer, {{0, 0}, target_image.extent})};
+    vkCmdSetLineWidth(command_buffer, 3.0f);
 
-        vkrndr::bind_pipeline(command_buffer, line_pipeline_);
-
-        vkCmdSetLineWidth(command_buffer, 3.0f);
-
-        vkCmdDraw(command_buffer, frame_data_->vertex_count, 1, 0, 0);
-    }
+    vkCmdDraw(command_buffer, frame_data_->vertex_count, 1, 0, 0);
 }
 
 void galileo::physics_debug_t::DrawLine(JPH::RVec3Arg const inFrom,

@@ -11,9 +11,7 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
-#include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -216,8 +214,7 @@ VkPipelineLayout galileo::deferred_shader_t::pipeline_layout() const
 }
 
 void galileo::deferred_shader_t::draw(VkCommandBuffer command_buffer,
-    gbuffer_t& gbuffer,
-    vkrndr::image_t& target_image)
+    gbuffer_t& gbuffer)
 {
     frame_data_.cycle();
 
@@ -234,14 +231,6 @@ void galileo::deferred_shader_t::draw(VkCommandBuffer command_buffer,
         &frame_data_->descriptor_set,
         0,
         nullptr);
-
-    vkrndr::render_pass_t color_pass;
-    color_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        target_image.view);
-
-    [[maybe_unused]] auto const guard{
-        color_pass.begin(command_buffer, {{0, 0}, target_image.extent})};
 
     vkrndr::bind_pipeline(command_buffer, pipeline_);
 

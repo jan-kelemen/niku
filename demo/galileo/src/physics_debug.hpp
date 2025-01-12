@@ -33,7 +33,6 @@ namespace ngngfx
 namespace vkrndr
 {
     class backend_t;
-    struct image_t;
 } // namespace vkrndr
 
 namespace galileo
@@ -57,9 +56,7 @@ namespace galileo
 
         void set_camera(ngngfx::camera_t const& camera);
 
-        void draw(VkCommandBuffer command_buffer,
-            vkrndr::image_t const& target_image,
-            vkrndr::image_t const& depth_buffer);
+        void draw(VkCommandBuffer command_buffer);
 
     public:
         physics_debug_t& operator=(physics_debug_t const&) = delete;

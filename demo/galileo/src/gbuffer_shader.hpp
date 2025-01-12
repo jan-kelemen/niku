@@ -8,12 +8,10 @@
 namespace vkrndr
 {
     class backend_t;
-    struct image_t;
 } // namespace vkrndr
 
 namespace galileo
 {
-    class gbuffer_t;
     class render_graph_t;
 } // namespace galileo
 
@@ -38,10 +36,7 @@ namespace galileo
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
-        void draw(render_graph_t& graph,
-            VkCommandBuffer command_buffer,
-            gbuffer_t& gbuffer,
-            vkrndr::image_t const& depth_buffer) const;
+        void draw(render_graph_t& graph, VkCommandBuffer command_buffer) const;
 
     public:
         gbuffer_shader_t& operator=(gbuffer_shader_t const&) = delete;

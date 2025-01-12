@@ -42,6 +42,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
 
@@ -88,6 +89,7 @@ DISABLE_WARNING_POP
 #include <volk.h>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -357,7 +359,6 @@ void galileo::application_t::draw()
     VkRect2D const scissor{{0, 0}, target_image.extent};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    if (VkPipelineLayout const layout{gbuffer_shader_->pipeline_layout()})
     {
         gbuffer_->transition(command_buffer,
             VK_IMAGE_LAYOUT_UNDEFINED,
@@ -367,27 +368,45 @@ void galileo::application_t::draw()
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
 
-        frame_info_->bind_on(command_buffer,
-            layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
+        vkrndr::render_pass_t geometry_pass;
+        geometry_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            gbuffer_->position_image().view,
+            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+        geometry_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            gbuffer_->normal_image().view,
+            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+        geometry_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            gbuffer_->albedo_image().view,
+            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+        geometry_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            depth_buffer_.view,
+            VkClearValue{.depthStencil = {1.0f, 0}});
 
-        materials_->bind_on(command_buffer,
-            layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
+        [[maybe_unused]] auto const guard{
+            geometry_pass.begin(command_buffer, {{0, 0}, gbuffer_->extent()})};
 
-        render_graph_->bind_on(command_buffer,
-            layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
+        if (VkPipelineLayout const layout{gbuffer_shader_->pipeline_layout()})
+        {
+            frame_info_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        gbuffer_shader_->draw(*render_graph_,
-            command_buffer,
-            *gbuffer_,
-            depth_buffer_);
+            materials_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            render_graph_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            gbuffer_shader_->draw(*render_graph_, command_buffer);
+        }
     }
 
-    vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
-
-    if (VkPipelineLayout const layout{deferred_shader_->pipeline_layout()})
     {
         gbuffer_->transition(command_buffer,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -397,52 +416,80 @@ void galileo::application_t::draw()
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
 
-        frame_info_->bind_on(command_buffer,
-            layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
+        vkrndr::wait_for_color_attachment_write(color_image_.image,
+            command_buffer);
 
-        deferred_shader_->draw(command_buffer, *gbuffer_, color_image_);
+        vkrndr::render_pass_t lighting_pass;
+        lighting_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            color_image_.view);
 
+        [[maybe_unused]] auto const guard{
+            lighting_pass.begin(command_buffer, {{0, 0}, color_image_.extent})};
+
+        if (VkPipelineLayout const layout{deferred_shader_->pipeline_layout()})
+        {
+            frame_info_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            deferred_shader_->draw(command_buffer, *gbuffer_);
+        }
+    }
+
+    {
         auto const barrier{vkrndr::with_access(
             vkrndr::on_stage(vkrndr::image_barrier(color_image_),
                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)};
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+
+        vkrndr::render_pass_t physics_debug_pass;
+        physics_debug_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            color_image_.view);
+        physics_debug_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+            VK_ATTACHMENT_STORE_OP_NONE,
+            depth_buffer_.view);
+
+        [[maybe_unused]] auto const guard{
+            physics_debug_pass.begin(command_buffer,
+                {{0, 0}, target_image.extent})};
+
+        if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
+        {
+            frame_info_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            physics_debug_->draw(command_buffer);
+        }
     }
 
-    if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
     {
-        frame_info_->bind_on(command_buffer,
-            layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
-        physics_debug_->draw(command_buffer, color_image_, depth_buffer_);
+        std::array const barriers{
+            vkrndr::with_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(color_image_),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
+            vkrndr::to_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+                    VK_ACCESS_2_NONE,
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+                VK_IMAGE_LAYOUT_GENERAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, barriers);
 
-        auto const barrier{vkrndr::with_layout(
-            vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(color_image_),
-                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+        postprocess_shader_->draw(command_buffer, color_image_, target_image);
     }
-
-    {
-        auto const barrier{vkrndr::to_layout(
-            vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(target_image),
-                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
-                VK_ACCESS_2_NONE,
-                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
-            VK_IMAGE_LAYOUT_GENERAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-    }
-
-    postprocess_shader_->draw(command_buffer, color_image_, target_image);
 
     {
         auto const barrier{vkrndr::with_layout(
@@ -455,9 +502,9 @@ void galileo::application_t::draw()
             VK_IMAGE_LAYOUT_GENERAL,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-    }
 
-    imgui_->render(command_buffer, target_image);
+        imgui_->render(command_buffer, target_image);
+    }
 
     vkrndr::transition_to_present_layout(target_image.image, command_buffer);
 

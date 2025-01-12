@@ -7,9 +7,7 @@
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
-#include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -81,31 +79,8 @@ VkPipelineLayout galileo::gbuffer_shader_t::pipeline_layout() const
 }
 
 void galileo::gbuffer_shader_t::draw(render_graph_t& graph,
-    VkCommandBuffer command_buffer,
-    gbuffer_t& gbuffer,
-    vkrndr::image_t const& depth_buffer) const
+    VkCommandBuffer command_buffer) const
 {
-    vkrndr::render_pass_t color_pass;
-    color_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        gbuffer.position_image().view,
-        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
-    color_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        gbuffer.normal_image().view,
-        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
-    color_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        gbuffer.albedo_image().view,
-        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
-    color_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        depth_buffer.view,
-        VkClearValue{.depthStencil = {1.0f, 0}});
-
-    [[maybe_unused]] auto const guard{
-        color_pass.begin(command_buffer, {{0, 0}, gbuffer.extent()})};
-
     vkrndr::bind_pipeline(command_buffer, pipeline_);
 
     graph.draw(command_buffer);
