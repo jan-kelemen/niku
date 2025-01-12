@@ -6,10 +6,12 @@ Cross platform game engine implemented in C++23 with support for Windows and Lin
 * Vulkan 1.3 rendering backend
 * Support for runtime shader compilation and reflection with glslang and SPIRV-Cross
 * Support for loading glTF files
+* Support for 3D physics simulation with Jolt library
+* Support for scripting with AngelScript language
 
 ## Demo applications
-* [galileo](https://github.com/jan-kelemen/niku/tree/master/demo/galileo) - Deferred 3D renderer with physics and scripting support 
-* [gltfviewer](https://github.com/jan-kelemen/niku/tree/master/demo/gltfviewer) - 3D renderer for glTF files implementing a Physically Based Rendering workflow
+* [galileo](https://github.com/jan-kelemen/niku/tree/master/demo/galileo) - Deferred 3D renderer with physics and scripting
+* [gltfviewer](https://github.com/jan-kelemen/niku/tree/master/demo/gltfviewer) - Forward 3D renderer for glTF files implementing a Physically Based Rendering workflow
 
 ## Building
 Necessary build tools are:
