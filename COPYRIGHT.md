@@ -64,6 +64,29 @@ All files under `vendor/angelscript_impl/include` and `vendor/angelscript_impl/s
 
 ---
 
+All files under `vendor/mikktspace_impl/include` and `vendor/mikktspace_impl/src` are licensed under `Zlib` license:
+<details>
+Copyright (C) 2011 by Morten S. Mikkelsen
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+</details>
+
+---
+
 `demo/gltfviewer/assets/aviation_museum_4k.hdr` is licensed under `CC0-1.0` license:
 
 https://creativecommons.org/publicdomain/zero/1.0/

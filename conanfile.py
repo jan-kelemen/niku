@@ -21,7 +21,6 @@ class NikuConan(ConanFile):
         self.requires("glslang/1.3.296.0")
         self.requires("imgui/1.91.6-docking")
         self.requires("joltphysics/5.2.0")
-        self.requires("mikktspace/cci.20200325")
         self.requires("meshoptimizer/0.22")
         self.requires("perlinnoise/3.0.0")
         self.requires("sdl/2.30.11")

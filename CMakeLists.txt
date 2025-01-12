@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.27)
 
 cmake_policy(SET CMP0083 NEW)
 
-project(niku VERSION 0.1 LANGUAGES CXX)
+project(niku VERSION 0.1 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -22,7 +22,6 @@ find_package(Jolt REQUIRED)
 find_package(glm REQUIRED)
 find_package(glslang REQUIRED)
 find_package(fastgltf REQUIRED)
-find_package(mikktspace REQUIRED)
 find_package(meshoptimizer REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(spdlog REQUIRED)

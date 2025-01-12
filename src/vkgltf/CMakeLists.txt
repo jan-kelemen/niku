@@ -26,13 +26,13 @@ target_link_libraries(vkgltf
         glm_impl
     PRIVATE
         cppext
+        mikktspace_impl
         stb_impl
     PRIVATE
         Boost::headers
         fastgltf::fastgltf
         fmt::fmt
         meshoptimizer::meshoptimizer
-        mikktspace::mikktspace 
         spdlog::spdlog
     PRIVATE
         project-options

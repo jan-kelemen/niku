@@ -1,5 +1,6 @@
 add_subdirectory(angelscript_impl)
 add_subdirectory(glm_impl)
 add_subdirectory(imgui_impl)
+add_subdirectory(mikktspace_impl)
 add_subdirectory(stb_impl)
 add_subdirectory(vma_impl)
