@@ -30,8 +30,6 @@ namespace galileo
 {
     struct [[nodiscard]] render_primitive_t final
     {
-        uint32_t current_instance;
-        uint32_t first_instance;
         uint32_t instance_count;
 
         VkPrimitiveTopology topology;
@@ -100,10 +98,15 @@ namespace galileo
     private:
         struct [[nodiscard]] frame_data_t final
         {
+            vkrndr::buffer_t instance_vertex_buffer;
+            vkrndr::mapped_memory_t instance_map;
+
             vkrndr::buffer_t uniform;
             vkrndr::mapped_memory_t uniform_map;
 
             VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
+
+            uint32_t current_draw{};
         };
 
     private:

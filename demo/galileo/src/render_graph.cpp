@@ -1,7 +1,3 @@
-#include <algorithm>
-#include <iterator>
-#include <numeric>
-#include <ranges>
 #include <render_graph.hpp>
 
 #include <cppext_container.hpp>
@@ -24,9 +20,13 @@
 
 #include <volk.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <iterator>
+#include <ranges>
 #include <span>
 
 // IWYU pragma: no_include <optional>
@@ -35,6 +35,8 @@
 
 namespace
 {
+    constexpr size_t max_instance_count{1000};
+
     struct [[nodiscard]] graph_vertex_t final
     {
         glm::vec3 position;
@@ -43,6 +45,12 @@ namespace
         char padding2;
         glm::vec4 color;
         glm::vec2 uv;
+    };
+
+    struct [[nodiscard]] graph_instance_vertex_t final
+    {
+        uint32_t primitive;
+        uint32_t index;
     };
 
     struct [[nodiscard]] gpu_render_node_t final
@@ -92,9 +100,7 @@ namespace
     galileo::render_primitive_t to_render_primitive(
         vkgltf::primitive_t const& p)
     {
-        return {.current_instance = 0,
-            .first_instance = 0,
-            .instance_count = 0,
+        return {.instance_count = 0,
             .topology = p.topology,
             .count = p.count,
             .first = p.first,
@@ -118,6 +124,9 @@ galileo::render_graph_t::binding_description()
         VkVertexInputBindingDescription{.binding = 0,
             .stride = sizeof(graph_vertex_t),
             .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+        VkVertexInputBindingDescription{.binding = 1,
+            .stride = sizeof(graph_instance_vertex_t),
+            .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE},
     };
 
     return descriptions;
@@ -143,6 +152,10 @@ galileo::render_graph_t::attribute_description()
             .binding = 0,
             .format = VK_FORMAT_R32G32_SFLOAT,
             .offset = offsetof(graph_vertex_t, uv)},
+        VkVertexInputAttributeDescription{.location = 4,
+            .binding = 1,
+            .format = VK_FORMAT_R32_UINT,
+            .offset = offsetof(graph_instance_vertex_t, index)},
     };
 
     return descriptions;
@@ -155,10 +168,33 @@ galileo::render_graph_t::render_graph_t(vkrndr::backend_t& backend)
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
+        data.instance_vertex_buffer = vkrndr::create_buffer(backend_->device(),
+            sizeof(graph_instance_vertex_t) * max_instance_count,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        data.instance_map =
+            vkrndr::map_memory(backend_->device(), data.instance_vertex_buffer);
+
+        data.uniform = vkrndr::create_buffer(backend_->device(),
+            sizeof(gpu_render_node_t) * max_instance_count,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);
+
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
             cppext::as_span(descriptor_set_layout_),
             cppext::as_span(data.descriptor_set));
+
+        update_descriptor_set(backend_->device(),
+            data.descriptor_set,
+            vkrndr::buffer_descriptor(data.uniform));
     }
 }
 
@@ -173,6 +209,10 @@ galileo::render_graph_t::~render_graph_t()
         vkrndr::unmap_memory(backend_->device(), &data.uniform_map);
 
         vkrndr::destroy(&backend_->device(), &data.uniform);
+
+        vkrndr::unmap_memory(backend_->device(), &data.instance_map);
+
+        vkrndr::destroy(&backend_->device(), &data.instance_vertex_buffer);
     }
 
     destroy(&backend_->device(), &index_buffer_);
@@ -205,15 +245,6 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
     std::ranges::transform(model.nodes,
         std::back_inserter(nodes_),
         to_render_node);
-
-    size_t const uniform_buffer_values{1000 + calculate_unique_draws(model)};
-
-    uint32_t acc_instance{};
-    for (auto& primitive : primitives_)
-    {
-        primitive.first_instance = acc_instance;
-        acc_instance += primitive.instance_count;
-    }
 
     destroy(&backend_->device(), &vertex_buffer_);
     vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
@@ -253,67 +284,50 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     backend_->transfer_buffer(model.index_buffer, index_buffer_);
-
-    for (auto& data : cppext::as_span(frame_data_))
-    {
-        if (data.uniform_map.mapped_memory)
-        {
-            vkrndr::unmap_memory(backend_->device(), &data.uniform_map);
-
-            vkrndr::destroy(&backend_->device(), &data.uniform);
-        }
-
-        data.uniform = vkrndr::create_buffer(backend_->device(),
-            sizeof(gpu_render_node_t) * uniform_buffer_values,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);
-
-        auto* gpu_node{data.uniform_map.as<gpu_render_node_t>()};
-        for (auto const& primitive : primitives_)
-        {
-            for (size_t i{}; i != primitive.instance_count; ++i, ++gpu_node)
-            {
-                gpu_node->material =
-                    cppext::narrow<uint32_t>(primitive.material_index);
-            }
-        }
-
-        update_descriptor_set(backend_->device(),
-            data.descriptor_set,
-            vkrndr::buffer_descriptor(data.uniform));
-    }
 }
 
-void galileo::render_graph_t::begin_frame() { frame_data_.cycle(); }
+void galileo::render_graph_t::begin_frame()
+{
+    frame_data_.cycle(
+        [](frame_data_t const&, frame_data_t& next) { next.current_draw = 0; });
+
+    std::ranges::for_each(primitives_,
+        [](render_primitive_t& p) { p.instance_count = 0; });
+}
 
 void galileo::render_graph_t::update(size_t const index,
     glm::mat4 const& position)
 {
-    auto* const gpu{frame_data_->uniform_map.as<gpu_render_node_t>()};
+    auto* const gpu_instance{
+        frame_data_->instance_map.as<graph_instance_vertex_t>()};
+
+    auto* const gpu_uniform{frame_data_->uniform_map.as<gpu_render_node_t>()};
 
     auto const& node{nodes_[index]};
-
-    glm::mat4 const new_position{position * node.matrix};
 
     if (node.mesh_index)
     {
         auto const& mesh{meshes_[*node.mesh_index]};
 
-        auto mesh_primitives{primitives_ |
-            std::views::drop(mesh.first_primitive) |
-            std::views::take(mesh.count)};
-        for (render_primitive_t& primitive : mesh_primitives)
+        auto const last{mesh.first_primitive + mesh.count};
+        for (auto i{mesh.first_primitive}; i != last; ++i)
         {
-            gpu[primitive.first_instance + primitive.current_instance]
-                .position = position;
-            ++primitive.current_instance;
+            auto& primitive{primitives_[i]};
+
+            gpu_instance[frame_data_->current_draw] = {
+                .primitive = cppext::narrow<uint32_t>(i),
+                .index = frame_data_->current_draw};
+
+            gpu_uniform[frame_data_->current_draw].material =
+                cppext::narrow<uint32_t>(primitive.material_index);
+            gpu_uniform[frame_data_->current_draw].position = position;
+
+            ++primitive.instance_count;
+            ++frame_data_->current_draw;
         }
     }
 
+    glm::mat4 const new_position{position * node.matrix};
     for (auto const child : node.child_indices)
     {
         update(child, new_position);
@@ -333,12 +347,15 @@ void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,
         0,
         nullptr);
 
-    VkDeviceSize const zero_offset{};
+    std::array<VkBuffer, 2> const vertex_buffers{vertex_buffer_.buffer,
+        frame_data_->instance_vertex_buffer.buffer};
+    std::array<VkDeviceSize, 2> const vertex_offsets{0, 0};
+
     vkCmdBindVertexBuffers(command_buffer,
         0,
-        1,
-        &vertex_buffer_.buffer,
-        &zero_offset);
+        2,
+        vertex_buffers.data(),
+        vertex_offsets.data());
 
     vkCmdBindIndexBuffer(command_buffer,
         index_buffer_.buffer,
@@ -348,80 +365,38 @@ void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,
 
 void galileo::render_graph_t::draw(VkCommandBuffer command_buffer)
 {
-    uint32_t instance{};
-    for (auto& primitive : primitives_)
+    auto* const instances{
+        frame_data_->instance_map.as<graph_instance_vertex_t>()};
+
+    std::span const instance_range{instances,
+        instances + frame_data_->current_draw};
+    std::ranges::sort(instance_range,
+        std::less{},
+        &graph_instance_vertex_t::primitive);
+
+    uint32_t current_instance{};
+    for (auto& primitive : primitives_ |
+            std::views::filter(
+                [](auto const& p) { return p.instance_count > 0; }))
     {
         if (primitive.is_indexed)
         {
             vkCmdDrawIndexed(command_buffer,
                 primitive.count,
-                primitive.current_instance,
+                primitive.instance_count,
                 primitive.first,
                 primitive.vertex_offset,
-                instance);
+                current_instance);
         }
         else
         {
             vkCmdDraw(command_buffer,
                 primitive.count,
-                primitive.current_instance,
+                primitive.instance_count,
                 primitive.first,
-                instance);
+                current_instance);
         }
 
-        primitive.current_instance = 0;
-        instance += primitive.instance_count;
+        current_instance += primitive.instance_count;
     }
-}
-
-size_t galileo::render_graph_t::calculate_unique_draws(
-    vkgltf::model_t const& model)
-{
-    auto traverse = [this, &model](size_t const root,
-                        auto& traverse_ref) mutable -> size_t
-    {
-        auto const& node{nodes_[root]};
-
-        size_t rv{};
-        if (node.mesh_index)
-        {
-            auto const& mesh{meshes_[*node.mesh_index]};
-            auto mesh_primitives{primitives_ |
-                std::views::drop(mesh.first_primitive) |
-                std::views::take(mesh.count)};
-            for (render_primitive_t& primitive : mesh_primitives)
-            {
-                if (model.nodes[root].name.starts_with("Icosphere"))
-                {
-                    primitive.instance_count = 1000;
-                }
-                else
-                {
-                    ++primitive.instance_count;
-                }
-            }
-            rv += mesh.count;
-        }
-
-        auto const& children{node.child_indices};
-        return std::accumulate(children.begin(),
-            children.end(),
-            rv,
-            [&traverse_ref](auto acc, size_t const child)
-            { return acc + traverse_ref(child, traverse_ref); });
-    };
-
-    size_t rv{};
-    // cppcheck-suppress-begin useStlAlgorithm
-    for (vkgltf::scene_graph_t const& scene : model.scenes)
-    {
-        for (auto const root : scene.root_indices)
-        {
-            nodes_[root].matrix = glm::mat4{1.0f};
-            rv += traverse(root, traverse);
-        }
-    }
-    // cppcheck-suppress-end useStlAlgorithm
-
-    return rv;
 }

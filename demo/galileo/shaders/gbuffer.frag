@@ -12,7 +12,7 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec4 inColor;
 layout(location = 3) in vec2 inUV;
-layout(location = 4) flat in int inInstance;
+layout(location = 4) flat in uint inInstance;
 
 layout(location = 0) out vec3 outPosition;
 layout(location = 1) out vec3 outNormal;
@@ -33,8 +33,8 @@ vec4 baseColor(Material m)
 }
 
 void main() {
-    const uint material_idx = graph.nodes[nonuniformEXT(inInstance)].material;
-    const Material m = materials.v[nonuniformEXT(material_idx)];
+    const uint material_idx = graph.nodes[inInstance].material;
+    const Material m = materials.v[material_idx];
 
     vec4 albedo = baseColor(m);
     if (m.alphaCutoff.x != 0.0 && albedo.a < m.alphaCutoff.x)
