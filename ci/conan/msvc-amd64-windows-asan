@@ -3,5 +3,5 @@ include(../../conan/opt/msvc-amd64-windows-address-sanitizer)
 include(../../conan/dependencies)
 
 [settings]
-build_type=Release
+build_type=RelWithDebInfo
 

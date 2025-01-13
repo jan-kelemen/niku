@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  clang-tidy:
+  tidy-iwyu:
     runs-on: ubuntu-24.04
     
     env:
@@ -29,41 +29,6 @@ jobs:
         with:
           version: ${{ env.CLANG_VER }}
           clang-tidy: true
-
-      - name: Install APT packages
-        uses: ./.github/actions/install-apt-packages
-
-      - name: Setup Conan
-        id: setup-conan
-        uses: ./.github/actions/setup-conan
-        with:
-          profile: clang-libstdcxx-amd64-linux-static-analysis
-
-      - name: Configure CMake
-        run: |
-          cmake -DNIKU_ENABLE_CLANG_TIDY=ON --preset debug
-
-      - name: Build
-        run: |
-          cmake --build --preset=debug
-
-  iwyu:
-    runs-on: ubuntu-24.04
-    
-    env:
-      GCC_VER: 14
-      CLANG_VER: 19
-      
-    steps:
-      - name: Checkout repository from github
-        uses: actions/checkout@v4
-
-      - name: Install gcc-${{ env.GCC_VER }}
-        uses: ./.github/actions/install-gcc
-
-      - name: Install clang-${{ env.CLANG_VER }}
-        uses: ./.github/actions/install-clang 
-        with:
           dev: true
 
       - name: Install APT packages
@@ -80,43 +45,13 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DNIKU_ENABLE_IWYU=ON --preset debug
+          cmake -DNIKU_ENABLE_CLANG_TIDY=ON -DNIKU_ENABLE_IWYU=ON --preset release
 
       - name: Build
         run: |
-          cmake --build --preset=debug
+          cmake --build --preset release
 
-  gcc-analyzer:
-    runs-on: ubuntu-24.04
-    
-    env:
-      GCC_VER: 14
-        
-    steps:
-      - name: Checkout repository from github
-        uses: actions/checkout@v4
-
-      - name: Install gcc-${{ env.GCC_VER }}
-        uses: ./.github/actions/install-gcc
-
-      - name: Install APT packages
-        uses: ./.github/actions/install-apt-packages
-
-      - name: Setup Conan
-        id: setup-conan
-        uses: ./.github/actions/setup-conan
-        with:
-          profile: gcc-amd64-linux-static-analysis             
-
-      - name: Configure CMake
-        run: |
-          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON --preset debug
-
-      - name: Build
-        run: |
-          cmake --build --preset=debug
-
-  cppcheck:
+  gcc-analyzer-cppcheck:
     runs-on: ubuntu-24.04
     
     env:
@@ -143,17 +78,14 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DNIKU_ENABLE_CPPCHECK=ON --preset debug
+          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON -DNIKU_ENABLE_CPPCHECK=ON --preset release
 
       - name: Build
         run: |
-          cmake --build --preset=debug
+          cmake --build --preset release
 
   msvc-analyze:
     runs-on: windows-2022
-
-    env:
-      CONAN_PROFILE: msvc-2022
 
     steps:
       - name: Initialize
@@ -178,5 +110,5 @@ jobs:
           
       - name: Build
         run: |
-          cmake --build --preset=multi-debug
+          cmake --build --preset multi-release
 

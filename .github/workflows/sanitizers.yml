@@ -38,15 +38,15 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake --preset release
+          cmake --preset relwithdebinfo
 
       - name: Build
         run: |
-          cmake --build --preset=release
+          cmake --build --preset relwithdebinfo
 
       - name: Test
         run: |
-          ctest --preset release
+          ctest --preset relwithdebinfo
 
   gcc-tsan:
     runs-on: ubuntu-24.04
@@ -72,15 +72,15 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake --preset release
+          cmake --preset relwithdebinfo
 
       - name: Build
         run: |
-          cmake --build --preset=release
+          cmake --build --preset relwithdebinfo
 
       - name: Test
         run: |
-          ctest --preset release
+          ctest --preset relwithdebinfo
 
   msvc-asan:
     runs-on: windows-2022
@@ -108,10 +108,10 @@ jobs:
           
       - name: Build
         run: |
-          cmake --build --preset=multi-release
+          cmake --build --preset multi-relwithdebinfo
 
       - name: Test
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
-          ctest --preset multi-release
+          ctest --preset multi-relwithdebinfo

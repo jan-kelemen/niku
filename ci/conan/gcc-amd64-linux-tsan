@@ -4,5 +4,5 @@ include(../../conan/opt/amd64-linux-v3)
 include(../../conan/dependencies)
 
 [settings]
-build_type=Release
+build_type=RelWithDebInfo
 
