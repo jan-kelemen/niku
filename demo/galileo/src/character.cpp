@@ -44,16 +44,15 @@
 
 namespace
 {
-    constexpr JPH::EBackFaceMode sBackFaceMode{
+    constexpr JPH::EBackFaceMode back_face_mode{
         JPH::EBackFaceMode::CollideWithBackFaces};
-    constexpr float cCharacterRadiusStanding{0.3f};
-    constexpr float cCharacterHeightStanding{1.35f};
-    constexpr float sMaxSlopeAngle{JPH::DegreesToRadians(45.0f)};
-    constexpr float sMaxStrength{100.0f};
-    constexpr float sCharacterPadding{0.02f};
-    constexpr float sPenetrationRecoverySpeed{1.0f};
-    constexpr float sPredictiveContactDistance{0.1f};
-    constexpr bool sEnhancedInternalEdgeRemoval{false};
+    constexpr float standing_radius{0.3f};
+    constexpr float standing_height{1.35f};
+    constexpr float max_slope_angle{JPH::DegreesToRadians(45.0f)};
+    constexpr float max_strenght{100.0f};
+    constexpr float padding{0.02f};
+    constexpr float recovery_speed{1.0f};
+    constexpr float predictive_contact_distance{0.1f};
 
     constexpr glm::vec3 world_left{-1.0f, 0.0f, 0.0f};
     constexpr glm::vec3 world_right{1.0f, 0.0f, 0.0f};
@@ -69,28 +68,25 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
     , mouse_{&mouse}
 {
     JPH::RotatedTranslatedShapeSettings const shape_settings{
-        JPH::Vec3{0.0f,
-            0.5f * cCharacterHeightStanding + cCharacterRadiusStanding,
-            0},
+        JPH::Vec3{0.0f, 0.5f * standing_height + standing_radius, 0},
         JPH::Quat::sIdentity(),
-        new JPH::CapsuleShape{0.5f * cCharacterHeightStanding,
-            cCharacterRadiusStanding}};
+        new JPH::CapsuleShape{0.5f * standing_height, standing_radius}};
     JPH::RefConst<JPH::Shape> const standing_shape{
         shape_settings.Create().Get()};
 
     JPH::Ref<JPH::CharacterVirtualSettings> const settings{
         new JPH::CharacterVirtualSettings};
-    settings->mMaxSlopeAngle = sMaxSlopeAngle;
-    settings->mMaxStrength = sMaxStrength;
+    settings->mMaxSlopeAngle = max_slope_angle;
+    settings->mMaxStrength = max_strenght;
     settings->mShape = standing_shape;
-    settings->mBackFaceMode = sBackFaceMode;
-    settings->mCharacterPadding = sCharacterPadding;
-    settings->mPenetrationRecoverySpeed = sPenetrationRecoverySpeed;
-    settings->mPredictiveContactDistance = sPredictiveContactDistance;
+    settings->mBackFaceMode = back_face_mode;
+    settings->mCharacterPadding = padding;
+    settings->mPenetrationRecoverySpeed = recovery_speed;
+    settings->mPredictiveContactDistance = predictive_contact_distance;
     // Accept contacts that touch the lower sphere of the capsule
     settings->mSupportingVolume =
-        JPH::Plane{JPH::Vec3::sAxisY(), -cCharacterRadiusStanding};
-    settings->mEnhancedInternalEdgeRemoval = sEnhancedInternalEdgeRemoval;
+        JPH::Plane{JPH::Vec3::sAxisY(), -standing_radius};
+    settings->mEnhancedInternalEdgeRemoval = false;
     settings->mInnerBodyShape = nullptr;
     settings->mInnerBodyLayer = object_layers::moving;
 
