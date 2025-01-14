@@ -2,6 +2,7 @@ add_library(glm_impl INTERFACE)
 
 target_compile_definitions(glm_impl
     INTERFACE
+        GLM_FORCE_RADIANS
         GLM_ENABLE_EXPERIMENTAL
 )
 

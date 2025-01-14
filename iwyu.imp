@@ -99,6 +99,7 @@
   { include: [ "<glm/ext/matrix_projection.inl>", private, "<glm/gtc/matrix_transform.hpp>", public ] },
   { include: [ "<glm/ext/matrix_transform.inl>", private, "<glm/gtc/matrix_transform.hpp>", public ] },
   { include: [ "<glm/ext/projection.inl>", private, "<glm/gtc/matrix_transform.hpp>", public ] },
+  { include: [ "<glm/gtc/constants.inl>", private, "<glm/gtc/constants.hpp>", public ] },
   { include: [ "<glm/gtc/type_ptr.inl>", private, "<glm/gtc/type_ptr.hpp>", public ] },
   { include: [ "<glm/gtc/matrix_access.inl>", private, "<glm/gtc/matrix_access.hpp>", public ] },
   { include: [ "<glm/gtc/quaternion.inl>", private, "<glm/gtc/quaternion.hpp>", public ] },

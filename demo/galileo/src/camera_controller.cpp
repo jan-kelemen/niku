@@ -8,6 +8,9 @@
 
 #include <imgui.h>
 
+#include <glm/gtc/constants.hpp>
+#include <glm/trigonometric.hpp>
+
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_scancode.h>
@@ -32,13 +35,13 @@ void galileo::camera_controller_t::handle_event(SDL_Event const& event,
         auto const& yaw_pitch{camera_->yaw_pitch()};
         auto const& mouse_offset{mouse_->relative_offset()};
 
-        auto const yaw{
-            yaw_pitch.x + cppext::as_fp(mouse_offset.x) * delta_time};
-        auto const pitch{
-            yaw_pitch.y + cppext::as_fp(-mouse_offset.y) * delta_time};
+        auto const yaw{yaw_pitch.x +
+            glm::radians(cppext::as_fp(mouse_offset.x) * delta_time)};
+        auto const pitch{yaw_pitch.y +
+            glm::radians(cppext::as_fp(-mouse_offset.y) * delta_time)};
 
-        camera_->set_yaw_pitch(
-            {fmodf(yaw, 360), std::clamp(pitch, -85.0f, 85.0f)});
+        camera_->set_yaw_pitch({fmodf(yaw, glm::two_pi<float>()),
+            std::clamp(pitch, glm::radians(-85.0f), glm::radians(85.0f))});
 
         update_needed_ = true;
     }

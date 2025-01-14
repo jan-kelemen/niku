@@ -7,7 +7,6 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/trigonometric.hpp>
-#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
@@ -27,8 +26,7 @@ bool galileo::follow_camera_controller_t::update(character_t const& character)
         pitch,
         roll);
 
-    camera_->set_yaw_pitch(
-        glm::vec2{glm::degrees(yaw) + 90.0f, glm::degrees(pitch)} * -1.0f);
+    camera_->set_yaw_pitch({-yaw - glm::radians(90.0f), pitch});
     camera_->update();
 
     glm::vec3 const position{character.position() +

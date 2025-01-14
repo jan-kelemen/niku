@@ -31,7 +31,7 @@ namespace gltfviewer
         ~camera_controller_t() = default;
 
     public:
-        void handle_event(SDL_Event const& event);
+        void handle_event(SDL_Event const& event, float delta_time);
 
         bool update(float delta_time);
 
@@ -49,7 +49,7 @@ namespace gltfviewer
         glm::vec3 velocity_{};
         bool update_needed_{false};
 
-        float mouse_sensitivity_{0.1f};
+        float mouse_sensitivity_{5.0f};
         float velocity_factor_{5.0f};
     };
 } // namespace gltfviewer

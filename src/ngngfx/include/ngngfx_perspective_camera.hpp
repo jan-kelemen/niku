@@ -29,17 +29,17 @@ namespace ngngfx
         ~perspective_camera_t() override = default;
 
     public:
-        [[nodiscard]] glm::vec2 const& yaw_pitch() const;
+        [[nodiscard]] glm::vec2 yaw_pitch() const;
 
         void set_yaw_pitch(glm::vec2 const& yaw_pitch);
 
         void set_near_far(glm::vec2 const& near_far);
 
-        [[nodiscard]] glm::vec3 const& up_direction() const;
+        [[nodiscard]] glm::vec3 up_direction() const;
 
-        [[nodiscard]] glm::vec3 const& front_direction() const;
+        [[nodiscard]] glm::vec3 front_direction() const;
 
-        [[nodiscard]] glm::vec3 const& right_direction() const;
+        [[nodiscard]] glm::vec3 right_direction() const;
 
     public: // camera_t overrides
         void update() override;
