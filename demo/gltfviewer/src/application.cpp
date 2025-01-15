@@ -301,7 +301,18 @@ void gltfviewer::application_t::draw()
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
-    vkrndr::wait_for_color_attachment_write(color_image_.image, command_buffer);
+    {
+        auto const barrier{vkrndr::to_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(color_image_),
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+    }
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
@@ -528,14 +539,14 @@ void gltfviewer::application_t::draw()
                     vkrndr::on_stage(vkrndr::image_barrier(resolve_image_),
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                    VK_ACCESS_2_SHADER_STORAGE_READ_BIT),
+                    VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
 
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(blur_image),
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                    VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
-                        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT)};
 
             vkrndr::wait_for(command_buffer, {}, {}, barriers);
         }
@@ -552,7 +563,7 @@ void gltfviewer::application_t::draw()
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                     VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
                         VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+                    VK_ACCESS_2_SHADER_STORAGE_READ_BIT),
 
                 vkrndr::to_layout(
                     vkrndr::with_access(

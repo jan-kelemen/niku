@@ -227,12 +227,13 @@ void gltfviewer::pyramid_blur_t::downsample_pass(uint32_t const levels,
     {
         transition_mip(pyramid_image_.image,
             command_buffer,
-            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
             VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
             mip);
 
         transition_mip(pyramid_image_.image,
@@ -278,20 +279,21 @@ void gltfviewer::pyramid_blur_t::upsample_pass(uint32_t const levels,
     {
         transition_mip(pyramid_image_.image,
             command_buffer,
-            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
             VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-            VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
             mip + 1);
 
         transition_mip(pyramid_image_.image,
             command_buffer,
-            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
             VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
             VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,

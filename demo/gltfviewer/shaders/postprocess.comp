@@ -12,9 +12,9 @@ layout(push_constant) uniform PushConsts
     bool toneMapping;
 } pc;
 
-layout(rgba16f, set = 0, binding = 0) uniform image2D backbuffer;
+layout(rgba16f, set = 0, binding = 0) uniform readonly image2D backbuffer;
 
-layout(rgba16f, set = 0, binding = 1) uniform image2D image;
+layout(set = 0, binding = 1) uniform writeonly image2D image;
 
 void main()
 {
