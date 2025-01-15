@@ -114,6 +114,7 @@ namespace gltfviewer
         float bloom_strength_{0.15f};
         bool color_conversion_{true};
         bool tone_mapping_{true};
+        bool transparent_{true};
     };
 } // namespace gltfviewer
 #endif

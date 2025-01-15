@@ -600,17 +600,6 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
         0,
         nullptr);
 
-    vkrndr::render_pass_t color_render_pass;
-    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        color_image.view);
-    color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        depth_buffer.view);
-
-    [[maybe_unused]] auto guard{
-        color_render_pass.begin(command_buffer, {{0, 0}, color_image.extent})};
-
     vkrndr::bind_pipeline(command_buffer,
         skybox_pipeline_,
         1,

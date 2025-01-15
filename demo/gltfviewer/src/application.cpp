@@ -33,6 +33,7 @@
 #include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
 
@@ -260,6 +261,7 @@ void gltfviewer::application_t::update(float delta_time)
     ImGui::SliderFloat("Bloom Strength", &bloom_strength_, 0.0f, 1.0f);
     ImGui::Checkbox("Color Conversion", &color_conversion_);
     ImGui::Checkbox("Tone Mapping", &tone_mapping_);
+    ImGui::Checkbox("OIT", &transparent_);
     ImGui::End();
 
     camera_controller_.update(delta_time);
@@ -316,37 +318,143 @@ void gltfviewer::application_t::draw()
 
     if (render_graph_->model().vertex_count)
     {
-        VkPipelineLayout const pbr_layout{pbr_shader_->pipeline_layout()};
-        environment_->bind_on(command_buffer,
-            pbr_layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
+        {
+            vkrndr::render_pass_t depth_render_pass;
+            depth_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+                VK_ATTACHMENT_STORE_OP_STORE,
+                depth_buffer_.view,
+                VkClearValue{.depthStencil = {1.0f, 0}});
 
-        materials_->bind_on(command_buffer,
-            pbr_layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
+            VkPipelineLayout const layout{
+                depth_pass_shader_->pipeline_layout()};
+            environment_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        render_graph_->bind_on(command_buffer,
-            pbr_layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
+            materials_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        vkCmdPushConstants(command_buffer,
-            pbr_layout,
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-            0,
-            8,
-            &pc);
+            render_graph_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        depth_pass_shader_->draw(*render_graph_, command_buffer, depth_buffer_);
+            vkCmdPushConstants(command_buffer,
+                layout,
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                8,
+                &pc);
 
-        pbr_shader_->draw(*render_graph_,
-            command_buffer,
-            color_image_,
-            depth_buffer_);
+            {
+                [[maybe_unused]] auto guard{
+                    depth_render_pass.begin(command_buffer,
+                        {{0, 0}, depth_buffer_.extent})};
+
+                depth_pass_shader_->draw(*render_graph_,
+                    command_buffer,
+                    depth_buffer_);
+            }
+
+            auto const barrier{vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(depth_buffer_,
+                                     VK_IMAGE_ASPECT_DEPTH_BIT),
+                    VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT),
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT)};
+
+            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+        }
+
+        {
+            vkrndr::render_pass_t color_render_pass;
+            color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+                VK_ATTACHMENT_STORE_OP_STORE,
+                color_image_.view,
+                VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+            color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+                VK_ATTACHMENT_STORE_OP_STORE,
+                depth_buffer_.view);
+
+            VkPipelineLayout const layout{pbr_shader_->pipeline_layout()};
+            environment_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            materials_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            render_graph_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            vkCmdPushConstants(command_buffer,
+                layout,
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                8,
+                &pc);
+
+            {
+                [[maybe_unused]] auto guard{
+                    color_render_pass.begin(command_buffer,
+                        {{0, 0}, color_image_.extent})};
+
+                pbr_shader_->draw(*render_graph_,
+                    command_buffer,
+                    color_image_,
+                    depth_buffer_);
+
+                environment_->draw_skybox(command_buffer,
+                    color_image_,
+                    depth_buffer_);
+            }
+        }
+    }
+    else
+    {
+        vkrndr::render_pass_t color_render_pass;
+        color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            color_image_.view,
+            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+        color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            depth_buffer_.view,
+            VkClearValue{.depthStencil = {1.0f, 0}});
+
+        {
+            [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
+                {{0, 0}, color_image_.extent})};
+
+            environment_->draw_skybox(command_buffer,
+                color_image_,
+                depth_buffer_);
+        }
     }
 
-    environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
+    {
+        std::array const barriers{
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(color_image_),
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT),
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(depth_buffer_,
+                                     VK_IMAGE_ASPECT_DEPTH_BIT),
+                    VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT),
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT)};
 
-    if (render_graph_->model().vertex_count)
+        vkrndr::wait_for(command_buffer, {}, {}, barriers);
+    }
+
+    if (transparent_ && render_graph_->model().vertex_count)
     {
         VkPipelineLayout const oit_layout{
             weighted_oit_shader_->pipeline_layout()};

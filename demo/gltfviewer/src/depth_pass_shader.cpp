@@ -62,34 +62,13 @@ void gltfviewer::depth_pass_shader_t::draw(render_graph_t const& graph,
 {
     vkrndr::command_buffer_scope_t depth_pass_scope{command_buffer, "Depth"};
 
-    vkrndr::render_pass_t depth_render_pass;
-    depth_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        depth_buffer.view,
-        VkClearValue{.depthStencil = {1.0f, 0}});
+    vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
 
-    {
-        [[maybe_unused]] auto guard{depth_render_pass.begin(command_buffer,
-            {{0, 0}, depth_buffer.extent})};
-
-        vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
-
-        graph.traverse(vkgltf::alpha_mode_t::opaque,
-            command_buffer,
-            *depth_pipeline_.layout,
-            []([[maybe_unused]] vkgltf::alpha_mode_t const mode,
-                [[maybe_unused]] bool const double_sided) { });
-    }
-
-    auto const barrier{vkrndr::with_access(
-        vkrndr::on_stage(
-            vkrndr::image_barrier(depth_buffer, VK_IMAGE_ASPECT_DEPTH_BIT),
-            VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-            VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT),
-        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_2_NONE)};
-
-    vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+    graph.traverse(vkgltf::alpha_mode_t::opaque,
+        command_buffer,
+        *depth_pipeline_.layout,
+        []([[maybe_unused]] vkgltf::alpha_mode_t const mode,
+            [[maybe_unused]] bool const double_sided) { });
 }
 
 void gltfviewer::depth_pass_shader_t::load(render_graph_t const& graph,
