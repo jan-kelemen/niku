@@ -5,6 +5,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/depth_pass_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/environment.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/model_selector.hpp
@@ -19,6 +20,7 @@ target_sources(gltfviewer
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/depth_pass_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/environment.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gltfviewer.m.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.cpp

@@ -31,6 +31,7 @@ namespace vkrndr
 
 namespace gltfviewer
 {
+    class depth_pass_shader_t;
     class environment_t;
     class materials_t;
     class pbr_shader_t;
@@ -94,6 +95,7 @@ namespace gltfviewer
         std::unique_ptr<environment_t> environment_;
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<render_graph_t> render_graph_;
+        std::unique_ptr<depth_pass_shader_t> depth_pass_shader_;
         std::unique_ptr<pbr_shader_t> pbr_shader_;
         std::unique_ptr<weighted_oit_shader_t> weighted_oit_shader_;
         std::unique_ptr<resolve_shader_t> resolve_shader_;

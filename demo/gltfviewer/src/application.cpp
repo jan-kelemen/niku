@@ -1,6 +1,7 @@
 #include <application.hpp>
 
 #include <camera_controller.hpp>
+#include <depth_pass_shader.hpp>
 #include <environment.hpp>
 #include <materials.hpp>
 #include <model_selector.hpp>
@@ -147,6 +148,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , environment_{std::make_unique<environment_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
     , render_graph_{std::make_unique<render_graph_t>(*backend_)}
+    , depth_pass_shader_{std::make_unique<depth_pass_shader_t>(*backend_)}
     , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
     , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
     , resolve_shader_{std::make_unique<resolve_shader_t>(*backend_)}
@@ -205,6 +207,10 @@ void gltfviewer::application_t::update(float delta_time)
 
         materials_->load(*model);
         render_graph_->load(std::move(model).value());
+        depth_pass_shader_->load(*render_graph_,
+            environment_->descriptor_layout(),
+            materials_->descriptor_layout(),
+            depth_buffer_.format);
         pbr_shader_->load(*render_graph_,
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
@@ -329,12 +335,14 @@ void gltfviewer::application_t::draw()
             0,
             8,
             &pc);
-    }
 
-    pbr_shader_->draw(*render_graph_,
-        command_buffer,
-        color_image_,
-        depth_buffer_);
+        depth_pass_shader_->draw(*render_graph_, command_buffer, depth_buffer_);
+
+        pbr_shader_->draw(*render_graph_,
+            command_buffer,
+            color_image_,
+            depth_buffer_);
+    }
 
     environment_->draw_skybox(command_buffer, color_image_, depth_buffer_);
 
@@ -507,6 +515,8 @@ void gltfviewer::application_t::on_shutdown()
     weighted_oit_shader_.reset();
 
     pbr_shader_.reset();
+
+    depth_pass_shader_.reset();
 
     render_graph_.reset();
 

@@ -42,7 +42,6 @@ gltfviewer::pbr_shader_t::pbr_shader_t(vkrndr::backend_t& backend)
 
 gltfviewer::pbr_shader_t::~pbr_shader_t()
 {
-    destroy(&backend_->device(), &depth_pipeline_);
     destroy(&backend_->device(), &culling_pipeline_);
     destroy(&backend_->device(), &double_sided_pipeline_);
     destroy(&backend_->device(), &fragment_shader_);
@@ -64,99 +63,41 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& depth_buffer)
 {
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-        command_buffer,
-        "PBR"};
+    vkrndr::render_pass_t color_render_pass;
+    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        color_image.view,
+        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
+    color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        depth_buffer.view);
 
-    if (!graph.model().vertex_count)
+    [[maybe_unused]] auto guard{
+        color_render_pass.begin(command_buffer, {{0, 0}, color_image.extent})};
+
+    auto switch_pipeline =
+        [command_buffer,
+            bound = static_cast<vkrndr::pipeline_t*>(nullptr),
+            this]([[maybe_unused]] vkgltf::alpha_mode_t const mode,
+            bool const double_sided) mutable
     {
-        vkrndr::render_pass_t color_render_pass;
-        color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            color_image.view,
-            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
-        color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            depth_buffer.view,
-            VkClearValue{.depthStencil = {1.0f, 0}});
-
-        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, color_image.extent})};
-
-        return;
-    }
-
-    {
-        vkrndr::render_pass_t depth_render_pass;
-        depth_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            depth_buffer.view,
-            VkClearValue{.depthStencil = {1.0f, 0}});
-
-        [[maybe_unused]] auto guard{depth_render_pass.begin(command_buffer,
-            {{0, 0}, color_image.extent})};
-
-        vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
-        vkrndr::command_buffer_scope_t depth_pass_scope{command_buffer,
-            "Depth"};
-        graph.traverse(vkgltf::alpha_mode_t::opaque,
-            command_buffer,
-            *double_sided_pipeline_.layout,
-            []([[maybe_unused]] vkgltf::alpha_mode_t const mode,
-                [[maybe_unused]] bool const double_sided) { });
-        depth_pass_scope.close();
-    }
-
-    {
-        auto const barrier{vkrndr::with_access(
-            vkrndr::on_stage(
-                vkrndr::image_barrier(depth_buffer, VK_IMAGE_ASPECT_DEPTH_BIT),
-                VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-                VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT),
-            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_2_NONE)};
-
-        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-    }
-
-    {
-        vkrndr::render_pass_t color_render_pass;
-        color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            color_image.view,
-            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
-        color_render_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            depth_buffer.view);
-
-        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, color_image.extent})};
-
-        auto switch_pipeline =
-            [command_buffer,
-                bound = static_cast<vkrndr::pipeline_t*>(nullptr),
-                this]([[maybe_unused]] vkgltf::alpha_mode_t const mode,
-                bool const double_sided) mutable
+        auto* const required_pipeline{
+            double_sided ? &double_sided_pipeline_ : &culling_pipeline_};
+        if (bound != required_pipeline)
         {
-            auto* const required_pipeline{
-                double_sided ? &double_sided_pipeline_ : &culling_pipeline_};
-            if (bound != required_pipeline)
-            {
-                vkrndr::bind_pipeline(command_buffer, *required_pipeline);
-                bound = required_pipeline;
-            }
-        };
+            vkrndr::bind_pipeline(command_buffer, *required_pipeline);
+            bound = required_pipeline;
+        }
+    };
 
-        vkrndr::command_buffer_scope_t color_pass_scope{command_buffer,
-            "Opaque & Mask"};
-        graph.traverse(static_cast<vkgltf::alpha_mode_t>(
-                           std::to_underlying(vkgltf::alpha_mode_t::opaque) |
-                           std::to_underlying(vkgltf::alpha_mode_t::mask)),
-            command_buffer,
-            *double_sided_pipeline_.layout,
-            switch_pipeline);
-        color_pass_scope.close();
-    }
+    vkrndr::command_buffer_scope_t color_pass_scope{command_buffer,
+        "Opaque & Mask"};
+    graph.traverse(static_cast<vkgltf::alpha_mode_t>(
+                       std::to_underlying(vkgltf::alpha_mode_t::opaque) |
+                       std::to_underlying(vkgltf::alpha_mode_t::mask)),
+        command_buffer,
+        *double_sided_pipeline_.layout,
+        switch_pipeline);
 }
 
 void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
@@ -257,23 +198,4 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
     object_name(backend_->device(), culling_pipeline_, "Culling Pipeline");
-
-    if (depth_pipeline_.pipeline != VK_NULL_HANDLE)
-    {
-        destroy(&backend_->device(), &depth_pipeline_);
-    }
-
-    depth_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
-            double_sided_pipeline_.layout}
-            .add_shader(as_pipeline_shader(vertex_shader_))
-            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .with_rasterization_samples(backend_->device().max_msaa_samples)
-            .with_depth_test(depth_buffer_format)
-            .add_vertex_input(graph.binding_description(),
-                graph.attribute_description())
-            .with_culling(VK_CULL_MODE_BACK_BIT,
-                VK_FRONT_FACE_COUNTER_CLOCKWISE)
-            .build();
-    object_name(backend_->device(), depth_pipeline_, "Depth Pipeline");
 }
