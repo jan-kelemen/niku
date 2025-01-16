@@ -125,7 +125,7 @@ void vkrndr::object_name(device_t const& device,
     std::string_view name)
 {
     ::object_name(device.logical,
-        VK_OBJECT_TYPE_BUFFER,
+        VK_OBJECT_TYPE_IMAGE,
         std::bit_cast<uint64_t>(cubemap.image),
         name);
 }
