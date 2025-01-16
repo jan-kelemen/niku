@@ -362,8 +362,8 @@ void galileo::application_t::draw()
     {
         gbuffer_->transition(command_buffer,
             VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
@@ -408,16 +408,26 @@ void galileo::application_t::draw()
     }
 
     {
-        gbuffer_->transition(command_buffer,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+        {
+            gbuffer_->transition(command_buffer,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
 
-        vkrndr::wait_for_color_attachment_write(color_image_.image,
-            command_buffer);
+            auto const barrier{vkrndr::to_layout(
+                vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::image_barrier(color_image_),
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+
+            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+        }
 
         vkrndr::render_pass_t lighting_pass;
         lighting_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -592,6 +602,7 @@ void galileo::application_t::on_resize(uint32_t const width,
 
     destroy(&backend_->device(), &depth_buffer_);
     depth_buffer_ = create_depth_buffer(*backend_);
+    object_name(backend_->device(), depth_buffer_, "Depth buffer");
 
     gbuffer_->resize(width, height);
 

@@ -3,6 +3,7 @@
 #include <ngngfx_gbuffer.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
@@ -51,6 +52,9 @@ void galileo::gbuffer_t::resize(uint32_t const width, uint32_t const height)
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT);
+    object_name(backend_->device(), gbuffer_.images[0], "G-Buffer Position");
+    object_name(backend_->device(), gbuffer_.images[1], "G-Buffer Normal");
+    object_name(backend_->device(), gbuffer_.images[2], "G-Buffer Albedo");
 }
 
 void galileo::gbuffer_t::transition(VkCommandBuffer command_buffer,
