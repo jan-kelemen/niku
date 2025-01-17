@@ -173,11 +173,13 @@ float geometricOcclusion(float roughness, float NdotL, float NdotV)
     return attenuationL * attenuationV;
 }
 
-float microfacetDistribution(float roughness, float NdotH)
+float microfacetDistribution(const float roughness, const float NdotH, const vec3 N, const vec3 H)
 {
-    const float r = roughness * roughness;
-    const float f = (NdotH * r - NdotH) * NdotH + 1.0;
-    return r / (PI * f * f);
+    const vec3 NxH = cross(N, H);
+    const float a = NdotH * roughness;
+    const float k = roughness / (dot(NxH, NxH) + a * a);
+    const float d = k * k * (1.0 / PI);
+    return min(d, HFLOAT_MAX);
 }
 
 vec3 diffuse(vec3 diffuseColor) { return diffuseColor / PI; }
@@ -251,7 +253,7 @@ void main()
             specularEnvironmentR90,
             VdotH);
         const float G = geometricOcclusion(alphaRoughness, NdotL, NdotV);
-        const float D = microfacetDistribution(alphaRoughness, NdotH);
+        const float D = microfacetDistribution(alphaRoughness, NdotH, N, H);
 
         const vec3 diffuseContribution = (1.0 - F) * diffuse(diffuseColor);
         const vec3 specularContribution = F * G * D / (4.0 * NdotL * NdotV);

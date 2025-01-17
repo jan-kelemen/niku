@@ -4,5 +4,6 @@
 const float PI = 3.141592653589793;
 
 const uint UINT_MAX = ~0;
+const float HFLOAT_MAX = 65504.0;
 
 #endif
