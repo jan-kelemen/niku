@@ -29,7 +29,8 @@ namespace vkrndr
         VmaAllocator allocator{VK_NULL_HANDLE};
     };
 
-    device_t create_device(context_t const& context);
+    device_t create_device(context_t const& context,
+        VkSurfaceKHR surface = VK_NULL_HANDLE);
 
     void destroy(device_t* device);
 } // namespace vkrndr

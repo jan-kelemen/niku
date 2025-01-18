@@ -34,7 +34,7 @@ namespace vkrndr
     class [[nodiscard]] backend_t final
     {
     public: // Construction
-        backend_t(window_t const& window,
+        backend_t(window_t& window,
             render_settings_t const& settings,
             bool debug);
 
@@ -117,7 +117,7 @@ namespace vkrndr
     private: // Data
         render_settings_t render_settings_;
 
-        window_t const* window_;
+        window_t* window_;
         context_t context_;
         device_t device_;
         std::unique_ptr<swap_chain_t> swap_chain_;

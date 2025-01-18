@@ -198,7 +198,7 @@ void vkrndr::swap_chain_t::recreate()
 void vkrndr::swap_chain_t::create_swap_frames()
 {
     auto swap_details{
-        query_swap_chain_support(device_->physical, context_->surface)};
+        query_swap_chain_support(device_->physical, window_->surface())};
 
     VkPresentModeKHR const present_mode{
         choose_swap_present_mode(swap_details.present_modes, *settings_)};
@@ -218,7 +218,7 @@ void vkrndr::swap_chain_t::create_swap_frames()
 
     VkSwapchainCreateInfoKHR create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    create_info.surface = context_->surface;
+    create_info.surface = window_->surface();
     create_info.minImageCount = used_image_count;
     create_info.imageFormat = surface_format.format;
     create_info.imageColorSpace = surface_format.colorSpace;

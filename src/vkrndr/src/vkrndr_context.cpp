@@ -1,7 +1,6 @@
 #include <vkrndr_context.hpp>
 
 #include <vkrndr_utility.hpp>
-#include <vkrndr_window.hpp>
 
 #include <boost/scope/scope_fail.hpp>
 
@@ -121,8 +120,8 @@ namespace
     }
 } // namespace
 
-vkrndr::context_t vkrndr::create_context(vkrndr::window_t const& window,
-    bool const setup_validation_layers)
+vkrndr::context_t vkrndr::create_context(bool const setup_validation_layers,
+    std::span<char const* const> const& required_extensions)
 {
     context_t rv;
 
@@ -138,7 +137,8 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const& window,
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
 
-    std::vector<char const*> required_extensions{window.required_extensions()};
+    std::vector<char const*> extensions{required_extensions.cbegin(),
+        required_extensions.cend()};
 
     bool has_debug_utils_extension{setup_validation_layers};
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info;
@@ -151,7 +151,7 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const& window,
                 count_cast(validation_layers.size());
             create_info.ppEnabledLayerNames = validation_layers.data();
 
-            required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
             debug_create_info.pNext = &validation_features;
             create_info.pNext = &debug_create_info;
         }
@@ -162,8 +162,8 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const& window,
         }
     }
 
-    create_info.enabledExtensionCount = count_cast(required_extensions.size());
-    create_info.ppEnabledExtensionNames = required_extensions.data();
+    create_info.enabledExtensionCount = count_cast(extensions.size());
+    create_info.ppEnabledExtensionNames = extensions.data();
 
     check_result(vkCreateInstance(&create_info, nullptr, &rv.instance));
     boost::scope::scope_fail const rollback{[&rv] { destroy(&rv); }};
@@ -175,8 +175,6 @@ vkrndr::context_t vkrndr::create_context(vkrndr::window_t const& window,
         check_result(create_debug_messenger(rv.instance, rv.debug_messenger));
     }
 
-    check_result(window.create_surface(rv.instance, rv.surface));
-
     return rv;
 }
 
@@ -184,8 +182,6 @@ void vkrndr::destroy(context_t* const context)
 {
     if (context)
     {
-        vkDestroySurfaceKHR(context->instance, context->surface, nullptr);
-
         if (context->debug_messenger)
         {
             vkDestroyDebugUtilsMessengerEXT(context->instance,

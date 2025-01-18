@@ -235,7 +235,8 @@ namespace
     }
 } // namespace
 
-vkrndr::device_t vkrndr::create_device(context_t const& context)
+vkrndr::device_t vkrndr::create_device(context_t const& context,
+    VkSurfaceKHR const surface)
 {
     uint32_t count{};
     vkEnumeratePhysicalDevices(context.instance, &count, nullptr);
@@ -249,10 +250,9 @@ vkrndr::device_t vkrndr::create_device(context_t const& context)
 
     device_families_t device_families;
     auto const device_it{std::ranges::find_if(devices,
-        [&context, &device_families](auto const& device) mutable
+        [&context, &surface, &device_families](auto const& device) mutable
         {
-            if (auto const families{
-                    is_device_suitable(device, context.surface)})
+            if (auto const families{is_device_suitable(device, surface)})
             {
                 device_families = *families;
                 return true;

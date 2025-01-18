@@ -75,13 +75,14 @@ namespace
     }
 } // namespace
 
-vkrndr::backend_t::backend_t(window_t const& window,
+vkrndr::backend_t::backend_t(window_t& window,
     render_settings_t const& settings,
     bool const debug)
     : render_settings_{settings}
     , window_{&window}
-    , context_{vkrndr::create_context(*window_, debug)}
-    , device_{vkrndr::create_device(context_)}
+    , context_{vkrndr::create_context(debug, window_->required_extensions())}
+    , device_{vkrndr::create_device(context_,
+          window_->create_surface(context_.instance))}
     , swap_chain_{std::make_unique<swap_chain_t>(*window_,
           context_,
           device_,
@@ -120,6 +121,9 @@ vkrndr::backend_t::~backend_t()
     swap_chain_.reset();
 
     destroy(&device_);
+
+    window_->destroy_surface(context_.instance);
+
     destroy(&context_);
 }
 

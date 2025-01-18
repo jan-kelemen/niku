@@ -53,8 +53,11 @@ namespace ngnwsi
         [[nodiscard]] std::vector<char const*>
         required_extensions() const override;
 
-        [[nodiscard]] VkResult create_surface(VkInstance instance,
-            VkSurfaceKHR& surface) const override;
+        [[nodiscard]] VkSurfaceKHR create_surface(VkInstance instance) override;
+
+        [[nodiscard]] void destroy_surface(VkInstance instance) override;
+
+        [[nodiscard]] VkSurfaceKHR surface() const override;
 
         [[nodiscard]] VkExtent2D swap_extent(
             VkSurfaceCapabilitiesKHR const& capabilities) const override;
@@ -68,6 +71,7 @@ namespace ngnwsi
 
     private: // Data
         SDL_Window* window_;
+        VkSurfaceKHR surface_{VK_NULL_HANDLE};
     };
 } // namespace ngnwsi
 

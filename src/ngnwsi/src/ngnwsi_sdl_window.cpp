@@ -54,15 +54,30 @@ std::vector<char const*> ngnwsi::sdl_window_t::required_extensions() const
     return required_extensions;
 }
 
-VkResult ngnwsi::sdl_window_t::create_surface(VkInstance instance,
-    VkSurfaceKHR& surface) const
+VkSurfaceKHR ngnwsi::sdl_window_t::create_surface(VkInstance instance)
 {
-    if (SDL_Vulkan_CreateSurface(window_, instance, &surface) == SDL_TRUE)
+    if (surface_)
     {
-        return VK_SUCCESS;
+        return surface_;
     }
-    return VK_ERROR_UNKNOWN;
+
+    if (SDL_Vulkan_CreateSurface(window_, instance, &surface_) == SDL_TRUE)
+    {
+        return surface_;
+    }
+
+    return surface_;
 }
+
+void ngnwsi::sdl_window_t::destroy_surface(VkInstance instance)
+{
+    if (surface_)
+    {
+        vkDestroySurfaceKHR(instance, surface_, nullptr);
+    }
+}
+
+VkSurfaceKHR ngnwsi::sdl_window_t::surface() const { return surface_; }
 
 VkExtent2D ngnwsi::sdl_window_t::swap_extent(
     VkSurfaceCapabilitiesKHR const& capabilities) const

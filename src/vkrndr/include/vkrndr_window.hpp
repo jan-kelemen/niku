@@ -17,8 +17,12 @@ namespace vkrndr
         [[nodiscard]] virtual std::vector<char const*>
         required_extensions() const = 0;
 
-        [[nodiscard]] virtual VkResult create_surface(VkInstance instance,
-            VkSurfaceKHR& surface) const = 0;
+        [[nodiscard]] virtual VkSurfaceKHR create_surface(
+            VkInstance instance) = 0;
+
+        [[nodiscard]] virtual void destroy_surface(VkInstance instance) = 0;
+
+        [[nodiscard]] virtual VkSurfaceKHR surface() const = 0;
 
         [[nodiscard]] virtual VkExtent2D swap_extent(
             VkSurfaceCapabilitiesKHR const& capabilities) const = 0;
