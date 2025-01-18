@@ -34,10 +34,13 @@ conan export conan-recipes/recipes/meshoptimizer/all --version 0.22
 conan export conan-recipes/recipes/sdl/all --version 2.30.11
 conan export conan-recipes/recipes/simdjson/all --version 3.11.5
 conan export conan-recipes/recipes/spdlog/all --version 1.15.x
-conan export conan-recipes/recipes/spirv-cross/all --version 1.3.296.0
-conan export conan-recipes/recipes/spirv-tools/all --version 1.3.296.0
-conan export conan-recipes/recipes/glslang/all --version 1.3.296.0
-conan export conan-recipes/recipes/vulkan-memory-allocator/all --version 3.1.0
+conan export conan-recipes/recipes/spirv-headers/all --version 1.4.304.0
+conan export conan-recipes/recipes/spirv-cross/all --version 1.4.304.0
+conan export conan-recipes/recipes/spirv-tools/all --version 1.4.304.0
+conan export conan-recipes/recipes/glslang/all --version 1.4.304.0
+conan export conan-recipes/recipes/volk/all --version 1.4.304.0
+conan export conan-recipes/recipes/vulkan-headers/all --version 1.4.304.0
+conan export conan-recipes/recipes/vulkan-memory-allocator/all --version 3.2.0
 ```
 
 Compile:
