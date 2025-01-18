@@ -36,9 +36,9 @@ void galileo::camera_controller_t::handle_event(SDL_Event const& event,
         auto const& mouse_offset{mouse_->relative_offset()};
 
         auto const yaw{yaw_pitch.x +
-            glm::radians(cppext::as_fp(mouse_offset.x) * delta_time)};
+            glm::radians(cppext::as_fp(-mouse_offset.x) * delta_time)};
         auto const pitch{yaw_pitch.y +
-            glm::radians(cppext::as_fp(-mouse_offset.y) * delta_time)};
+            glm::radians(cppext::as_fp(mouse_offset.y) * delta_time)};
 
         camera_->set_yaw_pitch({fmodf(yaw, glm::two_pi<float>()),
             std::clamp(pitch, glm::radians(-85.0f), glm::radians(85.0f))});

@@ -661,7 +661,7 @@ void galileo::application_t::setup_world()
 
                 JPH::BodyCreationSettings const floor_settings{floor_shape,
                     ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
-                    JPH::Quat::sIdentity(),
+                    ngnphy::to_jolt(glm::quat_cast(root.matrix)),
                     JPH::EMotionType::Static,
                     galileo::object_layers::non_moving};
 
@@ -678,7 +678,7 @@ void galileo::application_t::setup_world()
                 JPH::BodyCreationSettings const sphere_settings{
                     new JPH::SphereShape{half_extents.x},
                     ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
-                    JPH::Quat::sIdentity(),
+                    ngnphy::to_jolt(glm::quat_cast(root.matrix)),
                     JPH::EMotionType::Dynamic,
                     galileo::object_layers::moving};
 
@@ -695,7 +695,7 @@ void galileo::application_t::setup_world()
                     new JPH::BoxShapeSettings{
                         {half_extents.x, half_extents.y, half_extents.z}},
                     ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
-                    JPH::Quat::sIdentity(),
+                    ngnphy::to_jolt(glm::quat_cast(root.matrix)),
                     JPH::EMotionType::Static,
                     galileo::object_layers::non_moving};
 

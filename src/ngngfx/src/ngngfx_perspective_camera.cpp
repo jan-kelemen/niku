@@ -67,10 +67,10 @@ void ngngfx::perspective_camera_t::update()
 {
     auto const& yaw{yaw_pitch_.x};
     auto const& pitch{yaw_pitch_.y};
-    glm::vec3 const front{cosf(yaw) * cosf(pitch),
+    glm::vec3 const front{sinf(yaw) * cosf(pitch),
         sinf(pitch),
-        sinf(yaw) * cosf(pitch)};
-    front_direction_ = glm::normalize(front);
+        cosf(yaw) * cosf(pitch)};
+    front_direction_ = -glm::normalize(front);
 
     right_direction_ = glm::normalize(glm::cross(front_direction_, world_up_));
     up_direction_ =

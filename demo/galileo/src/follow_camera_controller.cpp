@@ -26,11 +26,11 @@ bool galileo::follow_camera_controller_t::update(character_t const& character)
         pitch,
         roll);
 
-    camera_->set_yaw_pitch({-yaw - glm::radians(90.0f), pitch});
+    camera_->set_yaw_pitch({yaw, pitch});
     camera_->update();
 
     glm::vec3 const position{character.position() +
-        camera_->up_direction() * 1.76f + camera_->front_direction() * -5.0f};
+        camera_->up_direction() * 1.76f - camera_->front_direction() * 5.0f};
 
     camera_->set_position(position);
     camera_->update();

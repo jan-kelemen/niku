@@ -107,7 +107,7 @@ void galileo::character_t::handle_event(SDL_Event const& event,
 
         auto new_rot{glm::normalize(
             glm::quat{glm::vec3{0.0f,
-                glm::radians(-cppext::as_fp(mouse_offset.x) * delta_time),
+                glm::radians(cppext::as_fp(-mouse_offset.x) * delta_time),
                 0.0f}} *
             rotation())};
 
