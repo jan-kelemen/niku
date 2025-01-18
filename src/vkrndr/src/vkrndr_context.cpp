@@ -137,8 +137,8 @@ vkrndr::context_t vkrndr::create_context(bool const setup_validation_layers,
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
 
-    std::vector<char const*> extensions{required_extensions.cbegin(),
-        required_extensions.cend()};
+    std::vector<char const*> extensions{required_extensions.begin(),
+        required_extensions.end()};
 
     bool has_debug_utils_extension{setup_validation_layers};
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info;
