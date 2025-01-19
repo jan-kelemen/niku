@@ -16,6 +16,8 @@
 #include <glm/mat4x4.hpp>
 #include <glm/matrix.hpp>
 
+#include <vma_impl.hpp>
+
 #include <array>
 #include <cstddef>
 #include <functional>

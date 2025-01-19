@@ -23,6 +23,8 @@
 
 #include <imgui.h>
 
+#include <vma_impl.hpp>
+
 #include <volk.h>
 
 #include <array>

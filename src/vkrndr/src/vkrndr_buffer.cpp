@@ -3,8 +3,6 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <cppext_pragma_warning.hpp>
-
 #include <vma_impl.hpp>
 
 void vkrndr::destroy(device_t const* device, buffer_t* const buffer)
@@ -72,8 +70,6 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
 vkrndr::buffer_t vkrndr::create_staging_buffer(device_t const& device,
     VkDeviceSize const size)
 {
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
     return create_buffer(device,
         {.size = size,
             .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -81,5 +77,4 @@ vkrndr::buffer_t vkrndr::create_staging_buffer(device_t const& device,
             .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
-    DISABLE_WARNING_POP;
 }

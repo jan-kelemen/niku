@@ -25,6 +25,8 @@
 #include <Jolt/Math/Mat44.h>
 #include <Jolt/Math/Vec3.h>
 
+#include <vma_impl.hpp>
+
 #include <spdlog/spdlog.h>
 
 #include <array>

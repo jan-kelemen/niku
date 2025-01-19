@@ -6,7 +6,6 @@
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
-#include <cppext_pragma_warning.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
@@ -526,9 +525,6 @@ namespace
         model.samplers.emplace_back(); // Add default sampler to the end
     }
 
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
-
     void load_textures(fastgltf::Asset const& asset, vkgltf::model_t& model)
     {
         for (fastgltf::Texture const& texture : asset.textures)
@@ -963,8 +959,6 @@ namespace
             }
         }
     }
-
-    DISABLE_WARNING_POP
 } // namespace
 
 vkgltf::loader_t::loader_t(vkrndr::backend_t& backend) : backend_{&backend} { }

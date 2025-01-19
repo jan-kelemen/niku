@@ -2,7 +2,6 @@
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
-#include <cppext_pragma_warning.hpp>
 
 #include <vkgltf_model.hpp>
 
@@ -70,8 +69,6 @@ namespace
             return std::make_pair(cppext::narrow<uint32_t>(texture.image_index),
                 cppext::narrow<uint32_t>(texture.sampler_index));
         };
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
 
         material_t rv{
             .base_color_factor = m.pbr_metallic_roughness.base_color_factor,
@@ -85,8 +82,6 @@ namespace
             .normal_scale = m.normal_scale,
             .double_sided = static_cast<uint32_t>(m.double_sided),
             .emissive_strength = m.emissive_strength};
-
-        DISABLE_WARNING_POP
 
         if (auto const* const texture{
                 m.pbr_metallic_roughness.base_color_texture})

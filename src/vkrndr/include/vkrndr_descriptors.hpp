@@ -5,8 +5,6 @@
 #include <vkrndr_cubemap.hpp>
 #include <vkrndr_image.hpp>
 
-#include <cppext_pragma_warning.hpp>
-
 #include <volk.h>
 
 #include <span>
@@ -43,23 +41,13 @@ namespace vkrndr
         image_t const& image,
         VkImageLayout const layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
     {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
-
         return {.imageView = image.view, .imageLayout = layout};
-
-        DISABLE_WARNING_POP
     }
 
     [[nodiscard]] constexpr VkDescriptorImageInfo sampler_descriptor(
         VkSampler sampler)
     {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
-
         return {.sampler = sampler};
-
-        DISABLE_WARNING_POP
     }
 
     [[nodiscard]] constexpr VkDescriptorImageInfo combined_sampler_descriptor(
@@ -86,12 +74,7 @@ namespace vkrndr
         image_t const& image,
         VkImageLayout const layout = VK_IMAGE_LAYOUT_GENERAL)
     {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
-
         return {.imageView = image.view, .imageLayout = layout};
-
-        DISABLE_WARNING_POP
     }
 } // namespace vkrndr
 

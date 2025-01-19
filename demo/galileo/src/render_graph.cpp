@@ -18,6 +18,8 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include <vma_impl.hpp>
+
 #include <volk.h>
 
 #include <algorithm>

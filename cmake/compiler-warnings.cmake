@@ -46,6 +46,10 @@ set(CLANG_WARNINGS
     -Wimplicit-fallthrough # warn on statements that fallthrough without an explicit annotation
 )
 
+set(CLANG_WARNINGS_DISABLE
+    -Wno-missing-field-initializers
+)
+
 set(GCC_WARNINGS
     ${CLANG_WARNINGS}
     -Wmisleading-indentation # warn if indentation implies blocks where blocks do not exist
@@ -55,12 +59,16 @@ set(GCC_WARNINGS
     -Wuseless-cast # warn if you perform a cast to the same type
 )
 
+set(GCC_WARNINGS_DISABLE
+    ${CLANG_WARNINGS_DISABLE}
+)
+
 if(MSVC)
     set(PROJECT_WARNINGS_CXX ${MSVC_WARNINGS})
 elseif(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
-    set(PROJECT_WARNINGS_CXX ${CLANG_WARNINGS})
+    set(PROJECT_WARNINGS_CXX ${CLANG_WARNINGS} ${CLANG_WARNINGS_DISABLE})
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(PROJECT_WARNINGS_CXX ${GCC_WARNINGS})
+    set(PROJECT_WARNINGS_CXX ${GCC_WARNINGS} ${GCC_WARNINGS_DISABLE})
 else()
     message(AUTHOR_WARNING "No compiler warnings set for CXX compiler: '${CMAKE_CXX_COMPILER_ID}'")
 endif()

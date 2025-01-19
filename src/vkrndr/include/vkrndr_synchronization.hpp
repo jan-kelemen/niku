@@ -1,8 +1,6 @@
 #ifndef VKRNDR_SYNCHRONIZATION_INCLUDED
 #define VKRNDR_SYNCHRONIZATION_INCLUDED
 
-#include <cppext_pragma_warning.hpp>
-
 #include <volk.h>
 
 #include <concepts>
@@ -23,10 +21,7 @@ namespace vkrndr
 
     [[nodiscard]] constexpr VkMemoryBarrier2 memory_barrier()
     {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
         return {.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2, .pNext = nullptr};
-        DISABLE_WARNING_POP
     }
 
     [[nodiscard]] constexpr VkBufferMemoryBarrier2 buffer_barrier(
@@ -34,8 +29,6 @@ namespace vkrndr
         VkDeviceSize const offset = 0,
         VkDeviceSize const size = VK_WHOLE_SIZE)
     {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
         return {.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
             .pNext = nullptr,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -43,7 +36,6 @@ namespace vkrndr
             .buffer = buffer,
             .offset = offset,
             .size = size};
-        DISABLE_WARNING_POP
     }
 
     [[nodiscard]] constexpr VkImageSubresourceRange whole_resource(
@@ -62,8 +54,6 @@ namespace vkrndr
         VkImage const image,
         VkImageSubresourceRange const& resource_range = whole_resource())
     {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
         return {.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
             .pNext = nullptr,
             .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -72,7 +62,6 @@ namespace vkrndr
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .image = image,
             .subresourceRange = resource_range};
-        DISABLE_WARNING_POP
     }
 
     template<typename T>
