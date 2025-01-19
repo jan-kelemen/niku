@@ -169,21 +169,25 @@ galileo::render_graph_t::render_graph_t(vkrndr::backend_t& backend)
     for (auto& data : cppext::as_span(frame_data_))
     {
         data.instance_vertex_buffer = vkrndr::create_buffer(backend_->device(),
-            sizeof(graph_instance_vertex_t) * max_instance_count,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            {.size = sizeof(graph_instance_vertex_t) * max_instance_count,
+                .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
 
         data.instance_map =
             vkrndr::map_memory(backend_->device(), data.instance_vertex_buffer);
 
         data.uniform = vkrndr::create_buffer(backend_->device(),
-            sizeof(gpu_render_node_t) * max_instance_count,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            {.size = sizeof(gpu_render_node_t) * max_instance_count,
+                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
 
         data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);
 
@@ -248,10 +252,11 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
 
     destroy(&backend_->device(), &vertex_buffer_);
     vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
-        sizeof(graph_vertex_t) *
-            (model.vertex_buffer.size / sizeof(vkgltf::vertex_t)),
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        {.size = sizeof(graph_vertex_t) *
+                (model.vertex_buffer.size / sizeof(vkgltf::vertex_t)),
+            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
     {
         auto staging{vkrndr::create_staging_buffer(backend_->device(),
             vertex_buffer_.size)};
@@ -279,9 +284,10 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
 
     destroy(&backend_->device(), &index_buffer_);
     index_buffer_ = vkrndr::create_buffer(backend_->device(),
-        model.index_buffer.size,
-        VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        {.size = model.index_buffer.size,
+            .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
     backend_->transfer_buffer(model.index_buffer, index_buffer_);
 }

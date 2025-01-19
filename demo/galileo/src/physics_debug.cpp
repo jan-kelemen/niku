@@ -128,11 +128,13 @@ galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {
         data.vertex_buffer = vkrndr::create_buffer(backend_->device(),
-            max_line_count * sizeof(line_vertex_t),
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            {.size = max_line_count * sizeof(line_vertex_t),
+                .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
         data.vertex_map =
             vkrndr::map_memory(backend_->device(), data.vertex_buffer);
     }

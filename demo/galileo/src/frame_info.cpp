@@ -135,20 +135,24 @@ galileo::frame_info_t::frame_info_t(vkrndr::backend_t& backend)
     for (auto& data : cppext::as_span(frame_data_))
     {
         data.info_buffer = vkrndr::create_buffer(backend_->device(),
-            sizeof(gpu_frame_info_t),
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            {.size = sizeof(gpu_frame_info_t),
+                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
         data.info_map =
             vkrndr::map_memory(backend_->device(), data.info_buffer);
 
         data.light_buffer = vkrndr::create_buffer(backend_->device(),
-            sizeof(gpu_light_t) * max_lights,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            {.size = sizeof(gpu_light_t) * max_lights,
+                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
         data.light_map =
             vkrndr::map_memory(backend_->device(), data.light_buffer);
 

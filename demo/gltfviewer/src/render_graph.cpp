@@ -216,18 +216,20 @@ void gltfviewer::render_graph_t::load(vkgltf::model_t&& model)
 
     vertex_count_ = model.vertex_count;
     vertex_buffer_ = create_buffer(backend_->device(),
-        model.vertex_buffer.size,
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        {.size = model.vertex_buffer.size,
+            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
     backend_->transfer_buffer(model.vertex_buffer, vertex_buffer_);
 
     if (model.index_count > 0)
     {
         index_count_ = model.index_count;
         index_buffer_ = create_buffer(backend_->device(),
-            model.index_buffer.size,
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            {.size = model.index_buffer.size,
+                .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
         backend_->transfer_buffer(model.index_buffer, index_buffer_);
     }
 
@@ -237,11 +239,13 @@ void gltfviewer::render_graph_t::load(vkgltf::model_t&& model)
     for (auto& data : cppext::as_span(frame_data_))
     {
         data.uniform = create_buffer(backend_->device(),
-            transform_buffer_size,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            {.size = transform_buffer_size,
+                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
         data.uniform_map = map_memory(backend_->device(), data.uniform);
 
         vkrndr::create_descriptor_sets(backend_->device(),

@@ -169,11 +169,13 @@ gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
             sizeof(environment_uniform_t) + sizeof(::light_t) * lights_.size()};
 
         data.uniform = create_buffer(backend_->device(),
-            uniform_buffer_size,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            {.size = uniform_buffer_size,
+                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
         object_name(backend_->device(), data.uniform, "Environment Uniform");
 
         data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);

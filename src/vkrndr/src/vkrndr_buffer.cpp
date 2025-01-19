@@ -3,6 +3,8 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <cppext_pragma_warning.hpp>
+
 #include <vma_impl.hpp>
 
 void vkrndr::destroy(device_t const* device, buffer_t* const buffer)
@@ -14,28 +16,48 @@ void vkrndr::destroy(device_t const* device, buffer_t* const buffer)
 }
 
 vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
-    VkDeviceSize const size,
-    VkBufferCreateFlags const usage,
-    VkMemoryPropertyFlags const memory_properties)
+    buffer_create_info_t const& create_info)
 {
     buffer_t rv{};
-    rv.size = size;
+    rv.size = create_info.size;
 
     VkBufferCreateInfo buffer_info{};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_info.size = size;
-    buffer_info.usage = usage;
-    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    buffer_info.pNext = create_info.chain;
+    buffer_info.flags = create_info.buffer_flags;
+    buffer_info.size = create_info.size;
+    buffer_info.usage = create_info.usage;
+    if (create_info.sharing_queue_families.empty())
+    {
+        buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
+    else
+    {
+        buffer_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        buffer_info.queueFamilyIndexCount =
+            count_cast(create_info.sharing_queue_families.size());
+        buffer_info.pQueueFamilyIndices =
+            create_info.sharing_queue_families.data();
+    }
 
     VmaAllocationCreateInfo vma_info{};
-    vma_info.usage = (usage & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-        ? VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE
-        : VMA_MEMORY_USAGE_AUTO;
-    if (memory_properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ||
-        memory_properties & VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
+    vma_info.flags = create_info.allocation_flags;
+    vma_info.usage = VMA_MEMORY_USAGE_AUTO;
+    if (create_info.required_memory_flags &
+        VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
     {
-        vma_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+        vma_info.usage = VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED;
     }
+    else if (create_info.preferred_memory_flags &
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+    {
+        vma_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    }
+    vma_info.requiredFlags = create_info.required_memory_flags;
+    vma_info.preferredFlags = create_info.preferred_memory_flags;
+    vma_info.memoryTypeBits = create_info.memory_type_bits;
+    vma_info.pool = create_info.pool;
+    vma_info.priority = create_info.priority;
 
     check_result(vmaCreateBuffer(device.allocator,
         &buffer_info,
@@ -50,10 +72,14 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
 vkrndr::buffer_t vkrndr::create_staging_buffer(device_t const& device,
     VkDeviceSize const size)
 {
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
     return create_buffer(device,
-        size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        {.size = size,
+            .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            .allocation_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
+    DISABLE_WARNING_POP;
 }

@@ -338,10 +338,10 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         unmap_memory(backend_->device(), &map);
 
         cubemap_vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
-            staging_buffer.size,
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            {.size = staging_buffer.size,
+                .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
         backend_->transfer_buffer(staging_buffer, cubemap_vertex_buffer_);
 
@@ -400,9 +400,10 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         unmap_memory(backend_->device(), &map);
 
         cubemap_index_buffer_ = vkrndr::create_buffer(backend_->device(),
-            staging_buffer.size,
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            {.size = staging_buffer.size,
+                .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
         backend_->transfer_buffer(staging_buffer, cubemap_index_buffer_);
 
@@ -439,10 +440,10 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         unmap_memory(backend_->device(), &map);
 
         cubemap_uniform_buffer_ = vkrndr::create_buffer(backend_->device(),
-            staging_buffer.size,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            {.size = staging_buffer.size,
+                .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
         backend_->transfer_buffer(staging_buffer, cubemap_uniform_buffer_);
 
