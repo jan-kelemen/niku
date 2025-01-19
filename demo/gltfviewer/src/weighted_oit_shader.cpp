@@ -24,6 +24,8 @@
 
 #include <boost/scope/defer.hpp>
 
+#include <vma_impl.hpp>
+
 #include <volk.h>
 
 #include <array>
@@ -282,6 +284,7 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
             .tiling = VK_IMAGE_TILING_OPTIMAL,
             .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                 VK_IMAGE_USAGE_SAMPLED_BIT,
+            .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -293,6 +296,7 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
             .tiling = VK_IMAGE_TILING_OPTIMAL,
             .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                 VK_IMAGE_USAGE_SAMPLED_BIT,
+            .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
 

@@ -21,6 +21,8 @@
 
 #include <glm/vec2.hpp>
 
+#include <vma_impl.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -329,6 +331,7 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
             .mip_levels = vkrndr::max_mip_levels(width, height),
             .tiling = VK_IMAGE_TILING_OPTIMAL,
             .usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
     for (VkImageView view : mip_views_)

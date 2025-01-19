@@ -3,6 +3,8 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 
+#include <vma_impl.hpp>
+
 #include <volk.h>
 
 #include <array>
@@ -95,6 +97,7 @@ vkrndr::image_t vkrndr::create_depth_buffer(device_t const& device,
             .samples = sample_count.value_or(device.max_msaa_samples),
             .tiling = VK_IMAGE_TILING_OPTIMAL,
             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_DEPTH_BIT);
 }
