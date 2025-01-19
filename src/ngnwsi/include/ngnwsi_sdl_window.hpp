@@ -55,7 +55,7 @@ namespace ngnwsi
 
         [[nodiscard]] VkSurfaceKHR create_surface(VkInstance instance) override;
 
-        [[nodiscard]] void destroy_surface(VkInstance instance) override;
+        void destroy_surface(VkInstance instance) override;
 
         [[nodiscard]] VkSurfaceKHR surface() const override;
 

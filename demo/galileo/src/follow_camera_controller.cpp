@@ -6,7 +6,6 @@
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
-#include <glm/trigonometric.hpp>
 #include <glm/vec3.hpp>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>

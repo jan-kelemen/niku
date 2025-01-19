@@ -362,9 +362,7 @@ void gltfviewer::application_t::draw()
                     depth_render_pass.begin(command_buffer,
                         {{0, 0}, depth_buffer_.extent})};
 
-                depth_pass_shader_->draw(*render_graph_,
-                    command_buffer,
-                    depth_buffer_);
+                depth_pass_shader_->draw(*render_graph_, command_buffer);
             }
 
             auto const barrier{vkrndr::with_access(
@@ -413,14 +411,9 @@ void gltfviewer::application_t::draw()
                     color_render_pass.begin(command_buffer,
                         {{0, 0}, color_image_.extent})};
 
-                pbr_shader_->draw(*render_graph_,
-                    command_buffer,
-                    color_image_,
-                    depth_buffer_);
+                pbr_shader_->draw(*render_graph_, command_buffer);
 
-                environment_->draw_skybox(command_buffer,
-                    color_image_,
-                    depth_buffer_);
+                environment_->draw_skybox(command_buffer);
             }
         }
     }
@@ -440,9 +433,7 @@ void gltfviewer::application_t::draw()
             [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
                 {{0, 0}, color_image_.extent})};
 
-            environment_->draw_skybox(command_buffer,
-                color_image_,
-                depth_buffer_);
+            environment_->draw_skybox(command_buffer);
         }
     }
 

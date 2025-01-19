@@ -57,6 +57,7 @@ DISABLE_WARNING_POP
 
 #include <imgui.h>
 
+#include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep

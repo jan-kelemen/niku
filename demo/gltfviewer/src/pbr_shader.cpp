@@ -3,8 +3,6 @@
 #include <config.hpp>
 #include <render_graph.hpp>
 
-#include <cppext_container.hpp>
-
 #include <vkgltf_model.hpp>
 
 #include <vkglsl_shader_set.hpp>
@@ -12,18 +10,14 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
-#include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
-#include <vkrndr_synchronization.hpp>
 
 #include <volk.h>
 
 #include <cassert>
 #include <filesystem>
 #include <functional>
-#include <span>
 #include <utility>
 
 // IWYU pragma: no_include <expected>
@@ -59,9 +53,7 @@ VkPipelineLayout gltfviewer::pbr_shader_t::pipeline_layout() const
 }
 
 void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
-    VkCommandBuffer command_buffer,
-    vkrndr::image_t const& color_image,
-    vkrndr::image_t const& depth_buffer)
+    VkCommandBuffer command_buffer)
 {
     auto switch_pipeline =
         [command_buffer,
@@ -78,7 +70,8 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
         }
     };
 
-    vkrndr::command_buffer_scope_t color_pass_scope{command_buffer,
+    [[maybe_unused]] vkrndr::command_buffer_scope_t const color_pass_scope{
+        command_buffer,
         "Opaque & Mask"};
     graph.traverse(static_cast<vkgltf::alpha_mode_t>(
                        std::to_underlying(vkgltf::alpha_mode_t::opaque) |

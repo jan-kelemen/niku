@@ -84,7 +84,6 @@ vkrndr::backend_t::backend_t(window_t& window,
     , device_{vkrndr::create_device(context_,
           window_->create_surface(context_.instance))}
     , swap_chain_{std::make_unique<swap_chain_t>(*window_,
-          context_,
           device_,
           render_settings_)}
     , frame_data_{settings.frames_in_flight, settings.frames_in_flight}

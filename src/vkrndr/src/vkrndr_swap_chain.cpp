@@ -1,6 +1,5 @@
 #include <vkrndr_swap_chain.hpp>
 
-#include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_global_data.hpp>
@@ -104,11 +103,9 @@ vkrndr::query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
 }
 
 vkrndr::swap_chain_t::swap_chain_t(window_t const& window,
-    context_t& context,
     device_t& device,
     render_settings_t const& settings)
     : window_{&window}
-    , context_{&context}
     , device_{&device}
     , settings_{&settings}
     , present_queue_{device.present_queue}

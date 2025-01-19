@@ -571,9 +571,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
     destroy(&backend_->device(), &cubemap_texture);
 }
 
-void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer,
-    vkrndr::image_t const& color_image,
-    vkrndr::image_t const& depth_buffer)
+void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer)
 {
     [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
         command_buffer,

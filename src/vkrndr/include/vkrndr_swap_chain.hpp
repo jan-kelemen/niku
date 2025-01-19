@@ -14,7 +14,6 @@
 namespace vkrndr
 {
     struct render_settings_t;
-    struct context_t;
     struct device_t;
     class execution_port_t;
     class window_t;
@@ -48,7 +47,6 @@ namespace vkrndr
     {
     public: // Construction
         swap_chain_t(window_t const& window,
-            context_t& context,
             device_t& device,
             render_settings_t const& settings);
 
@@ -98,7 +96,6 @@ namespace vkrndr
 
     private:
         window_t const* window_{};
-        context_t* context_{};
         device_t* device_{};
         render_settings_t const* settings_{};
         execution_port_t* present_queue_{};

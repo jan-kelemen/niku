@@ -224,14 +224,12 @@ void gltfviewer::environment_t::load_skybox(
     }
 }
 
-void gltfviewer::environment_t::draw_skybox(VkCommandBuffer command_buffer,
-    vkrndr::image_t const& color_image,
-    vkrndr::image_t const& depth_buffer)
+void gltfviewer::environment_t::draw_skybox(VkCommandBuffer command_buffer)
 {
     bind_on(command_buffer,
         skybox_.pipeline_layout(),
         VK_PIPELINE_BIND_POINT_GRAPHICS);
-    skybox_.draw(command_buffer, color_image, depth_buffer);
+    skybox_.draw(command_buffer);
 }
 
 void gltfviewer::environment_t::update(ngngfx::camera_t const& camera)

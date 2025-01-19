@@ -23,7 +23,6 @@ namespace ngngfx
 namespace vkrndr
 {
     class backend_t;
-    struct image_t;
 } // namespace vkrndr
 
 namespace gltfviewer
@@ -46,9 +45,7 @@ namespace gltfviewer
         void load_skybox(std::filesystem::path const& hdr_image,
             VkFormat depth_buffer_format);
 
-        void draw_skybox(VkCommandBuffer command_buffer,
-            vkrndr::image_t const& color_image,
-            vkrndr::image_t const& depth_buffer);
+        void draw_skybox(VkCommandBuffer command_buffer);
 
         void update(ngngfx::camera_t const& camera);
 

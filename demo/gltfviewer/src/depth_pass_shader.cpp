@@ -3,8 +3,6 @@
 #include <config.hpp>
 #include <render_graph.hpp>
 
-#include <cppext_container.hpp>
-
 #include <vkgltf_model.hpp>
 
 #include <vkglsl_shader_set.hpp>
@@ -12,19 +10,14 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
-#include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
-#include <vkrndr_synchronization.hpp>
 
 #include <volk.h>
 
 #include <cassert>
 #include <filesystem>
 #include <functional>
-#include <span>
-#include <utility>
 
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <chrono>
@@ -57,10 +50,11 @@ VkPipelineLayout gltfviewer::depth_pass_shader_t::pipeline_layout() const
 }
 
 void gltfviewer::depth_pass_shader_t::draw(render_graph_t const& graph,
-    VkCommandBuffer command_buffer,
-    vkrndr::image_t const& depth_buffer)
+    VkCommandBuffer command_buffer) const
 {
-    vkrndr::command_buffer_scope_t depth_pass_scope{command_buffer, "Depth"};
+    [[maybe_unused]] vkrndr::command_buffer_scope_t const depth_pass_scope{
+        command_buffer,
+        "Depth"};
 
     vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
 

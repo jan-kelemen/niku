@@ -250,7 +250,7 @@ vkrndr::device_t vkrndr::create_device(context_t const& context,
 
     device_families_t device_families;
     auto const device_it{std::ranges::find_if(devices,
-        [&context, &surface, &device_families](auto const& device) mutable
+        [&surface, &device_families](auto const& device) mutable
         {
             if (auto const families{is_device_suitable(device, surface)})
             {

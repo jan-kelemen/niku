@@ -36,9 +36,7 @@ namespace gltfviewer
             VkDescriptorSetLayout environment_layout,
             VkFormat depth_buffer_format);
 
-        void draw(VkCommandBuffer command_buffer,
-            vkrndr::image_t const& color_image,
-            vkrndr::image_t const& depth_buffer);
+        void draw(VkCommandBuffer command_buffer);
 
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 

@@ -11,7 +11,6 @@
 namespace vkrndr
 {
     class backend_t;
-    struct image_t;
 } // namespace vkrndr
 
 namespace gltfviewer
@@ -41,10 +40,7 @@ namespace gltfviewer
             VkDescriptorSetLayout materials_layout,
             VkFormat depth_buffer_format);
 
-        void draw(render_graph_t const& graph,
-            VkCommandBuffer command_buffer,
-            vkrndr::image_t const& color_image,
-            vkrndr::image_t const& depth_buffer);
+        void draw(render_graph_t const& graph, VkCommandBuffer command_buffer);
 
     public:
         pbr_shader_t& operator=(pbr_shader_t const&) = delete;

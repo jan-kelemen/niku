@@ -20,7 +20,7 @@ namespace vkrndr
         [[nodiscard]] virtual VkSurfaceKHR create_surface(
             VkInstance instance) = 0;
 
-        [[nodiscard]] virtual void destroy_surface(VkInstance instance) = 0;
+        virtual void destroy_surface(VkInstance instance) = 0;
 
         [[nodiscard]] virtual VkSurfaceKHR surface() const = 0;
 
