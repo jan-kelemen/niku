@@ -139,7 +139,6 @@ Following third party libraries are used:
 * [Dear ImGui](https://github.com/ocornut/imgui) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [meshoptimizer](https://meshoptimizer.org) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [MikkTSpace](http://www.mikktspace.com) published under [Zlib](https://spdx.org/licenses/Zlib.html)
-* [siv::PerlinNoise](https://github.com/Reputeless/PerlinNoise/) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [SDL](https://www.libsdl.org/) published under [Zlib](https://spdx.org/licenses/Zlib.html)
 * [simdjson](https://simdjson.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * [spdlog](https://github.com/gabime/spdlog) published under [MIT](https://spdx.org/licenses/MIT.html)
