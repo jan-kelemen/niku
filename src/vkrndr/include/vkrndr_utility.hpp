@@ -23,10 +23,38 @@ namespace vkrndr
     }
 
     template<std::integral T>
-    [[nodiscard]] VkExtent2D to_extent(T const width, T const height)
+    [[nodiscard]] constexpr VkExtent2D to_2d_extent(T const width,
+        T const height = 1)
     {
         return {cppext::narrow<uint32_t>(width),
             cppext::narrow<uint32_t>(height)};
+    }
+
+    [[nodiscard]] constexpr VkExtent2D to_2d_extent(VkExtent3D const extent)
+    {
+        return {extent.width, extent.height};
+    }
+
+    template<std::integral T>
+    [[nodiscard]] constexpr VkExtent3D to_3d_extent(T const extent)
+    {
+        return {cppext::narrow<uint32_t>(extent), 1, 1};
+    }
+
+    template<std::integral T>
+    [[nodiscard]] constexpr VkExtent3D
+    to_3d_extent(T const width, T const height = 1, T const depth = 1)
+    {
+        return {cppext::narrow<uint32_t>(width),
+            cppext::narrow<uint32_t>(height),
+            cppext::narrow<uint32_t>(depth)};
+    }
+
+    template<std::integral T = uint32_t>
+    [[nodiscard]] constexpr VkExtent3D to_3d_extent(VkExtent2D const extent,
+        T const depth = 1)
+    {
+        return {extent.width, extent.height, cppext::narrow<uint32_t>(depth)};
     }
 
     template<std::integral T>

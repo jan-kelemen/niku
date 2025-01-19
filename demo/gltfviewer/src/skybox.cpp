@@ -301,7 +301,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
     stbi_set_flip_vertically_on_load(0);
     assert(hdr_texture_data);
 
-    auto const hdr_extent{vkrndr::to_extent(width, height)};
+    auto const hdr_extent{vkrndr::to_2d_extent(width, height)};
     vkrndr::image_t cubemap_texture = backend_->transfer_image(
         as_bytes(std::span{hdr_texture_data,
             size_t{hdr_extent.width} * hdr_extent.height * 4}),
@@ -548,13 +548,12 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
     brdf_sampler_ = create_brdf_sampler(backend_->device());
 
     brdf_lookup_ = vkrndr::create_image_and_view(backend_->device(),
-        vkrndr::to_extent(512, 512),
-        1,
-        VK_SAMPLE_COUNT_1_BIT,
-        VK_FORMAT_R16G16_SFLOAT,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R16G16_SFLOAT,
+            .extent = vkrndr::to_2d_extent(512, 512),
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
 
     generate_brdf_lookup();
@@ -956,7 +955,8 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
             .maxDepth = 1.0f};
         vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-        VkRect2D const scissor{{0, 0}, brdf_lookup_.extent};
+        VkRect2D const scissor{{0, 0},
+            vkrndr::to_2d_extent(brdf_lookup_.extent)};
         vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
         bind_pipeline(command_buffer, pipeline);

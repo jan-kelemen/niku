@@ -210,7 +210,7 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
             depth_buffer.view);
 
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, accumulation_image_.extent})};
+            {{0, 0}, vkrndr::to_2d_extent(accumulation_image_.extent)})};
 
         auto const switch_pipeline =
             []([[maybe_unused]] vkgltf::alpha_mode_t const mode,
@@ -260,7 +260,7 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
 
         [[maybe_unused]] auto const guard{
             color_render_pass.begin(command_buffer,
-                {{0, 0}, color_image.extent})};
+                {{0, 0}, vkrndr::to_2d_extent(color_image.extent)})};
 
         vkrndr::bind_pipeline(command_buffer,
             composition_pipeline_,
@@ -276,24 +276,24 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
 {
     destroy(&backend_->device(), &accumulation_image_);
     accumulation_image_ = create_image_and_view(backend_->device(),
-        vkrndr::to_extent(width, height),
-        1,
-        backend_->device().max_msaa_samples,
-        VK_FORMAT_R16G16B16A16_SFLOAT,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R16G16B16A16_SFLOAT,
+            .extent = vkrndr::to_2d_extent(width, height),
+            .samples = backend_->device().max_msaa_samples,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
 
     destroy(&backend_->device(), &reveal_image_);
     reveal_image_ = create_image_and_view(backend_->device(),
-        vkrndr::to_extent(width, height),
-        1,
-        backend_->device().max_msaa_samples,
-        VK_FORMAT_R8_UNORM,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R8_UNORM,
+            .extent = vkrndr::to_2d_extent(width, height),
+            .samples = backend_->device().max_msaa_samples,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
 
     update_descriptor_set(backend_->device(),

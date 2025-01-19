@@ -90,12 +90,11 @@ vkrndr::image_t vkrndr::create_depth_buffer(device_t const& device,
     VkFormat const depth_format{
         find_depth_format(device.physical, with_stencil_component)};
     return create_image_and_view(device,
-        extent,
-        1,
-        sample_count.value_or(device.max_msaa_samples),
-        depth_format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        image_2d_create_info_t{.format = depth_format,
+            .extent = extent,
+            .samples = sample_count.value_or(device.max_msaa_samples),
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_DEPTH_BIT);
 }

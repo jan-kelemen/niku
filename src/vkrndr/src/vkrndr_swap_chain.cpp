@@ -258,7 +258,7 @@ void vkrndr::swap_chain_t::create_swap_frames()
             image_format_,
             VK_SAMPLE_COUNT_1_BIT,
             1,
-            extent_);
+            to_3d_extent(extent_));
     }
     // cppcheck-suppress-end useStlAlgorithm
 

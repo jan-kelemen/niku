@@ -151,7 +151,7 @@ vkrndr::image_t vkrndr::backend_t::swapchain_image()
         .format = swap_chain_->image_format(),
         .sample_count = VK_SAMPLE_COUNT_1_BIT,
         .mip_levels = 1,
-        .extent = swap_chain_->extent()};
+        .extent = vkrndr::to_3d_extent(swap_chain_->extent())};
 }
 
 vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
@@ -262,14 +262,13 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
     uint32_t const mip_levels)
 {
     image_t image{create_image_and_view(device_,
-        extent,
-        mip_levels,
-        VK_SAMPLE_COUNT_1_BIT,
-        format,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        image_2d_create_info_t{.format = format,
+            .extent = extent,
+            .mip_levels = mip_levels,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT)};
     boost::scope::scope_fail const rollback{
         [this, &image]() mutable { destroy(&device_, &image); }};

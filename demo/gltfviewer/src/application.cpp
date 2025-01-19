@@ -36,6 +36,7 @@
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
+#include <vkrndr_utility.hpp>
 
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_STRINGOP_OVERFLOW
@@ -91,13 +92,14 @@ namespace
         vkrndr::backend_t const& backend)
     {
         return vkrndr::create_image_and_view(backend.device(),
-            backend.extent(),
-            1,
-            backend.device().max_msaa_samples,
-            VK_FORMAT_R16G16B16A16_SFLOAT,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            vkrndr::image_2d_create_info_t{
+                .format = VK_FORMAT_R16G16B16A16_SFLOAT,
+                .extent = backend.extent(),
+                .samples = backend.device().max_msaa_samples,
+                .tiling = VK_IMAGE_TILING_OPTIMAL,
+                .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_SAMPLED_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
@@ -105,13 +107,13 @@ namespace
         vkrndr::backend_t const& backend)
     {
         return vkrndr::create_image_and_view(backend.device(),
-            backend.extent(),
-            1,
-            VK_SAMPLE_COUNT_1_BIT,
-            VK_FORMAT_R16G16B16A16_SFLOAT,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            vkrndr::image_2d_create_info_t{
+                .format = VK_FORMAT_R16G16B16A16_SFLOAT,
+                .extent = backend.extent(),
+                .tiling = VK_IMAGE_TILING_OPTIMAL,
+                .usage =
+                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
@@ -322,7 +324,7 @@ void gltfviewer::application_t::draw()
         .maxDepth = 1.0f};
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkRect2D const scissor{{0, 0}, target_image.extent};
+    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image.extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
@@ -360,7 +362,7 @@ void gltfviewer::application_t::draw()
             {
                 [[maybe_unused]] auto guard{
                     depth_render_pass.begin(command_buffer,
-                        {{0, 0}, depth_buffer_.extent})};
+                        {{0, 0}, vkrndr::to_2d_extent(depth_buffer_.extent)})};
 
                 depth_pass_shader_->draw(*render_graph_, command_buffer);
             }
@@ -409,7 +411,7 @@ void gltfviewer::application_t::draw()
             {
                 [[maybe_unused]] auto guard{
                     color_render_pass.begin(command_buffer,
-                        {{0, 0}, color_image_.extent})};
+                        {{0, 0}, vkrndr::to_2d_extent(color_image_.extent)})};
 
                 pbr_shader_->draw(*render_graph_, command_buffer);
 
@@ -431,7 +433,7 @@ void gltfviewer::application_t::draw()
 
         {
             [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-                {{0, 0}, color_image_.extent})};
+                {{0, 0}, vkrndr::to_2d_extent(color_image_.extent)})};
 
             environment_->draw_skybox(command_buffer);
         }

@@ -25,11 +25,7 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
     buffer_info.flags = create_info.buffer_flags;
     buffer_info.size = create_info.size;
     buffer_info.usage = create_info.usage;
-    if (create_info.sharing_queue_families.empty())
-    {
-        buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    }
-    else
+    if (!create_info.sharing_queue_families.empty())
     {
         buffer_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
         buffer_info.queueFamilyIndexCount =

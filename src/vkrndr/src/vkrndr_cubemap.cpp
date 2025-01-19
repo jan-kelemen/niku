@@ -39,7 +39,7 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
     rv.format = format;
     rv.sample_count = samples;
     rv.mip_levels = mip_levels;
-    rv.extent = vkrndr::to_extent(dimension, dimension);
+    rv.extent = vkrndr::to_2d_extent(dimension, dimension);
 
     VkImageCreateInfo image_info{};
     image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;

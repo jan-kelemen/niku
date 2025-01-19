@@ -45,6 +45,7 @@
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <angelscript.h>
 
@@ -116,13 +117,13 @@ namespace
         vkrndr::backend_t const& backend)
     {
         return vkrndr::create_image_and_view(backend.device(),
-            backend.extent(),
-            1,
-            VK_SAMPLE_COUNT_1_BIT,
-            VK_FORMAT_R16G16B16A16_SFLOAT,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            vkrndr::image_2d_create_info_t{
+                .format = VK_FORMAT_R16G16B16A16_SFLOAT,
+                .extent = backend.extent(),
+                .tiling = VK_IMAGE_TILING_OPTIMAL,
+                .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_SAMPLED_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
@@ -357,7 +358,7 @@ void galileo::application_t::draw()
         .maxDepth = 1.0f};
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkRect2D const scissor{{0, 0}, target_image.extent};
+    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image.extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     {
@@ -435,8 +436,8 @@ void galileo::application_t::draw()
             VK_ATTACHMENT_STORE_OP_STORE,
             color_image_.view);
 
-        [[maybe_unused]] auto const guard{
-            lighting_pass.begin(command_buffer, {{0, 0}, color_image_.extent})};
+        [[maybe_unused]] auto const guard{lighting_pass.begin(command_buffer,
+            {{0, 0}, vkrndr::to_2d_extent(color_image_.extent)})};
 
         if (VkPipelineLayout const layout{deferred_shader_->pipeline_layout()})
         {
@@ -466,7 +467,7 @@ void galileo::application_t::draw()
 
         [[maybe_unused]] auto const guard{
             physics_debug_pass.begin(command_buffer,
-                {{0, 0}, target_image.extent})};
+                {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
 
         if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
         {

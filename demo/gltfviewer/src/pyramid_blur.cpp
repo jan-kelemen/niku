@@ -324,13 +324,12 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
 {
     destroy(&backend_->device(), &pyramid_image_);
     pyramid_image_ = vkrndr::create_image(backend_->device(),
-        vkrndr::to_extent(width, height),
-        vkrndr::max_mip_levels(width, height),
-        VK_SAMPLE_COUNT_1_BIT,
-        VK_FORMAT_R16G16B16A16_SFLOAT,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R16G16B16A16_SFLOAT,
+            .extent = vkrndr::to_2d_extent(width, height),
+            .mip_levels = vkrndr::max_mip_levels(width, height),
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
     for (VkImageView view : mip_views_)
     {
@@ -340,7 +339,7 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
     mip_views_.resize(pyramid_image_.mip_levels);
     mip_extents_.resize(pyramid_image_.mip_levels);
 
-    auto [mip_width, mip_height] = pyramid_image_.extent;
+    auto [mip_width, mip_height] = vkrndr::to_2d_extent(pyramid_image_.extent);
     for (uint32_t i{}; i != pyramid_image_.mip_levels; ++i)
     {
         mip_views_[i] = vkrndr::create_image_view(backend_->device(),

@@ -157,7 +157,7 @@ void ngnwsi::imgui_layer_t::render(VkCommandBuffer command_buffer,
                 command_buffer,
                 "ImGUI"};
             [[maybe_unused]] auto const guard{render_pass.begin(command_buffer,
-                {{0, 0}, target_image.extent})};
+                {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
             ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(),
                 command_buffer);
         }

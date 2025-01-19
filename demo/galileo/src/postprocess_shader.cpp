@@ -81,13 +81,14 @@ namespace
         VkExtent2D const extent)
     {
         return vkrndr::create_image_and_view(backend.device(),
-            extent,
-            1,
-            VK_SAMPLE_COUNT_1_BIT,
-            VK_FORMAT_R16G16B16A16_SFLOAT,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            vkrndr::image_2d_create_info_t{
+
+                .format = VK_FORMAT_R16G16B16A16_SFLOAT,
+                .extent = extent,
+                .tiling = VK_IMAGE_TILING_OPTIMAL,
+                .usage =
+                    VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
 
@@ -313,6 +314,6 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
 void galileo::postprocess_shader_t::resize(uint32_t width, uint32_t height)
 {
     destroy(&backend_->device(), &intermediate_image_);
-    intermediate_image_ =
-        create_intermediate_image(*backend_, vkrndr::to_extent(width, height));
+    intermediate_image_ = create_intermediate_image(*backend_,
+        vkrndr::to_2d_extent(width, height));
 }

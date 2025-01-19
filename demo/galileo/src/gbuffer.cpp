@@ -38,19 +38,21 @@ vkrndr::image_t& galileo::gbuffer_t::albedo_image()
 
 VkExtent2D galileo::gbuffer_t::extent() const
 {
-    return gbuffer_.images[0].extent;
+    return vkrndr::to_2d_extent(gbuffer_.images[0].extent);
 }
 
 void galileo::gbuffer_t::resize(uint32_t const width, uint32_t const height)
 {
+    constexpr std::array formats{position_format, normal_format, albedo_format};
+
     destroy(&backend_->device(), &gbuffer_);
     gbuffer_ = ngngfx::create_gbuffer(backend_->device(),
-        vkrndr::to_extent(width, height),
-        VK_SAMPLE_COUNT_1_BIT,
-        std::array{position_format, normal_format, albedo_format},
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        {.formats = formats,
+            .extent = vkrndr::to_2d_extent(width, height),
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
     object_name(backend_->device(), gbuffer_.images[0], "G-Buffer Position");
     object_name(backend_->device(), gbuffer_.images[1], "G-Buffer Normal");

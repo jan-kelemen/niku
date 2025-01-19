@@ -374,7 +374,7 @@ namespace
                 boost::scope::defer_guard const free_image{
                     [&data] { stbi_image_free(data); }};
 
-                auto const extent{vkrndr::to_extent(width, height)};
+                auto const extent{vkrndr::to_2d_extent(width, height)};
                 std::span<std::byte const> const image_data{
                     std::bit_cast<std::byte const*>(data),
                     size_t{extent.width} * extent.height * 4};
