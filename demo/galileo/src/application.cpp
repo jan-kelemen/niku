@@ -38,8 +38,8 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_debug_utils.hpp>
-#include <vkrndr_depth_buffer.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_render_pass.hpp>
@@ -133,10 +133,46 @@ namespace
     [[nodiscard]] vkrndr::image_t create_depth_buffer(
         vkrndr::backend_t const& backend)
     {
-        return vkrndr::create_depth_buffer(backend.device(),
-            backend.extent(),
-            false,
-            VK_SAMPLE_COUNT_1_BIT);
+        auto const& formats{
+            vkrndr::find_supported_depth_stencil_formats(backend.device(),
+                true,
+                false)};
+        vkrndr::image_2d_create_info_t create_info{.extent = backend.extent(),
+            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT};
+
+        auto const opt_it{std::ranges::find_if(formats,
+            [](auto const& f)
+            {
+                return f.properties.optimalTilingFeatures &
+                    VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            })};
+        if (opt_it != std::cend(formats))
+        {
+            create_info.format = opt_it->format;
+            create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+            return create_image_and_view(backend.device(),
+                create_info,
+                VK_IMAGE_ASPECT_DEPTH_BIT);
+        }
+
+        auto const lin_it{std::ranges::find_if(formats,
+            [](auto const& f)
+            {
+                return f.properties.linearTilingFeatures &
+                    VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            })};
+        if (lin_it != std::cend(formats))
+        {
+            create_info.format = lin_it->format;
+            create_info.tiling = VK_IMAGE_TILING_LINEAR;
+            return create_image_and_view(backend.device(),
+                create_info,
+                VK_IMAGE_ASPECT_DEPTH_BIT);
+        }
+
+        std::terminate();
     }
 
     [[nodiscard]] JPH::MeshShapeSettings to_jolt_mesh_shape(
