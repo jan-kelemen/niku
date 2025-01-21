@@ -6,6 +6,7 @@
 #include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
+#include <vkrndr_features.hpp>
 #include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
@@ -24,6 +25,7 @@
 #include <array>
 #include <cstring>
 #include <span>
+#include <string_view>
 #include <vector>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
@@ -80,15 +82,36 @@ vkrndr::backend_t::backend_t(window_t& window,
     bool const debug)
     : render_settings_{settings}
     , window_{&window}
-    , context_{vkrndr::create_context(debug, window_->required_extensions())}
-    , device_{vkrndr::create_device(context_,
-          window_->create_surface(context_.instance))}
-    , swap_chain_{std::make_unique<swap_chain_t>(*window_,
-          device_,
-          render_settings_)}
-    , frame_data_{settings.frames_in_flight, settings.frames_in_flight}
-    , descriptor_pool_{create_descriptor_pool(device_)}
 {
+    auto extensions{window_->required_extensions()};
+
+    check_result(volkInitialize());
+
+    auto const ex{query_instance_extensions()};
+    if (debug)
+    {
+        auto const it{std::ranges::find(ex,
+            std::string_view{VK_EXT_DEBUG_UTILS_EXTENSION_NAME},
+            &VkExtensionProperties::extensionName)};
+        if (it != std::cend(ex))
+        {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+    }
+
+    context_create_info_t const context_create_info{
+        .minimal_vulkan_version = VK_API_VERSION_1_3,
+        .extensions = extensions};
+    context_ = create_context(context_create_info);
+    device_ = vkrndr::create_device(context_,
+        window_->create_surface(context_.instance));
+    swap_chain_ =
+        std::make_unique<swap_chain_t>(*window_, device_, render_settings_);
+    frame_data_ =
+        cppext::cycled_buffer_t<frame_data_t>{settings.frames_in_flight,
+            settings.frames_in_flight};
+    descriptor_pool_ = create_descriptor_pool(device_);
+
     for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
         fd.present_queue = device_.present_queue;
@@ -124,6 +147,8 @@ vkrndr::backend_t::~backend_t()
     window_->destroy_surface(context_.instance);
 
     destroy(&context_);
+
+    volkFinalize();
 }
 
 VkFormat vkrndr::backend_t::image_format() const

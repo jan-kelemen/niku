@@ -133,10 +133,10 @@ namespace
     [[nodiscard]] vkrndr::image_t create_depth_buffer(
         vkrndr::backend_t const& backend)
     {
-        auto const& formats{
-            vkrndr::find_supported_depth_stencil_formats(backend.device(),
-                true,
-                false)};
+        auto const& formats{vkrndr::find_supported_depth_stencil_formats(
+            backend.device().physical,
+            true,
+            false)};
         vkrndr::image_2d_create_info_t create_info{.extent = backend.extent(),
             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,

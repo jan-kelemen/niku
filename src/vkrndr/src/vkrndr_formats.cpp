@@ -1,7 +1,5 @@
 #include <vkrndr_formats.hpp>
 
-#include <vkrndr_device.hpp>
-
 #include <volk.h>
 
 #include <array>
@@ -21,7 +19,7 @@ namespace
 } // namespace
 
 std::vector<vkrndr::depth_stencil_format_properties_t>
-vkrndr::find_supported_depth_stencil_formats(device_t const& device,
+vkrndr::find_supported_depth_stencil_formats(VkPhysicalDevice const device,
     bool const needs_depth_component,
     bool const needs_stencil_component)
 {
@@ -34,9 +32,7 @@ vkrndr::find_supported_depth_stencil_formats(device_t const& device,
             std::views::filter(all_depth_stencil_formats, func))
         {
             VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(device.physical,
-                format.format,
-                &props);
+            vkGetPhysicalDeviceFormatProperties(device, format.format, &props);
 
             if (props.linearTilingFeatures &
                     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT ||

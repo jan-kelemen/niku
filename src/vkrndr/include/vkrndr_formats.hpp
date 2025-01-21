@@ -21,7 +21,7 @@ namespace vkrndr
     };
 
     [[nodiscard]] std::vector<depth_stencil_format_properties_t>
-    find_supported_depth_stencil_formats(device_t const& device,
+    find_supported_depth_stencil_formats(VkPhysicalDevice device,
         bool needs_depth_component,
         bool needs_stencil_component);
 } // namespace vkrndr

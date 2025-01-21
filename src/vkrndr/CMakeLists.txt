@@ -12,6 +12,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_descriptors.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_device.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_execution_port.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_features.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_formats.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_image.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_memory.hpp
@@ -35,6 +36,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_descriptors.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_device.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_execution_port.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_features.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_formats.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.cpp

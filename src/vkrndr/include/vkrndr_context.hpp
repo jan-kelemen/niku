@@ -3,6 +3,7 @@
 
 #include <volk.h>
 
+#include <cstdint>
 #include <span>
 
 namespace vkrndr
@@ -10,13 +11,24 @@ namespace vkrndr
     struct [[nodiscard]] context_t final
     {
         VkInstance instance{VK_NULL_HANDLE};
-        VkDebugUtilsMessengerEXT debug_messenger{VK_NULL_HANDLE};
     };
 
-    context_t create_context(bool setup_validation_layers,
-        std::span<char const* const> const& required_extensions);
-
     void destroy(context_t* context);
+
+    struct [[nodiscard]] context_create_info_t final
+    {
+        void const* chain{};
+
+        uint32_t minimal_vulkan_version{};
+        std::span<char const* const> extensions{};
+        std::span<char const* const> layers{};
+
+        char const* const application_name{};
+        uint32_t application_version{};
+    };
+
+    context_t create_context(context_create_info_t const& create_info);
+
 } // namespace vkrndr
 
 #endif
