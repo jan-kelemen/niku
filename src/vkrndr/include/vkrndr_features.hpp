@@ -11,6 +11,10 @@ namespace vkrndr
 
     [[nodiscard]] std::vector<VkExtensionProperties> query_instance_extensions(
         char const* layer_name = nullptr);
+
+    [[nodiscard]] std::vector<VkExtensionProperties> query_device_extensions(
+        VkPhysicalDevice device,
+        char const* layer_name = nullptr);
 } // namespace vkrndr
 
 #endif

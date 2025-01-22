@@ -222,14 +222,11 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_color_attachment(
     VkFormat const format,
     std::optional<VkPipelineColorBlendAttachmentState> const& color_blending)
 {
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
     static constexpr VkPipelineColorBlendAttachmentState const
         default_color_blending{.blendEnable = VK_FALSE,
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
                 VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
                 VK_COLOR_COMPONENT_A_BIT};
-    DISABLE_WARNING_POP
 
     color_attachments_.push_back(format);
     color_blending_.push_back(color_blending.value_or(default_color_blending));
@@ -291,8 +288,6 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_depth_test(
 
     depth_format_ = depth_format;
 
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
     VkPipelineDepthStencilStateCreateInfo depth_stencil{
         depth_stencil_.value_or(VkPipelineDepthStencilStateCreateInfo{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -303,7 +298,6 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_depth_test(
             .minDepthBounds = 0.0f,
             .maxDepthBounds = 1.0f,
         })};
-    DISABLE_WARNING_POP
 
     auto const enabled{
         depth_format_ != VK_FORMAT_UNDEFINED ? VK_TRUE : VK_FALSE};
@@ -327,8 +321,6 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_stencil_test(
 
     depth_format_ = depth_format;
 
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_MISSING_FIELD_INITIALIZERS
     VkPipelineDepthStencilStateCreateInfo depth_stencil{
         depth_stencil_.value_or(VkPipelineDepthStencilStateCreateInfo{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -342,7 +334,6 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_stencil_test(
             .minDepthBounds = 0.0f,
             .maxDepthBounds = 1.0f,
         })};
-    DISABLE_WARNING_POP
 
     auto const enabled{
         depth_format_ != VK_FORMAT_UNDEFINED ? VK_TRUE : VK_FALSE};

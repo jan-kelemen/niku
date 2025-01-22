@@ -25,6 +25,7 @@
 #include <array>
 #include <cstring>
 #include <span>
+#include <stdexcept>
 #include <string_view>
 #include <vector>
 
@@ -34,6 +35,28 @@
 
 namespace
 {
+    constexpr std::array const required_device_extensions{
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+    VkPhysicalDeviceVulkan13Features required_device_13_features{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .synchronization2 = VK_TRUE,
+        .dynamicRendering = VK_TRUE};
+
+    VkPhysicalDeviceVulkan12Features required_device_12_features{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .pNext = &required_device_13_features,
+        .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+        .runtimeDescriptorArray = VK_TRUE};
+
+    VkPhysicalDeviceFeatures2 required_device_features{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &required_device_12_features,
+        .features{.independentBlend = VK_TRUE,
+            .sampleRateShading = VK_TRUE,
+            .wideLines = VK_TRUE,
+            .samplerAnisotropy = VK_TRUE}};
+
     VkDescriptorPool create_descriptor_pool(vkrndr::device_t const& device)
     {
         VkDescriptorPoolSize uniform_buffer_pool_size{};
@@ -75,6 +98,162 @@ namespace
 
         return rv;
     }
+
+    [[nodiscard]] bool check_physical_device_features(VkPhysicalDevice device)
+    {
+        VkPhysicalDeviceVulkan13Features features_13{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+
+        VkPhysicalDeviceVulkan12Features features_12{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .pNext = &features_13};
+
+        VkPhysicalDeviceFeatures2 features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .pNext = &features_12};
+
+        vkGetPhysicalDeviceFeatures2(device, &features);
+
+        auto const all_true = [](std::ranges::range auto&& range)
+        {
+            return std::all_of(std::begin(range),
+                std::end(range),
+                [](auto const value) { return value == VK_TRUE; });
+        };
+
+        std::array const f10{features.features.independentBlend,
+            features.features.sampleRateShading,
+            features.features.wideLines,
+            features.features.samplerAnisotropy};
+        if (!all_true(f10))
+        {
+            return false;
+        }
+
+        std::array const f12{
+            features_12.shaderSampledImageArrayNonUniformIndexing,
+            features_12.runtimeDescriptorArray};
+        if (!all_true(f12))
+        {
+            return false;
+        }
+
+        std::array const f13{features_13.synchronization2,
+            features_13.dynamicRendering};
+        if (!all_true(f13))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    struct [[nodiscard]] queried_physical_device_t final
+    {
+        VkPhysicalDevice device;
+        VkPhysicalDeviceProperties properties;
+        std::vector<VkExtensionProperties> extensions;
+        std::vector<vkrndr::queue_family_t> queue_families;
+        vkrndr::swap_chain_support_t swap_chain_support;
+    };
+
+    [[nodiscard]] std::vector<queried_physical_device_t>
+    filter_physical_devices(vkrndr::context_t& context, VkSurfaceKHR surface)
+    {
+        std::vector<queried_physical_device_t> rv;
+        for (VkPhysicalDevice device :
+            vkrndr::query_physical_devices(context.instance))
+        {
+            queried_physical_device_t qpd{.device = device};
+
+            qpd.extensions = vkrndr::query_device_extensions(device);
+            bool const device_extensions_supported{
+                std::all_of(required_device_extensions.cbegin(),
+                    required_device_extensions.cend(),
+                    [de = qpd.extensions](std::string_view name)
+                    {
+                        return std::ranges::find(de,
+                                   name,
+                                   &VkExtensionProperties::extensionName) !=
+                            std::end(de);
+                    })};
+
+            if (!device_extensions_supported)
+            {
+                continue;
+            }
+
+            if (!check_physical_device_features(device))
+            {
+                continue;
+            }
+
+            qpd.queue_families = vkrndr::query_queue_families(device, surface);
+            if (surface != VK_NULL_HANDLE)
+            {
+                bool const has_present_queue{std::any_of(
+                    qpd.queue_families.cbegin(),
+                    qpd.queue_families.cend(),
+                    [](vkrndr::queue_family_t const& family)
+                    {
+                        return family.supports_present &&
+                            vkrndr::supports_flags(family.properties.queueFlags,
+                                VK_QUEUE_GRAPHICS_BIT);
+                    })};
+                if (!has_present_queue)
+                {
+                    continue;
+                }
+
+                qpd.swap_chain_support =
+                    vkrndr::query_swap_chain_support(device, surface);
+                if (qpd.swap_chain_support.surface_formats.empty() ||
+                    qpd.swap_chain_support.present_modes.empty())
+                {
+                    continue;
+                }
+            }
+
+            vkGetPhysicalDeviceProperties(device, &qpd.properties);
+
+            rv.emplace_back(std::move(qpd));
+        }
+
+        return rv;
+    }
+
+    [[nodiscard]] auto pick_device_by_type(
+        std::ranges::forward_range auto&& devices)
+    {
+        for (auto it{std::begin(devices)}; it != std::end(devices); ++it)
+        {
+            if (it->properties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            {
+                return it;
+            }
+        }
+
+        for (auto it{std::begin(devices)}; it != std::end(devices); ++it)
+        {
+            if (it->properties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+            {
+                return it;
+            }
+        }
+
+        for (auto it{std::begin(devices)}; it != std::end(devices); ++it)
+        {
+            if (it->properties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+            {
+                return it;
+            }
+        }
+
+        return std::end(devices);
+    }
 } // namespace
 
 vkrndr::backend_t::backend_t(window_t& window,
@@ -83,28 +262,61 @@ vkrndr::backend_t::backend_t(window_t& window,
     : render_settings_{settings}
     , window_{&window}
 {
-    auto extensions{window_->required_extensions()};
+    auto required_instance_extensions{window_->required_extensions()};
 
     check_result(volkInitialize());
 
-    auto const ex{query_instance_extensions()};
+    auto const instance_extensions{query_instance_extensions()};
     if (debug)
     {
-        auto const it{std::ranges::find(ex,
+        auto const it{std::ranges::find(instance_extensions,
             std::string_view{VK_EXT_DEBUG_UTILS_EXTENSION_NAME},
             &VkExtensionProperties::extensionName)};
-        if (it != std::cend(ex))
+        if (it != std::cend(instance_extensions))
         {
-            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+            required_instance_extensions.push_back(
+                VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
     }
 
     context_create_info_t const context_create_info{
         .minimal_vulkan_version = VK_API_VERSION_1_3,
-        .extensions = extensions};
+        .extensions = required_instance_extensions};
     context_ = create_context(context_create_info);
-    device_ = vkrndr::create_device(context_,
+
+    auto const physical_devices{filter_physical_devices(context_,
+        window_->create_surface(context_.instance))};
+    auto physical_device_it{pick_device_by_type(physical_devices)};
+    if (physical_device_it == std::end(physical_devices))
+    {
+        throw std::runtime_error{"Suitable physical device not found"};
+    }
+
+    queue_family_t const family{
+        *std::ranges::find_if(physical_device_it->queue_families,
+            [](queue_family_t const& family)
+            {
+                return family.supports_present &&
+                    supports_flags(family.properties.queueFlags,
+                        VK_QUEUE_GRAPHICS_BIT);
+            })};
+
+    device_create_info_t const device_create_info{
+        .chain = &required_device_features,
+        .device = physical_device_it->device,
+        .extensions = required_device_extensions,
+        .queues = cppext::as_span(family)};
+    device_ = create_device(context_,
+        device_create_info,
         window_->create_surface(context_.instance));
+
+    auto& port{device_.execution_ports.emplace_back(device_.logical,
+        family.properties.queueFlags,
+        family.index,
+        0)};
+    device_.present_queue = &port;
+    device_.transfer_queue = &port;
+
     swap_chain_ =
         std::make_unique<swap_chain_t>(*window_, device_, render_settings_);
     frame_data_ =
