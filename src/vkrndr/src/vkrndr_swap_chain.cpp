@@ -15,6 +15,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <span>
 
@@ -52,6 +53,39 @@ namespace
             ? settings.preferred_present_mode
             : VK_PRESENT_MODE_FIFO_KHR;
     }
+
+    [[nodiscard]] std::vector<VkPresentModeKHR> query_compatible_present_modes(
+        VkPhysicalDevice const device,
+        VkSurfaceKHR const surface,
+        VkPresentModeKHR const present_mode)
+    {
+        std::array<VkPresentModeKHR, 7> results{};
+        VkSurfacePresentModeCompatibilityEXT compatibility{
+            .sType = VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_EXT,
+            .presentModeCount = vkrndr::count_cast(results.size()),
+            .pPresentModes = results.data()};
+
+        VkSurfacePresentModeEXT surface_present_mode{
+            .sType = VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT,
+            .presentMode = present_mode};
+
+        VkPhysicalDeviceSurfaceInfo2KHR surface_info{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+            .pNext = &surface_present_mode,
+            .surface = surface};
+
+        VkSurfaceCapabilities2KHR surface_capabilities{
+            .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+            .pNext = &compatibility};
+
+        vkGetPhysicalDeviceSurfaceCapabilities2KHR(device,
+            &surface_info,
+            &surface_capabilities);
+
+        return {std::cbegin(results),
+            std::cbegin(results) + compatibility.presentModeCount};
+    }
+
 } // namespace
 
 void vkrndr::detail::destroy(device_t const* const device,
@@ -202,6 +236,15 @@ void vkrndr::swap_chain_t::create_swap_frames()
     VkSurfaceFormatKHR const surface_format{
         choose_swap_surface_format(swap_details.surface_formats, *settings_)};
 
+    std::vector<VkPresentModeKHR> additional_present_modes;
+    if (settings_->swapchain_maintenance_1_supported)
+    {
+        additional_present_modes =
+            query_compatible_present_modes(device_->physical,
+                window_->surface(),
+                present_mode);
+    }
+
     image_format_ = surface_format.format;
     extent_ = window_->swap_extent(swap_details.capabilities);
     min_image_count_ = swap_details.capabilities.minImageCount;
@@ -230,6 +273,16 @@ void vkrndr::swap_chain_t::create_swap_frames()
     create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     create_info.queueFamilyIndexCount = 0;
     create_info.pQueueFamilyIndices = nullptr;
+
+    VkSwapchainPresentModesCreateInfoEXT present_modes{
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT,
+        .presentModeCount = count_cast(additional_present_modes.size()),
+        .pPresentModes = additional_present_modes.data()};
+
+    if (settings_->swapchain_maintenance_1_supported)
+    {
+        create_info.pNext = &present_modes;
+    }
 
     check_result(
         vkCreateSwapchainKHR(device_->logical, &create_info, nullptr, &chain_));

@@ -13,6 +13,8 @@ namespace vkrndr
         VkImageUsageFlags swapchain_flags{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
         VkPresentModeKHR preferred_present_mode{VK_PRESENT_MODE_MAILBOX_KHR};
         uint32_t frames_in_flight{2};
+
+        bool swapchain_maintenance_1_supported{false};
     };
 } // namespace vkrndr
 

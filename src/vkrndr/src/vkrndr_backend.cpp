@@ -38,24 +38,50 @@ namespace
     constexpr std::array const required_device_extensions{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-    VkPhysicalDeviceVulkan13Features required_device_13_features{
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-        .synchronization2 = VK_TRUE,
-        .dynamicRendering = VK_TRUE};
+    struct [[nodiscard]] feature_chain_t final
+    {
+        VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT
+            swapchain_maintenance_1_features{
+                .sType =
+                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT,
+                .swapchainMaintenance1 = VK_TRUE};
 
-    VkPhysicalDeviceVulkan12Features required_device_12_features{
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-        .pNext = &required_device_13_features,
-        .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
-        .runtimeDescriptorArray = VK_TRUE};
+        VkPhysicalDeviceVulkan13Features required_device_13_features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+            .synchronization2 = VK_TRUE,
+            .dynamicRendering = VK_TRUE};
 
-    VkPhysicalDeviceFeatures2 required_device_features{
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-        .pNext = &required_device_12_features,
-        .features{.independentBlend = VK_TRUE,
-            .sampleRateShading = VK_TRUE,
-            .wideLines = VK_TRUE,
-            .samplerAnisotropy = VK_TRUE}};
+        VkPhysicalDeviceVulkan12Features required_device_12_features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+            .runtimeDescriptorArray = VK_TRUE};
+
+        VkPhysicalDeviceFeatures2 required_device_features{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+            .features{.independentBlend = VK_TRUE,
+                .sampleRateShading = VK_TRUE,
+                .wideLines = VK_TRUE,
+                .samplerAnisotropy = VK_TRUE}};
+    };
+
+    void link_all(feature_chain_t& chain)
+    {
+        chain.required_device_features.pNext =
+            &chain.required_device_12_features;
+        chain.required_device_12_features.pNext =
+            &chain.required_device_13_features;
+        chain.required_device_13_features.pNext =
+            &chain.swapchain_maintenance_1_features;
+    }
+
+    void link_required(feature_chain_t& chain)
+    {
+        chain.required_device_features.pNext =
+            &chain.required_device_12_features;
+        chain.required_device_12_features.pNext =
+            &chain.required_device_13_features;
+        chain.required_device_13_features.pNext = nullptr;
+    }
 
     VkDescriptorPool create_descriptor_pool(vkrndr::device_t const& device)
     {
@@ -99,20 +125,13 @@ namespace
         return rv;
     }
 
-    [[nodiscard]] bool check_physical_device_features(VkPhysicalDevice device)
+    [[nodiscard]] std::optional<feature_chain_t> check_physical_device_features(
+        VkPhysicalDevice device)
     {
-        VkPhysicalDeviceVulkan13Features features_13{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+        feature_chain_t rv;
+        link_all(rv);
 
-        VkPhysicalDeviceVulkan12Features features_12{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-            .pNext = &features_13};
-
-        VkPhysicalDeviceFeatures2 features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .pNext = &features_12};
-
-        vkGetPhysicalDeviceFeatures2(device, &features);
+        vkGetPhysicalDeviceFeatures2(device, &rv.required_device_features);
 
         auto const all_true = [](std::ranges::range auto&& range)
         {
@@ -121,31 +140,32 @@ namespace
                 [](auto const value) { return value == VK_TRUE; });
         };
 
-        std::array const f10{features.features.independentBlend,
-            features.features.sampleRateShading,
-            features.features.wideLines,
-            features.features.samplerAnisotropy};
+        std::array const f10{
+            rv.required_device_features.features.independentBlend,
+            rv.required_device_features.features.sampleRateShading,
+            rv.required_device_features.features.wideLines,
+            rv.required_device_features.features.samplerAnisotropy};
         if (!all_true(f10))
         {
-            return false;
+            return {};
         }
 
-        std::array const f12{
-            features_12.shaderSampledImageArrayNonUniformIndexing,
-            features_12.runtimeDescriptorArray};
+        std::array const f12{rv.required_device_12_features
+                                 .shaderSampledImageArrayNonUniformIndexing,
+            rv.required_device_12_features.runtimeDescriptorArray};
         if (!all_true(f12))
         {
-            return false;
+            return {};
         }
 
-        std::array const f13{features_13.synchronization2,
-            features_13.dynamicRendering};
+        std::array const f13{rv.required_device_13_features.synchronization2,
+            rv.required_device_13_features.dynamicRendering};
         if (!all_true(f13))
         {
-            return false;
+            return {};
         }
 
-        return true;
+        return rv;
     }
 
     struct [[nodiscard]] queried_physical_device_t final
@@ -155,6 +175,7 @@ namespace
         std::vector<VkExtensionProperties> extensions;
         std::vector<vkrndr::queue_family_t> queue_families;
         vkrndr::swap_chain_support_t swap_chain_support;
+        feature_chain_t optional_features;
     };
 
     [[nodiscard]] std::vector<queried_physical_device_t>
@@ -168,8 +189,7 @@ namespace
 
             qpd.extensions = vkrndr::query_device_extensions(device);
             bool const device_extensions_supported{
-                std::all_of(required_device_extensions.cbegin(),
-                    required_device_extensions.cend(),
+                std::ranges::all_of(required_device_extensions,
                     [de = qpd.extensions](std::string_view name)
                     {
                         return std::ranges::find(de,
@@ -183,9 +203,9 @@ namespace
                 continue;
             }
 
-            if (!check_physical_device_features(device))
+            if (auto optional_features{check_physical_device_features(device)})
             {
-                continue;
+                qpd.optional_features = *std::move(optional_features);
             }
 
             qpd.queue_families = vkrndr::query_queue_families(device, surface);
@@ -281,6 +301,25 @@ vkrndr::backend_t::backend_t(window_t& window,
     }
 #endif
 
+    {
+        auto const caps2_it{std::ranges::find(instance_extensions,
+            std::string_view{VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME},
+            &VkExtensionProperties::extensionName)};
+
+        auto const maint1_it{std::ranges::find(instance_extensions,
+            std::string_view{VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME},
+            &VkExtensionProperties::extensionName)};
+
+        if (caps2_it != std::cend(instance_extensions) &&
+            maint1_it != std::cend(instance_extensions))
+        {
+            required_instance_extensions.push_back(
+                VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+            required_instance_extensions.push_back(
+                VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME);
+        }
+    }
+
     context_create_info_t const context_create_info{
         .minimal_vulkan_version = VK_API_VERSION_1_3,
         .extensions = required_instance_extensions};
@@ -303,10 +342,36 @@ vkrndr::backend_t::backend_t(window_t& window,
                         VK_QUEUE_GRAPHICS_BIT);
             })};
 
+    std::vector<char const*> effective_extensions{
+        std::cbegin(required_device_extensions),
+        std::cend(required_device_extensions)};
+
+    feature_chain_t effective_features;
+    link_required(effective_features);
+    if (physical_device_it->optional_features.swapchain_maintenance_1_features
+            .swapchainMaintenance1 == VK_TRUE)
+    {
+        auto const it{std::ranges::find(physical_device_it->extensions,
+            std::string_view{VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME},
+            &VkExtensionProperties::extensionName)};
+        if (it != std::cend(physical_device_it->extensions))
+        {
+            effective_extensions.push_back(
+                VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
+        }
+
+        effective_features.swapchain_maintenance_1_features.pNext =
+            effective_features.required_device_13_features.pNext;
+        effective_features.required_device_13_features.pNext =
+            &effective_features.swapchain_maintenance_1_features;
+
+        render_settings_.swapchain_maintenance_1_supported = true;
+    }
+
     device_create_info_t const device_create_info{
-        .chain = &required_device_features,
+        .chain = &effective_features.required_device_features,
         .device = physical_device_it->device,
-        .extensions = required_device_extensions,
+        .extensions = effective_extensions,
         .queues = cppext::as_span(family)};
     device_ = create_device(context_,
         device_create_info,
