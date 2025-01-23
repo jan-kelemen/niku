@@ -57,9 +57,13 @@ void galileo::gbuffer_t::resize(uint32_t const width, uint32_t const height)
             .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
-    object_name(backend_->device(), gbuffer_.images[0], "G-Buffer Position");
-    object_name(backend_->device(), gbuffer_.images[1], "G-Buffer Normal");
-    object_name(backend_->device(), gbuffer_.images[2], "G-Buffer Albedo");
+    VKRNDR_IF_DEBUG_UTILS(object_name(backend_->device(),
+        gbuffer_.images[0],
+        "G-Buffer Position"));
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), gbuffer_.images[1], "G-Buffer Normal"));
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), gbuffer_.images[2], "G-Buffer Albedo"));
 }
 
 void galileo::gbuffer_t::transition(VkCommandBuffer command_buffer,

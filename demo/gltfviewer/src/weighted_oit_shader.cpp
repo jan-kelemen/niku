@@ -185,13 +185,15 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& depth_buffer)
 {
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-        command_buffer,
-        "PBR Transparent"};
+    VKRNDR_IF_DEBUG_UTILS(
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
+            "PBR Transparent"});
 
     {
-        [[maybe_unused]] vkrndr::command_buffer_scope_t const
-            geometry_pass_scope{command_buffer, "Geometry"};
+        VKRNDR_IF_DEBUG_UTILS(
+            [[maybe_unused]] vkrndr::command_buffer_scope_t const
+                geometry_pass_scope{command_buffer, "Geometry"});
 
         vkrndr::wait_for_color_attachment_write(accumulation_image_.image,
             command_buffer);
@@ -252,8 +254,9 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
     }
 
     {
-        [[maybe_unused]] vkrndr::command_buffer_scope_t const
-            composition_pass_scope{command_buffer, "Composition"};
+        VKRNDR_IF_DEBUG_UTILS(
+            [[maybe_unused]] vkrndr::command_buffer_scope_t const
+                composition_pass_scope{command_buffer, "Composition"});
 
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
@@ -388,7 +391,8 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
             .add_vertex_input(graph.binding_description(),
                 graph.attribute_description())
             .build();
-    object_name(backend_->device(), pbr_pipeline_, "Transparent Pipeline");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), pbr_pipeline_, "Transparent Pipeline"));
 
     if (composition_pipeline_.pipeline != VK_NULL_HANDLE)
     {
@@ -455,7 +459,7 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
             .with_culling(VK_CULL_MODE_FRONT_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
-    object_name(backend_->device(),
+    VKRNDR_IF_DEBUG_UTILS(object_name(backend_->device(),
         composition_pipeline_,
-        "Composition pipeline");
+        "Composition pipeline"));
 }

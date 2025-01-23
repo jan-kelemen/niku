@@ -643,13 +643,15 @@ void galileo::application_t::on_resize(uint32_t const width,
 
     destroy(&backend_->device(), &depth_buffer_);
     depth_buffer_ = create_depth_buffer(*backend_);
-    object_name(backend_->device(), depth_buffer_, "Depth buffer");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), depth_buffer_, "Depth buffer"));
 
     gbuffer_->resize(width, height);
 
     destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_);
-    object_name(backend_->device(), color_image_, "Color image");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), color_image_, "Color image"));
 
     postprocess_shader_->resize(width, height);
 }

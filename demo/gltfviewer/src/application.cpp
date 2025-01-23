@@ -532,8 +532,9 @@ void gltfviewer::application_t::draw()
     }
 
     {
-        [[maybe_unused]] vkrndr::command_buffer_scope_t const
-            postprocess_cb_scope{command_buffer, "Postprocess"};
+        VKRNDR_IF_DEBUG_UTILS(
+            [[maybe_unused]] vkrndr::command_buffer_scope_t const
+                postprocess_cb_scope{command_buffer, "Postprocess"});
 
         auto const& blur_image{pyramid_blur_->source_image()};
         {
@@ -696,15 +697,18 @@ void gltfviewer::application_t::on_resize(uint32_t const width,
 {
     destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_);
-    object_name(backend_->device(), color_image_, "Offscreen Image");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), color_image_, "Offscreen Image"));
 
     destroy(&backend_->device(), &depth_buffer_);
     depth_buffer_ = create_depth_buffer(*backend_);
-    object_name(backend_->device(), depth_buffer_, "Depth Buffer");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), depth_buffer_, "Depth Buffer"));
 
     destroy(&backend_->device(), &resolve_image_);
     resolve_image_ = create_resolve_image(*backend_);
-    object_name(backend_->device(), resolve_image_, "Resolve Image");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), resolve_image_, "Resolve Image"));
 
     weighted_oit_shader_->resize(width, height);
 

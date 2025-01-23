@@ -1,9 +1,12 @@
 #include <vkrndr_buffer.hpp>
 
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <vma_impl.hpp>
+
+#include <bit>
 
 void vkrndr::destroy(device_t const* device, buffer_t* const buffer)
 {
@@ -73,4 +76,14 @@ vkrndr::buffer_t vkrndr::create_staging_buffer(device_t const& device,
             .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
+}
+
+void vkrndr::object_name(device_t const& device,
+    buffer_t const& buffer,
+    std::string_view name)
+{
+    object_name(device.logical,
+        VK_OBJECT_TYPE_BUFFER,
+        std::bit_cast<uint64_t>(buffer.buffer),
+        name);
 }

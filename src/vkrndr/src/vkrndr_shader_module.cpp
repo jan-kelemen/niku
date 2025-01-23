@@ -1,6 +1,6 @@
-#include <string_view>
 #include <vkrndr_shader_module.hpp>
 
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -90,4 +90,14 @@ VkPipelineShaderStageCreateInfo vkrndr::as_pipeline_shader(
     rv.pSpecializationInfo = specialization;
 
     return rv;
+}
+
+void vkrndr::object_name(device_t const& device,
+    shader_module_t const& shader_module,
+    std::string_view name)
+{
+    object_name(device.logical,
+        VK_OBJECT_TYPE_SHADER_MODULE,
+        std::bit_cast<uint64_t>(shader_module.handle),
+        name);
 }

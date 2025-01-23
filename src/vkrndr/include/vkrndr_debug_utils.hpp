@@ -61,25 +61,20 @@ namespace vkrndr
         std::span<float const, 4> const& color =
             std::array{0.0f, 0.0f, 0.0f, 0.0f});
 
-    void object_name(device_t const& device,
-        buffer_t const& buffer,
-        std::string_view name);
-
-    void object_name(device_t const& device,
-        cubemap_t const& cubemap,
-        std::string_view name);
-
-    void object_name(device_t const& device,
-        image_t const& image,
-        std::string_view name);
-
-    void object_name(device_t const& device,
-        pipeline_t const& pipeline,
+    void object_name(VkDevice device,
+        VkObjectType type,
+        uint64_t handle,
         std::string_view name);
 
     void object_name(device_t const& device,
         shader_module_t const& shader_module,
         std::string_view name);
 } // namespace vkrndr
+
+#if VKRNDR_ENABLE_DEBUG_UTILS
+#define VKRNDR_IF_DEBUG_UTILS(...) __VA_ARGS__
+#else
+#define VKRNDR_IF_DEBUG_UTILS
+#endif
 
 #endif

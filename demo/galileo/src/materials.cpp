@@ -250,7 +250,8 @@ namespace
                 .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT})};
-        object_name(backend.device(), rv, "Materials Storage Buffer");
+        VKRNDR_IF_DEBUG_UTILS(
+            object_name(backend.device(), rv, "Materials Storage Buffer"));
 
         backend.transfer_buffer(staging_buffer, rv);
 

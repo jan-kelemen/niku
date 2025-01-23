@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <vector>
 
 namespace vkrndr
@@ -193,6 +194,9 @@ namespace vkrndr
         VkPipelineShaderStageCreateInfo shader_{};
     };
 
+    void object_name(device_t const& device,
+        pipeline_t const& pipeline,
+        std::string_view name);
 } // namespace vkrndr
 
 #endif

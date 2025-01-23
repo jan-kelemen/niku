@@ -258,9 +258,10 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
     }
 
     {
-        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-            command_buffer,
-            "Tone Mapping"};
+        VKRNDR_IF_DEBUG_UTILS(
+            [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+                command_buffer,
+                "Tone Mapping"});
         update_descriptor_set(backend_->device(),
             frame_data_->tone_mapping_descriptor_set,
             vkrndr::combined_sampler_descriptor(sampler_, color_image),
@@ -292,9 +293,10 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
     }
 
     {
-        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-            command_buffer,
-            "FXAA"};
+        VKRNDR_IF_DEBUG_UTILS(
+            [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+                command_buffer,
+                "FXAA"});
         update_descriptor_set(backend_->device(),
             frame_data_->fxaa_descriptor_set,
             vkrndr::combined_sampler_descriptor(sampler_, intermediate_image_),

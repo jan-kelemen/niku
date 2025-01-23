@@ -167,9 +167,10 @@ void gltfviewer::weighted_blend_shader_t::draw(float const bias,
 {
     frame_data_.cycle();
 
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-        command_buffer,
-        "Weighted blend"};
+    VKRNDR_IF_DEBUG_UTILS(
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
+            "Weighted blend"});
 
     update_descriptor_set(backend_->device(),
         frame_data_->descriptor_,

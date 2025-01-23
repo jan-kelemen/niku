@@ -267,6 +267,7 @@ vkrndr::backend_t::backend_t(window_t& window,
     check_result(volkInitialize());
 
     auto const instance_extensions{query_instance_extensions()};
+#if VKRNDR_ENABLE_DEBUG_UTILS
     if (debug)
     {
         auto const it{std::ranges::find(instance_extensions,
@@ -278,6 +279,7 @@ vkrndr::backend_t::backend_t(window_t& window,
                 VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
     }
+#endif
 
     context_create_info_t const context_create_info{
         .minimal_vulkan_version = VK_API_VERSION_1_3,

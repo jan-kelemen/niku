@@ -148,9 +148,10 @@ void gltfviewer::postprocess_shader_t::draw(bool const color_conversion,
 {
     descriptor_sets_.cycle();
 
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-        command_buffer,
-        "Color Conversion & Tone Mapping"};
+    VKRNDR_IF_DEBUG_UTILS(
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
+            "Color Conversion & Tone Mapping"});
     update_descriptor_set(backend_->device(),
         *descriptor_sets_,
         vkrndr::storage_image_descriptor(color_image),

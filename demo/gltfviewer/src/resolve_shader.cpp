@@ -195,9 +195,10 @@ void gltfviewer::resolve_shader_t::draw(VkCommandBuffer command_buffer,
 {
     descriptor_sets_.cycle();
 
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-        command_buffer,
-        "Resolve"};
+    VKRNDR_IF_DEBUG_UTILS(
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
+            "Resolve"});
     update_descriptor_set(backend_->device(),
         *descriptor_sets_,
         vkrndr::combined_sampler_descriptor(combined_sampler_, color_image),

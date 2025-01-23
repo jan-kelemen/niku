@@ -52,9 +52,10 @@ VkPipelineLayout gltfviewer::depth_pass_shader_t::pipeline_layout() const
 void gltfviewer::depth_pass_shader_t::draw(render_graph_t const& graph,
     VkCommandBuffer command_buffer) const
 {
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const depth_pass_scope{
-        command_buffer,
-        "Depth"};
+    VKRNDR_IF_DEBUG_UTILS(
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const depth_pass_scope{
+            command_buffer,
+            "Depth"});
 
     vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
 
@@ -89,7 +90,8 @@ void gltfviewer::depth_pass_shader_t::load(render_graph_t const& graph,
 
         vertex_shader_ = *vertex_shader;
 
-        object_name(backend_->device(), vertex_shader_, "PBR vertex");
+        VKRNDR_IF_DEBUG_UTILS(
+            object_name(backend_->device(), vertex_shader_, "PBR vertex"));
         vertex_write_time_ = wt;
     }
 
@@ -119,5 +121,6 @@ void gltfviewer::depth_pass_shader_t::load(render_graph_t const& graph,
             .with_culling(VK_CULL_MODE_BACK_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
-    object_name(backend_->device(), depth_pipeline_, "Depth Pipeline");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), depth_pipeline_, "Depth Pipeline"));
 }

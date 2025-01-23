@@ -70,9 +70,10 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
         }
     };
 
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const color_pass_scope{
-        command_buffer,
-        "Opaque & Mask"};
+    VKRNDR_IF_DEBUG_UTILS(
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const color_pass_scope{
+            command_buffer,
+            "Opaque & Mask"});
     graph.traverse(static_cast<vkgltf::alpha_mode_t>(
                        std::to_underlying(vkgltf::alpha_mode_t::opaque) |
                        std::to_underlying(vkgltf::alpha_mode_t::mask)),
@@ -105,7 +106,8 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
 
         vertex_shader_ = *vertex_shader;
 
-        object_name(backend_->device(), vertex_shader_, "PBR vertex");
+        VKRNDR_IF_DEBUG_UTILS(
+            object_name(backend_->device(), vertex_shader_, "PBR vertex"));
         vertex_write_time_ = wt;
     }
 
@@ -125,7 +127,8 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
 
         fragment_shader_ = *fragment_shader;
 
-        object_name(backend_->device(), fragment_shader_, "PBR fragment");
+        VKRNDR_IF_DEBUG_UTILS(
+            object_name(backend_->device(), fragment_shader_, "PBR fragment"));
         fragment_write_time_ = wt;
     }
 
@@ -155,9 +158,9 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
             .add_vertex_input(graph.binding_description(),
                 graph.attribute_description())
             .build();
-    object_name(backend_->device(),
+    VKRNDR_IF_DEBUG_UTILS(object_name(backend_->device(),
         double_sided_pipeline_,
-        "Double Sided Pipeline");
+        "Double Sided Pipeline"));
 
     if (culling_pipeline_.pipeline != VK_NULL_HANDLE)
     {
@@ -178,5 +181,6 @@ void gltfviewer::pbr_shader_t::load(render_graph_t const& graph,
             .with_culling(VK_CULL_MODE_BACK_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();
-    object_name(backend_->device(), culling_pipeline_, "Culling Pipeline");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), culling_pipeline_, "Culling Pipeline"));
 }

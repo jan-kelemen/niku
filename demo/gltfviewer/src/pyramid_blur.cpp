@@ -207,9 +207,10 @@ void gltfviewer::pyramid_blur_t::draw(uint32_t const levels,
 {
     frame_data_.cycle();
 
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-        command_buffer,
-        "Pyramid blur"};
+    VKRNDR_IF_DEBUG_UTILS(
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
+            "Pyramid blur"});
 
     auto const l{
         std::clamp(levels, uint32_t{1}, pyramid_image_.mip_levels - 1)};
@@ -358,7 +359,8 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
         mip_height = std::max<uint32_t>(1, mip_height / 2);
     }
 
-    object_name(backend_->device(), pyramid_image_, "Pyramid Image");
+    VKRNDR_IF_DEBUG_UTILS(
+        object_name(backend_->device(), pyramid_image_, "Pyramid Image"));
 
     create_downsample_resources();
     create_upsample_resources();

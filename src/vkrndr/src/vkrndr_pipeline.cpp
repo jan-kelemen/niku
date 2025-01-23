@@ -1,16 +1,19 @@
 #include <vkrndr_pipeline.hpp>
 
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cppext_pragma_warning.hpp>
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
 #include <cstdint>
 #include <iterator>
 #include <memory>
 #include <span>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -397,4 +400,14 @@ vkrndr::compute_pipeline_builder_t::with_shader(
 {
     shader_ = shader;
     return *this;
+}
+
+void vkrndr::object_name(device_t const& device,
+    pipeline_t const& pipeline,
+    std::string_view name)
+{
+    object_name(device.logical,
+        VK_OBJECT_TYPE_PIPELINE,
+        std::bit_cast<uint64_t>(pipeline.pipeline),
+        name);
 }

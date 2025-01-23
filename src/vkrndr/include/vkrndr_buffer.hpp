@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <span>
+#include <string_view>
 
 namespace vkrndr
 {
@@ -43,5 +44,9 @@ namespace vkrndr
         buffer_create_info_t const& create_info);
 
     buffer_t create_staging_buffer(device_t const& device, VkDeviceSize size);
+
+    void object_name(device_t const& device,
+        buffer_t const& buffer,
+        std::string_view name);
 } // namespace vkrndr
 #endif

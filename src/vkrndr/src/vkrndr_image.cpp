@@ -1,11 +1,14 @@
 #include <vkrndr_image.hpp>
 
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <vma_impl.hpp>
 
 #include <boost/scope/scope_exit.hpp>
+
+#include <bit>
 
 void vkrndr::destroy(device_t const* device, image_t* const image)
 {
@@ -116,4 +119,14 @@ vkrndr::image_t vkrndr::create_image_and_view(device_t const& device,
     rollback.set_active(false);
 
     return rv;
+}
+
+void vkrndr::object_name(device_t const& device,
+    image_t const& image,
+    std::string_view name)
+{
+    object_name(device.logical,
+        VK_OBJECT_TYPE_IMAGE,
+        std::bit_cast<uint64_t>(image.image),
+        name);
 }

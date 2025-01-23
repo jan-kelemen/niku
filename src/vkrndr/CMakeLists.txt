@@ -76,3 +76,14 @@ target_compile_definitions(vkrndr
     PUBLIC
         VK_NO_PROTOTYPES
 )
+
+if (NOT DEFINED NIKU_VKRNDR_ENABLE_DEBUG_UTILS)
+    set(VKRNDR_ENABLE_DEBUG_UTILS $<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>)
+endif()
+
+if (VKRNDR_ENABLE_DEBUG_UTILS)
+    target_compile_definitions(vkrndr
+        PUBLIC 
+            VKRNDR_ENABLE_DEBUG_UTILS=1
+    )
+endif()

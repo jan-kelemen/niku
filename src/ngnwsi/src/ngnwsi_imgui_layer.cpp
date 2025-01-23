@@ -153,9 +153,10 @@ void ngnwsi::imgui_layer_t::render(VkCommandBuffer command_buffer,
             VK_ATTACHMENT_STORE_OP_STORE,
             target_image.view);
         {
-            [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-                command_buffer,
-                "ImGUI"};
+            VKRNDR_IF_DEBUG_UTILS(
+                [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+                    command_buffer,
+                    "ImGUI"});
             [[maybe_unused]] auto const guard{render_pass.begin(command_buffer,
                 {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
             ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(),

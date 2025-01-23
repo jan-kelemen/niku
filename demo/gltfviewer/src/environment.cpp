@@ -178,7 +178,9 @@ gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
                 .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
-        object_name(backend_->device(), data.uniform, "Environment Uniform");
+        VKRNDR_IF_DEBUG_UTILS(object_name(backend_->device(),
+            data.uniform,
+            "Environment Uniform"));
 
         data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);
 

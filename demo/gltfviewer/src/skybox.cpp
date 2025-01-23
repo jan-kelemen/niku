@@ -573,9 +573,10 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
 void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer)
 {
-    [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
-        command_buffer,
-        "Skybox"};
+    VKRNDR_IF_DEBUG_UTILS(
+        [[maybe_unused]] vkrndr::command_buffer_scope_t const cb_scope{
+            command_buffer,
+            "Skybox"});
 
     VkDeviceSize const zero_offset{};
     vkCmdBindVertexBuffers(command_buffer,

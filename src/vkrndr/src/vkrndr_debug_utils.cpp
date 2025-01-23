@@ -16,28 +16,6 @@
 #include <span>
 #include <string_view>
 
-namespace
-{
-    void object_name(VkDevice const device,
-        VkObjectType const type,
-        uint64_t const handle,
-        std::string_view name)
-    {
-        if (!vkSetDebugUtilsObjectNameEXT)
-        {
-            return;
-        }
-
-        VkDebugUtilsObjectNameInfoEXT info{};
-        info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        info.objectType = type;
-        info.objectHandle = handle;
-        info.pObjectName = name.data();
-
-        vkSetDebugUtilsObjectNameEXT(device, &info);
-    }
-} // namespace
-
 vkrndr::command_buffer_scope_t::command_buffer_scope_t(
     VkCommandBuffer const command_buffer,
     std::string_view const label,
@@ -110,52 +88,21 @@ void vkrndr::debug_label(VkCommandBuffer command_buffer,
     vkCmdInsertDebugUtilsLabelEXT(command_buffer, &vklabel);
 }
 
-void vkrndr::object_name(device_t const& device,
-    buffer_t const& buffer,
+void vkrndr::object_name(VkDevice const device,
+    VkObjectType const type,
+    uint64_t const handle,
     std::string_view name)
 {
-    ::object_name(device.logical,
-        VK_OBJECT_TYPE_BUFFER,
-        std::bit_cast<uint64_t>(buffer.buffer),
-        name);
-}
+    if (!vkSetDebugUtilsObjectNameEXT)
+    {
+        return;
+    }
 
-void vkrndr::object_name(device_t const& device,
-    cubemap_t const& cubemap,
-    std::string_view name)
-{
-    ::object_name(device.logical,
-        VK_OBJECT_TYPE_IMAGE,
-        std::bit_cast<uint64_t>(cubemap.image),
-        name);
-}
+    VkDebugUtilsObjectNameInfoEXT const info{
+        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+        .objectType = type,
+        .objectHandle = handle,
+        .pObjectName = name.data()};
 
-void vkrndr::object_name(device_t const& device,
-    image_t const& image,
-    std::string_view name)
-{
-    ::object_name(device.logical,
-        VK_OBJECT_TYPE_IMAGE,
-        std::bit_cast<uint64_t>(image.image),
-        name);
-}
-
-void vkrndr::object_name(device_t const& device,
-    pipeline_t const& pipeline,
-    std::string_view name)
-{
-    ::object_name(device.logical,
-        VK_OBJECT_TYPE_PIPELINE,
-        std::bit_cast<uint64_t>(pipeline.pipeline),
-        name);
-}
-
-void vkrndr::object_name(device_t const& device,
-    shader_module_t const& shader_module,
-    std::string_view name)
-{
-    ::object_name(device.logical,
-        VK_OBJECT_TYPE_SHADER_MODULE,
-        std::bit_cast<uint64_t>(shader_module.handle),
-        name);
+    vkSetDebugUtilsObjectNameEXT(device, &info);
 }

@@ -1,5 +1,6 @@
 #include <vkrndr_cubemap.hpp>
 
+#include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -8,6 +9,8 @@
 #include <boost/scope/scope_fail.hpp>
 
 #include <volk.h>
+
+#include <bit>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 
@@ -148,4 +151,14 @@ std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
     }
 
     return rv;
+}
+
+void vkrndr::object_name(device_t const& device,
+    cubemap_t const& cubemap,
+    std::string_view name)
+{
+    object_name(device.logical,
+        VK_OBJECT_TYPE_IMAGE,
+        std::bit_cast<uint64_t>(cubemap.image),
+        name);
 }

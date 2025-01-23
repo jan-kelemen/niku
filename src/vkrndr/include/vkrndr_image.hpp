@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <span>
+#include <string_view>
 
 namespace vkrndr
 {
@@ -196,6 +197,10 @@ namespace vkrndr
         return image_barrier(image.image,
             whole_resource(aspect, image.mip_levels, 1));
     }
+
+    void object_name(device_t const& device,
+        image_t const& image,
+        std::string_view name);
 } // namespace vkrndr
 
 #endif
