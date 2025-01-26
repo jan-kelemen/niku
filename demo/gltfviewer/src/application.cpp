@@ -35,6 +35,7 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
+#include <vkrndr_swap_chain.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -92,6 +93,18 @@ namespace
         "Metallic",
         "Roughness",
         "UV"};
+
+    constexpr std::array present_modes{
+        std::make_pair(VK_PRESENT_MODE_IMMEDIATE_KHR, "Immediate"),
+        std::make_pair(VK_PRESENT_MODE_MAILBOX_KHR, "Mailbox"),
+        std::make_pair(VK_PRESENT_MODE_FIFO_KHR, "FIFO"),
+        std::make_pair(VK_PRESENT_MODE_FIFO_RELAXED_KHR, "FIFO Relaxed"),
+        std::make_pair(VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR,
+            "Shared Demand Refresh"),
+        std::make_pair(VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR,
+            "Shared Continous Refresh"),
+        std::make_pair(VK_PRESENT_MODE_FIFO_LATEST_READY_EXT,
+            "FIFO Latest Ready")};
 
     [[nodiscard]] vkrndr::image_t create_color_image(
         vkrndr::backend_t const& backend)
@@ -308,6 +321,46 @@ void gltfviewer::application_t::update(float delta_time)
     ImGui::Checkbox("Color Conversion", &color_conversion_);
     ImGui::Checkbox("Tone Mapping", &tone_mapping_);
     ImGui::Checkbox("OIT", &transparent_);
+
+    auto const& available_modes{
+        backend_->swap_chain().available_present_modes()};
+    auto const current_mode{backend_->swap_chain().present_mode()};
+    auto present_mode_it{std::ranges::find(present_modes,
+        current_mode,
+        &std::pair<VkPresentModeKHR, char const*>::first)};
+    if (present_mode_it != std::end(present_modes))
+    {
+        if (ImGui::BeginCombo("Present Mode", present_mode_it->second))
+        {
+            for (auto const& option : available_modes)
+            {
+                auto const selected{option == current_mode};
+                auto const other_it{std::ranges::find(present_modes,
+                    option,
+                    &std::pair<VkPresentModeKHR, char const*>::first)};
+                if (other_it == std::end(present_modes))
+                {
+                    continue;
+                }
+
+                if (ImGui::Selectable(other_it->second, selected))
+                {
+                    if (!backend_->swap_chain().change_present_mode(option))
+                    {
+                        spdlog::warn("Unable to switch to present mode {}",
+                            other_it->second);
+                    }
+                }
+
+                if (selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+    }
+
     ImGui::End();
 
     camera_controller_.update(delta_time);
