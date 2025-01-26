@@ -22,6 +22,8 @@
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_fail.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <array>
 #include <cstring>
 #include <span>
@@ -467,6 +469,7 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
 
     if (swap_chain_refresh.load())
     {
+        spdlog::info("Recreating swapchain");
         vkDeviceWaitIdle(device_.logical);
         swap_chain_->recreate();
         swap_chain_refresh.store(false);

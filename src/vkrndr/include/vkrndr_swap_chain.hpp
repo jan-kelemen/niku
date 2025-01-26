@@ -82,6 +82,13 @@ namespace vkrndr
             size_t current_frame,
             uint32_t image_index);
 
+        [[nodiscard]] constexpr VkPresentModeKHR present_mode() const;
+
+        [[nodiscard]] std::span<VkPresentModeKHR const>
+        available_present_modes() const;
+
+        [[nodiscard]] bool change_present_mode(VkPresentModeKHR new_mode);
+
         void recreate();
 
     public: // Operators
@@ -90,7 +97,7 @@ namespace vkrndr
         swap_chain_t& operator=(swap_chain_t&& other) noexcept = delete;
 
     private: // Helpers
-        void create_swap_frames();
+        void create_swap_frames(bool is_recreated);
 
         void cleanup();
 
@@ -103,6 +110,10 @@ namespace vkrndr
         uint32_t min_image_count_{};
         VkExtent2D extent_{};
         VkSwapchainKHR chain_{};
+        VkPresentModeKHR current_present_mode_{VK_PRESENT_MODE_FIFO_KHR};
+        VkPresentModeKHR desired_present_mode_{VK_PRESENT_MODE_FIFO_KHR};
+        std::vector<VkPresentModeKHR> available_present_modes_;
+        std::vector<VkPresentModeKHR> compatible_present_modes_;
         std::vector<detail::swap_frame_t> frames_;
         std::vector<vkrndr::image_t> images_;
     };
@@ -144,6 +155,11 @@ constexpr VkImageView vkrndr::swap_chain_t::image_view(
     uint32_t const image_index) const noexcept
 {
     return images_[image_index].view;
+}
+
+constexpr VkPresentModeKHR vkrndr::swap_chain_t::present_mode() const
+{
+    return current_present_mode_;
 }
 
 #endif // !VKRNDR_VULKAN_SWAP_CHAIN_INCLUDED
