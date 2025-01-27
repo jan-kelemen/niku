@@ -2,27 +2,15 @@
 
 #include <vkrndr_context.hpp>
 #include <vkrndr_execution_port.hpp>
-#include <vkrndr_features.hpp>
-#include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <cppext_pragma_warning.hpp>
-
 #include <boost/scope/scope_fail.hpp>
-
-#include <spdlog/spdlog.h>
 
 #include <vma_impl.hpp>
 
 #include <volk.h>
 
-#include <algorithm>
-#include <array>
 #include <cstdint>
-#include <optional>
-#include <set>
-#include <stdexcept>
-#include <string_view>
 #include <vector>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
@@ -123,8 +111,7 @@ vkrndr::query_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
 }
 
 vkrndr::device_t vkrndr::create_device(context_t const& context,
-    device_create_info_t const& create_info,
-    VkSurfaceKHR const surface)
+    device_create_info_t const& create_info)
 {
     device_t rv;
     rv.physical = create_info.device;
@@ -144,7 +131,7 @@ vkrndr::device_t vkrndr::create_device(context_t const& context,
         queue_create_infos.push_back(queue_create_info);
     }
 
-    VkDeviceCreateInfo ci{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+    VkDeviceCreateInfo const ci{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .pNext = create_info.chain,
         .queueCreateInfoCount = count_cast(queue_create_infos.size()),
         .pQueueCreateInfos = queue_create_infos.data(),

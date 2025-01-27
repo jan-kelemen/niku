@@ -1,19 +1,11 @@
 #include <vkrndr_debug_utils.hpp>
 
-#include <vkrndr_buffer.hpp>
-#include <vkrndr_cubemap.hpp>
-#include <vkrndr_device.hpp>
-#include <vkrndr_image.hpp>
-#include <vkrndr_pipeline.hpp>
-#include <vkrndr_shader_module.hpp>
-
 #include <volk.h>
 
 #include <algorithm>
 #include <array>
-#include <bit>
-#include <cstdint>
 #include <span>
+#include <string>
 #include <string_view>
 
 vkrndr::command_buffer_scope_t::command_buffer_scope_t(
@@ -98,11 +90,12 @@ void vkrndr::object_name(VkDevice const device,
         return;
     }
 
+    std::string const zstr{name};
     VkDebugUtilsObjectNameInfoEXT const info{
         .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
         .objectType = type,
         .objectHandle = handle,
-        .pObjectName = name.data()};
+        .pObjectName = zstr.c_str()};
 
     vkSetDebugUtilsObjectNameEXT(device, &info);
 }

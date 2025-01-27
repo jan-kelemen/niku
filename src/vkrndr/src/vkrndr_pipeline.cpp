@@ -4,8 +4,6 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <cppext_pragma_warning.hpp>
-
 #include <algorithm>
 #include <bit>
 #include <cassert>

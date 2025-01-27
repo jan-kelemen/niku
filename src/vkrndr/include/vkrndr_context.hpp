@@ -20,10 +20,10 @@ namespace vkrndr
         void const* chain{};
 
         uint32_t minimal_vulkan_version{};
-        std::span<char const* const> extensions{};
-        std::span<char const* const> layers{};
+        std::span<char const* const> extensions;
+        std::span<char const* const> layers;
 
-        char const* const application_name{};
+        char const* application_name{};
         uint32_t application_version{};
     };
 

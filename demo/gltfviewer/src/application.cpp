@@ -325,7 +325,8 @@ void gltfviewer::application_t::update(float delta_time)
     auto const& available_modes{
         backend_->swap_chain().available_present_modes()};
     auto const current_mode{backend_->swap_chain().present_mode()};
-    auto present_mode_it{std::ranges::find(present_modes,
+    // NOLINTBEGIN(readability-qualified-auto)
+    auto const present_mode_it{std::ranges::find(present_modes,
         current_mode,
         &std::pair<VkPresentModeKHR, char const*>::first)};
     if (present_mode_it != std::end(present_modes))
@@ -360,6 +361,7 @@ void gltfviewer::application_t::update(float delta_time)
             ImGui::EndCombo();
         }
     }
+    // NOLINTEND(readability-qualified-auto)
 
     ImGui::End();
 

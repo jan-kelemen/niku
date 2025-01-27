@@ -7,6 +7,7 @@
 
 #include <volk.h>
 
+#include <cstdint>
 #include <span>
 #include <vector>
 
@@ -54,8 +55,7 @@ namespace vkrndr
     };
 
     device_t create_device(context_t const& context,
-        device_create_info_t const& create_info,
-        VkSurfaceKHR surface = VK_NULL_HANDLE);
+        device_create_info_t const& create_info);
 
     void destroy(device_t* device);
 } // namespace vkrndr

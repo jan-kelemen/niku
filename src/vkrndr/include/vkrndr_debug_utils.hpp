@@ -4,18 +4,9 @@
 #include <volk.h>
 
 #include <array>
+#include <cstdint>
 #include <span>
 #include <string_view>
-
-namespace vkrndr
-{
-    struct buffer_t;
-    struct cubemap_t;
-    struct device_t;
-    struct image_t;
-    struct pipeline_t;
-    struct shader_module_t;
-} // namespace vkrndr
 
 namespace vkrndr
 {
@@ -64,10 +55,6 @@ namespace vkrndr
     void object_name(VkDevice device,
         VkObjectType type,
         uint64_t handle,
-        std::string_view name);
-
-    void object_name(device_t const& device,
-        shader_module_t const& shader_module,
         std::string_view name);
 } // namespace vkrndr
 

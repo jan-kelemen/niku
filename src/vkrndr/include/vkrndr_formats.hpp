@@ -7,11 +7,6 @@
 
 namespace vkrndr
 {
-    struct device_t;
-} // namespace vkrndr
-
-namespace vkrndr
-{
     struct [[nodiscard]] depth_stencil_format_properties_t final
     {
         VkFormat format;

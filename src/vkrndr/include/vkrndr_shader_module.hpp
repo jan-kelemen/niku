@@ -38,6 +38,10 @@ namespace vkrndr
     [[nodiscard]] VkPipelineShaderStageCreateInfo as_pipeline_shader(
         shader_module_t const& shader,
         VkSpecializationInfo const* specialization = nullptr);
+
+    void object_name(device_t const& device,
+        shader_module_t const& shader_module,
+        std::string_view name);
 } // namespace vkrndr
 
 #endif

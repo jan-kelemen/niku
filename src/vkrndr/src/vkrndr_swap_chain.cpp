@@ -68,7 +68,7 @@ namespace
             .sType = VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT,
             .presentMode = present_mode};
 
-        VkPhysicalDeviceSurfaceInfo2KHR surface_info{
+        VkPhysicalDeviceSurfaceInfo2KHR const surface_info{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
             .pNext = &surface_present_mode,
             .surface = surface};
@@ -265,7 +265,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
     auto swap_details{
         query_swap_chain_support(device_->physical, window_->surface())};
 
-    VkPresentModeKHR const present_mode{
+    VkPresentModeKHR const chosen_present_mode{
         choose_swap_present_mode(swap_details.present_modes,
             is_recreated ? desired_present_mode_
                          : settings_->preferred_present_mode)};
@@ -279,19 +279,19 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
         compatible_present_modes_ =
             query_compatible_present_modes(device_->physical,
                 window_->surface(),
-                present_mode);
+                chosen_present_mode);
     }
     else
     {
-        compatible_present_modes_.push_back(present_mode);
+        compatible_present_modes_.push_back(chosen_present_mode);
     }
 
     image_format_ = surface_format.format;
     extent_ = window_->swap_extent(swap_details.capabilities);
     min_image_count_ = swap_details.capabilities.minImageCount;
 
-    current_present_mode_ = present_mode;
-    desired_present_mode_ = present_mode;
+    current_present_mode_ = chosen_present_mode;
+    desired_present_mode_ = chosen_present_mode;
 
     uint32_t used_image_count{min_image_count_ + 1};
     if (swap_details.capabilities.maxImageCount > 0)
@@ -311,7 +311,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
     create_info.imageUsage = settings_->swapchain_flags;
     create_info.preTransform = swap_details.capabilities.currentTransform;
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    create_info.presentMode = present_mode;
+    create_info.presentMode = chosen_present_mode;
     create_info.clipped = VK_TRUE;
     create_info.oldSwapchain = VK_NULL_HANDLE;
     create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;

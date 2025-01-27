@@ -24,14 +24,20 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <array>
 #include <cstring>
+#include <iterator>
+#include <optional>
+#include <ranges>
 #include <span>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
+// IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <unordered_map>
 
@@ -181,7 +187,8 @@ namespace
     };
 
     [[nodiscard]] std::vector<queried_physical_device_t>
-    filter_physical_devices(vkrndr::context_t& context, VkSurfaceKHR surface)
+    filter_physical_devices(vkrndr::context_t const& context,
+        VkSurfaceKHR surface)
     {
         std::vector<queried_physical_device_t> rv;
         for (VkPhysicalDevice device :
@@ -194,10 +201,9 @@ namespace
                 std::ranges::all_of(required_device_extensions,
                     [de = qpd.extensions](std::string_view name)
                     {
-                        return std::ranges::find(de,
-                                   name,
-                                   &VkExtensionProperties::extensionName) !=
-                            std::end(de);
+                        return std::ranges::contains(de,
+                            name,
+                            &VkExtensionProperties::extensionName);
                     })};
 
             if (!device_extensions_supported)
@@ -207,15 +213,14 @@ namespace
 
             if (auto optional_features{check_physical_device_features(device)})
             {
-                qpd.optional_features = *std::move(optional_features);
+                qpd.optional_features = *optional_features;
             }
 
             qpd.queue_families = vkrndr::query_queue_families(device, surface);
             if (surface != VK_NULL_HANDLE)
             {
-                bool const has_present_queue{std::any_of(
-                    qpd.queue_families.cbegin(),
-                    qpd.queue_families.cend(),
+                bool const has_present_queue{std::ranges::any_of(
+                    qpd.queue_families,
                     [](vkrndr::queue_family_t const& family)
                     {
                         return family.supports_present &&
@@ -335,14 +340,13 @@ vkrndr::backend_t::backend_t(window_t& window,
         throw std::runtime_error{"Suitable physical device not found"};
     }
 
-    queue_family_t const family{
-        *std::ranges::find_if(physical_device_it->queue_families,
-            [](queue_family_t const& family)
-            {
-                return family.supports_present &&
-                    supports_flags(family.properties.queueFlags,
-                        VK_QUEUE_GRAPHICS_BIT);
-            })};
+    queue_family_t const family{*std::ranges::find_if(
+        physical_device_it->queue_families,
+        [](queue_family_t const& f)
+        {
+            return f.supports_present &&
+                supports_flags(f.properties.queueFlags, VK_QUEUE_GRAPHICS_BIT);
+        })};
 
     std::vector<char const*> effective_extensions{
         std::cbegin(required_device_extensions),
@@ -375,9 +379,7 @@ vkrndr::backend_t::backend_t(window_t& window,
         .device = physical_device_it->device,
         .extensions = effective_extensions,
         .queues = cppext::as_span(family)};
-    device_ = create_device(context_,
-        device_create_info,
-        window_->create_surface(context_.instance));
+    device_ = create_device(context_, device_create_info);
 
     auto& port{device_.execution_ports.emplace_back(device_.logical,
         family.properties.queueFlags,
