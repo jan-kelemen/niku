@@ -51,25 +51,16 @@ namespace
         VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT
             swapchain_maintenance_1_features{
                 .sType =
-                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT,
-                .swapchainMaintenance1 = VK_TRUE};
+                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT};
 
         VkPhysicalDeviceVulkan13Features required_device_13_features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-            .synchronization2 = VK_TRUE,
-            .dynamicRendering = VK_TRUE};
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 
         VkPhysicalDeviceVulkan12Features required_device_12_features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-            .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
-            .runtimeDescriptorArray = VK_TRUE};
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 
         VkPhysicalDeviceFeatures2 required_device_features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            .features{.independentBlend = VK_TRUE,
-                .sampleRateShading = VK_TRUE,
-                .wideLines = VK_TRUE,
-                .samplerAnisotropy = VK_TRUE}};
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
     };
 
     void link_all(feature_chain_t& chain)
@@ -89,6 +80,21 @@ namespace
         chain.required_device_12_features.pNext =
             &chain.required_device_13_features;
         chain.required_device_13_features.pNext = nullptr;
+    }
+
+    void set_required_features(feature_chain_t& chain)
+    {
+        chain.required_device_features.features.independentBlend = VK_TRUE;
+        chain.required_device_features.features.sampleRateShading = VK_TRUE;
+        chain.required_device_features.features.wideLines = VK_TRUE;
+        chain.required_device_features.features.samplerAnisotropy = VK_TRUE;
+
+        chain.required_device_12_features
+            .shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+        chain.required_device_12_features.runtimeDescriptorArray = VK_TRUE;
+
+        chain.required_device_13_features.synchronization2 = VK_TRUE;
+        chain.required_device_13_features.dynamicRendering = VK_TRUE;
     }
 
     VkDescriptorPool create_descriptor_pool(vkrndr::device_t const& device)
@@ -353,6 +359,7 @@ vkrndr::backend_t::backend_t(window_t& window,
         std::cend(required_device_extensions)};
 
     feature_chain_t effective_features;
+    set_required_features(effective_features);
     link_required(effective_features);
     if (physical_device_it->optional_features.swapchain_maintenance_1_features
             .swapchainMaintenance1 == VK_TRUE)
@@ -360,7 +367,7 @@ vkrndr::backend_t::backend_t(window_t& window,
         auto const it{std::ranges::find(physical_device_it->extensions,
             std::string_view{VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME},
             &VkExtensionProperties::extensionName)};
-        if (it != std::cend(physical_device_it->extensions))
+        if (it == std::cend(physical_device_it->extensions))
         {
             effective_extensions.push_back(
                 VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
