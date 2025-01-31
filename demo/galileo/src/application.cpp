@@ -210,19 +210,15 @@ namespace
                 indices_map.as<uint32_t>() + primitive.first,
                 primitive.count};
 
-            auto const& [min_vtx, max_vtx] =
-                std::ranges::minmax_element(indices);
-            auto const first_idx{std::distance(indices.begin(), min_vtx)};
-
-            auto const vertex_count{std::distance(min_vtx, max_vtx)};
-            std::span const primitive_vertices{all_vertices + first_idx,
-                cppext::narrow<size_t>(vertex_count)};
+            std::span const primitive_vertices{
+                all_vertices + primitive.vertex_offset,
+                primitive.vertex_count};
 
             auto const to_jolt_tri =
-                [s = cppext::narrow<uint32_t>(first_idx)](uint32_t const p1,
+                [](uint32_t const p1,
                     uint32_t const p2,
                     uint32_t const p3) -> JPH::IndexedTriangle
-            { return {p1 - s, p2 - s, p3 - s}; };
+            { return {p1, p2, p3}; };
 
             return {ngnphy::to_vertices(primitive_vertices, to_jolt_pos),
                 ngnphy::to_indexed_triangles(indices, to_jolt_tri)};
