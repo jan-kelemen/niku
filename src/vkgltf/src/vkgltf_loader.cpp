@@ -843,6 +843,8 @@ namespace
                     [&](loaded_primitive_t& p) mutable
                     {
                         vkgltf::primitive_t rv{.topology = p.topology,
+                            .vertex_count =
+                                cppext::narrow<uint32_t>(p.vertices.size()),
                             .is_indexed = !p.indices.empty(),
                             .material_index = p.material_index,
                             .bb = p.bounding_box};

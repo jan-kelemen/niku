@@ -101,6 +101,7 @@ namespace vkgltf
     {
         VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
 
+        uint32_t vertex_count{};
         uint32_t count{};
         uint32_t first{};
 
