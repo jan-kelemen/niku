@@ -62,6 +62,7 @@ target_link_libraries(galileo
         fmt::fmt
         imgui::imgui
         Jolt::Jolt
+        recastnavigation::recastnavigation
         spdlog::spdlog
     PRIVATE
         project-options

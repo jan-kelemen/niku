@@ -22,6 +22,7 @@ class NikuConan(ConanFile):
         self.requires("imgui/1.91.6-docking")
         self.requires("joltphysics/5.2.0")
         self.requires("meshoptimizer/0.22")
+        self.requires("recastnavigation/1.6.0")
         self.requires("sdl/2.30.11")
         self.requires("simdjson/3.11.5")
         self.requires("spdlog/1.15.x")

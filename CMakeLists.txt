@@ -31,6 +31,7 @@ find_package(volk REQUIRED)
 find_package(vulkan-memory-allocator REQUIRED)
 
 if (NIKU_BUILD_DEMOS)
+    find_package(recastnavigation REQUIRED)
     find_package(simdjson REQUIRED)
 endif()
 
