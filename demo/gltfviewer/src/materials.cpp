@@ -3,7 +3,7 @@
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
-#include <vkgltf_model.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
@@ -143,7 +143,7 @@ namespace
     }
 
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device,
-        vkgltf::sampler_info_t const& info,
+        ngnast::sampler_info_t const& info,
         uint32_t const mip_levels)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
@@ -176,21 +176,21 @@ namespace
 
     [[nodiscard]] vkrndr::buffer_t create_material_uniform(
         vkrndr::backend_t& backend,
-        std::span<vkgltf::material_t const> const& materials)
+        std::span<ngnast::material_t const> const& materials)
     {
-        auto const image_and_sampler = [](vkgltf::texture_t const& texture)
+        auto const image_and_sampler = [](ngnast::texture_t const& texture)
         {
             return std::make_pair(cppext::narrow<uint32_t>(texture.image_index),
                 cppext::narrow<uint32_t>(texture.sampler_index));
         };
 
         auto const to_gpu_material = [&image_and_sampler](
-                                         vkgltf::material_t const& m)
+                                         ngnast::material_t const& m)
         {
             material_t rv{
                 .base_color_factor = m.pbr_metallic_roughness.base_color_factor,
                 .emissive_factor = m.emissive_factor,
-                .alpha_cutoff = m.alpha_mode == vkgltf::alpha_mode_t::mask
+                .alpha_cutoff = m.alpha_mode == ngnast::alpha_mode_t::mask
                     ? m.alpha_cutoff
                     : 0.0f,
                 .metallic_factor = m.pbr_metallic_roughness.metallic_factor,
@@ -291,7 +291,7 @@ VkDescriptorSetLayout gltfviewer::materials_t::descriptor_layout() const
     return has_materials_ ? descriptor_layout_ : dummy_descriptor_layout_;
 }
 
-void gltfviewer::materials_t::load(vkgltf::model_t& model)
+void gltfviewer::materials_t::load(ngnast::scene_model_t& model)
 {
     clear();
 
@@ -335,12 +335,12 @@ void gltfviewer::materials_t::create_dummy_material()
         1);
 
     default_sampler_ =
-        create_sampler(backend_->device(), vkgltf::sampler_info_t{}, 1);
+        create_sampler(backend_->device(), ngnast::sampler_info_t{}, 1);
 
     dummy_descriptor_layout_ =
         create_descriptor_set_layout(backend_->device(), 1, 1);
 
-    vkgltf::material_t const dummy_material;
+    ngnast::material_t const dummy_material;
     dummy_uniform_ =
         create_material_uniform(*backend_, cppext::as_span(dummy_material));
 
@@ -362,36 +362,38 @@ void gltfviewer::materials_t::create_dummy_material()
         vkrndr::buffer_descriptor(dummy_uniform_));
 }
 
-void gltfviewer::materials_t::transfer_textures(vkgltf::model_t& model)
+void gltfviewer::materials_t::transfer_textures(ngnast::scene_model_t& model)
 {
     std::vector<VkDescriptorImageInfo> image_descriptors;
     std::vector<VkDescriptorImageInfo> sampler_descriptors;
     if (!model.images.empty())
     {
-        // clang-format off
-        uint32_t const max_mip_levels{std::ranges::max(model.images,
-            std::less{},
-            &vkrndr::image_t::mip_levels).mip_levels};
-        // clang-format on
+        uint32_t max_mip_levels{};
+        images_.reserve(model.images.size());
+        for (ngnast::image_t& image : model.images)
+        {
+            images_.push_back(backend_->transfer_image(
+                std::span{image.data.get(), image.data_size},
+                image.extent,
+                image.format,
+                vkrndr::max_mip_levels(image.extent.width,
+                    image.extent.height)));
 
-        // cppcheck-suppress-begin useStlAlgorithm
+            max_mip_levels =
+                std::max(max_mip_levels, images_.back().mip_levels);
+
+            image_descriptors.push_back(
+                sampled_image_descriptor(images_.back()));
+        }
+
         for (auto const& sampler : model.samplers)
         {
             samplers_.push_back(
                 create_sampler(backend_->device(), sampler, max_mip_levels));
+
+            sampler_descriptors.push_back(
+                vkrndr::sampler_descriptor(samplers_.back()));
         }
-        // cppcheck-suppress-end useStlAlgorithm
-
-        image_descriptors.reserve(model.images.size());
-        std::ranges::transform(model.images,
-            std::back_inserter(image_descriptors),
-            [](vkrndr::image_t const& image)
-            { return vkrndr::sampled_image_descriptor(image); });
-
-        sampler_descriptors.reserve(model.samplers.size());
-        std::ranges::transform(samplers_,
-            std::back_inserter(sampler_descriptors),
-            vkrndr::sampler_descriptor);
     }
     else
     {
@@ -415,8 +417,6 @@ void gltfviewer::materials_t::transfer_textures(vkgltf::model_t& model)
         image_descriptors,
         sampler_descriptors,
         vkrndr::buffer_descriptor(uniform_));
-
-    images_ = std::move(model.images);
 }
 
 void gltfviewer::materials_t::clear()

@@ -1,8 +1,8 @@
-#ifndef VKGLTF_FASTGLTF_ADAPTER_INCLUDED
-#define VKGLTF_FASTGLTF_ADAPTER_INCLUDED
+#ifndef NGNAST_GLTF_FASTGLTF_ADAPTER_INCLUDED
+#define NGNAST_GLTF_FASTGLTF_ADAPTER_INCLUDED
 
-#include <vkgltf_error.hpp>
-#include <vkgltf_model.hpp>
+#include <ngnast_error.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/math.hpp> // IWYU pragma: keep
@@ -21,7 +21,7 @@
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
-namespace vkgltf
+namespace ngnast::gltf
 {
     using position_accessor_bounds_t = FASTGLTF_STD_PMR_NS::vector<double>;
 
@@ -158,14 +158,14 @@ namespace vkgltf
         switch (a)
         {
         case AlphaMode::Opaque:
-            return vkgltf::alpha_mode_t::opaque;
+            return ngnast::alpha_mode_t::opaque;
         case AlphaMode::Mask:
-            return vkgltf::alpha_mode_t::mask;
+            return ngnast::alpha_mode_t::mask;
         case AlphaMode::Blend:
-            return vkgltf::alpha_mode_t::blend;
+            return ngnast::alpha_mode_t::blend;
         default:
             assert(false);
-            return vkgltf::alpha_mode_t::opaque;
+            return ngnast::alpha_mode_t::opaque;
         }
     }
 
@@ -265,7 +265,7 @@ namespace vkgltf
         }
     }
 
-} // namespace vkgltf
+} // namespace ngnast::gltf
 
 template<>
 struct fmt::formatter<fastgltf::Error>

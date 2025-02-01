@@ -32,8 +32,8 @@
 #include <ngnwsi_mouse.hpp>
 #include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
 
-#include <vkgltf_loader.hpp>
-#include <vkgltf_model.hpp>
+#include <ngnast_gltf_loader.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -177,8 +177,8 @@ namespace
 
     [[nodiscard]] JPH::MeshShapeSettings to_jolt_mesh_shape(
         vkrndr::device_t& device,
-        vkgltf::model_t const& model,
-        vkgltf::node_t const& node)
+        ngnast::scene_model_t const& model,
+        ngnast::node_t const& node)
     {
         if (!node.mesh_index)
         {
@@ -186,55 +186,35 @@ namespace
         }
         assert(node.child_indices.empty());
 
-        vkgltf::mesh_t const& mesh{model.meshes[*node.mesh_index]};
-        assert(mesh.primitives.size() == 1);
+        ngnast::mesh_t const& mesh{model.meshes[*node.mesh_index]};
+        assert(mesh.primitive_indices.size() == 1);
 
-        vkgltf::primitive_t const& primitive{mesh.primitives[0]};
+        ngnast::primitive_t const& primitive{
+            model.primitives[mesh.primitive_indices[0]]};
 
-        auto vertices_map{vkrndr::map_memory(device, model.vertex_buffer)};
-        [[maybe_unused]] boost::scope::defer_guard const unmap_vtx{
-            [&device, &vertices_map]()
-            { vkrndr::unmap_memory(device, &vertices_map); }};
-        auto* const all_vertices{vertices_map.as<vkgltf::vertex_t>()};
+        auto const to_jolt_pos = [](ngnast::vertex_t const& vtx) -> JPH::Float3
+        { return {vtx.position[0], vtx.position[1], vtx.position[2]}; };
 
-        auto const to_jolt_pos = [](vkgltf::vertex_t const& vtx) -> JPH::Float3
-        { return {vtx.position.x, vtx.position.y, vtx.position.z}; };
-
-        if (primitive.is_indexed)
+        if (!primitive.indices.empty())
         {
-            auto indices_map{vkrndr::map_memory(device, model.index_buffer)};
-            [[maybe_unused]] boost::scope::defer_guard const unmap_idx{
-                [&device, &indices_map]()
-                { vkrndr::unmap_memory(device, &indices_map); }};
-            std::span const indices{
-                indices_map.as<uint32_t>() + primitive.first,
-                primitive.count};
-
-            std::span const primitive_vertices{
-                all_vertices + primitive.vertex_offset,
-                primitive.vertex_count};
-
             auto const to_jolt_tri =
                 [](uint32_t const p1,
                     uint32_t const p2,
                     uint32_t const p3) -> JPH::IndexedTriangle
             { return {p1, p2, p3}; };
 
-            return {ngnphy::to_vertices(primitive_vertices, to_jolt_pos),
-                ngnphy::to_indexed_triangles(indices, to_jolt_tri)};
+            return {ngnphy::to_vertices(primitive.vertices, to_jolt_pos),
+                ngnphy::to_indexed_triangles(primitive.indices, to_jolt_tri)};
         }
 
-        std::span const primitive_vertices{all_vertices + primitive.first,
-            primitive.count};
-
         auto const to_jolt_tri =
-            [&to_jolt_pos](vkgltf::vertex_t const& v1,
-                vkgltf::vertex_t const& v2,
-                vkgltf::vertex_t const& v3) -> JPH::Triangle
+            [&to_jolt_pos](ngnast::vertex_t const& v1,
+                ngnast::vertex_t const& v2,
+                ngnast::vertex_t const& v3) -> JPH::Triangle
         { return {to_jolt_pos(v1), to_jolt_pos(v2), to_jolt_pos(v3)}; };
 
         return {
-            ngnphy::to_unindexed_triangles(primitive_vertices, to_jolt_tri)};
+            ngnphy::to_unindexed_triangles(primitive.vertices, to_jolt_tri)};
     }
 } // namespace
 
@@ -656,14 +636,12 @@ void galileo::application_t::setup_world()
 {
     using namespace JPH::literals;
 
-    vkgltf::loader_t loader{*backend_};
+    ngnast::gltf::loader_t loader{*backend_};
     auto model{loader.load(std::filesystem::absolute("world.glb"))};
     if (!model)
     {
         std::terminate();
     }
-    [[maybe_unused]] boost::scope::defer_guard const guard{
-        [d = &backend_->device(), m = &model.value()]() { destroy(d, m); }};
 
     spdlog::info("nodes: {} meshes: {}",
         model->nodes.size(),
@@ -674,7 +652,7 @@ void galileo::application_t::setup_world()
 
     auto& body_interface{physics_engine_.body_interface()};
 
-    for (vkgltf::scene_graph_t const& scene : model->scenes)
+    for (ngnast::scene_graph_t const& scene : model->scenes)
     {
         for (size_t const& root_index : scene.root_indices)
         {

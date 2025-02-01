@@ -9,8 +9,8 @@
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
 
+#include <ngnast_gltf_loader.hpp>
 #include <vkglsl_guard.hpp>
-#include <vkgltf_loader.hpp>
 
 #include <vkrndr_image.hpp>
 
@@ -106,7 +106,7 @@ namespace gltfviewer
         camera_controller_t camera_controller_;
 
         model_selector_t selector_;
-        vkgltf::loader_t gltf_loader_;
+        ngnast::gltf::loader_t gltf_loader_;
 
         uint32_t debug_{0};
         float ibl_factor_{0.5f};

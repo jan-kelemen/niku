@@ -24,8 +24,8 @@
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
 
-#include <vkgltf_loader.hpp>
-#include <vkgltf_model.hpp>
+#include <ngnast_gltf_loader.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -258,11 +258,6 @@ void gltfviewer::application_t::update(float delta_time)
             return;
         }
 
-        spdlog::info("Loaded {} meshes, {} vertices, {} indices",
-            model->meshes.size(),
-            model->vertex_count,
-            model->index_count);
-
         vkDeviceWaitIdle(backend_->device().logical);
 
         materials_->load(*model);
@@ -428,7 +423,7 @@ void gltfviewer::application_t::draw()
 
     push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
 
-    if (render_graph_->model().vertex_count)
+    if (!render_graph_->empty())
     {
         {
             vkrndr::render_pass_t depth_render_pass;
@@ -557,7 +552,7 @@ void gltfviewer::application_t::draw()
         vkrndr::wait_for(command_buffer, {}, {}, barriers);
     }
 
-    if (transparent_ && render_graph_->model().vertex_count)
+    if (transparent_ && !render_graph_->empty())
     {
         VkPipelineLayout const oit_layout{
             weighted_oit_shader_->pipeline_layout()};

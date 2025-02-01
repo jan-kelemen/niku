@@ -1,12 +1,11 @@
-#ifndef VKGLTF_ERROR_INCLUDED
-#define VKGLTF_ERROR_INCLUDED
+#ifndef NGNAST_ERROR_INCLUDED
+#define NGNAST_ERROR_INCLUDED
 
 #include <system_error>
 #include <type_traits>
 
-namespace vkgltf
+namespace ngnast
 {
-    // NOLINTNEXTLINE(performance-enum-size)
     enum class error_t
     {
         none = 0,
@@ -19,10 +18,10 @@ namespace vkgltf
     };
 
     [[nodiscard]] std::error_code make_error_code(error_t e);
-} // namespace vkgltf
+} // namespace ngnast
 
 template<>
-struct std::is_error_code_enum<vkgltf::error_t> : std::true_type
+struct std::is_error_code_enum<ngnast::error_t> : std::true_type
 {
 };
 

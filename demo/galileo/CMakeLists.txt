@@ -51,12 +51,12 @@ target_link_libraries(galileo
     PRIVATE
         cppext
         glm_impl
+        ngnast
         ngngfx
         ngnphy
         ngnscr
         ngnwsi
         vkglsl
-        vkgltf
     PRIVATE
         Boost::headers
         fmt::fmt

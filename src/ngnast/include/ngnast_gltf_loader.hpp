@@ -1,7 +1,7 @@
-#ifndef VKGLTF_LOADER_INCLUDED
-#define VKGLTF_LOADER_INCLUDED
+#ifndef NGNAST_GLTF_LOADER_INCLUDED
+#define NGNAST_GLTF_LOADER_INCLUDED
 
-#include <vkgltf_model.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <expected>
 #include <filesystem>
@@ -12,7 +12,7 @@ namespace vkrndr
     class backend_t;
 } // namespace vkrndr
 
-namespace vkgltf
+namespace ngnast::gltf
 {
     class [[nodiscard]] loader_t final
     {
@@ -27,7 +27,7 @@ namespace vkgltf
         ~loader_t() = default;
 
     public:
-        [[nodiscard]] std::expected<model_t, std::error_code> load(
+        [[nodiscard]] std::expected<scene_model_t, std::error_code> load(
             std::filesystem::path const& path);
 
     public:
@@ -38,6 +38,6 @@ namespace vkgltf
     private:
         vkrndr::backend_t* backend_;
     };
-} // namespace vkgltf
+} // namespace ngnast::gltf
 
 #endif

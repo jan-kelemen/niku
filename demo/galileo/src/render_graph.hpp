@@ -16,10 +16,10 @@
 #include <span>
 #include <vector>
 
-namespace vkgltf
+namespace ngnast
 {
-    struct model_t;
-} // namespace vkgltf
+    struct scene_model_t;
+} // namespace ngnast
 
 namespace vkrndr
 {
@@ -78,7 +78,7 @@ namespace galileo
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
 
-        void consume(vkgltf::model_t& model);
+        void consume(ngnast::scene_model_t& model);
 
         void begin_frame();
 
@@ -111,7 +111,7 @@ namespace galileo
 
     private:
         [[nodiscard]] size_t calculate_unique_draws(
-            vkgltf::model_t const& model);
+            ngnast::scene_model_t const& model);
 
     private:
         vkrndr::backend_t* backend_;

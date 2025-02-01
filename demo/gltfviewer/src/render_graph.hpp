@@ -3,7 +3,8 @@
 
 #include <cppext_cycled_buffer.hpp>
 
-#include <vkgltf_model.hpp>
+#include <ngnast_gpu_transfer.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
@@ -34,7 +35,7 @@ namespace gltfviewer
         ~render_graph_t();
 
     public:
-        [[nodiscard]] vkgltf::model_t const& model() const;
+        [[nodiscard]] bool empty() const;
 
         [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
 
@@ -44,16 +45,16 @@ namespace gltfviewer
         [[nodiscard]] std::span<VkVertexInputAttributeDescription const>
         attribute_description() const;
 
-        void load(vkgltf::model_t&& model);
+        void load(ngnast::scene_model_t&& model);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
             VkPipelineBindPoint bind_point);
 
-        void traverse(vkgltf::alpha_mode_t alpha_mode,
+        void traverse(ngnast::alpha_mode_t alpha_mode,
             VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
-            std::function<void(vkgltf::alpha_mode_t, bool)> const&
+            std::function<void(ngnast::alpha_mode_t, bool)> const&
                 switch_pipeline) const;
 
     public:
@@ -70,15 +71,15 @@ namespace gltfviewer
         };
 
     private:
-        static void calculate_transforms(vkgltf::model_t const& model,
+        static void calculate_transforms(ngnast::scene_model_t const& model,
             std::span<frame_data_t> frames);
 
         uint32_t draw_node(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
-            vkgltf::node_t const& node,
-            vkgltf::alpha_mode_t const& alpha_mode,
+            ngnast::node_t const& node,
+            ngnast::alpha_mode_t const& alpha_mode,
             uint32_t index,
-            std::function<void(vkgltf::alpha_mode_t, bool)> const&
+            std::function<void(ngnast::alpha_mode_t, bool)> const&
                 switch_pipeline) const;
 
         void clear();
@@ -88,7 +89,8 @@ namespace gltfviewer
 
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
 
-        vkgltf::model_t model_;
+        ngnast::scene_model_t model_;
+        std::vector<ngnast::gpu::primitive_t> primitives_;
 
         uint32_t vertex_count_{};
         vkrndr::buffer_t vertex_buffer_;

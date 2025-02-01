@@ -4,7 +4,8 @@
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
-#include <vkgltf_model.hpp>
+#include <ngnast_gpu_transfer.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
@@ -12,6 +13,8 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
+
+#include <boost/scope/defer.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <glm/matrix.hpp>
@@ -90,8 +93,8 @@ namespace
             nullptr);
     }
 
-    [[nodiscard]] uint32_t nodes_with_mesh(vkgltf::node_t const& node,
-        vkgltf::model_t const& model)
+    [[nodiscard]] uint32_t nodes_with_mesh(ngnast::node_t const& node,
+        ngnast::scene_model_t const& model)
     {
         auto rv{static_cast<uint32_t>(node.mesh_index.has_value())};
         // cppcheck-suppress-begin useStlAlgorithm
@@ -103,7 +106,8 @@ namespace
         return rv;
     }
 
-    [[nodiscard]] uint32_t required_transforms(vkgltf::model_t const& model)
+    [[nodiscard]] uint32_t required_transforms(
+        ngnast::scene_model_t const& model)
     {
         uint32_t rv{};
         // cppcheck-suppress-begin useStlAlgorithm
@@ -118,8 +122,9 @@ namespace
         return rv;
     }
 
-    [[nodiscard]] uint32_t calculate_transform(vkgltf::model_t const& model,
-        vkgltf::node_t const& node,
+    [[nodiscard]] uint32_t calculate_transform(
+        ngnast::scene_model_t const& model,
+        ngnast::node_t const& node,
         transform_t* const transforms,
         glm::mat4 const& transform,
         uint32_t const index)
@@ -159,10 +164,7 @@ gltfviewer::render_graph_t::render_graph_t(vkrndr::backend_t& backend)
 
 gltfviewer::render_graph_t::~render_graph_t() { clear(); }
 
-vkgltf::model_t const& gltfviewer::render_graph_t::model() const
-{
-    return model_;
-}
+bool gltfviewer::render_graph_t::empty() const { return primitives_.empty(); }
 
 VkDescriptorSetLayout gltfviewer::render_graph_t::descriptor_layout() const
 {
@@ -174,7 +176,7 @@ gltfviewer::render_graph_t::binding_description() const
 {
     static constexpr std::array descriptions{
         VkVertexInputBindingDescription{.binding = 0,
-            .stride = sizeof(vkgltf::vertex_t),
+            .stride = sizeof(ngnast::gpu::vertex_t),
             .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
     };
 
@@ -188,51 +190,58 @@ gltfviewer::render_graph_t::attribute_description() const
         VkVertexInputAttributeDescription{.location = 0,
             .binding = 0,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(vkgltf::vertex_t, position)},
+            .offset = offsetof(ngnast::gpu::vertex_t, position)},
         VkVertexInputAttributeDescription{.location = 1,
             .binding = 0,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(vkgltf::vertex_t, normal)},
+            .offset = offsetof(ngnast::gpu::vertex_t, normal)},
         VkVertexInputAttributeDescription{.location = 2,
             .binding = 0,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(vkgltf::vertex_t, tangent)},
+            .offset = offsetof(ngnast::gpu::vertex_t, tangent)},
         VkVertexInputAttributeDescription{.location = 3,
             .binding = 0,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(vkgltf::vertex_t, color)},
+            .offset = offsetof(ngnast::gpu::vertex_t, color)},
         VkVertexInputAttributeDescription{.location = 4,
             .binding = 0,
             .format = VK_FORMAT_R32G32_SFLOAT,
-            .offset = offsetof(vkgltf::vertex_t, uv)},
+            .offset = offsetof(ngnast::gpu::vertex_t, uv)},
     };
 
     return descriptions;
 }
 
-void gltfviewer::render_graph_t::load(vkgltf::model_t&& model)
+void gltfviewer::render_graph_t::load(ngnast::scene_model_t&& model)
 {
     clear();
 
     descriptor_layout_ = create_descriptor_set_layout(backend_->device());
 
-    vertex_count_ = model.vertex_count;
+    auto transfer_result{
+        ngnast::gpu::transfer_geometry(backend_->device(), model)};
+    [[maybe_unused]] boost::scope::defer_guard const destroy_transfer{
+        [this, tr = &transfer_result]() { destroy(&backend_->device(), tr); }};
+
+    primitives_ = std::move(transfer_result).primitives;
+
+    vertex_count_ = transfer_result.vertex_count;
     vertex_buffer_ = create_buffer(backend_->device(),
-        {.size = model.vertex_buffer.size,
+        {.size = transfer_result.vertex_buffer.size,
             .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
-    backend_->transfer_buffer(model.vertex_buffer, vertex_buffer_);
+    backend_->transfer_buffer(transfer_result.vertex_buffer, vertex_buffer_);
 
-    if (model.index_count > 0)
+    if (transfer_result.index_count > 0)
     {
-        index_count_ = model.index_count;
+        index_count_ = transfer_result.index_count;
         index_buffer_ = create_buffer(backend_->device(),
-            {.size = model.index_buffer.size,
+            {.size = transfer_result.index_buffer.size,
                 .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
-        backend_->transfer_buffer(model.index_buffer, index_buffer_);
+        backend_->transfer_buffer(transfer_result.index_buffer, index_buffer_);
     }
 
     uint32_t const transform_count{required_transforms(model)};
@@ -263,6 +272,8 @@ void gltfviewer::render_graph_t::load(vkgltf::model_t&& model)
     calculate_transforms(model, cppext::as_span(frame_data_));
 
     model_ = std::move(model);
+    model_.primitives.clear();
+    model_.images.clear();
 }
 
 void gltfviewer::render_graph_t::bind_on(VkCommandBuffer command_buffer,
@@ -299,10 +310,10 @@ void gltfviewer::render_graph_t::bind_on(VkCommandBuffer command_buffer,
     }
 }
 
-void gltfviewer::render_graph_t::traverse(vkgltf::alpha_mode_t alpha_mode,
+void gltfviewer::render_graph_t::traverse(ngnast::alpha_mode_t alpha_mode,
     VkCommandBuffer command_buffer,
     VkPipelineLayout layout,
-    std::function<void(vkgltf::alpha_mode_t, bool)> const& switch_pipeline)
+    std::function<void(ngnast::alpha_mode_t, bool)> const& switch_pipeline)
     const
 {
     uint32_t drawn{0};
@@ -323,7 +334,7 @@ void gltfviewer::render_graph_t::traverse(vkgltf::alpha_mode_t alpha_mode,
 }
 
 void gltfviewer::render_graph_t::calculate_transforms(
-    vkgltf::model_t const& model,
+    ngnast::scene_model_t const& model,
     std::span<frame_data_t> frames)
 {
     for (frame_data_t& data : frames)
@@ -347,10 +358,10 @@ void gltfviewer::render_graph_t::calculate_transforms(
 
 uint32_t gltfviewer::render_graph_t::draw_node(VkCommandBuffer command_buffer,
     VkPipelineLayout layout,
-    vkgltf::node_t const& node,
-    vkgltf::alpha_mode_t const& alpha_mode,
+    ngnast::node_t const& node,
+    ngnast::alpha_mode_t const& alpha_mode,
     uint32_t const index,
-    std::function<void(vkgltf::alpha_mode_t, bool)> const& switch_pipeline)
+    std::function<void(ngnast::alpha_mode_t, bool)> const& switch_pipeline)
     const
 {
     uint32_t drawn{0};
@@ -359,8 +370,10 @@ uint32_t gltfviewer::render_graph_t::draw_node(VkCommandBuffer command_buffer,
         auto const& mesh{model_.meshes[*node.mesh_index]};
 
         // cppcheck-suppress-begin useStlAlgorithm
-        for (auto const& primitive : mesh.primitives)
+        for (auto const pi : mesh.primitive_indices)
         {
+            auto const& primitive{primitives_[pi]};
+
             push_constants_t const pc{.transform_index = index,
                 .material_index =
                     cppext::narrow<uint32_t>(primitive.material_index)};
@@ -448,7 +461,7 @@ void gltfviewer::render_graph_t::clear()
         vertex_count_ = 0;
     }
 
-    destroy(&backend_->device(), &model_);
+    primitives_.clear();
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         descriptor_layout_,

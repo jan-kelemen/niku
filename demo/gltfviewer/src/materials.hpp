@@ -8,10 +8,10 @@
 
 #include <vector>
 
-namespace vkgltf
+namespace ngnast
 {
-    struct model_t;
-} // namespace vkgltf
+    struct scene_model_t;
+} // namespace ngnast
 
 namespace vkrndr
 {
@@ -35,7 +35,7 @@ namespace gltfviewer
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
 
-        void load(vkgltf::model_t& model);
+        void load(ngnast::scene_model_t& model);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
@@ -49,7 +49,7 @@ namespace gltfviewer
     private:
         void create_dummy_material();
 
-        void transfer_textures(vkgltf::model_t& model);
+        void transfer_textures(ngnast::scene_model_t& model);
 
         void clear();
 

@@ -3,7 +3,7 @@
 #include <config.hpp>
 #include <render_graph.hpp>
 
-#include <vkgltf_model.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkglsl_shader_set.hpp>
 
@@ -59,10 +59,10 @@ void gltfviewer::depth_pass_shader_t::draw(render_graph_t const& graph,
 
     vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
 
-    graph.traverse(vkgltf::alpha_mode_t::opaque,
+    graph.traverse(ngnast::alpha_mode_t::opaque,
         command_buffer,
         *depth_pipeline_.layout,
-        []([[maybe_unused]] vkgltf::alpha_mode_t const mode,
+        []([[maybe_unused]] ngnast::alpha_mode_t const mode,
             [[maybe_unused]] bool const double_sided) { });
 }
 

@@ -1,4 +1,4 @@
-#include <vkgltf_model.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_image.hpp>
@@ -9,19 +9,19 @@
 
 namespace
 {
-    void calculate_node_matrices(vkgltf::model_t& model,
-        vkgltf::node_t& node,
+    void calculate_node_matrices(ngnast::scene_model_t& model,
+        ngnast::node_t& node,
         glm::mat4 const& matrix)
     {
         node.matrix = matrix * node.matrix;
-        for (vkgltf::node_t& child : node.children(model))
+        for (ngnast::node_t& child : node.children(model))
         {
             calculate_node_matrices(model, child, node.matrix);
         }
     }
 } // namespace
 
-vkgltf::bounding_box_t vkgltf::calculate_aabb(bounding_box_t const& box,
+ngnast::bounding_box_t ngnast::calculate_aabb(bounding_box_t const& box,
     glm::mat4 const& matrix)
 {
     glm::vec3 min{column(matrix, 3)};
@@ -48,21 +48,7 @@ vkgltf::bounding_box_t vkgltf::calculate_aabb(bounding_box_t const& box,
     return {min, max};
 }
 
-void vkgltf::destroy(vkrndr::device_t* const device, model_t* const model)
-{
-    if (model)
-    {
-        for (auto& image : model->images)
-        {
-            destroy(device, &image);
-        }
-
-        destroy(device, &model->index_buffer);
-        destroy(device, &model->vertex_buffer);
-    }
-}
-
-void vkgltf::make_node_matrices_absolute(model_t& model)
+void ngnast::make_node_matrices_absolute(scene_model_t& model)
 {
     for (scene_graph_t& scene : model.scenes)
     {

@@ -1,4 +1,4 @@
-#include <vkgltf_fastgltf_adapter.hpp>
+#include <ngnast_gltf_fastgltf_adapter.hpp>
 
 #include <fastgltf/core.hpp>
 

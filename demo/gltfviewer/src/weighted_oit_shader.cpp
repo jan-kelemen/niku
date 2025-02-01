@@ -8,7 +8,7 @@
 
 #include <vkglsl_shader_set.hpp>
 
-#include <vkgltf_model.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -217,12 +217,12 @@ void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
             {{0, 0}, vkrndr::to_2d_extent(accumulation_image_.extent)})};
 
         auto const switch_pipeline =
-            []([[maybe_unused]] vkgltf::alpha_mode_t const mode,
+            []([[maybe_unused]] ngnast::alpha_mode_t const mode,
                 [[maybe_unused]] bool const double_sided) { };
 
         vkrndr::bind_pipeline(command_buffer, pbr_pipeline_);
 
-        graph.traverse(vkgltf::alpha_mode_t::blend,
+        graph.traverse(ngnast::alpha_mode_t::blend,
             command_buffer,
             *pbr_pipeline_.layout,
             switch_pipeline);

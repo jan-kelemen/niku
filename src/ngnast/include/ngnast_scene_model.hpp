@@ -1,8 +1,7 @@
-#ifndef VKGLTF_MODEL_INCLUDED
-#define VKGLTF_MODEL_INCLUDED
+#ifndef NGNAST_SCENE_MODEL_INCLUDED
+#define NGNAST_SCENE_MODEL_INCLUDED
 
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_image.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -13,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -25,9 +25,9 @@ namespace vkrndr
     struct device_t;
 } // namespace vkrndr
 
-namespace vkgltf
+namespace ngnast
 {
-    struct model_t;
+    struct scene_model_t;
 
     struct [[nodiscard]] bounding_box_t final
     {
@@ -40,13 +40,11 @@ namespace vkgltf
 
     struct [[nodiscard]] vertex_t final
     {
-        glm::vec3 position;
-        uint8_t padding1[4];
-        glm::vec3 normal;
-        uint8_t padding2[4];
-        glm::vec4 tangent;
+        float position[3]{};
+        glm::vec3 normal{};
+        glm::vec4 tangent{};
         glm::vec4 color{1.0f};
-        glm::vec2 uv;
+        glm::vec2 uv{};
     };
 
     struct [[nodiscard]] sampler_info_t final
@@ -101,22 +99,18 @@ namespace vkgltf
     {
         VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
 
-        uint32_t vertex_count{};
-        uint32_t count{};
-        uint32_t first{};
-
-        bool is_indexed{};
-        int32_t vertex_offset{};
+        std::vector<vertex_t> vertices;
+        std::vector<unsigned int> indices;
 
         size_t material_index{};
 
-        std::optional<bounding_box_t> bb;
+        std::optional<ngnast::bounding_box_t> bounding_box;
     };
 
     struct [[nodiscard]] mesh_t final
     {
         std::string name;
-        std::vector<primitive_t> primitives;
+        std::vector<size_t> primitive_indices;
         std::optional<bounding_box_t> bb;
     };
 
@@ -132,9 +126,9 @@ namespace vkgltf
 
         std::vector<size_t> child_indices;
 
-        [[nodiscard]] constexpr auto children(model_t& model);
+        [[nodiscard]] constexpr auto children(scene_model_t& model);
 
-        [[nodiscard]] constexpr auto children(model_t const& model) const;
+        [[nodiscard]] constexpr auto children(scene_model_t const& model) const;
     };
 
     struct [[nodiscard]] scene_graph_t final
@@ -143,57 +137,60 @@ namespace vkgltf
 
         std::vector<size_t> root_indices;
 
-        [[nodiscard]] constexpr auto roots(model_t& model);
+        [[nodiscard]] constexpr auto roots(scene_model_t& model);
 
-        [[nodiscard]] constexpr auto roots(model_t const& model) const;
+        [[nodiscard]] constexpr auto roots(scene_model_t const& model) const;
     };
 
-    struct [[nodiscard]] model_t final
+    struct [[nodiscard]] image_t final
     {
-        vkrndr::buffer_t vertex_buffer;
-        uint32_t vertex_count{};
+        std::unique_ptr<std::byte[], void (*)(std::byte*)> data;
+        size_t data_size{};
+        VkExtent2D extent;
+        VkFormat format;
+    };
 
-        vkrndr::buffer_t index_buffer;
-        uint32_t index_count{};
-
-        std::vector<vkrndr::image_t> images;
+    struct [[nodiscard]] scene_model_t final
+    {
+        std::vector<image_t> images;
         std::vector<sampler_info_t> samplers;
 
         std::vector<texture_t> textures;
         std::vector<material_t> materials;
 
+        std::vector<primitive_t> primitives;
         std::vector<mesh_t> meshes;
         std::vector<node_t> nodes;
         std::vector<scene_graph_t> scenes;
     };
 
-    void destroy(vkrndr::device_t* device, model_t* model);
+    void make_node_matrices_absolute(scene_model_t& model);
+} // namespace ngnast
 
-    void make_node_matrices_absolute(model_t& model);
-} // namespace vkgltf
-
-constexpr auto vkgltf::node_t::children(vkgltf::model_t& model)
+constexpr auto ngnast::node_t::children(ngnast::scene_model_t& model)
 {
     return std::views::transform(child_indices,
         [&model](size_t const child) mutable -> node_t&
         { return model.nodes[child]; });
 }
 
-constexpr auto vkgltf::node_t::children(vkgltf::model_t const& model) const
+constexpr auto ngnast::node_t::children(
+    ngnast::scene_model_t const& model) const
 {
     return std::views::transform(child_indices,
         [&model](size_t const child) -> node_t const&
         { return model.nodes[child]; });
 }
 
-constexpr auto vkgltf::scene_graph_t::roots(vkgltf::model_t& model)
+constexpr auto ngnast::scene_graph_t::roots(ngnast::scene_model_t& model)
 {
     return std::views::transform(root_indices,
         [&model](size_t const root) mutable -> node_t&
         { return model.nodes[root]; });
 }
 
-constexpr auto vkgltf::scene_graph_t::roots(vkgltf::model_t const& model) const
+constexpr auto ngnast::scene_graph_t::roots(
+    ngnast::scene_model_t const& model) const
 {
     return std::views::transform(root_indices,
         [&model](size_t const root) -> node_t const&

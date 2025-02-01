@@ -3,7 +3,7 @@
 #include <config.hpp>
 #include <render_graph.hpp>
 
-#include <vkgltf_model.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkglsl_shader_set.hpp>
 
@@ -58,7 +58,7 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
     auto switch_pipeline =
         [command_buffer,
             bound = static_cast<vkrndr::pipeline_t*>(nullptr),
-            this]([[maybe_unused]] vkgltf::alpha_mode_t const mode,
+            this]([[maybe_unused]] ngnast::alpha_mode_t const mode,
             bool const double_sided) mutable
     {
         auto* const required_pipeline{
@@ -74,9 +74,9 @@ void gltfviewer::pbr_shader_t::draw(render_graph_t const& graph,
         [[maybe_unused]] vkrndr::command_buffer_scope_t const color_pass_scope{
             command_buffer,
             "Opaque & Mask"});
-    graph.traverse(static_cast<vkgltf::alpha_mode_t>(
-                       std::to_underlying(vkgltf::alpha_mode_t::opaque) |
-                       std::to_underlying(vkgltf::alpha_mode_t::mask)),
+    graph.traverse(static_cast<ngnast::alpha_mode_t>(
+                       std::to_underlying(ngnast::alpha_mode_t::opaque) |
+                       std::to_underlying(ngnast::alpha_mode_t::mask)),
         command_buffer,
         *double_sided_pipeline_.layout,
         switch_pipeline);

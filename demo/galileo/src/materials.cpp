@@ -3,7 +3,7 @@
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
-#include <vkgltf_model.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
@@ -62,9 +62,9 @@ namespace
 
     static_assert(sizeof(material_t) % 16 == 0);
 
-    material_t to_gpu_material(vkgltf::material_t const& m)
+    material_t to_gpu_material(ngnast::material_t const& m)
     {
-        auto const image_and_sampler = [](vkgltf::texture_t const& texture)
+        auto const image_and_sampler = [](ngnast::texture_t const& texture)
         {
             return std::make_pair(cppext::narrow<uint32_t>(texture.image_index),
                 cppext::narrow<uint32_t>(texture.sampler_index));
@@ -73,7 +73,7 @@ namespace
         material_t rv{
             .base_color_factor = m.pbr_metallic_roughness.base_color_factor,
             .emissive_factor = m.emissive_factor,
-            .alpha_cutoff = m.alpha_mode == vkgltf::alpha_mode_t::mask
+            .alpha_cutoff = m.alpha_mode == ngnast::alpha_mode_t::mask
                 ? m.alpha_cutoff
                 : 0.0f,
             .metallic_factor = m.pbr_metallic_roughness.metallic_factor,
@@ -201,7 +201,7 @@ namespace
     }
 
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device,
-        vkgltf::sampler_info_t const& info,
+        ngnast::sampler_info_t const& info,
         uint32_t const mip_levels)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
@@ -234,7 +234,7 @@ namespace
 
     [[nodiscard]] vkrndr::buffer_t create_material_uniform(
         vkrndr::backend_t& backend,
-        std::span<vkgltf::material_t const> const& materials)
+        std::span<ngnast::material_t const> const& materials)
     {
         vkrndr::buffer_t staging_buffer{create_staging_buffer(backend.device(),
             sizeof(material_t) * materials.size())};
@@ -277,9 +277,9 @@ galileo::materials_t::materials_t(vkrndr::backend_t& backend)
         1);
 
     default_sampler_ =
-        create_sampler(backend_->device(), vkgltf::sampler_info_t{}, 1);
+        create_sampler(backend_->device(), ngnast::sampler_info_t{}, 1);
 
-    vkgltf::model_t dummy;
+    ngnast::scene_model_t dummy;
     consume(dummy);
 }
 
@@ -297,7 +297,7 @@ VkDescriptorSetLayout galileo::materials_t::descriptor_set_layout() const
     return descriptor_layout_;
 }
 
-void galileo::materials_t::consume(vkgltf::model_t& model)
+void galileo::materials_t::consume(ngnast::scene_model_t& model)
 {
     clear();
 
@@ -323,17 +323,24 @@ void galileo::materials_t::bind_on(VkCommandBuffer command_buffer,
         nullptr);
 }
 
-void galileo::materials_t::transfer_textures(vkgltf::model_t& model)
+void galileo::materials_t::transfer_textures(ngnast::scene_model_t& model)
 {
     std::vector<VkDescriptorImageInfo> image_descriptors;
     std::vector<VkDescriptorImageInfo> sampler_descriptors;
 
-    images_ = std::move(model.images);
-    images_.push_back(white_pixel_);
+    uint32_t max_mip_levels{white_pixel_.mip_levels};
+    images_.reserve(model.images.size() + 1);
+    for (ngnast::image_t& image : model.images)
+    {
+        images_.push_back(backend_->transfer_image(
+            std::span{image.data.get(), image.data_size},
+            image.extent,
+            image.format,
+            vkrndr::max_mip_levels(image.extent.width, image.extent.height)));
 
-    uint32_t const max_mip_levels{
-        std::ranges::max(images_, std::less{}, &vkrndr::image_t::mip_levels)
-            .mip_levels};
+        max_mip_levels = std::max(max_mip_levels, images_.back().mip_levels);
+    }
+    images_.push_back(white_pixel_);
 
     for (auto const& sampler : model.samplers)
     {

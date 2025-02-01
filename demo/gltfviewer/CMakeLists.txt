@@ -49,12 +49,12 @@ target_include_directories(gltfviewer
 
 target_link_libraries(gltfviewer
     PRIVATE
+        ngnast
         ngngfx
         ngnwsi
         glm_impl
         stb_impl
         vkglsl
-        vkgltf
         vkrndr
     PRIVATE
         Boost::headers

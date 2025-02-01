@@ -4,7 +4,8 @@
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
-#include <vkgltf_model.hpp>
+#include <ngnast_gpu_transfer.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
@@ -12,6 +13,8 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
+
+#include <boost/scope/defer.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -99,19 +102,7 @@ namespace
             nullptr);
     }
 
-    galileo::render_primitive_t to_render_primitive(
-        vkgltf::primitive_t const& p)
-    {
-        return {.instance_count = 0,
-            .topology = p.topology,
-            .count = p.count,
-            .first = p.first,
-            .is_indexed = p.is_indexed,
-            .vertex_offset = p.vertex_offset,
-            .material_index = p.material_index};
-    }
-
-    galileo::render_node_t to_render_node(vkgltf::node_t const& n)
+    galileo::render_node_t to_render_node(ngnast::node_t const& n)
     {
         return {.matrix = n.matrix,
             .mesh_index = n.mesh_index,
@@ -235,18 +226,34 @@ VkDescriptorSetLayout galileo::render_graph_t::descriptor_set_layout() const
     return descriptor_set_layout_;
 }
 
-void galileo::render_graph_t::consume(vkgltf::model_t& model)
+void galileo::render_graph_t::consume(ngnast::scene_model_t& model)
 {
     nodes_.clear();
     meshes_.clear();
     primitives_.clear();
-    for (vkgltf::mesh_t const& mesh : model.meshes)
+
+    auto transfer_result{
+        ngnast::gpu::transfer_geometry(backend_->device(), model)};
+    [[maybe_unused]] boost::scope::defer_guard const destroy_transfer{
+        [this, tr = &transfer_result]() { destroy(&backend_->device(), tr); }};
+
+    for (ngnast::mesh_t const& mesh : model.meshes)
     {
         auto const first{primitives_.size()};
-        std::ranges::transform(mesh.primitives,
-            std::back_inserter(primitives_),
-            to_render_primitive);
-        meshes_.emplace_back(first, mesh.primitives.size());
+        for (auto const pi : mesh.primitive_indices)
+        {
+            auto const& gp{transfer_result.primitives[pi]};
+
+            primitives_.emplace_back(0,
+                gp.topology,
+                gp.count,
+                gp.first,
+                gp.is_indexed,
+                gp.vertex_offset,
+                gp.material_index);
+        }
+
+        meshes_.emplace_back(first, mesh.primitive_indices.size());
     }
     std::ranges::transform(model.nodes,
         std::back_inserter(nodes_),
@@ -255,7 +262,8 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
     destroy(&backend_->device(), &vertex_buffer_);
     vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
         {.size = sizeof(graph_vertex_t) *
-                (model.vertex_buffer.size / sizeof(vkgltf::vertex_t)),
+                (transfer_result.vertex_buffer.size /
+                    sizeof(ngnast::gpu::vertex_t)),
             .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
@@ -265,11 +273,11 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
         auto staging_map{vkrndr::map_memory(backend_->device(), staging)};
         auto* const vertices{staging_map.as<graph_vertex_t>()};
 
-        auto gltf_map{
-            vkrndr::map_memory(backend_->device(), model.vertex_buffer)};
-        auto* const gltf_vertices{gltf_map.as<vkgltf::vertex_t>()};
+        auto gltf_map{vkrndr::map_memory(backend_->device(),
+            transfer_result.vertex_buffer)};
+        auto* const gltf_vertices{gltf_map.as<ngnast::gpu::vertex_t>()};
 
-        for (uint32_t i{}; i != model.vertex_count; ++i)
+        for (uint32_t i{}; i != transfer_result.vertex_count; ++i)
         {
             vertices[i].position = gltf_vertices[i].position;
             vertices[i].normal = gltf_vertices[i].normal;
@@ -286,12 +294,12 @@ void galileo::render_graph_t::consume(vkgltf::model_t& model)
 
     destroy(&backend_->device(), &index_buffer_);
     index_buffer_ = vkrndr::create_buffer(backend_->device(),
-        {.size = model.index_buffer.size,
+        {.size = transfer_result.index_buffer.size,
             .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
-    backend_->transfer_buffer(model.index_buffer, index_buffer_);
+    backend_->transfer_buffer(transfer_result.index_buffer, index_buffer_);
 }
 
 void galileo::render_graph_t::begin_frame()

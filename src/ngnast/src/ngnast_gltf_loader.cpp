@@ -1,20 +1,16 @@
-#include <vkgltf_loader.hpp>
+#include <ngnast_gltf_loader.hpp>
 
-#include <vkgltf_error.hpp>
-#include <vkgltf_fastgltf_adapter.hpp>
-#include <vkgltf_model.hpp>
+#include <ngnast_error.hpp>
+#include <ngnast_gltf_fastgltf_adapter.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
-
-#include <boost/scope/defer.hpp>
-#include <boost/scope/scope_exit.hpp>
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp> // IWYU pragma: keep
@@ -75,35 +71,14 @@ namespace
     constexpr auto texcoord_0_attribute{"TEXCOORD_0"};
     constexpr auto color_attribute{"COLOR_0"};
 
-    struct [[nodiscard]] loaded_vertex_t final
-    {
-        float position[3]{};
-        glm::vec3 normal{};
-        glm::vec4 tangent{};
-        glm::vec4 color{1.0f};
-        glm::vec2 uv{};
-    };
-
-    struct [[nodiscard]] loaded_primitive_t final
-    {
-        VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
-
-        std::vector<loaded_vertex_t> vertices;
-        std::vector<unsigned int> indices;
-
-        size_t material_index{};
-
-        std::optional<vkgltf::bounding_box_t> bounding_box;
-    };
-
-    [[nodiscard]] bool make_unindexed(loaded_primitive_t& primitive)
+    [[nodiscard]] bool make_unindexed(ngnast::primitive_t& primitive)
     {
         if (primitive.indices.empty())
         {
             return false;
         }
 
-        std::vector<loaded_vertex_t> new_vertices;
+        std::vector<ngnast::vertex_t> new_vertices;
         new_vertices.reserve(primitive.indices.size());
         std::ranges::transform(primitive.indices,
             std::back_inserter(new_vertices),
@@ -116,7 +91,7 @@ namespace
         return true;
     }
 
-    void make_indexed(loaded_primitive_t& primitive)
+    void make_indexed(ngnast::primitive_t& primitive)
     {
         size_t const index_count{primitive.vertices.size()};
         size_t const unindexed_vertex_count{primitive.vertices.size()};
@@ -129,14 +104,14 @@ namespace
             index_count,
             primitive.vertices.data(),
             unindexed_vertex_count,
-            sizeof(loaded_vertex_t))};
+            sizeof(ngnast::vertex_t))};
 
-        std::vector<loaded_vertex_t> new_vertices;
+        std::vector<ngnast::vertex_t> new_vertices;
         new_vertices.resize(vertex_count);
         meshopt_remapVertexBuffer(new_vertices.data(),
             primitive.vertices.data(),
             unindexed_vertex_count,
-            sizeof(loaded_vertex_t),
+            sizeof(ngnast::vertex_t),
             remap.data());
         primitive.vertices = std::move(new_vertices);
 
@@ -147,17 +122,7 @@ namespace
             remap.data());
     }
 
-    struct [[nodiscard]] loaded_mesh_t final
-    {
-        std::string name;
-        std::vector<loaded_primitive_t> primitives;
-
-        std::optional<vkgltf::bounding_box_t> bounding_box;
-
-        bool consumed{false};
-    };
-
-    void calculate_normals(loaded_primitive_t& primitive)
+    void calculate_normals(ngnast::primitive_t& primitive)
     {
         bool const is_indexed{!primitive.indices.empty()};
 
@@ -195,11 +160,11 @@ namespace
         }
     }
 
-    [[nodiscard]] bool calculate_tangents(loaded_primitive_t& primitive)
+    [[nodiscard]] bool calculate_tangents(ngnast::primitive_t& primitive)
     {
         auto const get_num_faces = [](SMikkTSpaceContext const* context) -> int
         {
-            auto* const v{static_cast<std::vector<loaded_vertex_t>*>(
+            auto* const v{static_cast<std::vector<ngnast::vertex_t>*>(
                 context->m_pUserData)};
 
             return cppext::narrow<int>(v->size() / 3);
@@ -214,7 +179,7 @@ namespace
                                       int const face,
                                       int const vertex)
         {
-            auto const& v{*static_cast<std::vector<loaded_vertex_t>*>(
+            auto const& v{*static_cast<std::vector<ngnast::vertex_t>*>(
                 context->m_pUserData)};
 
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
@@ -228,7 +193,7 @@ namespace
                                     int const face,
                                     int const vertex)
         {
-            auto const& v{*static_cast<std::vector<loaded_vertex_t>*>(
+            auto const& v{*static_cast<std::vector<ngnast::vertex_t>*>(
                 context->m_pUserData)};
 
             std::copy_n(
@@ -243,7 +208,7 @@ namespace
                                 int const face,
                                 int const vertex)
         {
-            auto const& v{*static_cast<std::vector<loaded_vertex_t>*>(
+            auto const& v{*static_cast<std::vector<ngnast::vertex_t>*>(
                 context->m_pUserData)};
 
             std::copy_n(
@@ -258,7 +223,7 @@ namespace
                                      int const face,
                                      int const vertex)
         {
-            auto& v{*static_cast<std::vector<loaded_vertex_t>*>(
+            auto& v{*static_cast<std::vector<ngnast::vertex_t>*>(
                 context->m_pUserData)};
 
             v[cppext::narrow<size_t>(face * 3 + vertex)].tangent =
@@ -357,73 +322,65 @@ namespace
             indices.data());
     }
 
-    [[nodiscard]] std::expected<vkrndr::image_t, std::error_code> load_image(
-        vkrndr::backend_t* const backend,
+    [[nodiscard]] std::expected<ngnast::image_t, std::error_code> load_image(
         std::filesystem::path const& parent_path,
         bool const as_unorm,
         fastgltf::Asset const& asset,
         fastgltf::Image const& image)
     {
-        auto const transfer_image = [backend, as_unorm](int const width,
-                                        int const height,
-                                        stbi_uc* const data)
-            -> std::expected<vkrndr::image_t, std::error_code>
+        auto const image_from_data =
+            [as_unorm](int const width, int const height, stbi_uc* const data)
+            -> std::expected<ngnast::image_t, std::error_code>
         {
             if (data)
             {
-                boost::scope::defer_guard const free_image{
-                    [&data] { stbi_image_free(data); }};
+                // Temporary variable to ensure data is released in case of
+                // exception
+                std::unique_ptr<std::byte[], void (*)(std::byte*)> image_data{
+                    std::bit_cast<std::byte*>(data),
+                    [](std::byte* p)
+                    { stbi_image_free(std::bit_cast<stbi_uc*>(p)); }};
 
-                auto const extent{vkrndr::to_2d_extent(width, height)};
-                std::span<std::byte const> const image_data{
-                    std::bit_cast<std::byte const*>(data),
-                    size_t{extent.width} * extent.height * 4};
-
-                return backend->transfer_image(image_data,
-                    extent,
-                    as_unorm ? VK_FORMAT_R8G8B8A8_UNORM
-                             : VK_FORMAT_R8G8B8A8_SRGB,
-                    vkrndr::max_mip_levels(width, height));
+                return ngnast::image_t{.data = std::move(image_data),
+                    .data_size = cppext::narrow<size_t>(width) *
+                        cppext::narrow<size_t>(height) * 4,
+                    .extent = vkrndr::to_2d_extent(width, height),
+                    .format = as_unorm ? VK_FORMAT_R8G8B8A8_UNORM
+                                       : VK_FORMAT_R8G8B8A8_SRGB};
             }
 
             return std::unexpected{
-                make_error_code(vkgltf::error_t::invalid_file)};
+                make_error_code(ngnast::error_t::invalid_file)};
+        };
+
+        auto const load_from_container = [&image_from_data]<typename T>(
+                                             T const& container)
+        {
+            int width; // NOLINT
+            int height; // NOLINT
+            int channels; // NOLINT
+            auto* const data{stbi_load_from_memory(
+                std::bit_cast<stbi_uc const*>(container.bytes.data()),
+                cppext::narrow<int>(container.bytes.size()),
+                &width,
+                &height,
+                &channels,
+                4)};
+
+            return image_from_data(width, height, data);
         };
 
         auto const load_from_vector =
-            [&](fastgltf::sources::Vector const& vector)
-        {
-            int width; // NOLINT
-            int height; // NOLINT
-            int channels; // NOLINT
-            stbi_uc* const data{stbi_load_from_memory(
-                std::bit_cast<stbi_uc const*>(vector.bytes.data()),
-                cppext::narrow<int>(vector.bytes.size()),
-                &width,
-                &height,
-                &channels,
-                4)};
-            return transfer_image(width, height, data);
-        };
+            [&load_from_container](fastgltf::sources::Vector const& container)
+        { return load_from_container(container); };
 
-        auto const load_from_array = [&](fastgltf::sources::Array const& vector)
-        {
-            int width; // NOLINT
-            int height; // NOLINT
-            int channels; // NOLINT
-            stbi_uc* const data{stbi_load_from_memory(
-                std::bit_cast<stbi_uc const*>(vector.bytes.data()),
-                cppext::narrow<int>(vector.bytes.size()),
-                &width,
-                &height,
-                &channels,
-                4)};
-            return transfer_image(width, height, data);
-        };
+        auto const load_from_array =
+            [&load_from_container](fastgltf::sources::Array const& container)
+        { return load_from_container(container); };
 
-        auto const load_from_uri = [&transfer_image, &parent_path](
+        auto const load_from_uri = [&image_from_data, &parent_path](
                                        fastgltf::sources::URI const& filePath)
-            -> std::expected<vkrndr::image_t, std::error_code>
+            -> std::expected<ngnast::image_t, std::error_code>
         {
             // No offsets in file
             assert(filePath.fileByteOffset == 0);
@@ -447,30 +404,29 @@ namespace
             if (data == nullptr)
             {
                 return std::unexpected{
-                    make_error_code(vkgltf::error_t::unknown)};
+                    make_error_code(ngnast::error_t::unknown)};
             }
-
-            return transfer_image(width, height, data);
+            return image_from_data(width, height, data);
         };
 
         auto const unsupported_variant = []([[maybe_unused]] auto&& arg)
-            -> std::expected<vkrndr::image_t, std::error_code>
+            -> std::expected<ngnast::image_t, std::error_code>
         {
             spdlog::error("Unsupported variant '{}' during image load",
                 typeid(arg).name());
-            return std::unexpected{make_error_code(vkgltf::error_t::unknown)};
+            return std::unexpected{make_error_code(ngnast::error_t::unknown)};
         };
 
         auto const load_from_buffer_view =
-            [&unsupported_variant, &load_from_array, &load_from_vector, &asset](
+            [&unsupported_variant, load_from_array, load_from_vector, &asset](
                 fastgltf::sources::BufferView const& view)
         {
             auto const& bufferView = asset.bufferViews[view.bufferViewIndex];
             auto const& buffer = asset.buffers[bufferView.bufferIndex];
 
-            return std::visit(cppext::overloaded{unsupported_variant,
-                                  load_from_array,
-                                  load_from_vector},
+            return std::visit(cppext::overloaded{load_from_array,
+                                  load_from_vector,
+                                  unsupported_variant},
                 buffer.data);
         };
 
@@ -482,18 +438,16 @@ namespace
             image.data);
     }
 
-    void load_images(vkrndr::backend_t* const backend,
-        std::filesystem::path const& parent_path,
+    void load_images(std::filesystem::path const& parent_path,
         std::set<size_t> const& unorm_images,
         fastgltf::Asset const& asset,
-        vkgltf::model_t& model)
+        ngnast::scene_model_t& model)
     {
         for (size_t i{}; i != asset.images.size(); ++i)
         {
             auto const& image{asset.images[i]};
 
-            auto load_result{load_image(backend,
-                parent_path,
+            auto load_result{load_image(parent_path,
                 unorm_images.contains(i),
                 asset,
                 image)};
@@ -502,34 +456,36 @@ namespace
                 throw std::system_error{load_result.error()};
             }
 
-            model.images.push_back(load_result.value());
+            model.images.push_back(std::move(load_result).value());
         }
     }
 
-    void load_samplers(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    void load_samplers(fastgltf::Asset const& asset,
+        ngnast::scene_model_t& model)
     {
         model.samplers.reserve(asset.samplers.size() + 1);
         for (fastgltf::Sampler const& sampler : asset.samplers)
         {
             model.samplers.emplace_back(
-                vkgltf::to_vulkan(
+                ngnast::gltf::to_vulkan(
                     sampler.magFilter.value_or(fastgltf::Filter::Nearest)),
-                vkgltf::to_vulkan(
+                ngnast::gltf::to_vulkan(
                     sampler.minFilter.value_or(fastgltf::Filter::Nearest)),
-                vkgltf::to_vulkan(sampler.wrapS),
-                vkgltf::to_vulkan(sampler.wrapT),
-                vkgltf::to_vulkan_mipmap(
+                ngnast::gltf::to_vulkan(sampler.wrapS),
+                ngnast::gltf::to_vulkan(sampler.wrapT),
+                ngnast::gltf::to_vulkan_mipmap(
                     sampler.minFilter.value_or(fastgltf::Filter::Nearest)));
         }
 
         model.samplers.emplace_back(); // Add default sampler to the end
     }
 
-    void load_textures(fastgltf::Asset const& asset, vkgltf::model_t& model)
+    void load_textures(fastgltf::Asset const& asset,
+        ngnast::scene_model_t& model)
     {
         for (fastgltf::Texture const& texture : asset.textures)
         {
-            vkgltf::texture_t t{.name = std::string{texture.name}};
+            ngnast::texture_t t{.name = std::string{texture.name}};
 
             assert(texture.imageIndex);
             t.image_index = *texture.imageIndex;
@@ -542,18 +498,18 @@ namespace
     }
 
     [[nodiscard]] std::set<size_t> load_materials(fastgltf::Asset const& asset,
-        vkgltf::model_t& model)
+        ngnast::scene_model_t& model)
     {
         std::set<size_t> unorm_images;
         for (fastgltf::Material const& material : asset.materials)
         {
-            vkgltf::material_t m{.name = std::string{material.name},
-                .alpha_mode = vkgltf::to_alpha_mode(material.alphaMode),
+            ngnast::material_t m{.name = std::string{material.name},
+                .alpha_mode = ngnast::gltf::to_alpha_mode(material.alphaMode),
                 .alpha_cutoff = material.alphaCutoff,
                 .double_sided = material.doubleSided};
 
             m.pbr_metallic_roughness.base_color_factor =
-                vkgltf::to_glm(material.pbrData.baseColorFactor);
+                ngnast::gltf::to_glm(material.pbrData.baseColorFactor);
             if (auto const& texture{material.pbrData.baseColorTexture})
             {
                 m.pbr_metallic_roughness.base_color_texture =
@@ -585,7 +541,7 @@ namespace
             {
                 m.emissive_texture = &model.textures[texture->textureIndex];
             }
-            m.emissive_factor = vkgltf::to_glm(material.emissiveFactor);
+            m.emissive_factor = ngnast::gltf::to_glm(material.emissiveFactor);
             m.emissive_strength = material.emissiveStrength;
 
             if (auto const& texture{material.occlusionTexture})
@@ -600,18 +556,21 @@ namespace
         return unorm_images;
     }
 
-    [[nodiscard]] std::expected<loaded_mesh_t, std::error_code>
-    load_mesh(fastgltf::Asset const& asset, fastgltf::Mesh const& mesh)
+    [[nodiscard]] std::expected<ngnast::mesh_t, std::error_code> load_mesh(
+        fastgltf::Asset const& asset,
+        fastgltf::Mesh const& mesh,
+        std::vector<ngnast::primitive_t>& primitives)
     {
-        loaded_mesh_t rv{.name = std::string{mesh.name}};
-        rv.primitives.reserve(mesh.primitives.size());
+        ngnast::mesh_t rv{.name = std::string{mesh.name}};
+        rv.primitive_indices.reserve(mesh.primitives.size());
 
         for (fastgltf::Primitive const& primitive : mesh.primitives)
         {
             bool normals_loaded{false};
             bool tangents_loaded{false};
 
-            loaded_primitive_t p{.topology = vkgltf::to_vulkan(primitive.type)};
+            ngnast::primitive_t p{
+                .topology = ngnast::gltf::to_vulkan(primitive.type)};
 
             if (auto const* const attr{
                     primitive.findAttribute(position_attribute)};
@@ -625,12 +584,12 @@ namespace
                         rv.name);
 
                     return std::unexpected{make_error_code(
-                        vkgltf::error_t::load_transform_failed)};
+                        ngnast::error_t::load_transform_failed)};
                 }
 
                 p.vertices.resize(accessor.count);
 
-                using bounds_t = vkgltf::position_accessor_bounds_t;
+                using bounds_t = ngnast::gltf::position_accessor_bounds_t;
                 if (holds_alternative<bounds_t>(accessor.min) &&
                     holds_alternative<bounds_t>(accessor.max))
                 {
@@ -680,7 +639,7 @@ namespace
                     rv.name);
 
                 return std::unexpected{
-                    make_error_code(vkgltf::error_t::load_transform_failed)};
+                    make_error_code(ngnast::error_t::load_transform_failed)};
             }
             assert(vertex_count == p.vertices.size());
 
@@ -731,7 +690,7 @@ namespace
                         rv.name);
 
                     return std::unexpected{make_error_code(
-                        vkgltf::error_t::load_transform_failed)};
+                        ngnast::error_t::load_transform_failed)};
                 }
 
                 if (was_indexed)
@@ -750,7 +709,7 @@ namespace
                 p.indices.size(),
                 &p.vertices[0].position[0],
                 p.vertices.size(),
-                sizeof(loaded_vertex_t),
+                sizeof(ngnast::vertex_t),
                 1.05f);
 
             meshopt_optimizeVertexFetch(p.vertices.data(),
@@ -758,60 +717,54 @@ namespace
                 p.indices.size(),
                 p.vertices.data(),
                 p.vertices.size(),
-                sizeof(loaded_vertex_t));
+                sizeof(ngnast::vertex_t));
 
             if (primitive.materialIndex)
             {
                 p.material_index = *primitive.materialIndex;
             }
 
-            rv.primitives.push_back(std::move(p));
+            rv.primitive_indices.push_back(primitives.size());
+            primitives.push_back(std::move(p));
         }
 
-        for (auto const& primitive : rv.primitives)
+        for (auto const& index : rv.primitive_indices)
         {
+            auto const& primitive{primitives[index]};
+
             if (!primitive.bounding_box)
             {
                 continue;
             }
 
-            if (!rv.bounding_box)
+            if (!rv.bb)
             {
-                rv.bounding_box = primitive.bounding_box;
+                rv.bb = primitive.bounding_box;
             }
 
-            rv.bounding_box->min =
-                glm::min(rv.bounding_box->min, primitive.bounding_box->min);
-            rv.bounding_box->max =
-                glm::max(rv.bounding_box->max, primitive.bounding_box->max);
+            rv.bb->min = glm::min(rv.bb->min, primitive.bounding_box->min);
+            rv.bb->max = glm::max(rv.bb->max, primitive.bounding_box->max);
         }
 
         return rv;
     }
 
-    [[nodiscard]] std::vector<loaded_mesh_t> load_meshes(
+    [[nodiscard]] std::vector<ngnast::mesh_t> load_meshes(
         fastgltf::Asset const& asset,
-        size_t& vertex_sum,
-        size_t& index_sum)
+        std::vector<ngnast::primitive_t>& primitives)
     {
-        std::vector<loaded_mesh_t> rv;
+        std::vector<ngnast::mesh_t> rv;
         rv.reserve(asset.meshes.size());
 
         for (fastgltf::Mesh const& mesh : asset.meshes)
         {
-            auto load_result{load_mesh(asset, mesh)};
+            auto load_result{load_mesh(asset, mesh, primitives)};
             if (!load_result)
             {
                 throw std::system_error{load_result.error()};
             }
 
             rv.push_back(std::move(*load_result));
-
-            for (auto const& primitive : rv.back().primitives)
-            {
-                vertex_sum += primitive.vertices.size();
-                index_sum += primitive.indices.size();
-            }
         }
 
         return rv;
@@ -819,89 +772,14 @@ namespace
 
     void load_node(fastgltf::Asset const& asset,
         size_t const node_index,
-        vkgltf::model_t& model,
-        std::vector<loaded_mesh_t>& meshes,
-        vkgltf::vertex_t*& vertices,
-        int32_t& running_vertex_count,
-        uint32_t*& indices,
-        uint32_t& running_index_count)
+        ngnast::scene_model_t& model)
     {
         fastgltf::Node const& node{asset.nodes[node_index]};
 
-        vkgltf::node_t n{.name = std::string{node.name}};
+        ngnast::node_t n{.name = std::string{node.name}};
 
         if (node.meshIndex)
         {
-            if (auto& mesh{meshes[*node.meshIndex]}; !mesh.consumed)
-            {
-                auto& model_mesh{model.meshes[*node.meshIndex]};
-                model_mesh.name = std::move(mesh.name);
-                model_mesh.primitives.reserve(mesh.primitives.size());
-                model_mesh.bb = mesh.bounding_box;
-                std::ranges::transform(mesh.primitives,
-                    std::back_inserter(model_mesh.primitives),
-                    [&](loaded_primitive_t& p) mutable
-                    {
-                        vkgltf::primitive_t rv{.topology = p.topology,
-                            .vertex_count =
-                                cppext::narrow<uint32_t>(p.vertices.size()),
-                            .is_indexed = !p.indices.empty(),
-                            .material_index = p.material_index,
-                            .bb = p.bounding_box};
-
-                        vertices = std::ranges::transform(p.vertices,
-                            vertices,
-                            [](loaded_vertex_t const& v) -> vkgltf::vertex_t
-                            {
-                                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-                                return {.position = glm::make_vec3(v.position),
-                                    .normal = v.normal,
-                                    .tangent = v.tangent,
-                                    .color = v.color,
-                                    .uv = v.uv};
-                            }).out;
-
-                        if constexpr (std::is_same_v<uint32_t, unsigned int>)
-                        {
-                            indices = std::ranges::copy(p.indices, indices).out;
-                        }
-                        else
-                        {
-                            // clang-format off
-                            indices = std::ranges::transform(p.indices,
-                                indices,
-                                cppext::narrow<uint32_t, unsigned int>).out;
-                            // clang-format on
-                        }
-
-                        if (rv.is_indexed)
-                        {
-                            rv.count =
-                                cppext::narrow<uint32_t>(p.indices.size());
-                            rv.first =
-                                cppext::narrow<uint32_t>(running_index_count);
-                            rv.vertex_offset =
-                                cppext::narrow<int32_t>(running_vertex_count);
-                        }
-                        else
-                        {
-                            rv.count =
-                                cppext::narrow<uint32_t>(p.vertices.size());
-                            rv.first =
-                                cppext::narrow<uint32_t>(running_vertex_count);
-                        }
-
-                        running_index_count +=
-                            cppext::narrow<uint32_t>(p.indices.size());
-                        running_vertex_count +=
-                            cppext::narrow<int32_t>(p.vertices.size());
-
-                        return rv;
-                    });
-
-                mesh.consumed = true;
-            }
-
             n.mesh_index = *node.meshIndex;
             if (auto const& bb{model.meshes[*n.mesh_index].bb})
             {
@@ -909,38 +787,24 @@ namespace
             }
         }
 
-        n.matrix = vkgltf::to_glm(fastgltf::getTransformMatrix(node));
+        n.matrix = ngnast::gltf::to_glm(fastgltf::getTransformMatrix(node));
 
         n.child_indices.reserve(node.children.size());
         std::ranges::copy(node.children, std::back_inserter(n.child_indices));
 
         for (size_t const i : n.child_indices)
         {
-            load_node(asset,
-                i,
-                model,
-                meshes,
-                vertices,
-                running_vertex_count,
-                indices,
-                running_index_count);
+            load_node(asset, i, model);
         }
 
         model.nodes[node_index] = std::move(n);
     }
 
-    void load_scenes(fastgltf::Asset const& asset,
-        vkgltf::model_t& model,
-        std::vector<loaded_mesh_t>& meshes,
-        vkgltf::vertex_t* vertices,
-        uint32_t* indices)
+    void load_scenes(fastgltf::Asset const& asset, ngnast::scene_model_t& model)
     {
-        int32_t running_vertex_count{};
-        uint32_t running_index_count{};
-
         for (fastgltf::Scene const& scene : asset.scenes)
         {
-            vkgltf::scene_graph_t s{.name = std::string{scene.name}};
+            ngnast::scene_graph_t s{.name = std::string{scene.name}};
 
             s.root_indices.reserve(scene.nodeIndices.size());
             std::ranges::copy(scene.nodeIndices,
@@ -950,23 +814,19 @@ namespace
 
             for (size_t const node_index : scene.nodeIndices)
             {
-                load_node(asset,
-                    node_index,
-                    model,
-                    meshes,
-                    vertices,
-                    running_vertex_count,
-                    indices,
-                    running_index_count);
+                load_node(asset, node_index, model);
             }
         }
     }
 } // namespace
 
-vkgltf::loader_t::loader_t(vkrndr::backend_t& backend) : backend_{&backend} { }
+ngnast::gltf::loader_t::loader_t(vkrndr::backend_t& backend)
+    : backend_{&backend}
+{
+}
 
-std::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
-    std::filesystem::path const& path)
+std::expected<ngnast::scene_model_t, std::error_code>
+ngnast::gltf::loader_t::load(std::filesystem::path const& path)
 {
     std::error_code ec;
     if (auto const file_exists{exists(path, ec)}; !file_exists || ec)
@@ -1001,55 +861,22 @@ std::expected<vkgltf::model_t, std::error_code> vkgltf::loader_t::load(
         return std::unexpected{make_error_code(translate_error(data.error()))};
     }
 
-    model_t rv;
+    scene_model_t rv;
 
     try
     {
         load_samplers(asset.get(), rv);
         load_textures(asset.get(), rv);
         std::set<size_t> const unorm_images{load_materials(asset.get(), rv)};
-        load_images(backend_, parent_path, unorm_images, asset.get(), rv);
-
-        size_t vertex_count{};
-        size_t index_count{};
-        std::vector<loaded_mesh_t> meshes{
-            load_meshes(asset.get(), vertex_count, index_count)};
-        rv.vertex_count = cppext::narrow<uint32_t>(vertex_count);
-        rv.vertex_buffer = vkrndr::create_staging_buffer(backend_->device(),
-            sizeof(vertex_t) * rv.vertex_count);
-        auto vertex_map{
-            vkrndr::map_memory(backend_->device(), rv.vertex_buffer)};
-        boost::scope::defer_guard const unmap_vertex{[this, &vertex_map]()
-            { unmap_memory(backend_->device(), &vertex_map); }};
-
-        auto* const vertices{vertex_map.as<vertex_t>()};
-
-        vkrndr::mapped_memory_t index_map;
-        boost::scope::scope_exit unmap_index{[this, &index_map]()
-            { unmap_memory(backend_->device(), &index_map); }};
-
-        uint32_t* indices{};
-        rv.index_count = cppext::narrow<uint32_t>(index_count);
-        if (rv.index_count)
-        {
-            rv.index_buffer = vkrndr::create_staging_buffer(backend_->device(),
-                sizeof(uint32_t) * rv.index_count);
-            index_map = vkrndr::map_memory(backend_->device(), rv.index_buffer);
-            indices = index_map.as<uint32_t>();
-        }
-        else
-        {
-            unmap_index.set_active(false);
-        }
+        load_images(parent_path, unorm_images, asset.get(), rv);
 
         rv.nodes.resize(asset->nodes.size());
-        rv.meshes.resize(asset->meshes.size());
 
-        load_scenes(asset.get(), rv, meshes, vertices, indices);
+        rv.meshes = load_meshes(asset.get(), rv.primitives);
+        load_scenes(asset.get(), rv);
     }
     catch (std::exception const& ex)
     {
-        destroy(&backend_->device(), &rv);
         spdlog::error("Failed to load model: {}", ex.what());
         return std::unexpected{make_error_code(error_t::unknown)};
     }

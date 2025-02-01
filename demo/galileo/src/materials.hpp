@@ -8,10 +8,10 @@
 
 #include <vector>
 
-namespace vkgltf
+namespace ngnast
 {
-    struct model_t;
-} // namespace vkgltf
+    struct scene_model_t;
+} // namespace ngnast
 
 namespace vkrndr
 {
@@ -35,7 +35,7 @@ namespace galileo
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
 
-        void consume(vkgltf::model_t& model);
+        void consume(ngnast::scene_model_t& model);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
@@ -47,7 +47,7 @@ namespace galileo
         materials_t& operator=(materials_t&&) noexcept = delete;
 
     private:
-        void transfer_textures(vkgltf::model_t& model);
+        void transfer_textures(ngnast::scene_model_t& model);
 
         void clear();
 
