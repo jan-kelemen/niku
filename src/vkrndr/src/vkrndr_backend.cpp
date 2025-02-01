@@ -364,14 +364,11 @@ vkrndr::backend_t::backend_t(window_t& window,
     if (physical_device_it->optional_features.swapchain_maintenance_1_features
             .swapchainMaintenance1 == VK_TRUE)
     {
-        auto const it{std::ranges::find(physical_device_it->extensions,
+        assert(std::ranges::contains(physical_device_it->extensions,
             std::string_view{VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME},
-            &VkExtensionProperties::extensionName)};
-        if (it == std::cend(physical_device_it->extensions))
-        {
-            effective_extensions.push_back(
-                VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
-        }
+            &VkExtensionProperties::extensionName));
+        effective_extensions.emplace_back(
+            VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
 
         effective_features.swapchain_maintenance_1_features.pNext =
             effective_features.required_device_13_features.pNext;
