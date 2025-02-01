@@ -19,6 +19,9 @@
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
 
+#include <ngnast_gltf_loader.hpp>
+#include <ngnast_scene_model.hpp>
+
 #include <ngngfx_perspective_camera.hpp>
 
 #include <ngnphy_jolt_adapter.hpp>
@@ -31,9 +34,6 @@
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_mouse.hpp>
 #include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
-
-#include <ngnast_gltf_loader.hpp>
-#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -176,7 +176,6 @@ namespace
     }
 
     [[nodiscard]] JPH::MeshShapeSettings to_jolt_mesh_shape(
-        vkrndr::device_t& device,
         ngnast::scene_model_t const& model,
         ngnast::node_t const& node)
     {
@@ -636,7 +635,7 @@ void galileo::application_t::setup_world()
 {
     using namespace JPH::literals;
 
-    ngnast::gltf::loader_t loader{*backend_};
+    ngnast::gltf::loader_t loader;
     auto model{loader.load(std::filesystem::absolute("world.glb"))};
     if (!model)
     {
@@ -646,6 +645,7 @@ void galileo::application_t::setup_world()
     spdlog::info("nodes: {} meshes: {}",
         model->nodes.size(),
         model->meshes.size());
+    materials_->consume(*model);
     render_graph_->consume(*model);
 
     make_node_matrices_absolute(*model);
@@ -657,19 +657,13 @@ void galileo::application_t::setup_world()
         for (size_t const& root_index : scene.root_indices)
         {
             auto const& root{model->nodes[root_index]};
-            if (!root.aabb)
-            {
-                std::terminate();
-            }
-
-            // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
             glm::vec3 const half_extents{
-                (root.aabb->max - root.aabb->min) / 2.0f};
+                (root.aabb.max - root.aabb.min) / 2.0f};
 
             if (root.name == "Cube")
             {
                 JPH::MeshShapeSettings const floor_shape_settings{
-                    to_jolt_mesh_shape(backend_->device(), *model, root)};
+                    to_jolt_mesh_shape(*model, root)};
                 floor_shape_settings.SetEmbedded();
 
                 JPH::ShapeSettings::ShapeResult const floor_shape_result{
@@ -730,8 +724,6 @@ void galileo::application_t::setup_world()
             }
         }
     }
-
-    materials_->consume(*model);
 }
 
 void galileo::application_t::spawn_sphere()

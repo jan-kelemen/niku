@@ -301,7 +301,9 @@ void galileo::materials_t::consume(ngnast::scene_model_t& model)
 {
     clear();
 
-    model.materials.push_back({});
+    assign_default_material_index(model, model.materials.size());
+    model.materials.emplace_back();
+
     uniform_ = create_material_uniform(*backend_, model.materials);
     transfer_textures(model);
 

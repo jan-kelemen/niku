@@ -18,14 +18,14 @@
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
 
+#include <ngnast_gltf_loader.hpp>
+#include <ngnast_scene_model.hpp>
+
 #include <ngngfx_perspective_camera.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
-
-#include <ngnast_gltf_loader.hpp>
-#include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -217,7 +217,6 @@ gltfviewer::application_t::application_t(bool const debug)
           *backend_)}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , camera_controller_{camera_, mouse_}
-    , gltf_loader_{*backend_}
 {
 }
 

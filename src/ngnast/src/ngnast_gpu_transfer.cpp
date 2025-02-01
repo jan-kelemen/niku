@@ -5,7 +5,6 @@
 
 #include <cppext_numeric.hpp>
 
-#include <boost/dynamic_bitset/dynamic_bitset.hpp>
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_exit.hpp>
 
@@ -27,116 +26,69 @@ namespace
             .uv = v.uv};
     }
 
-    void load_node(ngnast::scene_model_t const& model,
-        size_t const node_index,
-        boost::dynamic_bitset<>& mesh_consumed,
-        std::vector<ngnast::gpu::primitive_t>& primitives,
-        ngnast::gpu::vertex_t*& vertices,
-        int32_t& running_vertex_count,
-        uint32_t*& indices,
-        uint32_t& running_index_count)
-    {
-        auto const& node{model.nodes[node_index]};
-
-        if (auto const mi{node.mesh_index}; mi && !mesh_consumed[*mi])
-        {
-            auto& mesh{model.meshes[*mi]};
-
-            std::ranges::transform(mesh.primitive_indices,
-                std::back_inserter(primitives),
-                [&](size_t const pi) mutable
-                {
-                    ngnast::primitive_t const& p{model.primitives[pi]};
-
-                    ngnast::gpu::primitive_t rv{.topology = p.topology,
-                        .material_index = p.material_index,
-                        .vertex_count =
-                            cppext::narrow<uint32_t>(p.vertices.size()),
-                        .is_indexed = !p.indices.empty()};
-
-                    // clang-format off
-                    vertices = std::ranges::transform(p.vertices,
-                        vertices,
-                        to_gpu_vertex).out;
-                    // clang-format on
-
-                    if constexpr (std::is_same_v<uint32_t, unsigned int>)
-                    {
-                        indices = std::ranges::copy(p.indices, indices).out;
-                    }
-                    else
-                    {
-                        // clang-format off
-                        indices = std::ranges::transform(p.indices,
-                            indices,
-                            cppext::narrow<uint32_t, unsigned int>).out;
-                        // clang-format on
-                    }
-
-                    if (rv.is_indexed)
-                    {
-                        rv.count = cppext::narrow<uint32_t>(p.indices.size());
-                        rv.first =
-                            cppext::narrow<uint32_t>(running_index_count);
-                        rv.vertex_offset =
-                            cppext::narrow<int32_t>(running_vertex_count);
-                    }
-                    else
-                    {
-                        rv.count = cppext::narrow<uint32_t>(p.vertices.size());
-                        rv.vertex_offset =
-                            cppext::narrow<int32_t>(running_vertex_count);
-                        rv.first =
-                            cppext::narrow<uint32_t>(running_vertex_count);
-                    }
-
-                    running_index_count +=
-                        cppext::narrow<uint32_t>(p.indices.size());
-                    running_vertex_count +=
-                        cppext::narrow<int32_t>(p.vertices.size());
-
-                    return rv;
-                });
-
-            mesh_consumed.set(*mi);
-        }
-
-        for (size_t const i : node.child_indices)
-        {
-            load_node(model,
-                i,
-                mesh_consumed,
-                primitives,
-                vertices,
-                running_vertex_count,
-                indices,
-                running_index_count);
-        }
-    }
-
-    void load_scenes(ngnast::scene_model_t const& model,
-        std::vector<ngnast::gpu::primitive_t>& primitives,
+    [[nodiscard]] std::vector<ngnast::gpu::primitive_t> transfer_primitives(
+        ngnast::scene_model_t const& model,
         ngnast::gpu::vertex_t* vertices,
         uint32_t* indices)
     {
-        boost::dynamic_bitset<> mesh_consumed{model.meshes.size()};
         int32_t running_vertex_count{};
         uint32_t running_index_count{};
 
-        for (ngnast::scene_graph_t const& scene : model.scenes)
-        {
-            for (size_t const node_index : scene.root_indices)
+        std::vector<ngnast::gpu::primitive_t> rv;
+        rv.reserve(model.primitives.size());
+
+        std::ranges::transform(model.primitives,
+            std::back_inserter(rv),
+            [&](ngnast::primitive_t const& p) mutable
             {
-                load_node(model,
-                    node_index,
-                    mesh_consumed,
-                    primitives,
+                ngnast::gpu::primitive_t rv{.topology = p.topology,
+                    .material_index = p.material_index.value_or(0),
+                    .vertex_count = cppext::narrow<uint32_t>(p.vertices.size()),
+                    .is_indexed = !p.indices.empty()};
+
+                // clang-format off
+                vertices = std::ranges::transform(p.vertices, 
                     vertices,
-                    running_vertex_count,
-                    indices,
-                    running_index_count);
-            }
-        }
+                    to_gpu_vertex).out;
+                // clang-format on
+
+                if constexpr (std::is_same_v<uint32_t, unsigned int>)
+                {
+                    indices = std::ranges::copy(p.indices, indices).out;
+                }
+                else
+                {
+                    // clang-format off
+                    indices = std::ranges::transform(p.indices,
+                        indices,
+                        cppext::narrow<uint32_t, unsigned int>).out;
+                    // clang-format on
+                }
+
+                if (rv.is_indexed)
+                {
+                    rv.count = cppext::narrow<uint32_t>(p.indices.size());
+                    rv.first = cppext::narrow<uint32_t>(running_index_count);
+                    rv.vertex_offset =
+                        cppext::narrow<int32_t>(running_vertex_count);
+                }
+                else
+                {
+                    rv.count = cppext::narrow<uint32_t>(p.vertices.size());
+                    rv.vertex_offset =
+                        cppext::narrow<int32_t>(running_vertex_count);
+                    rv.first = cppext::narrow<uint32_t>(running_vertex_count);
+                }
+
+                running_index_count +=
+                    cppext::narrow<uint32_t>(p.indices.size());
+                running_vertex_count +=
+                    cppext::narrow<int32_t>(p.vertices.size());
+
+                return rv;
+            });
+
+        return rv;
     }
 } // namespace
 
@@ -195,7 +147,7 @@ ngnast::gpu::geometry_transfer_result_t ngnast::gpu::transfer_geometry(
         unmap_index.set_active(false);
     }
 
-    load_scenes(model, rv.primitives, vertices, indices);
+    rv.primitives = transfer_primitives(model, vertices, indices);
 
     return rv;
 }

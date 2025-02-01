@@ -1,11 +1,10 @@
 #include <ngnast_scene_model.hpp>
 
-#include <vkrndr_buffer.hpp>
-#include <vkrndr_image.hpp>
-
 #include <glm/common.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/mat4x4.hpp>
+
+#include <algorithm>
 
 namespace
 {
@@ -57,4 +56,19 @@ void ngnast::make_node_matrices_absolute(scene_model_t& model)
             calculate_node_matrices(model, node, glm::mat4{1.0f});
         }
     }
+}
+
+void ngnast::assign_default_material_index(scene_model_t& model,
+    size_t const index)
+{
+    std::ranges::for_each(
+        model.primitives,
+        [index](auto& p)
+        {
+            if (!p)
+            {
+                p = index;
+            }
+        },
+        &ngnast::primitive_t::material_index);
 }

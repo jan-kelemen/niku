@@ -1,8 +1,6 @@
 #ifndef NGNAST_SCENE_MODEL_INCLUDED
 #define NGNAST_SCENE_MODEL_INCLUDED
 
-#include <vkrndr_buffer.hpp>
-
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -20,19 +18,14 @@
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
-namespace vkrndr
-{
-    struct device_t;
-} // namespace vkrndr
-
 namespace ngnast
 {
     struct scene_model_t;
 
     struct [[nodiscard]] bounding_box_t final
     {
-        glm::vec3 min;
-        glm::vec3 max;
+        glm::vec3 min{};
+        glm::vec3 max{};
     };
 
     bounding_box_t calculate_aabb(bounding_box_t const& box,
@@ -40,7 +33,7 @@ namespace ngnast
 
     struct [[nodiscard]] vertex_t final
     {
-        float position[3]{};
+        glm::vec3 position{};
         glm::vec3 normal{};
         glm::vec4 tangent{};
         glm::vec4 color{1.0f};
@@ -102,16 +95,16 @@ namespace ngnast
         std::vector<vertex_t> vertices;
         std::vector<unsigned int> indices;
 
-        size_t material_index{};
+        std::optional<size_t> material_index;
 
-        std::optional<ngnast::bounding_box_t> bounding_box;
+        bounding_box_t bounding_box;
     };
 
     struct [[nodiscard]] mesh_t final
     {
         std::string name;
         std::vector<size_t> primitive_indices;
-        std::optional<bounding_box_t> bb;
+        bounding_box_t bounding_box;
     };
 
     struct [[nodiscard]] node_t final
@@ -122,7 +115,7 @@ namespace ngnast
 
         glm::mat4 matrix{1.0f};
 
-        std::optional<bounding_box_t> aabb;
+        bounding_box_t aabb;
 
         std::vector<size_t> child_indices;
 
@@ -165,6 +158,9 @@ namespace ngnast
     };
 
     void make_node_matrices_absolute(scene_model_t& model);
+
+    void assign_default_material_index(scene_model_t& model,
+        size_t const index);
 } // namespace ngnast
 
 constexpr auto ngnast::node_t::children(ngnast::scene_model_t& model)

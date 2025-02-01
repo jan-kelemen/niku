@@ -7,9 +7,6 @@
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 
-#include <vkrndr_backend.hpp>
-#include <vkrndr_buffer.hpp>
-#include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <fastgltf/core.hpp>
@@ -131,7 +128,7 @@ namespace
 
         size_t const vertex_count{
             is_indexed ? primitive.indices.size() : primitive.vertices.size()};
-        for (uint32_t i{}; i != vertex_count; i += 3)
+        for (size_t i{}; i != vertex_count; i += 3)
         {
             auto& point1{is_indexed ? vertices[indices[i]] : vertices[i]};
             auto& point2{
@@ -139,12 +136,8 @@ namespace
             auto& point3{
                 is_indexed ? vertices[indices[i + 2]] : vertices[i + 2]};
 
-            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-            glm::vec3 const edge1{glm::make_vec3(point2.position) -
-                glm::make_vec3(point1.position)};
-            glm::vec3 const edge2{glm::make_vec3(point3.position) -
-                glm::make_vec3(point1.position)};
-            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+            glm::vec3 const edge1{point2.position - point1.position};
+            glm::vec3 const edge2{point3.position - point1.position};
 
             // https://stackoverflow.com/a/57812028
             glm::vec3 const face_normal{
@@ -182,8 +175,9 @@ namespace
             auto const& v{*static_cast<std::vector<ngnast::vertex_t>*>(
                 context->m_pUserData)};
 
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-            std::copy_n(v[cppext::narrow<size_t>(face * 3 + vertex)].position,
+            std::copy_n(
+                glm::value_ptr(
+                    v[cppext::narrow<size_t>(face * 3 + vertex)].position),
                 3,
                 out);
         };
@@ -564,6 +558,8 @@ namespace
         ngnast::mesh_t rv{.name = std::string{mesh.name}};
         rv.primitive_indices.reserve(mesh.primitives.size());
 
+        assert(!mesh.primitives.empty());
+
         for (fastgltf::Primitive const& primitive : mesh.primitives)
         {
             bool normals_loaded{false};
@@ -589,27 +585,25 @@ namespace
 
                 p.vertices.resize(accessor.count);
 
-                using bounds_t = ngnast::gltf::position_accessor_bounds_t;
-                if (holds_alternative<bounds_t>(accessor.min) &&
-                    holds_alternative<bounds_t>(accessor.max))
                 {
-                    auto const& min{std::get<bounds_t>(accessor.min)};
-                    auto const& max{std::get<bounds_t>(accessor.max)};
+                    using bounds_t = ngnast::gltf::position_accessor_bounds_t;
+                    auto const* const min_bound{
+                        std::get_if<bounds_t>(&accessor.min)};
+                    auto const* const max_bound{
+                        std::get_if<bounds_t>(&accessor.max)};
+                    assert(min_bound && max_bound);
 
-                    auto const to_glm = [](bounds_t const& v)
-                    { return glm::make_vec3(v.data()); };
+                    auto const to_glm = [](auto const* const v)
+                    { return glm::make_vec3(v->data()); };
 
-                    p.bounding_box = {to_glm(min), to_glm(max)};
+                    p.bounding_box = {to_glm(min_bound), to_glm(max_bound)};
                 }
             }
             load_indices(asset, primitive, p.indices);
 
             auto const vertex_transform =
                 [&vertices = p.vertices](glm::vec3 const v, size_t const idx)
-            {
-                // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-                std::copy_n(glm::value_ptr(v), 3, vertices[idx].position);
-            };
+            { vertices[idx].position = v; };
 
             auto const normal_transform =
                 [&vertices = p.vertices](glm::vec3 const n, size_t const idx)
@@ -728,22 +722,15 @@ namespace
             primitives.push_back(std::move(p));
         }
 
-        for (auto const& index : rv.primitive_indices)
+        rv.bounding_box = primitives[rv.primitive_indices.front()].bounding_box;
+        for (auto const& index : rv.primitive_indices | std::views::drop(1))
         {
             auto const& primitive{primitives[index]};
 
-            if (!primitive.bounding_box)
-            {
-                continue;
-            }
-
-            if (!rv.bb)
-            {
-                rv.bb = primitive.bounding_box;
-            }
-
-            rv.bb->min = glm::min(rv.bb->min, primitive.bounding_box->min);
-            rv.bb->max = glm::max(rv.bb->max, primitive.bounding_box->max);
+            rv.bounding_box.min =
+                glm::min(rv.bounding_box.min, primitive.bounding_box.min);
+            rv.bounding_box.max =
+                glm::max(rv.bounding_box.max, primitive.bounding_box.max);
         }
 
         return rv;
@@ -781,10 +768,9 @@ namespace
         if (node.meshIndex)
         {
             n.mesh_index = *node.meshIndex;
-            if (auto const& bb{model.meshes[*n.mesh_index].bb})
-            {
-                n.aabb = calculate_aabb(*bb, n.matrix);
-            }
+
+            auto const& bb{model.meshes[*n.mesh_index].bounding_box};
+            n.aabb = calculate_aabb(bb, n.matrix);
         }
 
         n.matrix = ngnast::gltf::to_glm(fastgltf::getTransformMatrix(node));
@@ -819,11 +805,6 @@ namespace
         }
     }
 } // namespace
-
-ngnast::gltf::loader_t::loader_t(vkrndr::backend_t& backend)
-    : backend_{&backend}
-{
-}
 
 std::expected<ngnast::scene_model_t, std::error_code>
 ngnast::gltf::loader_t::load(std::filesystem::path const& path)

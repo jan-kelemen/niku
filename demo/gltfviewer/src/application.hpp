@@ -4,12 +4,13 @@
 #include <camera_controller.hpp>
 #include <model_selector.hpp>
 
+#include <ngnast_gltf_loader.hpp>
+
 #include <ngngfx_perspective_camera.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
 
-#include <ngnast_gltf_loader.hpp>
 #include <vkglsl_guard.hpp>
 
 #include <vkrndr_image.hpp>

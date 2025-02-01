@@ -6,9 +6,9 @@
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
-#include <vkglsl_shader_set.hpp>
-
 #include <ngnast_scene_model.hpp>
+
+#include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
