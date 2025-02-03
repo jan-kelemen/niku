@@ -20,6 +20,7 @@
 #include <cppext_pragma_warning.hpp>
 
 #include <ngnast_gltf_loader.hpp>
+#include <ngnast_mesh_transform.hpp>
 #include <ngnast_scene_model.hpp>
 
 #include <ngngfx_perspective_camera.hpp>
@@ -59,6 +60,7 @@ DISABLE_WARNING_POP
 #include <imgui.h>
 
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
@@ -81,6 +83,9 @@ DISABLE_WARNING_POP
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+
+#include <recastnavigation/DetourNavMesh.h>
+#include <recastnavigation/Recast.h>
 
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>
@@ -214,6 +219,245 @@ namespace
 
         return {
             ngnphy::to_unindexed_triangles(primitive.vertices, to_jolt_tri)};
+    }
+
+    void to_navigation_mesh(ngnast::scene_model_t const& model,
+        ngnast::node_t const& node)
+    {
+        if (!node.mesh_index)
+        {
+            std::terminate();
+        }
+        assert(node.child_indices.empty());
+
+        ngnast::mesh_t const& mesh{model.meshes[*node.mesh_index]};
+        assert(mesh.primitive_indices.size() == 1);
+
+        ngnast::primitive_t const& primitive{
+            model.primitives[mesh.primitive_indices[0]]};
+
+        constexpr float cell_size{0.3f};
+        constexpr float cell_height{0.2f};
+        rcConfig config{
+            .cs = cell_size,
+            .ch = cell_height,
+            .walkableSlopeAngle = galileo::character_t::max_slope_angle,
+            .walkableHeight = static_cast<int>(ceilf(2.0f / cell_height)),
+            .walkableClimb = 0,
+            .walkableRadius = 0,
+            .maxEdgeLen = 0,
+            .maxSimplificationError = 1.3f,
+            .minRegionArea = 8,
+            .mergeRegionArea = 20,
+            .maxVertsPerPoly = DT_VERTS_PER_POLYGON,
+            .detailSampleDist = 6.0f * cell_size,
+            .detailSampleMaxError = 6.0f * cell_height,
+        };
+
+        std::ranges::copy_n(glm::value_ptr(node.aabb.min), 3, config.bmin);
+        std::ranges::copy_n(glm::value_ptr(node.aabb.max), 3, config.bmax);
+
+        rcCalcGridSize(config.bmin,
+            config.bmax,
+            config.cs,
+            &config.width,
+            &config.height);
+
+        std::unique_ptr<rcHeightfield,
+            decltype([](rcHeightfield* p) { rcFreeHeightField(p); })>
+            heightfield{rcAllocHeightfield()};
+        if (!heightfield)
+        {
+            spdlog::error("Can't allocate heightfield");
+            std::terminate();
+        }
+
+        rcContext context;
+        if (!rcCreateHeightfield(&context,
+                *heightfield,
+                config.width,
+                config.height,
+                config.bmin,
+                config.bmax,
+                config.cs,
+                config.ch))
+        {
+            spdlog::error("Can't create heightfield");
+            std::terminate();
+        }
+
+        bool const is_indexed{!primitive.indices.empty()};
+
+        auto const triangle_areas_count{
+            (is_indexed ? primitive.indices.size()
+                        : primitive.vertices.size()) /
+            3};
+
+        std::vector<unsigned char> triangle_areas;
+        triangle_areas.insert(triangle_areas.end(), triangle_areas_count, '\0');
+
+        std::vector<float> vertices;
+        std::vector<int> indices;
+        auto convert_indexed_primitive =
+            [&vertices, &indices](ngnast::primitive_t const& p) mutable
+        {
+            vertices.reserve(p.vertices.size() * 3);
+            for (auto const& vertex : p.vertices)
+            {
+                vertices.insert(vertices.end(),
+                    glm::value_ptr(vertex.position),
+                    glm::value_ptr(vertex.position) + 3);
+            }
+
+            indices.reserve(p.indices.size());
+            std::ranges::transform(p.indices,
+                std::back_inserter(indices),
+                &cppext::narrow<int, unsigned int>);
+        };
+
+        if (is_indexed)
+        {
+            convert_indexed_primitive(primitive);
+        }
+        else
+        {
+            auto unindexed_primitive{primitive};
+            ngnast::mesh::make_indexed(unindexed_primitive);
+            convert_indexed_primitive(primitive);
+        }
+
+        rcMarkWalkableTriangles(&context,
+            config.walkableSlopeAngle,
+            vertices.data(),
+            cppext::narrow<int>(vertices.size() / 3),
+            indices.data(),
+            cppext::narrow<int>(indices.size() / 3),
+            triangle_areas.data());
+        if (!rcRasterizeTriangles(&context,
+                vertices.data(),
+                cppext::narrow<int>(vertices.size() / 3),
+                indices.data(),
+                triangle_areas.data(),
+                cppext::narrow<int>(indices.size() / 3),
+                *heightfield))
+        {
+            spdlog::error("Can't rasterize triangles");
+            std::terminate();
+        }
+
+        triangle_areas.clear();
+
+        rcFilterLowHangingWalkableObstacles(&context,
+            config.walkableClimb,
+            *heightfield);
+
+        rcFilterLedgeSpans(&context,
+            config.walkableHeight,
+            config.walkableClimb,
+            *heightfield);
+
+        rcFilterWalkableLowHeightSpans(&context,
+            config.walkableHeight,
+            *heightfield);
+
+        std::unique_ptr<rcCompactHeightfield,
+            decltype([](rcCompactHeightfield* p)
+                { rcFreeCompactHeightfield(p); })>
+            compact_heightfield{rcAllocCompactHeightfield()};
+        if (!heightfield)
+        {
+            spdlog::error("Can't allocate compact heightfield");
+            std::terminate();
+        }
+
+        if (!rcBuildCompactHeightfield(&context,
+                config.walkableHeight,
+                config.walkableClimb,
+                *heightfield,
+                *compact_heightfield))
+        {
+            spdlog::error("Can't build compact data");
+            std::terminate();
+        }
+
+        heightfield.reset();
+
+        // Watershed partitioning
+        if (!rcBuildDistanceField(&context, *compact_heightfield))
+        {
+            spdlog::error("Can't build distance field");
+            std::terminate();
+        }
+
+        if (!rcBuildRegions(&context,
+                *compact_heightfield,
+                config.borderSize,
+                config.minRegionArea,
+                config.mergeRegionArea))
+        {
+            spdlog::error("Can't build watershed regions");
+            std::terminate();
+        }
+
+        std::unique_ptr<rcContourSet,
+            decltype([](rcContourSet* p) { rcFreeContourSet(p); })>
+            contour_set{rcAllocContourSet()};
+        if (!contour_set)
+        {
+            spdlog::error("Can't allocate contour set");
+            std::terminate();
+        }
+
+        if (!rcBuildContours(&context,
+                *compact_heightfield,
+                config.maxSimplificationError,
+                config.maxEdgeLen,
+                *contour_set))
+        {
+            spdlog::error("Can't create contours");
+            std::terminate();
+        }
+
+        std::unique_ptr<rcPolyMesh,
+            decltype([](rcPolyMesh* p) { rcFreePolyMesh(p); })>
+            poly_mesh{rcAllocPolyMesh()};
+        if (!poly_mesh)
+        {
+            spdlog::error("Can't allocate poly mesh");
+            std::terminate();
+        }
+
+        if (!rcBuildPolyMesh(&context,
+                *contour_set,
+                config.maxVertsPerPoly,
+                *poly_mesh))
+        {
+            spdlog::error("Can't triangulate contours");
+            std::terminate();
+        }
+
+        std::unique_ptr<rcPolyMeshDetail,
+            decltype([](rcPolyMeshDetail* p) { rcFreePolyMeshDetail(p); })>
+            poly_mesh_detail{rcAllocPolyMeshDetail()};
+        if (!poly_mesh_detail)
+        {
+            spdlog::error("Can't allocate poly mesh detail");
+            std::terminate();
+        }
+
+        if (!rcBuildPolyMeshDetail(&context,
+                *poly_mesh,
+                *compact_heightfield,
+                config.detailSampleDist,
+                config.detailSampleMaxError,
+                *poly_mesh_detail))
+        {
+            spdlog::error("Can't build detail mesh");
+            std::terminate();
+        }
+
+        compact_heightfield.reset();
+        contour_set.reset();
     }
 } // namespace
 
@@ -683,6 +927,8 @@ void galileo::application_t::setup_world()
                     JPH::EActivation::DontActivate);
 
                 bodies_.emplace_back(root_index, floor->GetID());
+
+                to_navigation_mesh(*model, root);
             }
             else if (root.name.starts_with("Icosphere"))
             {

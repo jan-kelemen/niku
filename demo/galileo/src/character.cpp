@@ -48,8 +48,7 @@ namespace
         JPH::EBackFaceMode::CollideWithBackFaces};
     constexpr float standing_radius{0.3f};
     constexpr float standing_height{1.35f};
-    constexpr float max_slope_angle{JPH::DegreesToRadians(45.0f)};
-    constexpr float max_strenght{100.0f};
+    constexpr float max_strength{100.0f};
     constexpr float padding{0.02f};
     constexpr float recovery_speed{1.0f};
     constexpr float predictive_contact_distance{0.1f};
@@ -77,7 +76,7 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
     JPH::Ref<JPH::CharacterVirtualSettings> const settings{
         new JPH::CharacterVirtualSettings};
     settings->mMaxSlopeAngle = max_slope_angle;
-    settings->mMaxStrength = max_strenght;
+    settings->mMaxStrength = max_strength;
     settings->mShape = standing_shape;
     settings->mBackFaceMode = back_face_mode;
     settings->mCharacterPadding = padding;
