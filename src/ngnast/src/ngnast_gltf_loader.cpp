@@ -2,6 +2,7 @@
 
 #include <ngnast_error.hpp>
 #include <ngnast_gltf_fastgltf_adapter.hpp>
+#include <ngnast_mesh_transform.hpp>
 #include <ngnast_scene_model.hpp>
 
 #include <cppext_numeric.hpp>
@@ -67,57 +68,6 @@ namespace
     constexpr auto tangent_attribute{"TANGENT"};
     constexpr auto texcoord_0_attribute{"TEXCOORD_0"};
     constexpr auto color_attribute{"COLOR_0"};
-
-    [[nodiscard]] bool make_unindexed(ngnast::primitive_t& primitive)
-    {
-        if (primitive.indices.empty())
-        {
-            return false;
-        }
-
-        std::vector<ngnast::vertex_t> new_vertices;
-        new_vertices.reserve(primitive.indices.size());
-        std::ranges::transform(primitive.indices,
-            std::back_inserter(new_vertices),
-            [&primitive](unsigned int const i)
-            { return primitive.vertices[i]; });
-
-        primitive.vertices = std::move(new_vertices);
-        primitive.indices.clear();
-
-        return true;
-    }
-
-    void make_indexed(ngnast::primitive_t& primitive)
-    {
-        size_t const index_count{primitive.vertices.size()};
-        size_t const unindexed_vertex_count{primitive.vertices.size()};
-
-        std::vector<unsigned int> remap;
-        remap.resize(index_count);
-
-        size_t const vertex_count{meshopt_generateVertexRemap(remap.data(),
-            nullptr,
-            index_count,
-            primitive.vertices.data(),
-            unindexed_vertex_count,
-            sizeof(ngnast::vertex_t))};
-
-        std::vector<ngnast::vertex_t> new_vertices;
-        new_vertices.resize(vertex_count);
-        meshopt_remapVertexBuffer(new_vertices.data(),
-            primitive.vertices.data(),
-            unindexed_vertex_count,
-            sizeof(ngnast::vertex_t),
-            remap.data());
-        primitive.vertices = std::move(new_vertices);
-
-        primitive.indices.resize(index_count);
-        meshopt_remapIndexBuffer(primitive.indices.data(),
-            nullptr,
-            index_count,
-            remap.data());
-    }
 
     void calculate_normals(ngnast::primitive_t& primitive)
     {
@@ -676,7 +626,7 @@ namespace
 
             if (!tangents_loaded)
             {
-                bool const was_indexed{make_unindexed(p)};
+                bool const was_indexed{ngnast::mesh::make_unindexed(p)};
 
                 if (!calculate_tangents(p))
                 {
@@ -689,7 +639,7 @@ namespace
 
                 if (was_indexed)
                 {
-                    make_indexed(p);
+                    ngnast::mesh::make_indexed(p);
                 }
             }
 

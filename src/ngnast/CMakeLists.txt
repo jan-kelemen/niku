@@ -5,6 +5,7 @@ target_sources(ngnast
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnast_error.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnast_gltf_loader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnast_gpu_transfer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnast_mesh_transform.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnast_scene_model.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnast_error.cpp
@@ -12,6 +13,7 @@ target_sources(ngnast
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnast_gltf_fastgltf_adapter.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnast_gltf_loader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnast_gpu_transfer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnast_mesh_transform.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnast_scene_model.cpp
 )
 
