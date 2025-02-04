@@ -15,6 +15,7 @@
 #include <render_graph.hpp>
 
 #include <cppext_container.hpp>
+#include <cppext_memory.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
@@ -263,9 +264,10 @@ namespace
             &config.width,
             &config.height);
 
-        std::unique_ptr<rcHeightfield,
-            decltype([](rcHeightfield* p) { rcFreeHeightField(p); })>
-            heightfield{rcAllocHeightfield()};
+        using heightfield_ptr_t =
+            cppext::unique_ptr_with_static_deleter_t<rcHeightfield,
+                &rcFreeHeightField>;
+        heightfield_ptr_t heightfield{rcAllocHeightfield()};
         if (!heightfield)
         {
             spdlog::error("Can't allocate heightfield");
@@ -360,10 +362,11 @@ namespace
             config.walkableHeight,
             *heightfield);
 
-        std::unique_ptr<rcCompactHeightfield,
-            decltype([](rcCompactHeightfield* p)
-                { rcFreeCompactHeightfield(p); })>
-            compact_heightfield{rcAllocCompactHeightfield()};
+        using compact_heightfield_ptr_t =
+            cppext::unique_ptr_with_static_deleter_t<rcCompactHeightfield,
+                &rcFreeCompactHeightfield>;
+        compact_heightfield_ptr_t compact_heightfield{
+            rcAllocCompactHeightfield()};
         if (!heightfield)
         {
             spdlog::error("Can't allocate compact heightfield");
@@ -399,9 +402,11 @@ namespace
             std::terminate();
         }
 
-        std::unique_ptr<rcContourSet,
-            decltype([](rcContourSet* p) { rcFreeContourSet(p); })>
-            contour_set{rcAllocContourSet()};
+        using contour_set_ptr_t =
+            cppext::unique_ptr_with_static_deleter_t<rcContourSet,
+                &rcFreeContourSet>;
+
+        contour_set_ptr_t contour_set{rcAllocContourSet()};
         if (!contour_set)
         {
             spdlog::error("Can't allocate contour set");
@@ -418,9 +423,11 @@ namespace
             std::terminate();
         }
 
-        std::unique_ptr<rcPolyMesh,
-            decltype([](rcPolyMesh* p) { rcFreePolyMesh(p); })>
-            poly_mesh{rcAllocPolyMesh()};
+        using poly_mesh_ptr_t =
+            cppext::unique_ptr_with_static_deleter_t<rcPolyMesh,
+                &rcFreePolyMesh>;
+        poly_mesh_ptr_t poly_mesh{rcAllocPolyMesh()};
+
         if (!poly_mesh)
         {
             spdlog::error("Can't allocate poly mesh");
@@ -436,9 +443,10 @@ namespace
             std::terminate();
         }
 
-        std::unique_ptr<rcPolyMeshDetail,
-            decltype([](rcPolyMeshDetail* p) { rcFreePolyMeshDetail(p); })>
-            poly_mesh_detail{rcAllocPolyMeshDetail()};
+        using poly_mesh_detail_ptr_t =
+            cppext::unique_ptr_with_static_deleter_t<rcPolyMeshDetail,
+                &rcFreePolyMeshDetail>;
+        poly_mesh_detail_ptr_t poly_mesh_detail{rcAllocPolyMeshDetail()};
         if (!poly_mesh_detail)
         {
             spdlog::error("Can't allocate poly mesh detail");

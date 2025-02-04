@@ -71,8 +71,8 @@ ngnscr::scripting_engine_t::~scripting_engine_t()
 
 asIScriptEngine& ngnscr::scripting_engine_t::engine() { return *engine_; }
 
-std::unique_ptr<asIScriptContext, void (*)(asIScriptContext*)>
-ngnscr::scripting_engine_t::execution_context(asIScriptFunction* const function)
+ngnscr::script_context_ptr_t ngnscr::scripting_engine_t::execution_context(
+    asIScriptFunction* const function)
 {
     auto const deleter = [](asIScriptContext* const ctx)
     {
@@ -82,9 +82,7 @@ ngnscr::scripting_engine_t::execution_context(asIScriptFunction* const function)
         }
     };
 
-    std::unique_ptr<asIScriptContext, void (*)(asIScriptContext*)> rv{
-        engine_->CreateContext(),
-        deleter};
+    script_context_ptr_t rv{engine_->CreateContext(), deleter};
 
     if (auto const result{rv->Prepare(function)}; result < 0)
     {

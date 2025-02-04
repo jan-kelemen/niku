@@ -3,11 +3,13 @@ add_library(cppext INTERFACE)
 target_sources(cppext
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_attribute.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_overloaded.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_numeric.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_pragma_warning.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_cycled_buffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_container.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_cycled_buffer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_memory.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_numeric.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_overloaded.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_pragma_warning.hpp
+        
 )
 
 target_include_directories(cppext

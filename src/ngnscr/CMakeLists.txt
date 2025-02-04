@@ -18,6 +18,8 @@ target_include_directories(ngnscr
 
 target_link_libraries(ngnscr
     PUBLIC
+        cppext
+    PUBLIC
         Angelscript::angelscript
     PRIVATE
         Angelscript::scriptbuilder

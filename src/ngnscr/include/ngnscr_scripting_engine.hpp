@@ -1,6 +1,8 @@
 #ifndef NGNSCR_SCRIPTING_ENGINE_INCLUDED
 #define NGNSCR_SCRIPTING_ENGINE_INCLUDED
 
+#include <cppext_memory.hpp>
+
 #include <memory>
 
 class asIScriptEngine;
@@ -9,6 +11,9 @@ class asIScriptFunction;
 
 namespace ngnscr
 {
+    using script_context_ptr_t =
+        cppext::unique_ptr_with_deleter_t<asIScriptContext>;
+
     class [[nodiscard]] scripting_engine_t final
     {
     public:
@@ -24,9 +29,8 @@ namespace ngnscr
     public:
         [[nodiscard]] asIScriptEngine& engine();
 
-        [[nodiscard]] std::unique_ptr<asIScriptContext,
-            void (*)(asIScriptContext*)>
-        execution_context(asIScriptFunction* function);
+        [[nodiscard]] script_context_ptr_t execution_context(
+            asIScriptFunction* function);
 
     public:
         scripting_engine_t& operator=(scripting_engine_t const&) = default;
