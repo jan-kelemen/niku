@@ -9,6 +9,7 @@
 #include <gbuffer.hpp>
 #include <gbuffer_shader.hpp>
 #include <materials.hpp>
+#include <navmesh_debug.hpp>
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
 #include <postprocess_shader.hpp>
@@ -222,7 +223,9 @@ namespace
             ngnphy::to_unindexed_triangles(primitive.vertices, to_jolt_tri)};
     }
 
-    void to_navigation_mesh(ngnast::scene_model_t const& model,
+    [[nodiscard]] std::pair<galileo::poly_mesh_ptr_t,
+        galileo::poly_mesh_detail_ptr_t>
+    to_navigation_mesh(ngnast::scene_model_t const& model,
         ngnast::node_t const& node)
     {
         if (!node.mesh_index)
@@ -423,10 +426,7 @@ namespace
             std::terminate();
         }
 
-        using poly_mesh_ptr_t =
-            cppext::unique_ptr_with_static_deleter_t<rcPolyMesh,
-                &rcFreePolyMesh>;
-        poly_mesh_ptr_t poly_mesh{rcAllocPolyMesh()};
+        galileo::poly_mesh_ptr_t poly_mesh{rcAllocPolyMesh()};
 
         if (!poly_mesh)
         {
@@ -443,10 +443,8 @@ namespace
             std::terminate();
         }
 
-        using poly_mesh_detail_ptr_t =
-            cppext::unique_ptr_with_static_deleter_t<rcPolyMeshDetail,
-                &rcFreePolyMeshDetail>;
-        poly_mesh_detail_ptr_t poly_mesh_detail{rcAllocPolyMeshDetail()};
+        galileo::poly_mesh_detail_ptr_t poly_mesh_detail{
+            rcAllocPolyMeshDetail()};
         if (!poly_mesh_detail)
         {
             spdlog::error("Can't allocate poly mesh detail");
@@ -466,6 +464,9 @@ namespace
 
         compact_heightfield.reset();
         contour_set.reset();
+
+        return std::make_pair(std::move(poly_mesh),
+            std::move(poly_mesh_detail));
     }
 } // namespace
 
@@ -502,6 +503,9 @@ galileo::application_t::application_t(bool const debug)
           frame_info_->descriptor_set_layout())}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
     , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
+          frame_info_->descriptor_set_layout(),
+          depth_buffer_.format)}
+    , navmesh_debug_{std::make_unique<navmesh_debug_t>(*backend_,
           frame_info_->descriptor_set_layout(),
           depth_buffer_.format)}
 {
@@ -723,17 +727,16 @@ void galileo::application_t::draw()
             VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)};
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
 
-        vkrndr::render_pass_t physics_debug_pass;
-        physics_debug_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        vkrndr::render_pass_t debug_pass;
+        debug_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
             VK_ATTACHMENT_STORE_OP_STORE,
             color_image_.view);
-        physics_debug_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
+        debug_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_LOAD,
             VK_ATTACHMENT_STORE_OP_NONE,
             depth_buffer_.view);
 
-        [[maybe_unused]] auto const guard{
-            physics_debug_pass.begin(command_buffer,
-                {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
+        [[maybe_unused]] auto const guard{debug_pass.begin(command_buffer,
+            {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
 
         if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
         {
@@ -742,6 +745,15 @@ void galileo::application_t::draw()
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
             physics_debug_->draw(command_buffer);
+        }
+
+        if (VkPipelineLayout const layout{navmesh_debug_->pipeline_layout()})
+        {
+            frame_info_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            navmesh_debug_->draw(command_buffer);
         }
     }
 
@@ -830,6 +842,8 @@ void galileo::application_t::on_startup()
         render_graph_->descriptor_set_layout(),
         depth_buffer_.format);
 
+    navmesh_debug_->update(*poly_mesh_);
+
     auto const extent{backend_->extent()};
     on_resize(extent.width, extent.height);
 }
@@ -837,6 +851,8 @@ void galileo::application_t::on_startup()
 void galileo::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device().logical);
+
+    navmesh_debug_.reset();
 
     physics_debug_.reset();
 
@@ -936,7 +952,14 @@ void galileo::application_t::setup_world()
 
                 bodies_.emplace_back(root_index, floor->GetID());
 
-                to_navigation_mesh(*model, root);
+                auto now{std::chrono::system_clock::now()};
+                std::tie(poly_mesh_, poly_mesh_detail_) =
+                    to_navigation_mesh(*model, root);
+
+                auto diff{std::chrono::system_clock::now() - now};
+                spdlog::info("Navigation mesh generation took {}",
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        diff));
             }
             else if (root.name.starts_with("Icosphere"))
             {

@@ -19,6 +19,8 @@
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 #include <Jolt/Physics/Body/BodyID.h> // IWYU pragma: keep
 
+#include <recastnavigation/Recast.h>
+
 #include <SDL2/SDL_events.h>
 
 #include <cstddef>
@@ -47,6 +49,7 @@ namespace galileo
     class gbuffer_t;
     class gbuffer_shader_t;
     class materials_t;
+    class navmesh_debug_t;
     class physics_debug_t;
     class postprocess_shader_t;
     class render_graph_t;
@@ -54,6 +57,12 @@ namespace galileo
 
 namespace galileo
 {
+    using poly_mesh_ptr_t =
+        cppext::unique_ptr_with_static_deleter_t<rcPolyMesh, &rcFreePolyMesh>;
+    using poly_mesh_detail_ptr_t =
+        cppext::unique_ptr_with_static_deleter_t<rcPolyMeshDetail,
+            &rcFreePolyMeshDetail>;
+
     class [[nodiscard]] application_t final : public ngnwsi::application_t
     {
     public:
@@ -113,6 +122,9 @@ namespace galileo
         std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
         size_t sphere_idx_{};
 
+        poly_mesh_ptr_t poly_mesh_;
+        poly_mesh_detail_ptr_t poly_mesh_detail_;
+
         ngnscr::scripting_engine_t scripting_engine_;
 
         std::unique_ptr<character_t> character_;
@@ -132,6 +144,7 @@ namespace galileo
         std::unique_ptr<deferred_shader_t> deferred_shader_;
         std::unique_ptr<postprocess_shader_t> postprocess_shader_;
         std::unique_ptr<physics_debug_t> physics_debug_;
+        std::unique_ptr<navmesh_debug_t> navmesh_debug_;
     };
 } // namespace galileo
 #endif

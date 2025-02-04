@@ -13,6 +13,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/navmesh_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
@@ -29,6 +30,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/navmesh_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
@@ -99,6 +101,8 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/navmesh_debug.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/navmesh_debug.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
@@ -116,6 +120,8 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/navmesh_debug.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/navmesh_debug.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
