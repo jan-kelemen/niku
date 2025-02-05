@@ -86,7 +86,6 @@ DISABLE_WARNING_POP
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
-#include <recastnavigation/DetourNavMesh.h>
 #include <recastnavigation/Recast.h>
 
 #include <SDL2/SDL_events.h>
@@ -102,6 +101,7 @@ DISABLE_WARNING_POP
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -183,21 +183,8 @@ namespace
     }
 
     [[nodiscard]] JPH::MeshShapeSettings to_jolt_mesh_shape(
-        ngnast::scene_model_t const& model,
-        ngnast::node_t const& node)
+        ngnast::primitive_t const& primitive)
     {
-        if (!node.mesh_index)
-        {
-            std::terminate();
-        }
-        assert(node.child_indices.empty());
-
-        ngnast::mesh_t const& mesh{model.meshes[*node.mesh_index]};
-        assert(mesh.primitive_indices.size() == 1);
-
-        ngnast::primitive_t const& primitive{
-            model.primitives[mesh.primitive_indices[0]]};
-
         auto const to_jolt_pos = [](ngnast::vertex_t const& vtx) -> JPH::Float3
         { return {vtx.position[0], vtx.position[1], vtx.position[2]}; };
 
@@ -221,252 +208,6 @@ namespace
 
         return {
             ngnphy::to_unindexed_triangles(primitive.vertices, to_jolt_tri)};
-    }
-
-    [[nodiscard]] std::pair<galileo::poly_mesh_ptr_t,
-        galileo::poly_mesh_detail_ptr_t>
-    to_navigation_mesh(ngnast::scene_model_t const& model,
-        ngnast::node_t const& node)
-    {
-        if (!node.mesh_index)
-        {
-            std::terminate();
-        }
-        assert(node.child_indices.empty());
-
-        ngnast::mesh_t const& mesh{model.meshes[*node.mesh_index]};
-        assert(mesh.primitive_indices.size() == 1);
-
-        ngnast::primitive_t const& primitive{
-            model.primitives[mesh.primitive_indices[0]]};
-
-        constexpr float cell_size{0.3f};
-        constexpr float cell_height{0.2f};
-        rcConfig config{
-            .cs = cell_size,
-            .ch = cell_height,
-            .walkableSlopeAngle = galileo::character_t::max_slope_angle,
-            .walkableHeight = static_cast<int>(ceilf(2.0f / cell_height)),
-            .walkableClimb = 0,
-            .walkableRadius = 0,
-            .maxEdgeLen = 0,
-            .maxSimplificationError = 1.3f,
-            .minRegionArea = 8,
-            .mergeRegionArea = 20,
-            .maxVertsPerPoly = DT_VERTS_PER_POLYGON,
-            .detailSampleDist = 6.0f * cell_size,
-            .detailSampleMaxError = 6.0f * cell_height,
-        };
-
-        std::ranges::copy_n(glm::value_ptr(node.aabb.min), 3, config.bmin);
-        std::ranges::copy_n(glm::value_ptr(node.aabb.max), 3, config.bmax);
-
-        rcCalcGridSize(config.bmin,
-            config.bmax,
-            config.cs,
-            &config.width,
-            &config.height);
-
-        using heightfield_ptr_t =
-            cppext::unique_ptr_with_static_deleter_t<rcHeightfield,
-                &rcFreeHeightField>;
-        heightfield_ptr_t heightfield{rcAllocHeightfield()};
-        if (!heightfield)
-        {
-            spdlog::error("Can't allocate heightfield");
-            std::terminate();
-        }
-
-        rcContext context;
-        if (!rcCreateHeightfield(&context,
-                *heightfield,
-                config.width,
-                config.height,
-                config.bmin,
-                config.bmax,
-                config.cs,
-                config.ch))
-        {
-            spdlog::error("Can't create heightfield");
-            std::terminate();
-        }
-
-        bool const is_indexed{!primitive.indices.empty()};
-
-        auto const triangle_areas_count{
-            (is_indexed ? primitive.indices.size()
-                        : primitive.vertices.size()) /
-            3};
-
-        std::vector<unsigned char> triangle_areas;
-        triangle_areas.insert(triangle_areas.end(), triangle_areas_count, '\0');
-
-        std::vector<float> vertices;
-        std::vector<int> indices;
-        auto convert_indexed_primitive =
-            [&vertices, &indices](ngnast::primitive_t const& p) mutable
-        {
-            vertices.reserve(p.vertices.size() * 3);
-            for (auto const& vertex : p.vertices)
-            {
-                vertices.insert(vertices.end(),
-                    glm::value_ptr(vertex.position),
-                    glm::value_ptr(vertex.position) + 3);
-            }
-
-            indices.reserve(p.indices.size());
-            std::ranges::transform(p.indices,
-                std::back_inserter(indices),
-                &cppext::narrow<int, unsigned int>);
-        };
-
-        if (is_indexed)
-        {
-            convert_indexed_primitive(primitive);
-        }
-        else
-        {
-            auto unindexed_primitive{primitive};
-            ngnast::mesh::make_indexed(unindexed_primitive);
-            convert_indexed_primitive(primitive);
-        }
-
-        rcMarkWalkableTriangles(&context,
-            config.walkableSlopeAngle,
-            vertices.data(),
-            cppext::narrow<int>(vertices.size() / 3),
-            indices.data(),
-            cppext::narrow<int>(indices.size() / 3),
-            triangle_areas.data());
-        if (!rcRasterizeTriangles(&context,
-                vertices.data(),
-                cppext::narrow<int>(vertices.size() / 3),
-                indices.data(),
-                triangle_areas.data(),
-                cppext::narrow<int>(indices.size() / 3),
-                *heightfield))
-        {
-            spdlog::error("Can't rasterize triangles");
-            std::terminate();
-        }
-
-        triangle_areas.clear();
-
-        rcFilterLowHangingWalkableObstacles(&context,
-            config.walkableClimb,
-            *heightfield);
-
-        rcFilterLedgeSpans(&context,
-            config.walkableHeight,
-            config.walkableClimb,
-            *heightfield);
-
-        rcFilterWalkableLowHeightSpans(&context,
-            config.walkableHeight,
-            *heightfield);
-
-        using compact_heightfield_ptr_t =
-            cppext::unique_ptr_with_static_deleter_t<rcCompactHeightfield,
-                &rcFreeCompactHeightfield>;
-        compact_heightfield_ptr_t compact_heightfield{
-            rcAllocCompactHeightfield()};
-        if (!heightfield)
-        {
-            spdlog::error("Can't allocate compact heightfield");
-            std::terminate();
-        }
-
-        if (!rcBuildCompactHeightfield(&context,
-                config.walkableHeight,
-                config.walkableClimb,
-                *heightfield,
-                *compact_heightfield))
-        {
-            spdlog::error("Can't build compact data");
-            std::terminate();
-        }
-
-        heightfield.reset();
-
-        // Watershed partitioning
-        if (!rcBuildDistanceField(&context, *compact_heightfield))
-        {
-            spdlog::error("Can't build distance field");
-            std::terminate();
-        }
-
-        if (!rcBuildRegions(&context,
-                *compact_heightfield,
-                config.borderSize,
-                config.minRegionArea,
-                config.mergeRegionArea))
-        {
-            spdlog::error("Can't build watershed regions");
-            std::terminate();
-        }
-
-        using contour_set_ptr_t =
-            cppext::unique_ptr_with_static_deleter_t<rcContourSet,
-                &rcFreeContourSet>;
-
-        contour_set_ptr_t contour_set{rcAllocContourSet()};
-        if (!contour_set)
-        {
-            spdlog::error("Can't allocate contour set");
-            std::terminate();
-        }
-
-        if (!rcBuildContours(&context,
-                *compact_heightfield,
-                config.maxSimplificationError,
-                config.maxEdgeLen,
-                *contour_set))
-        {
-            spdlog::error("Can't create contours");
-            std::terminate();
-        }
-
-        galileo::poly_mesh_ptr_t poly_mesh{rcAllocPolyMesh()};
-
-        if (!poly_mesh)
-        {
-            spdlog::error("Can't allocate poly mesh");
-            std::terminate();
-        }
-
-        if (!rcBuildPolyMesh(&context,
-                *contour_set,
-                config.maxVertsPerPoly,
-                *poly_mesh))
-        {
-            spdlog::error("Can't triangulate contours");
-            std::terminate();
-        }
-
-        galileo::poly_mesh_detail_ptr_t poly_mesh_detail{
-            rcAllocPolyMeshDetail()};
-        if (!poly_mesh_detail)
-        {
-            spdlog::error("Can't allocate poly mesh detail");
-            std::terminate();
-        }
-
-        if (!rcBuildPolyMeshDetail(&context,
-                *poly_mesh,
-                *compact_heightfield,
-                config.detailSampleDist,
-                config.detailSampleMaxError,
-                *poly_mesh_detail))
-        {
-            spdlog::error("Can't build detail mesh");
-            std::terminate();
-        }
-
-        compact_heightfield.reset();
-        contour_set.reset();
-
-        return std::make_pair(std::move(poly_mesh),
-            std::move(poly_mesh_detail));
     }
 } // namespace
 
@@ -842,7 +583,7 @@ void galileo::application_t::on_startup()
         render_graph_->descriptor_set_layout(),
         depth_buffer_.format);
 
-    navmesh_debug_->update(*poly_mesh_);
+    navmesh_debug_->update(*poly_mesh_.mesh);
 
     auto const extent{backend_->extent()};
     on_resize(extent.width, extent.height);
@@ -930,8 +671,24 @@ void galileo::application_t::setup_world()
 
             if (root.name == "Cube")
             {
+                assert(root.child_indices.empty());
+
+                if (!root.mesh_index)
+                {
+                    continue;
+                }
+                ngnast::mesh_t const& mesh{model->meshes[*root.mesh_index]};
+
+                if (mesh.primitive_indices.size() != 1)
+                {
+                    assert(false);
+                    continue;
+                }
+                ngnast::primitive_t const& world_primitive{
+                    model->primitives[mesh.primitive_indices[0]]};
+
                 JPH::MeshShapeSettings const floor_shape_settings{
-                    to_jolt_mesh_shape(*model, root)};
+                    to_jolt_mesh_shape(world_primitive)};
                 floor_shape_settings.SetEmbedded();
 
                 JPH::ShapeSettings::ShapeResult const floor_shape_result{
@@ -952,14 +709,22 @@ void galileo::application_t::setup_world()
 
                 bodies_.emplace_back(root_index, floor->GetID());
 
-                auto now{std::chrono::system_clock::now()};
-                std::tie(poly_mesh_, poly_mesh_detail_) =
-                    to_navigation_mesh(*model, root);
-
-                auto diff{std::chrono::system_clock::now() - now};
-                spdlog::info("Navigation mesh generation took {}",
-                    std::chrono::duration_cast<std::chrono::milliseconds>(
-                        diff));
+                try
+                {
+                    auto const now{std::chrono::system_clock::now()};
+                    poly_mesh_ =
+                        galileo::generate_navigation_mesh(navmesh_params_,
+                            world_primitive,
+                            root.aabb);
+                    auto const diff{std::chrono::system_clock::now() - now};
+                    spdlog::info("Navigation mesh generation took {}",
+                        std::chrono::duration_cast<std::chrono::milliseconds>(
+                            diff));
+                }
+                catch (std::exception const& ex)
+                {
+                    spdlog::error(ex.what());
+                }
             }
             else if (root.name.starts_with("Icosphere"))
             {

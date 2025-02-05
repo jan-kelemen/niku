@@ -3,6 +3,7 @@
 
 #include <camera_controller.hpp>
 #include <follow_camera_controller.hpp>
+#include <navmesh.hpp>
 #include <physics_engine.hpp>
 
 #include <ngngfx_perspective_camera.hpp>
@@ -18,8 +19,6 @@
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 #include <Jolt/Physics/Body/BodyID.h> // IWYU pragma: keep
-
-#include <recastnavigation/Recast.h>
 
 #include <SDL2/SDL_events.h>
 
@@ -57,12 +56,6 @@ namespace galileo
 
 namespace galileo
 {
-    using poly_mesh_ptr_t =
-        cppext::unique_ptr_with_static_deleter_t<rcPolyMesh, &rcFreePolyMesh>;
-    using poly_mesh_detail_ptr_t =
-        cppext::unique_ptr_with_static_deleter_t<rcPolyMeshDetail,
-            &rcFreePolyMeshDetail>;
-
     class [[nodiscard]] application_t final : public ngnwsi::application_t
     {
     public:
@@ -122,8 +115,8 @@ namespace galileo
         std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
         size_t sphere_idx_{};
 
-        poly_mesh_ptr_t poly_mesh_;
-        poly_mesh_detail_ptr_t poly_mesh_detail_;
+        navmesh_parameters_t navmesh_params_;
+        poly_mesh_t poly_mesh_;
 
         ngnscr::scripting_engine_t scripting_engine_;
 

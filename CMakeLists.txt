@@ -23,6 +23,7 @@ find_package(glm REQUIRED)
 find_package(glslang REQUIRED)
 find_package(fastgltf REQUIRED)
 find_package(meshoptimizer REQUIRED)
+find_package(recastnavigation REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(spirv-cross REQUIRED)
@@ -31,7 +32,7 @@ find_package(volk REQUIRED)
 find_package(vulkan-memory-allocator REQUIRED)
 
 if (NIKU_BUILD_DEMOS)
-    find_package(recastnavigation REQUIRED)
+
     find_package(simdjson REQUIRED)
 endif()
 

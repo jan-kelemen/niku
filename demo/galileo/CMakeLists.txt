@@ -13,6 +13,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/navmesh.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/navmesh_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
@@ -30,6 +31,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/gbuffer_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/navmesh.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/navmesh_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
