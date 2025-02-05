@@ -6,6 +6,8 @@
 #include <navmesh.hpp>
 #include <physics_engine.hpp>
 
+#include <ngnast_scene_model.hpp>
+
 #include <ngngfx_perspective_camera.hpp>
 
 #include <ngnscr_scripting_engine.hpp>
@@ -102,6 +104,9 @@ namespace galileo
 
         ngnwsi::mouse_t mouse_;
         ngngfx::perspective_camera_t camera_;
+
+        ngnast::primitive_t world_;
+        ngnast::bounding_box_t world_aabb_;
 
         bool free_camera_active_{false};
         camera_controller_t free_camera_controller_;

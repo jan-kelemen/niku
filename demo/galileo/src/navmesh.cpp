@@ -8,6 +8,7 @@
 #include <fmt/format.h>
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/trigonometric.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -21,7 +22,7 @@ galileo::poly_mesh_t galileo::generate_navigation_mesh(
     rcConfig config{
         .cs = parameters.cell_size,
         .ch = parameters.cell_height,
-        .walkableSlopeAngle = parameters.walkable_slope_angle,
+        .walkableSlopeAngle = glm::degrees(parameters.walkable_slope_angle),
         .walkableHeight = static_cast<int>(
             ceilf(parameters.walkable_height / parameters.cell_height)),
         .walkableClimb = static_cast<int>(
@@ -199,7 +200,7 @@ galileo::poly_mesh_t galileo::generate_navigation_mesh(
         throw std::runtime_error{"Can't create contours"};
     }
 
-    galileo::poly_mesh_ptr_t poly_mesh{rcAllocPolyMesh()};
+    poly_mesh_ptr_t poly_mesh{rcAllocPolyMesh()};
 
     if (!poly_mesh)
     {
@@ -214,7 +215,7 @@ galileo::poly_mesh_t galileo::generate_navigation_mesh(
         throw std::runtime_error{"Can't triangulate contours"};
     }
 
-    galileo::poly_mesh_detail_ptr_t poly_mesh_detail{rcAllocPolyMeshDetail()};
+    poly_mesh_detail_ptr_t poly_mesh_detail{rcAllocPolyMeshDetail()};
     if (!poly_mesh_detail)
     {
         throw std::runtime_error{"Can't allocate poly mesh detail"};

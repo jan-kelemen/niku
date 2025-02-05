@@ -38,7 +38,6 @@ namespace galileo
         int max_verts_per_poly{DT_VERTS_PER_POLYGON};
         float detail_sample_distance{6.0f};
         float detail_sample_max_error{1.0f};
-
         partition_type_t partition_type{partition_type_t::watershed};
     };
 

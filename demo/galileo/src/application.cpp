@@ -292,6 +292,110 @@ void galileo::application_t::update(float const delta_time)
     ImGui::SliderInt("Count", &light_count_, 0, 1000);
     ImGui::End();
 
+    {
+        bool update_navmesh{false};
+        ImGui::Begin("Navmesh");
+        update_navmesh |= ImGui::SliderFloat("Cell Size",
+            &navmesh_params_.cell_size,
+            0.1f,
+            1.0f,
+            "%.2f");
+        update_navmesh |= ImGui::SliderFloat("Cell Height",
+            &navmesh_params_.cell_height,
+            0.1f,
+            1.0f,
+            "%.2f");
+
+        update_navmesh |= ImGui::SliderFloat("Walkable Slope Angle",
+            &navmesh_params_.walkable_slope_angle,
+            0.02f,
+            glm::half_pi<float>(),
+            "%.3f");
+
+        update_navmesh |= ImGui::SliderFloat("Walkable Height",
+            &navmesh_params_.walkable_height,
+            0.1f,
+            5.0f,
+            "%.1f");
+
+        update_navmesh |= ImGui::SliderFloat("Walkable Climb",
+            &navmesh_params_.walkable_climb,
+            0.0f,
+            5.0f,
+            "%.1f");
+
+        update_navmesh |= ImGui::SliderFloat("Walkable Radius",
+            &navmesh_params_.walkable_radius,
+            0.0f,
+            5.0f,
+            "%.1f");
+
+        update_navmesh |= ImGui::SliderFloat("Max Edge Length",
+            &navmesh_params_.max_edge_length,
+            0.0f,
+            50.0f,
+            "%.0f");
+
+        update_navmesh |= ImGui::SliderFloat("Max Simplification Error",
+            &navmesh_params_.max_simplification_error,
+            0.1f,
+            3.0f,
+            "%.1f");
+
+        update_navmesh |= ImGui::SliderFloat("Min Region Size",
+            &navmesh_params_.min_region_size,
+            0.0f,
+            150.0f,
+            "%.0f");
+
+        update_navmesh |= ImGui::SliderFloat("Merge Region Size",
+            &navmesh_params_.merge_region_size,
+            0.0f,
+            150.0f,
+            "%.0f");
+
+        update_navmesh |= ImGui::SliderInt("Max Verts Per Poly",
+            &navmesh_params_.max_verts_per_poly,
+            3,
+            12);
+
+        update_navmesh |= ImGui::SliderFloat("Detail Sample Distance",
+            &navmesh_params_.detail_sample_distance,
+            0.0f,
+            16.0f,
+            "%.0f");
+
+        update_navmesh |= ImGui::SliderFloat("Detail Sample Max Error",
+            &navmesh_params_.detail_sample_max_error,
+            0.0f,
+            16.0f,
+            "%.0f");
+
+        ImGui::End();
+
+        if (update_navmesh)
+        {
+            try
+            {
+                auto const now{std::chrono::system_clock::now()};
+                poly_mesh_ = generate_navigation_mesh(navmesh_params_,
+                    world_,
+                    world_aabb_);
+                auto const diff{std::chrono::system_clock::now() - now};
+                spdlog::info("Navigation mesh generation took {}",
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        diff));
+
+                vkDeviceWaitIdle(backend_->device().logical);
+                navmesh_debug_->update(*poly_mesh_.mesh);
+            }
+            catch (std::exception const& ex)
+            {
+                spdlog::error(ex.what());
+            }
+        }
+    }
+
     character_->update(delta_time);
 
     if (free_camera_active_)
@@ -684,11 +788,12 @@ void galileo::application_t::setup_world()
                     assert(false);
                     continue;
                 }
-                ngnast::primitive_t const& world_primitive{
-                    model->primitives[mesh.primitive_indices[0]]};
+
+                world_ = model->primitives[mesh.primitive_indices[0]];
+                world_aabb_ = root.aabb;
 
                 JPH::MeshShapeSettings const floor_shape_settings{
-                    to_jolt_mesh_shape(world_primitive)};
+                    to_jolt_mesh_shape(world_)};
                 floor_shape_settings.SetEmbedded();
 
                 JPH::ShapeSettings::ShapeResult const floor_shape_result{
@@ -714,8 +819,8 @@ void galileo::application_t::setup_world()
                     auto const now{std::chrono::system_clock::now()};
                     poly_mesh_ =
                         galileo::generate_navigation_mesh(navmesh_params_,
-                            world_primitive,
-                            root.aabb);
+                            world_,
+                            world_aabb_);
                     auto const diff{std::chrono::system_clock::now() - now};
                     spdlog::info("Navigation mesh generation took {}",
                         std::chrono::duration_cast<std::chrono::milliseconds>(
