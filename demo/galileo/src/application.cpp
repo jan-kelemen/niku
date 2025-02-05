@@ -361,7 +361,7 @@ void galileo::application_t::update(float const delta_time)
 
         update_navmesh |= ImGui::SliderFloat("Detail Sample Distance",
             &navmesh_params_.detail_sample_distance,
-            0.0f,
+            1.0f,
             16.0f,
             "%.0f");
 
@@ -387,7 +387,7 @@ void galileo::application_t::update(float const delta_time)
                         diff));
 
                 vkDeviceWaitIdle(backend_->device().logical);
-                navmesh_debug_->update(*poly_mesh_.mesh);
+                navmesh_debug_->update(poly_mesh_);
             }
             catch (std::exception const& ex)
             {
@@ -687,7 +687,7 @@ void galileo::application_t::on_startup()
         render_graph_->descriptor_set_layout(),
         depth_buffer_.format);
 
-    navmesh_debug_->update(*poly_mesh_.mesh);
+    navmesh_debug_->update(poly_mesh_);
 
     auto const extent{backend_->extent()};
     on_resize(extent.width, extent.height);

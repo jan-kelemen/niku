@@ -1,6 +1,7 @@
 #include <navmesh_debug.hpp>
 
 #include <config.hpp>
+#include <navmesh.hpp>
 
 #include <vkglsl_shader_set.hpp>
 
@@ -9,10 +10,9 @@
 
 #include <boost/scope/defer.hpp>
 
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-
-#include <recastnavigation/Recast.h>
 
 #include <volk.h>
 
@@ -95,7 +95,7 @@ galileo::navmesh_debug_t::navmesh_debug_t(vkrndr::backend_t& backend,
             VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
     };
 
-    pipeline_ =
+    triangle_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(frame_info_layout)
@@ -103,36 +103,88 @@ galileo::navmesh_debug_t::navmesh_debug_t(vkrndr::backend_t& backend,
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT, alpha_blend)
-            .with_depth_test(depth_buffer_format)
+            .with_depth_test(depth_buffer_format,
+                VK_COMPARE_OP_LESS_OR_EQUAL,
+                false)
+            .add_vertex_input(binding_description(), attribute_description())
+            .build();
+
+    line_pipeline_ =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            triangle_pipeline_.layout}
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
+            .with_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
+            .add_shader(as_pipeline_shader(*vertex_shader))
+            .add_shader(as_pipeline_shader(*fragment_shader))
+            .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT, alpha_blend)
+            .with_depth_test(depth_buffer_format,
+                VK_COMPARE_OP_LESS_OR_EQUAL,
+                false)
+            .add_vertex_input(binding_description(), attribute_description())
+            .build();
+
+    point_pipeline_ =
+        vkrndr::pipeline_builder_t{backend_->device(),
+            triangle_pipeline_.layout}
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+            .add_shader(as_pipeline_shader(*vertex_shader))
+            .add_shader(as_pipeline_shader(*fragment_shader))
+            .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT, alpha_blend)
+            .with_depth_test(depth_buffer_format,
+                VK_COMPARE_OP_LESS_OR_EQUAL,
+                false)
             .add_vertex_input(binding_description(), attribute_description())
             .build();
 }
 
 galileo::navmesh_debug_t::~navmesh_debug_t()
 {
-    destroy(&backend_->device(), &pipeline_);
+    destroy(&backend_->device(), &point_pipeline_);
+    destroy(&backend_->device(), &line_pipeline_);
+    destroy(&backend_->device(), &triangle_pipeline_);
 
-    destroy(&backend_->device(), &vertex_buffer_);
+    destroy(&backend_->device(), &detail_draw_data_.vertex_buffer);
+    destroy(&backend_->device(), &main_draw_data_.vertex_buffer);
 }
 
 VkPipelineLayout galileo::navmesh_debug_t::pipeline_layout()
 {
-    return *pipeline_.layout;
+    return *triangle_pipeline_.layout;
 }
 
-void galileo::navmesh_debug_t::update(rcPolyMesh const& poly_mesh)
+void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
 {
-    int const vertices_per_polygon{poly_mesh.nvp};
-    float const cell_size{poly_mesh.cs};
-    float const cell_height{poly_mesh.ch};
-    float const* orig{poly_mesh.bmin};
+    int const vertices_per_polygon{poly_mesh.mesh->nvp};
+    float const cell_size{poly_mesh.mesh->cs};
+    float const cell_height{poly_mesh.mesh->ch};
 
-    vertex_count_ = 0;
+    auto const make_pos =
+        [orig = glm::make_vec3(poly_mesh.mesh->bmin),
+            cell_size,
+            cell_height](float const x, float const y, float const z)
+    {
+        return orig +
+            glm::vec3{x * cell_size, y * cell_height + 0.01f, z * cell_size};
+    };
 
-    destroy(&backend_->device(), &vertex_buffer_);
-    vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
-        {.size = cppext::narrow<size_t>(poly_mesh.npolys) *
-                cppext::narrow<size_t>(vertices_per_polygon) * 3 *
+    main_draw_data_.max_triangles =
+        cppext::narrow<uint32_t>(poly_mesh.mesh->npolys) *
+        cppext::narrow<uint32_t>(vertices_per_polygon - 2) * 3;
+    main_draw_data_.triangles = 0;
+
+    main_draw_data_.max_lines =
+        cppext::narrow<uint32_t>(poly_mesh.mesh->npolys) *
+        cppext::narrow<uint32_t>(vertices_per_polygon) * 3;
+    main_draw_data_.lines = 0;
+
+    main_draw_data_.max_points =
+        cppext::narrow<uint32_t>(poly_mesh.mesh->nverts);
+    main_draw_data_.points = 0;
+
+    destroy(&backend_->device(), &main_draw_data_.vertex_buffer);
+    main_draw_data_.vertex_buffer = vkrndr::create_buffer(backend_->device(),
+        {.size = (main_draw_data_.max_triangles + main_draw_data_.max_lines +
+                     main_draw_data_.max_points) *
                 sizeof(vertex_t),
             .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             .allocation_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
@@ -140,59 +192,126 @@ void galileo::navmesh_debug_t::update(rcPolyMesh const& poly_mesh)
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
-    auto vertex_map{vkrndr::map_memory(backend_->device(), vertex_buffer_)};
+    auto vertex_map{
+        vkrndr::map_memory(backend_->device(), main_draw_data_.vertex_buffer)};
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
         [this, map = &vertex_map]() { unmap_memory(backend_->device(), map); }};
 
     auto* const vertices{vertex_map.as<vertex_t>()};
 
-    for (int i{}; i != poly_mesh.npolys; ++i)
+    auto* triangle_vertices{vertices};
+    auto* line_vertices{vertices + main_draw_data_.max_triangles};
+    auto* point_vertices{line_vertices + main_draw_data_.max_lines};
+
+    for (int i{}; i != poly_mesh.mesh->npolys; ++i)
     {
-        unsigned short const* p{&poly_mesh.polys[i * vertices_per_polygon * 2]};
-        unsigned char const area{poly_mesh.areas[i]};
+        unsigned short const* const p{
+            &poly_mesh.mesh->polys[i * vertices_per_polygon * 2]};
+        unsigned char const area{poly_mesh.mesh->areas[i]};
 
         glm::vec4 color;
         switch (area)
         {
         case RC_WALKABLE_AREA:
-            color = glm::vec4{0.0f, 192.0f / 255.0f, 1.0f, 64.0f / 255.0f};
+            color = glm::vec4{0.0f, 192.0f, 255.0f, 64.0f} / 255.0f;
             break;
         case RC_NULL_AREA:
-            color = glm::vec4{0.0f, 0.0f, 0.0f, 64.0f / 255.0f};
+            color = glm::vec4{0.0f, 0.0f, 0.0f, 64.0f} / 255.0f;
             break;
         default:
         {
-            float const v{cppext::as_fp(area) / 255.0f};
-            color = glm::vec4{v, v, v, 64.0f / 255.0f};
+            float const v{cppext::as_fp(area)};
+            color = glm::vec4{v, v, v, 64.0f} / 255.0f;
             break;
         }
         }
 
-        for (int j{2}; j < vertices_per_polygon; ++j)
+        for (int j{2}; j != vertices_per_polygon; ++j)
         {
             if (p[j] == RC_MESH_NULL_IDX)
-                break;
-
-            std::array const vi{p[0], p[j - 1], p[j]};
-            for (int k = 0; k < 3; ++k)
             {
-                unsigned short const* v{&poly_mesh.verts[vi[k] * 3]};
-                float const x{orig[0] + v[0] * cell_size};
-                float const y{orig[1] + (v[1] + 0.01f) * cell_height};
-                float const z{orig[2] + v[2] * cell_size};
+                break;
+            }
 
-                vertices[vertex_count_].position = glm::vec3{x, y, z};
-                vertices[vertex_count_].color = color;
+            for (auto const vertex_index : {p[0], p[j - 1], p[j]})
+            {
+                unsigned short const* const v{
+                    &poly_mesh.mesh->verts[vertex_index * 3]};
+                triangle_vertices->position = make_pos(v[0], v[1], v[2]);
+                triangle_vertices->color = color;
 
-                ++vertex_count_;
+                ++triangle_vertices;
+                ++main_draw_data_.triangles;
             }
         }
+    }
+
+    glm::vec4 const line_color{1.0f,
+        48.0f / 255.0f,
+        64.0f / 255.0f,
+        220.0f / 255.0f};
+    for (int i{}; i != poly_mesh.mesh->npolys; ++i)
+    {
+        unsigned short const* const p{
+            &poly_mesh.mesh->polys[i * vertices_per_polygon * 2]};
+        for (int j{}; j != vertices_per_polygon; ++j)
+        {
+            if (p[j] == RC_MESH_NULL_IDX)
+            {
+                break;
+            }
+
+            if ((p[vertices_per_polygon + j] & 0x8000) == 0)
+            {
+                continue;
+            }
+
+            int const nj{
+                (j + 1 >= vertices_per_polygon || p[j + 1] == RC_MESH_NULL_IDX)
+                    ? 0
+                    : j + 1};
+
+            auto col{line_color};
+            if ((p[vertices_per_polygon + j] & 0xf) != 0xf)
+            {
+                col = glm::vec4{1.0f, 1.0f, 1.0f, 0.5f};
+            }
+
+            for (auto const vertex_index : {p[j], p[nj]})
+            {
+                unsigned short const* const v{
+                    &poly_mesh.mesh->verts[vertex_index * 3]};
+                line_vertices->position = make_pos(v[0], v[1], v[2]);
+                line_vertices->color = col;
+
+                ++line_vertices;
+                ++main_draw_data_.lines;
+            }
+        }
+    }
+
+    glm::vec4 const point_color{0.0f, 0.0f, 0.0f, 220.0f / 255.0f};
+    for (int i{}; i != poly_mesh.mesh->nverts; ++i)
+    {
+        unsigned short const* const v{&poly_mesh.mesh->verts[i * 3]};
+        point_vertices->position = make_pos(v[0], v[1], v[2]);
+        point_vertices->color = point_color;
+
+        ++point_vertices;
+        ++main_draw_data_.points;
     }
 }
 
 void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer)
 {
-    if (vertex_count_ == 0)
+    draw(command_buffer, main_draw_data_);
+    draw(command_buffer, detail_draw_data_);
+}
+
+void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer,
+    mesh_draw_data_t const& data)
+{
+    if (data.triangles + data.lines + data.points == 0)
     {
         return;
     }
@@ -201,10 +320,33 @@ void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer)
     vkCmdBindVertexBuffers(command_buffer,
         0,
         1,
-        &vertex_buffer_.buffer,
+        &data.vertex_buffer.buffer,
         &zero_offset);
 
-    vkrndr::bind_pipeline(command_buffer, pipeline_);
+    if (data.triangles)
+    {
+        vkrndr::bind_pipeline(command_buffer, triangle_pipeline_);
 
-    vkCmdDraw(command_buffer, vertex_count_, 1, 0, 0);
+        vkCmdDraw(command_buffer, data.triangles, 1, 0, 0);
+    }
+
+    if (data.lines)
+    {
+        vkrndr::bind_pipeline(command_buffer, line_pipeline_);
+
+        vkCmdSetLineWidth(command_buffer, 3.0f);
+
+        vkCmdDraw(command_buffer, data.lines, 1, data.max_triangles, 0);
+    }
+
+    if (data.points)
+    {
+        vkrndr::bind_pipeline(command_buffer, point_pipeline_);
+
+        vkCmdDraw(command_buffer,
+            data.points,
+            1,
+            data.max_triangles + data.max_lines,
+            0);
+    }
 }
