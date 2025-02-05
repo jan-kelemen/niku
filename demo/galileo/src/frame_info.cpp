@@ -3,6 +3,8 @@
 #include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 
+#include <ngnast_scene_model.hpp>
+
 #include <ngngfx_camera.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -101,15 +103,16 @@ namespace
             nullptr);
     }
 
-    [[nodiscard]] std::vector<gpu_light_t> generate_lights()
+    [[nodiscard]] std::vector<gpu_light_t> generate_lights(
+        ngnast::bounding_box_t const& bb)
     {
         std::vector<gpu_light_t> rv;
         rv.reserve(max_lights);
 
         std::default_random_engine engine;
-        std::uniform_real_distribution pdist{-26.0f, 26.0f};
+        std::uniform_real_distribution pdist{bb.min.x, bb.max.x};
         std::uniform_real_distribution cdist{0.0f, 1.0f};
-        std::uniform_real_distribution hdist{3.0f, 5.0f};
+        std::uniform_real_distribution hdist{bb.max.y, 5.0f};
 
         std::ranges::generate_n(std::back_inserter(rv),
             max_lights,
@@ -132,8 +135,6 @@ galileo::frame_info_t::frame_info_t(vkrndr::backend_t& backend)
     , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    auto const lights{generate_lights()};
-
     for (auto& data : cppext::as_span(frame_data_))
     {
         data.info_buffer = vkrndr::create_buffer(backend_->device(),
@@ -157,9 +158,6 @@ galileo::frame_info_t::frame_info_t(vkrndr::backend_t& backend)
                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
         data.light_map =
             vkrndr::map_memory(backend_->device(), data.light_buffer);
-
-        auto* const light_ptr{data.light_map.as<gpu_light_t>()};
-        std::ranges::copy(lights, light_ptr);
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
@@ -224,4 +222,16 @@ void galileo::frame_info_t::bind_on(VkCommandBuffer command_buffer,
         &frame_data_->descriptor_set,
         0,
         nullptr);
+}
+
+void galileo::frame_info_t::disperse_lights(
+    ngnast::bounding_box_t const& bounding_box)
+{
+    auto const lights{generate_lights(bounding_box)};
+
+    for (auto& data : cppext::as_span(frame_data_))
+    {
+        auto* const light_ptr{data.light_map.as<gpu_light_t>()};
+        std::ranges::copy(lights, light_ptr);
+    }
 }

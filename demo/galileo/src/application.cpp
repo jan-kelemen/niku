@@ -657,6 +657,8 @@ void galileo::application_t::on_startup()
 {
     setup_world();
 
+    frame_info_->disperse_lights(world_aabb_);
+
     {
         [[maybe_unused]] auto const registered{
             scripting_engine_.engine().RegisterGlobalFunction(

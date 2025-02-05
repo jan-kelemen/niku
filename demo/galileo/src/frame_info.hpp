@@ -10,6 +10,11 @@
 
 #include <cstdint>
 
+namespace ngnast
+{
+    struct bounding_box_t;
+} // namespace ngnast
+
 namespace ngngfx
 {
     class camera_t;
@@ -42,6 +47,8 @@ namespace galileo
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
             VkPipelineBindPoint bind_point);
+
+        void disperse_lights(ngnast::bounding_box_t const& bounding_box);
 
     public:
         frame_info_t& operator=(frame_info_t const&) = delete;
