@@ -3,10 +3,15 @@
 #include <config.hpp>
 #include <navmesh.hpp>
 
+#include <cppext_numeric.hpp>
+
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
+#include <vkrndr_shader_module.hpp>
 
 #include <boost/scope/defer.hpp>
 
@@ -14,9 +19,22 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include <recastnavigation/Recast.h>
+
+#include <vma_impl.hpp>
+
 #include <volk.h>
 
 #include <array>
+#include <cassert>
+#include <cstddef>
+
+// IWYU pragma: no_include <expected>
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <initializer_list>
+// IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <span>
+// IWYU pragma: no_include <system_error>
 
 namespace
 {
@@ -53,8 +71,6 @@ namespace
 
         return descriptions;
     }
-
-    constexpr size_t max_line_count{50000};
 } // namespace
 
 galileo::navmesh_debug_t::navmesh_debug_t(vkrndr::backend_t& backend,
@@ -147,7 +163,7 @@ galileo::navmesh_debug_t::~navmesh_debug_t()
     destroy(&backend_->device(), &main_draw_data_.vertex_buffer);
 }
 
-VkPipelineLayout galileo::navmesh_debug_t::pipeline_layout()
+VkPipelineLayout galileo::navmesh_debug_t::pipeline_layout() const
 {
     return *triangle_pipeline_.layout;
 }
@@ -158,6 +174,7 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
     float const cell_size{poly_mesh.mesh->cs};
     float const cell_height{poly_mesh.mesh->ch};
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     auto const make_pos =
         [orig = glm::make_vec3(poly_mesh.mesh->bmin),
             cell_size,
@@ -166,6 +183,7 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
         return orig +
             glm::vec3{x * cell_size, y * cell_height + 0.01f, z * cell_size};
     };
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     main_draw_data_.max_triangles =
         cppext::narrow<uint32_t>(poly_mesh.mesh->npolys) *
@@ -206,7 +224,8 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
     for (int i{}; i != poly_mesh.mesh->npolys; ++i)
     {
         unsigned short const* const p{
-            &poly_mesh.mesh->polys[i * vertices_per_polygon * 2]};
+            &poly_mesh.mesh->polys[cppext::narrow<ptrdiff_t>(
+                i * vertices_per_polygon * 2)]};
         unsigned char const area{poly_mesh.mesh->areas[i]};
 
         glm::vec4 color;
@@ -235,8 +254,8 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
 
             for (auto const vertex_index : {p[0], p[j - 1], p[j]})
             {
-                unsigned short const* const v{
-                    &poly_mesh.mesh->verts[vertex_index * 3]};
+                unsigned short const* const v{&poly_mesh.mesh
+                        ->verts[cppext::narrow<ptrdiff_t>(vertex_index * 3)]};
                 triangle_vertices->position = make_pos(v[0], v[1], v[2]);
                 triangle_vertices->color = color;
 
@@ -253,7 +272,8 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
     for (int i{}; i != poly_mesh.mesh->npolys; ++i)
     {
         unsigned short const* const p{
-            &poly_mesh.mesh->polys[i * vertices_per_polygon * 2]};
+            &poly_mesh.mesh->polys[cppext::narrow<ptrdiff_t>(
+                i * vertices_per_polygon * 2)]};
         for (int j{}; j != vertices_per_polygon; ++j)
         {
             if (p[j] == RC_MESH_NULL_IDX)
@@ -279,8 +299,8 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
 
             for (auto const vertex_index : {p[j], p[nj]})
             {
-                unsigned short const* const v{
-                    &poly_mesh.mesh->verts[vertex_index * 3]};
+                unsigned short const* const v{&poly_mesh.mesh
+                        ->verts[cppext::narrow<ptrdiff_t>(vertex_index * 3)]};
                 line_vertices->position = make_pos(v[0], v[1], v[2]);
                 line_vertices->color = col;
 
@@ -293,7 +313,8 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
     glm::vec4 const point_color{0.0f, 0.0f, 0.0f, 220.0f / 255.0f};
     for (int i{}; i != poly_mesh.mesh->nverts; ++i)
     {
-        unsigned short const* const v{&poly_mesh.mesh->verts[i * 3]};
+        unsigned short const* const v{
+            &poly_mesh.mesh->verts[cppext::narrow<ptrdiff_t>(i * 3)]};
         point_vertices->position = make_pos(v[0], v[1], v[2]);
         point_vertices->color = point_color;
 
@@ -302,14 +323,14 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
     }
 }
 
-void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer)
+void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer) const
 {
     draw(command_buffer, main_draw_data_);
     draw(command_buffer, detail_draw_data_);
 }
 
 void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer,
-    mesh_draw_data_t const& data)
+    mesh_draw_data_t const& data) const
 {
     if (data.triangles + data.lines + data.points == 0)
     {

@@ -9,6 +9,7 @@
 #include <gbuffer.hpp>
 #include <gbuffer_shader.hpp>
 #include <materials.hpp>
+#include <navmesh.hpp>
 #include <navmesh_debug.hpp>
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
@@ -23,7 +24,6 @@
 
 #include <ngnast_gltf_loader.hpp>
 #include <ngnast_mesh_transform.hpp>
-#include <ngnast_scene_model.hpp>
 
 #include <ngngfx_perspective_camera.hpp>
 
@@ -61,6 +61,7 @@ DISABLE_WARNING_POP
 
 #include <imgui.h>
 
+#include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>

@@ -1,5 +1,8 @@
 #include <ngnast_gpu_transfer.hpp>
 
+#include <ngnast_scene_model.hpp>
+
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
 
@@ -11,14 +14,16 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <algorithm>
+#include <iterator>
 #include <numeric>
+#include <optional>
+#include <type_traits>
 #include <vector>
 
 namespace
 {
     ngnast::gpu::vertex_t to_gpu_vertex(ngnast::vertex_t const& v)
     {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         return {.position = glm::make_vec3(v.position),
             .normal = v.normal,
             .tangent = v.tangent,
@@ -41,12 +46,13 @@ namespace
             std::back_inserter(rv),
             [&](ngnast::primitive_t const& p) mutable
             {
-                ngnast::gpu::primitive_t rv{.topology = p.topology,
+                ngnast::gpu::primitive_t gp{.topology = p.topology,
                     .material_index = p.material_index.value_or(0),
                     .vertex_count = cppext::narrow<uint32_t>(p.vertices.size()),
                     .is_indexed = !p.indices.empty()};
 
                 // clang-format off
+                // cppcheck-suppress uselessAssignmentPtrArg
                 vertices = std::ranges::transform(p.vertices, 
                     vertices,
                     to_gpu_vertex).out;
@@ -54,6 +60,7 @@ namespace
 
                 if constexpr (std::is_same_v<uint32_t, unsigned int>)
                 {
+                    // cppcheck-suppress uselessAssignmentPtrArg
                     indices = std::ranges::copy(p.indices, indices).out;
                 }
                 else
@@ -65,19 +72,19 @@ namespace
                     // clang-format on
                 }
 
-                if (rv.is_indexed)
+                if (gp.is_indexed)
                 {
-                    rv.count = cppext::narrow<uint32_t>(p.indices.size());
-                    rv.first = cppext::narrow<uint32_t>(running_index_count);
-                    rv.vertex_offset =
+                    gp.count = cppext::narrow<uint32_t>(p.indices.size());
+                    gp.first = cppext::narrow<uint32_t>(running_index_count);
+                    gp.vertex_offset =
                         cppext::narrow<int32_t>(running_vertex_count);
                 }
                 else
                 {
-                    rv.count = cppext::narrow<uint32_t>(p.vertices.size());
-                    rv.vertex_offset =
+                    gp.count = cppext::narrow<uint32_t>(p.vertices.size());
+                    gp.vertex_offset =
                         cppext::narrow<int32_t>(running_vertex_count);
-                    rv.first = cppext::narrow<uint32_t>(running_vertex_count);
+                    gp.first = cppext::narrow<uint32_t>(running_vertex_count);
                 }
 
                 running_index_count +=
@@ -85,7 +92,7 @@ namespace
                 running_vertex_count +=
                     cppext::narrow<int32_t>(p.vertices.size());
 
-                return rv;
+                return gp;
             });
 
         return rv;

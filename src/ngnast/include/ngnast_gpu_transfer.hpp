@@ -1,8 +1,6 @@
 #ifndef NGNAST_GPU_TRANSFER_INCLUDED
 #define NGNAST_GPU_TRANSFER_INCLUDED
 
-#include <ngnast_scene_model.hpp>
-
 #include <vkrndr_buffer.hpp>
 
 #include <glm/vec2.hpp>
@@ -13,8 +11,17 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <vector>
+
+namespace ngnast
+{
+    struct scene_model_t;
+} // namespace ngnast
+
+namespace vkrndr
+{
+    struct device_t;
+} // namespace vkrndr
 
 namespace ngnast::gpu
 {

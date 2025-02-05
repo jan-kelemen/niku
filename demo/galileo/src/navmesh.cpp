@@ -1,18 +1,20 @@
 #include <navmesh.hpp>
 
+#include <cppext_memory.hpp>
 #include <cppext_numeric.hpp>
 
 #include <ngnast_mesh_transform.hpp>
 #include <ngnast_scene_model.hpp>
-
-#include <fmt/format.h>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
 
 #include <algorithm>
 #include <cmath>
-#include <exception>
+#include <iterator>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 galileo::poly_mesh_t galileo::generate_navigation_mesh(
     navmesh_parameters_t const& parameters,
@@ -32,8 +34,9 @@ galileo::poly_mesh_t galileo::generate_navigation_mesh(
         .maxEdgeLen =
             static_cast<int>(parameters.max_edge_length / parameters.cell_size),
         .maxSimplificationError = parameters.max_simplification_error,
-        .minRegionArea = static_cast<int>(sqrt(parameters.min_region_size)),
-        .mergeRegionArea = static_cast<int>(sqrt(parameters.merge_region_size)),
+        .minRegionArea = static_cast<int>(sqrtf(parameters.min_region_size)),
+        .mergeRegionArea =
+            static_cast<int>(sqrtf(parameters.merge_region_size)),
         .maxVertsPerPoly = parameters.max_verts_per_poly,
         .detailSampleDist = (parameters.detail_sample_distance < 0.9f
                                     ? 0.0f
@@ -43,8 +46,12 @@ galileo::poly_mesh_t galileo::generate_navigation_mesh(
             parameters.detail_sample_max_error * parameters.cell_height,
     };
 
-    std::ranges::copy_n(glm::value_ptr(bounding_box.min), 3, config.bmin);
-    std::ranges::copy_n(glm::value_ptr(bounding_box.max), 3, config.bmax);
+    std::ranges::copy_n(glm::value_ptr(bounding_box.min),
+        3,
+        std::begin(config.bmin));
+    std::ranges::copy_n(glm::value_ptr(bounding_box.max),
+        3,
+        std::begin(config.bmax));
 
     rcCalcGridSize(config.bmin,
         config.bmax,

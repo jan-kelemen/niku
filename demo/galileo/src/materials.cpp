@@ -23,15 +23,15 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <iterator>
 #include <limits>
 #include <span>
 #include <tuple>
 #include <utility>
 
-// IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <string>
+// IWYU pragma: no_include <type_traits>
 
 namespace
 {
@@ -332,7 +332,7 @@ void galileo::materials_t::transfer_textures(ngnast::scene_model_t& model)
 
     uint32_t max_mip_levels{white_pixel_.mip_levels};
     images_.reserve(model.images.size() + 1);
-    for (ngnast::image_t& image : model.images)
+    for (ngnast::image_t const& image : model.images)
     {
         images_.push_back(backend_->transfer_image(
             std::span{image.data.get(), image.data_size},

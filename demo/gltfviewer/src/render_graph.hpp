@@ -3,7 +3,6 @@
 
 #include <cppext_cycled_buffer.hpp>
 
-#include <ngnast_gpu_transfer.hpp>
 #include <ngnast_scene_model.hpp>
 
 #include <vkrndr_buffer.hpp>
@@ -14,6 +13,12 @@
 #include <cstdint>
 #include <functional>
 #include <span>
+#include <vector>
+
+namespace ngnast::gpu
+{
+    struct primitive_t;
+} // namespace ngnast::gpu
 
 namespace vkrndr
 {

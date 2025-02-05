@@ -40,13 +40,12 @@
 #include <exception> // IWYU pragma: keep
 #include <expected>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <set>
-#include <span>
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <type_traits>
 #include <typeinfo>
 #include <utility>
 #include <variant>

@@ -18,7 +18,6 @@
 #include <Jolt/Core/Color.h>
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Geometry/Plane.h>
-#include <Jolt/Math/Math.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>

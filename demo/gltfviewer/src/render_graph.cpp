@@ -223,7 +223,7 @@ void gltfviewer::render_graph_t::load(ngnast::scene_model_t&& model)
     [[maybe_unused]] boost::scope::defer_guard const destroy_transfer{
         [this, tr = &transfer_result]() { destroy(&backend_->device(), tr); }};
 
-    primitives_ = std::move(transfer_result).primitives;
+    primitives_ = std::move(transfer_result.primitives);
 
     vertex_count_ = transfer_result.vertex_count;
     vertex_buffer_ = create_buffer(backend_->device(),

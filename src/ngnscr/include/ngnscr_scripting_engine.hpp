@@ -3,8 +3,6 @@
 
 #include <cppext_memory.hpp>
 
-#include <memory>
-
 class asIScriptEngine;
 class asIScriptContext;
 class asIScriptFunction;

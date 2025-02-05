@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <memory>
 #include <utility>
 
 // IWYU pragma: no_include <fmt/base.h>

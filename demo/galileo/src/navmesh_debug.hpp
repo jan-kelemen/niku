@@ -1,12 +1,12 @@
 #ifndef GALILEO_NAVMESH_DEBUG_INCLUDED
 #define GALILEO_NAVMESH_DEBUG_INCLUDED
 
-#include <navmesh.hpp>
-
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_pipeline.hpp>
 
 #include <volk.h>
+
+#include <cstdint>
 
 namespace vkrndr
 {
@@ -35,11 +35,11 @@ namespace galileo
         ~navmesh_debug_t();
 
     public:
-        [[nodiscard]] VkPipelineLayout pipeline_layout();
+        [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
         void update(poly_mesh_t const& poly_mesh);
 
-        void draw(VkCommandBuffer command_buffer);
+        void draw(VkCommandBuffer command_buffer) const;
 
     public:
         navmesh_debug_t& operator=(navmesh_debug_t const&) = delete;
@@ -60,7 +60,8 @@ namespace galileo
         };
 
     private:
-        void draw(VkCommandBuffer command_buffer, mesh_draw_data_t const& data);
+        void draw(VkCommandBuffer command_buffer,
+            mesh_draw_data_t const& data) const;
 
     private:
         vkrndr::backend_t* backend_;

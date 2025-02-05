@@ -9,7 +9,6 @@
 #include <volk.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -159,8 +158,7 @@ namespace ngnast
 
     void make_node_matrices_absolute(scene_model_t& model);
 
-    void assign_default_material_index(scene_model_t& model,
-        size_t const index);
+    void assign_default_material_index(scene_model_t& model, size_t index);
 } // namespace ngnast
 
 constexpr auto ngnast::node_t::children(ngnast::scene_model_t& model)

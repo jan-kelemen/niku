@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <iterator>
 #include <span>
 #include <string>
 #include <string_view>
@@ -32,8 +33,7 @@ vkrndr::command_buffer_scope_t::command_buffer_scope_t(
     VkDebugUtilsLabelEXT vklabel{};
     vklabel.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
     vklabel.pLabelName = label.data();
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-    std::ranges::copy(color, vklabel.color);
+    std::ranges::copy(color, std::begin(vklabel.color));
 
     vkCmdBeginDebugUtilsLabelEXT(command_buffer, &vklabel);
 }
@@ -73,9 +73,7 @@ void vkrndr::debug_label(VkCommandBuffer command_buffer,
     VkDebugUtilsLabelEXT vklabel{};
     vklabel.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
     vklabel.pLabelName = label.data();
-
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-    std::ranges::copy(color, vklabel.color);
+    std::ranges::copy(color, std::begin(vklabel.color));
 
     vkCmdInsertDebugUtilsLabelEXT(command_buffer, &vklabel);
 }
