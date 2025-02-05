@@ -223,6 +223,7 @@ galileo::application_t::application_t(bool const debug)
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
+    , navmesh_params_{.walkable_slope_angle = character_t::max_slope_angle}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,

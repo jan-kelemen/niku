@@ -13,7 +13,7 @@ namespace cppext
 
     template<typename T, void (*f)(T*)>
     using unique_ptr_with_static_deleter_t =
-        std::unique_ptr<T, cppext::static_function_deleter_t<T, f>>;
+        std::unique_ptr<T, static_function_deleter_t<T, f>>;
 
     template<typename T>
     using unique_ptr_with_deleter_t = std::unique_ptr<T, void (*)(T*)>;

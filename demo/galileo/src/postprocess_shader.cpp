@@ -84,7 +84,6 @@ namespace
     {
         return vkrndr::create_image_and_view(backend.device(),
             vkrndr::image_2d_create_info_t{
-
                 .format = VK_FORMAT_R16G16B16A16_SFLOAT,
                 .extent = extent,
                 .tiling = VK_IMAGE_TILING_OPTIMAL,
