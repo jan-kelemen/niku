@@ -19,7 +19,6 @@
 #include <cppext_pragma_warning.hpp>
 
 #include <ngnast_gltf_loader.hpp>
-#include <ngnast_scene_model.hpp>
 
 #include <ngngfx_perspective_camera.hpp>
 

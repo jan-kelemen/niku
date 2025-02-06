@@ -361,7 +361,8 @@ void gltfviewer::materials_t::create_dummy_material()
         vkrndr::buffer_descriptor(dummy_uniform_));
 }
 
-void gltfviewer::materials_t::transfer_textures(ngnast::scene_model_t& model)
+void gltfviewer::materials_t::transfer_textures(
+    ngnast::scene_model_t const& model)
 {
     std::vector<VkDescriptorImageInfo> image_descriptors;
     std::vector<VkDescriptorImageInfo> sampler_descriptors;

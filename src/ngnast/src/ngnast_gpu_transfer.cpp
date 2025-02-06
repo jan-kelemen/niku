@@ -3,7 +3,6 @@
 #include <ngnast_scene_model.hpp>
 
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
 
 #include <cppext_numeric.hpp>
@@ -15,7 +14,6 @@
 
 #include <algorithm>
 #include <iterator>
-#include <numeric>
 #include <optional>
 #include <type_traits>
 #include <vector>
@@ -66,6 +64,7 @@ namespace
                 else
                 {
                     // clang-format off
+                    // cppcheck-suppress uselessAssignmentPtrArg
                     indices = std::ranges::transform(p.indices,
                         indices,
                         cppext::narrow<uint32_t, unsigned int>).out;

@@ -881,7 +881,8 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(prefilter_cubemap_),
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
             vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
@@ -982,7 +983,8 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(brdf_lookup_),
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
             vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
@@ -1062,7 +1064,7 @@ void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                     VK_PIPELINE_STAGE_2_BLIT_BIT),
                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT),
+                VK_ACCESS_2_TRANSFER_WRITE_BIT),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)};
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));

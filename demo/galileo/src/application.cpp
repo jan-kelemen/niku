@@ -17,13 +17,12 @@
 #include <render_graph.hpp>
 
 #include <cppext_container.hpp>
-#include <cppext_memory.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
 
 #include <ngnast_gltf_loader.hpp>
-#include <ngnast_mesh_transform.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <ngngfx_perspective_camera.hpp>
 
@@ -44,15 +43,12 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_memory.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <angelscript.h>
-
-#include <boost/scope/defer.hpp>
 
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_STRINGOP_OVERFLOW
@@ -63,7 +59,6 @@ DISABLE_WARNING_POP
 
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
@@ -86,8 +81,6 @@ DISABLE_WARNING_POP
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-
-#include <recastnavigation/Recast.h>
 
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_scancode.h>

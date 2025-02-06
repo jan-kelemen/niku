@@ -16,6 +16,8 @@
 #include <utility>
 #include <vector>
 
+// IWYU pragma: no_include <memory>
+
 galileo::poly_mesh_t galileo::generate_navigation_mesh(
     navmesh_parameters_t const& parameters,
     ngnast::primitive_t const& primitive,
@@ -53,8 +55,8 @@ galileo::poly_mesh_t galileo::generate_navigation_mesh(
         3,
         std::begin(config.bmax));
 
-    rcCalcGridSize(config.bmin,
-        config.bmax,
+    rcCalcGridSize(static_cast<float const*>(config.bmin),
+        static_cast<float const*>(config.bmax),
         config.cs,
         &config.width,
         &config.height);
@@ -73,8 +75,8 @@ galileo::poly_mesh_t galileo::generate_navigation_mesh(
             *heightfield,
             config.width,
             config.height,
-            config.bmin,
-            config.bmax,
+            static_cast<float const*>(config.bmin),
+            static_cast<float const*>(config.bmax),
             config.cs,
             config.ch))
     {

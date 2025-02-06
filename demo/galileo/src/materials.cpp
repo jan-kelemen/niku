@@ -325,7 +325,7 @@ void galileo::materials_t::bind_on(VkCommandBuffer command_buffer,
         nullptr);
 }
 
-void galileo::materials_t::transfer_textures(ngnast::scene_model_t& model)
+void galileo::materials_t::transfer_textures(ngnast::scene_model_t const& model)
 {
     std::vector<VkDescriptorImageInfo> image_descriptors;
     std::vector<VkDescriptorImageInfo> sampler_descriptors;

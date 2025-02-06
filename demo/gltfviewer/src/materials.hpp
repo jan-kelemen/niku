@@ -49,7 +49,7 @@ namespace gltfviewer
     private:
         void create_dummy_material();
 
-        void transfer_textures(ngnast::scene_model_t& model);
+        void transfer_textures(ngnast::scene_model_t const& model);
 
         void clear();
 

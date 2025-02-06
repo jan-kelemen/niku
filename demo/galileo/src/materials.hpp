@@ -47,7 +47,7 @@ namespace galileo
         materials_t& operator=(materials_t&&) noexcept = delete;
 
     private:
-        void transfer_textures(ngnast::scene_model_t& model);
+        void transfer_textures(ngnast::scene_model_t const& model);
 
         void clear();
 
