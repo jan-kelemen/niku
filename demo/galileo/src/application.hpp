@@ -122,6 +122,8 @@ namespace galileo
 
         navmesh_parameters_t navmesh_params_;
         poly_mesh_t poly_mesh_;
+        bool draw_main_navmesh_{true};
+        bool draw_detail_navmesh_{true};
 
         ngnscr::scripting_engine_t scripting_engine_;
 

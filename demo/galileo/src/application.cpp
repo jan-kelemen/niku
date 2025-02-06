@@ -366,6 +366,10 @@ void galileo::application_t::update(float const delta_time)
             16.0f,
             "%.0f");
 
+        ImGui::Checkbox("Draw Mesh", &draw_main_navmesh_);
+
+        ImGui::Checkbox("Draw Detail Mesh", &draw_detail_navmesh_);
+
         ImGui::End();
 
         if (update_navmesh)
@@ -587,13 +591,19 @@ void galileo::application_t::draw()
             physics_debug_->draw(command_buffer);
         }
 
-        if (VkPipelineLayout const layout{navmesh_debug_->pipeline_layout()})
+        if (draw_main_navmesh_ || draw_detail_navmesh_)
         {
-            frame_info_->bind_on(command_buffer,
-                layout,
-                VK_PIPELINE_BIND_POINT_GRAPHICS);
+            if (VkPipelineLayout const layout{
+                    navmesh_debug_->pipeline_layout()})
+            {
+                frame_info_->bind_on(command_buffer,
+                    layout,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            navmesh_debug_->draw(command_buffer);
+                navmesh_debug_->draw(command_buffer,
+                    draw_main_navmesh_,
+                    draw_detail_navmesh_);
+            }
         }
     }
 

@@ -39,7 +39,9 @@ namespace galileo
 
         void update(poly_mesh_t const& poly_mesh);
 
-        void draw(VkCommandBuffer command_buffer) const;
+        void draw(VkCommandBuffer command_buffer,
+            bool draw_main_mesh,
+            bool draw_detail_mesh) const;
 
     public:
         navmesh_debug_t& operator=(navmesh_debug_t const&) = delete;
