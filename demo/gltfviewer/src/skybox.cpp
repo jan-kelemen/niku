@@ -880,7 +880,8 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
             auto const barrier{vkrndr::with_layout(
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(prefilter_cubemap_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                     VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -982,7 +983,8 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
             auto const barrier{vkrndr::with_layout(
                 vkrndr::with_access(
                     vkrndr::on_stage(vkrndr::image_barrier(brdf_lookup_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                     VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
