@@ -304,10 +304,10 @@ vkrndr::backend_t::backend_t(window_t& window,
 #if VKRNDR_ENABLE_DEBUG_UTILS
     if (debug)
     {
-        auto const it{std::ranges::find(instance_extensions,
+        auto const debug_utils{std::ranges::contains(instance_extensions,
             std::string_view{VK_EXT_DEBUG_UTILS_EXTENSION_NAME},
             &VkExtensionProperties::extensionName)};
-        if (it != std::cend(instance_extensions))
+        if (debug_utils)
         {
             required_instance_extensions.push_back(
                 VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -316,16 +316,15 @@ vkrndr::backend_t::backend_t(window_t& window,
 #endif
 
     {
-        auto const caps2_it{std::ranges::find(instance_extensions,
+        auto const capabilities2{std::ranges::contains(instance_extensions,
             std::string_view{VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME},
             &VkExtensionProperties::extensionName)};
 
-        auto const maint1_it{std::ranges::find(instance_extensions,
+        auto const maintenance1{std::ranges::contains(instance_extensions,
             std::string_view{VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME},
             &VkExtensionProperties::extensionName)};
 
-        if (caps2_it != std::cend(instance_extensions) &&
-            maint1_it != std::cend(instance_extensions))
+        if (capabilities2 && maintenance1)
         {
             required_instance_extensions.push_back(
                 VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
@@ -368,7 +367,7 @@ vkrndr::backend_t::backend_t(window_t& window,
         assert(std::ranges::contains(physical_device_it->extensions,
             std::string_view{VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME},
             &VkExtensionProperties::extensionName));
-        effective_extensions.emplace_back(
+        effective_extensions.push_back(
             VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
 
         effective_features.swapchain_maintenance_1_features.pNext =
