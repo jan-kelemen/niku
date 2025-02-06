@@ -1,3 +1,4 @@
+#include "vkrndr_device.hpp"
 #include <navmesh_debug.hpp>
 
 #include <config.hpp>
@@ -14,6 +15,7 @@
 #include <vkrndr_shader_module.hpp>
 
 #include <boost/scope/defer.hpp>
+#include <boost/scope/scope_fail.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>
@@ -30,6 +32,7 @@
 #include <cstddef>
 #include <random>
 
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <initializer_list>
@@ -74,103 +77,292 @@ namespace
         return descriptions;
     }
 
-    //{
-    //	dd->begin(DU_DRAW_TRIS);
-    //
-    //	for (int i = 0; i < dmesh.nmeshes; ++i)
-    //	{
-    //		const unsigned int* m = &dmesh.meshes[i*4];
-    //		const unsigned int bverts = m[0];
-    //		const unsigned int btris = m[2];
-    //		const int ntris = (int)m[3];
-    //		const float* verts = &dmesh.verts[bverts*3];
-    //		const unsigned char* tris = &dmesh.tris[btris*4];
-    //
-    //		unsigned int color = duIntToCol(i, 192);
-    //
-    //		for (int j = 0; j < ntris; ++j)
-    //		{
-    //			dd->vertex(&verts[tris[j*4+0]*3], color);
-    //			dd->vertex(&verts[tris[j*4+1]*3], color);
-    //			dd->vertex(&verts[tris[j*4+2]*3], color);
-    //		}
-    //	}
-    //	dd->end();
-    //
-    //	// Internal edges.
-    //	dd->begin(DU_DRAW_LINES, 1.0f);
-    //	const unsigned int coli = duRGBA(0,0,0,64);
-    //	for (int i = 0; i < dmesh.nmeshes; ++i)
-    //	{
-    //		const unsigned int* m = &dmesh.meshes[i*4];
-    //		const unsigned int bverts = m[0];
-    //		const unsigned int btris = m[2];
-    //		const int ntris = (int)m[3];
-    //		const float* verts = &dmesh.verts[bverts*3];
-    //		const unsigned char* tris = &dmesh.tris[btris*4];
-    //
-    //		for (int j = 0; j < ntris; ++j)
-    //		{
-    //			const unsigned char* t = &tris[j*4];
-    //			for (int k = 0, kp = 2; k < 3; kp=k++)
-    //			{
-    //				unsigned char ef = (t[3] >> (kp*2)) & 0x3;
-    //				if (ef == 0)
-    //				{
-    //					// Internal edge
-    //					if (t[kp] < t[k])
-    //					{
-    //						dd->vertex(&verts[t[kp]*3], coli);
-    //						dd->vertex(&verts[t[k]*3], coli);
-    //					}
-    //				}
-    //			}
-    //		}
-    //	}
-    //	dd->end();
-    //
-    //	// External edges.
-    //	dd->begin(DU_DRAW_LINES, 2.0f);
-    //	const unsigned int cole = duRGBA(0,0,0,64);
-    //	for (int i = 0; i < dmesh.nmeshes; ++i)
-    //	{
-    //		const unsigned int* m = &dmesh.meshes[i*4];
-    //		const unsigned int bverts = m[0];
-    //		const unsigned int btris = m[2];
-    //		const int ntris = (int)m[3];
-    //		const float* verts = &dmesh.verts[bverts*3];
-    //		const unsigned char* tris = &dmesh.tris[btris*4];
-    //
-    //		for (int j = 0; j < ntris; ++j)
-    //		{
-    //			const unsigned char* t = &tris[j*4];
-    //			for (int k = 0, kp = 2; k < 3; kp=k++)
-    //			{
-    //				unsigned char ef = (t[3] >> (kp*2)) & 0x3;
-    //				if (ef != 0)
-    //				{
-    //					// Ext edge
-    //					dd->vertex(&verts[t[kp]*3], cole);
-    //					dd->vertex(&verts[t[k]*3], cole);
-    //				}
-    //			}
-    //		}
-    //	}
-    //	dd->end();
-    //
-    //	dd->begin(DU_DRAW_POINTS, 3.0f);
-    //	const unsigned int colv = duRGBA(0,0,0,64);
-    //	for (int i = 0; i < dmesh.nmeshes; ++i)
-    //	{
-    //		const unsigned int* m = &dmesh.meshes[i*4];
-    //		const unsigned int bverts = m[0];
-    //		const int nverts = (int)m[1];
-    //		const float* verts = &dmesh.verts[bverts*3];
-    //		for (int j = 0; j < nverts; ++j)
-    //			dd->vertex(&verts[j*3], colv);
-    //	}
-    //	dd->end();
-    //}
+    void allocate_buffer(vkrndr::device_t const& device,
+        galileo::detail::mesh_draw_data_t& data)
+    {
+        data.vertex_buffer = create_buffer(device,
+            {.size = (data.max_triangles + data.max_lines + data.max_points) *
+                    sizeof(vertex_t),
+                .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
+    }
+
+    galileo::detail::mesh_draw_data_t create_main_mesh_draw_data(
+        vkrndr::device_t const& device,
+        rcPolyMesh const& mesh)
+    {
+        int const vertices_per_polygon{mesh.nvp};
+
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+        auto const make_pos = [orig = glm::make_vec3(mesh.bmin),
+                                  cell_size = mesh.cs,
+                                  cell_height = mesh.ch](float const x,
+                                  float const y,
+                                  float const z)
+        {
+            return orig +
+                glm::vec3{x * cell_size,
+                    y * cell_height + 0.01f,
+                    z * cell_size};
+        };
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+
+        galileo::detail::mesh_draw_data_t rv{
+            .max_triangles = cppext::narrow<uint32_t>(mesh.npolys) *
+                cppext::narrow<uint32_t>(vertices_per_polygon - 2) * 3,
+            .max_lines = cppext::narrow<uint32_t>(mesh.npolys) *
+                cppext::narrow<uint32_t>(vertices_per_polygon) * 3,
+            .max_points = cppext::narrow<uint32_t>(mesh.nverts)};
+
+        allocate_buffer(device, rv);
+        boost::scope::scope_fail const rollback{
+            [&device, &rv]() { destroy(&device, &rv.vertex_buffer); }};
+
+        auto vertex_map{vkrndr::map_memory(device, rv.vertex_buffer)};
+        [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+            [device, map = &vertex_map]() { unmap_memory(device, map); }};
+
+        auto* const vertices{vertex_map.as<vertex_t>()};
+
+        auto* const triangle_vertices{vertices};
+        auto* const line_vertices{vertices + rv.max_triangles};
+        auto* const point_vertices{line_vertices + rv.max_lines};
+
+        for (int i{}; i != mesh.npolys; ++i)
+        {
+            unsigned short const* const polygon{
+                &mesh.polys[cppext::narrow<ptrdiff_t>(
+                    i * vertices_per_polygon * 2)]};
+
+            glm::vec4 const color{[](unsigned char const area) -> glm::vec4
+                    {
+                        switch (area)
+                        {
+                        case RC_WALKABLE_AREA:
+                            return {0.0f, 192.0f, 255.0f, 64.0f};
+                        case RC_NULL_AREA:
+                            return {0.0f, 0.0f, 0.0f, 64.0f};
+                        default:
+                        {
+                            float const v{cppext::as_fp(area)};
+                            return {v, v, v, 64.0f};
+                        }
+                        }
+                    }(mesh.areas[i]) /
+                    255.0f};
+
+            for (int j{2}; j != vertices_per_polygon; ++j)
+            {
+                if (polygon[j] == RC_MESH_NULL_IDX)
+                {
+                    break;
+                }
+
+                for (auto const vertex_index :
+                    {polygon[0], polygon[j - 1], polygon[j]})
+                {
+                    unsigned short const* const v{
+                        &mesh.verts[cppext::narrow<ptrdiff_t>(
+                            vertex_index * 3)]};
+                    triangle_vertices[rv.triangles++] = {
+                        .position = make_pos(v[0], v[1], v[2]),
+                        .color = color};
+                }
+            }
+        }
+
+        glm::vec4 const line_color{1.0f,
+            48.0f / 255.0f,
+            64.0f / 255.0f,
+            220.0f / 255.0f};
+        for (int i{}; i != mesh.npolys; ++i)
+        {
+            unsigned short const* const polygon{
+                &mesh.polys[cppext::narrow<ptrdiff_t>(
+                    i * vertices_per_polygon * 2)]};
+            for (int j{}; j != vertices_per_polygon; ++j)
+            {
+                if (polygon[j] == RC_MESH_NULL_IDX)
+                {
+                    break;
+                }
+
+                if ((polygon[vertices_per_polygon + j] & 0x8000) == 0)
+                {
+                    continue;
+                }
+
+                int const nj{(j + 1 >= vertices_per_polygon ||
+                                 polygon[j + 1] == RC_MESH_NULL_IDX)
+                        ? 0
+                        : j + 1};
+
+                auto col{line_color};
+                if ((polygon[vertices_per_polygon + j] & 0xf) != 0xf)
+                {
+                    col = glm::vec4{1.0f, 1.0f, 1.0f, 0.5f};
+                }
+
+                for (auto const vertex_index : {polygon[j], polygon[nj]})
+                {
+                    unsigned short const* const v{
+                        &mesh.verts[cppext::narrow<ptrdiff_t>(
+                            vertex_index * 3)]};
+                    line_vertices[rv.lines++] = {
+                        .position = make_pos(v[0], v[1], v[2]),
+                        .color = col};
+                }
+            }
+        }
+
+        constexpr glm::vec4 point_color{0.0f, 0.0f, 0.0f, 220.0f / 255.0f};
+        auto const nverts{cppext::narrow<ptrdiff_t>(mesh.nverts)};
+        for (ptrdiff_t i{}; i != nverts; ++i)
+        {
+            unsigned short const* const v{&mesh.verts[i * 3]};
+            point_vertices[rv.points++] = {
+                .position = make_pos(v[0], v[1], v[2]),
+                .color = point_color};
+        }
+
+        return rv;
+    }
+
+    galileo::detail::mesh_draw_data_t create_detail_mesh_draw_data(
+        vkrndr::device_t const& device,
+        rcPolyMeshDetail const& mesh)
+    {
+        galileo::detail::mesh_draw_data_t rv{
+            .max_triangles = cppext::narrow<uint32_t>(mesh.ntris) * 3,
+            .max_lines = cppext::narrow<uint32_t>(mesh.ntris) * 6,
+            .max_points = cppext::narrow<uint32_t>(mesh.nverts)};
+
+        allocate_buffer(device, rv);
+        boost::scope::scope_fail const rollback{
+            [&device, &rv]() { destroy(&device, &rv.vertex_buffer); }};
+
+        auto vertex_map{vkrndr::map_memory(device, rv.vertex_buffer)};
+        [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+            [&device, map = &vertex_map]() { unmap_memory(device, map); }};
+
+        auto* const vertices{vertex_map.as<vertex_t>()};
+
+        auto* const triangle_vertices{vertices};
+        auto* const line_vertices{vertices + rv.max_triangles};
+        auto* const point_vertices{line_vertices + rv.max_lines};
+
+        std::minstd_rand generator;
+
+        for (int i{}; i != mesh.nmeshes; ++i)
+        {
+            unsigned int const* const m{
+                &mesh.meshes[cppext::narrow<ptrdiff_t>(i * 4)]};
+            unsigned int const bverts{m[0]};
+            unsigned int const btris{m[2]};
+
+            float const* const verts{
+                &mesh.verts[cppext::narrow<ptrdiff_t>(bverts * 3)]};
+            unsigned char const* const tris{
+                &mesh.tris[cppext::narrow<ptrdiff_t>(btris * 4)]};
+
+            float const v{std::generate_canonical<float, 10>(generator)};
+            glm::vec4 const color{v, v, v, 0.5f};
+
+            auto const ntris{cppext::narrow<ptrdiff_t>(m[3])};
+            for (ptrdiff_t j{}; j != ntris; ++j)
+            {
+                triangle_vertices[rv.triangles++] = {
+                    .position = glm::make_vec3(
+                        &verts[cppext::narrow<ptrdiff_t>(tris[j * 4 + 0] * 3)]),
+                    .color = color};
+                triangle_vertices[rv.triangles++] = {
+                    .position = glm::make_vec3(
+                        &verts[cppext::narrow<ptrdiff_t>(tris[j * 4 + 1] * 3)]),
+                    .color = color};
+                triangle_vertices[rv.triangles++] = {
+                    .position = glm::make_vec3(
+                        &verts[cppext::narrow<ptrdiff_t>(tris[j * 4 + 2] * 3)]),
+                    .color = color};
+            }
+        }
+
+        for (int i{}; i != mesh.nmeshes; ++i)
+        {
+            unsigned int const* const m{
+                &mesh.meshes[cppext::narrow<ptrdiff_t>(i * 4)]};
+            unsigned int const bverts{m[0]};
+            unsigned int const btris{m[2]};
+
+            float const* const verts{
+                &mesh.verts[cppext::narrow<ptrdiff_t>(bverts * 3)]};
+            unsigned char const* const tris{
+                &mesh.tris[cppext::narrow<ptrdiff_t>(btris * 4)]};
+
+            auto const ntris{cppext::narrow<ptrdiff_t>(m[3])};
+            for (ptrdiff_t j{}; j != ntris; ++j)
+            {
+                unsigned char const* const t{&tris[j * 4]};
+
+                for (ptrdiff_t k{}, kp{2}; k != 3; kp = k++)
+                {
+                    auto const ef{cppext::narrow<unsigned char>(
+                        (t[3] >> (kp * 2)) & 0x3)};
+                    if (ef == 0)
+                    {
+                        // Internal edges
+                        if (t[kp] < t[k])
+                        {
+                            constexpr glm::vec4 internal_color{0.0f,
+                                0.0f,
+                                1.0f,
+                                0.5f};
+                            line_vertices[rv.lines++] = {
+                                .position = glm::make_vec3(
+                                    &verts[cppext::narrow<ptrdiff_t>(
+                                        t[kp] * 3)]),
+                                .color = internal_color};
+                            line_vertices[rv.lines++] = {
+                                .position = glm::make_vec3(
+                                    &verts[cppext::narrow<ptrdiff_t>(
+                                        t[k] * 3)]),
+                                .color = internal_color};
+                        }
+                    }
+                    else
+                    {
+                        // External edges
+                        constexpr glm::vec4 external_color{0.0f,
+                            1.0f,
+                            0.0f,
+                            0.5f};
+                        line_vertices[rv.lines++] = {
+                            .position = glm::make_vec3(
+                                &verts[cppext::narrow<ptrdiff_t>(t[kp] * 3)]),
+                            .color = external_color};
+                        line_vertices[rv.lines++] = {
+                            .position = glm::make_vec3(
+                                &verts[cppext::narrow<ptrdiff_t>(t[k] * 3)]),
+                            .color = external_color};
+                    }
+                }
+            }
+        }
+
+        constexpr glm::vec4 point_color{0.0f, 0.0f, 0.0f, 220.0f / 255.0f};
+        auto const nverts{cppext::narrow<ptrdiff_t>(mesh.nverts)};
+        for (ptrdiff_t i{}; i != nverts; ++i)
+        {
+            point_vertices[rv.points++] = {
+                .position = glm::make_vec3(&mesh.verts[i * 3]),
+                .color = point_color};
+        }
+
+        return rv;
+    }
 } // namespace
 
 galileo::navmesh_debug_t::navmesh_debug_t(vkrndr::backend_t& backend,
@@ -270,313 +462,13 @@ VkPipelineLayout galileo::navmesh_debug_t::pipeline_layout() const
 
 void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
 {
-    int const vertices_per_polygon{poly_mesh.mesh->nvp};
-    float const cell_size{poly_mesh.mesh->cs};
-    float const cell_height{poly_mesh.mesh->ch};
+    destroy(&backend_->device(), &main_draw_data_.vertex_buffer);
+    main_draw_data_ =
+        create_main_mesh_draw_data(backend_->device(), *poly_mesh.mesh);
 
-    // Update poly mesh
-    {
-        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-        auto const make_pos =
-            [orig = glm::make_vec3(poly_mesh.mesh->bmin),
-                cell_size,
-                cell_height](float const x, float const y, float const z)
-        {
-            return orig +
-                glm::vec3{x * cell_size,
-                    y * cell_height + 0.01f,
-                    z * cell_size};
-        };
-        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-
-        main_draw_data_.max_triangles =
-            cppext::narrow<uint32_t>(poly_mesh.mesh->npolys) *
-            cppext::narrow<uint32_t>(vertices_per_polygon - 2) * 3;
-        main_draw_data_.triangles = 0;
-
-        main_draw_data_.max_lines =
-            cppext::narrow<uint32_t>(poly_mesh.mesh->npolys) *
-            cppext::narrow<uint32_t>(vertices_per_polygon) * 3;
-        main_draw_data_.lines = 0;
-
-        main_draw_data_.max_points =
-            cppext::narrow<uint32_t>(poly_mesh.mesh->nverts);
-        main_draw_data_.points = 0;
-
-        destroy(&backend_->device(), &main_draw_data_.vertex_buffer);
-        main_draw_data_.vertex_buffer = vkrndr::create_buffer(
-            backend_->device(),
-            {.size =
-                    (main_draw_data_.max_triangles + main_draw_data_.max_lines +
-                        main_draw_data_.max_points) *
-                    sizeof(vertex_t),
-                .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                .allocation_flags =
-                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
-
-        auto vertex_map{vkrndr::map_memory(backend_->device(),
-            main_draw_data_.vertex_buffer)};
-        [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-            [this, map = &vertex_map]()
-            { unmap_memory(backend_->device(), map); }};
-
-        auto* const vertices{vertex_map.as<vertex_t>()};
-
-        auto* triangle_vertices{vertices};
-        auto* line_vertices{vertices + main_draw_data_.max_triangles};
-        auto* point_vertices{line_vertices + main_draw_data_.max_lines};
-
-        for (int i{}; i != poly_mesh.mesh->npolys; ++i)
-        {
-            unsigned short const* const p{
-                &poly_mesh.mesh->polys[cppext::narrow<ptrdiff_t>(
-                    i * vertices_per_polygon * 2)]};
-            unsigned char const area{poly_mesh.mesh->areas[i]};
-
-            glm::vec4 color;
-            switch (area)
-            {
-            case RC_WALKABLE_AREA:
-                color = glm::vec4{0.0f, 192.0f, 255.0f, 64.0f} / 255.0f;
-                break;
-            case RC_NULL_AREA:
-                color = glm::vec4{0.0f, 0.0f, 0.0f, 64.0f} / 255.0f;
-                break;
-            default:
-            {
-                float const v{cppext::as_fp(area)};
-                color = glm::vec4{v, v, v, 64.0f} / 255.0f;
-                break;
-            }
-            }
-
-            for (int j{2}; j != vertices_per_polygon; ++j)
-            {
-                if (p[j] == RC_MESH_NULL_IDX)
-                {
-                    break;
-                }
-
-                for (auto const vertex_index : {p[0], p[j - 1], p[j]})
-                {
-                    unsigned short const* const v{
-                        &poly_mesh.mesh->verts[cppext::narrow<ptrdiff_t>(
-                            vertex_index * 3)]};
-                    triangle_vertices->position = make_pos(v[0], v[1], v[2]);
-                    triangle_vertices->color = color;
-
-                    ++triangle_vertices;
-                    ++main_draw_data_.triangles;
-                }
-            }
-        }
-
-        glm::vec4 const line_color{1.0f,
-            48.0f / 255.0f,
-            64.0f / 255.0f,
-            220.0f / 255.0f};
-        for (int i{}; i != poly_mesh.mesh->npolys; ++i)
-        {
-            unsigned short const* const p{
-                &poly_mesh.mesh->polys[cppext::narrow<ptrdiff_t>(
-                    i * vertices_per_polygon * 2)]};
-            for (int j{}; j != vertices_per_polygon; ++j)
-            {
-                if (p[j] == RC_MESH_NULL_IDX)
-                {
-                    break;
-                }
-
-                if ((p[vertices_per_polygon + j] & 0x8000) == 0)
-                {
-                    continue;
-                }
-
-                int const nj{(j + 1 >= vertices_per_polygon ||
-                                 p[j + 1] == RC_MESH_NULL_IDX)
-                        ? 0
-                        : j + 1};
-
-                auto col{line_color};
-                if ((p[vertices_per_polygon + j] & 0xf) != 0xf)
-                {
-                    col = glm::vec4{1.0f, 1.0f, 1.0f, 0.5f};
-                }
-
-                for (auto const vertex_index : {p[j], p[nj]})
-                {
-                    unsigned short const* const v{
-                        &poly_mesh.mesh->verts[cppext::narrow<ptrdiff_t>(
-                            vertex_index * 3)]};
-                    line_vertices->position = make_pos(v[0], v[1], v[2]);
-                    line_vertices->color = col;
-
-                    ++line_vertices;
-                    ++main_draw_data_.lines;
-                }
-            }
-        }
-
-        glm::vec4 const point_color{0.0f, 0.0f, 0.0f, 220.0f / 255.0f};
-        for (int i{}; i != poly_mesh.mesh->nverts; ++i)
-        {
-            unsigned short const* const v{
-                &poly_mesh.mesh->verts[cppext::narrow<ptrdiff_t>(i * 3)]};
-            point_vertices->position = make_pos(v[0], v[1], v[2]);
-            point_vertices->color = point_color;
-
-            ++point_vertices;
-            ++main_draw_data_.points;
-        }
-    }
-
-    // Update detail poly mesh
-    {
-        detail_draw_data_.max_triangles =
-            cppext::narrow<uint32_t>(poly_mesh.detail_mesh->ntris) * 3;
-        detail_draw_data_.triangles = 0;
-
-        detail_draw_data_.max_lines =
-            cppext::narrow<uint32_t>(poly_mesh.detail_mesh->ntris) * 6;
-        detail_draw_data_.lines = 0;
-
-        detail_draw_data_.max_points =
-            cppext::narrow<uint32_t>(poly_mesh.mesh->nverts);
-        detail_draw_data_.points = 0;
-
-        destroy(&backend_->device(), &detail_draw_data_.vertex_buffer);
-        detail_draw_data_.vertex_buffer = vkrndr::create_buffer(
-            backend_->device(),
-            {.size = (detail_draw_data_.max_triangles +
-                         detail_draw_data_.max_lines +
-                         detail_draw_data_.max_points) *
-                    sizeof(vertex_t),
-                .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                .allocation_flags =
-                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
-
-        auto vertex_map{vkrndr::map_memory(backend_->device(),
-            detail_draw_data_.vertex_buffer)};
-        [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-            [this, map = &vertex_map]()
-            { unmap_memory(backend_->device(), map); }};
-
-        auto* const vertices{vertex_map.as<vertex_t>()};
-
-        auto* triangle_vertices{vertices};
-        auto* line_vertices{vertices + detail_draw_data_.max_triangles};
-        auto* point_vertices{line_vertices + detail_draw_data_.max_lines};
-
-        std::minstd_rand generator;
-
-        for (int i{}; i != poly_mesh.detail_mesh->nmeshes; ++i)
-        {
-            unsigned int const* const m{&poly_mesh.detail_mesh
-                    ->meshes[cppext::narrow<ptrdiff_t>(i * 4)]};
-            unsigned int const bverts{m[0]};
-            unsigned int const btris{m[2]};
-            int const ntris{cppext::narrow<int>(m[3])};
-
-            float const* const verts{&poly_mesh.detail_mesh
-                    ->verts[cppext::narrow<ptrdiff_t>(bverts * 3)]};
-            unsigned char const* const tris{&poly_mesh.detail_mesh
-                    ->tris[cppext::narrow<ptrdiff_t>(btris * 4)]};
-
-            float const v{std::generate_canonical<float, 10>(generator)};
-
-            glm::vec4 const color{v, v, v, 0.5f};
-
-            for (int j{}; j != ntris; ++j)
-            {
-                triangle_vertices[detail_draw_data_.triangles++] = {
-                    .position = glm::make_vec3(&verts[cppext::narrow<ptrdiff_t>(
-                        tris[cppext::narrow<ptrdiff_t>(j * 4) + 0] * 3)]),
-                    .color = color};
-                triangle_vertices[detail_draw_data_.triangles++] = {
-                    .position = glm::make_vec3(&verts[cppext::narrow<ptrdiff_t>(
-                        tris[cppext::narrow<ptrdiff_t>(j * 4) + 1] * 3)]),
-                    .color = color};
-                triangle_vertices[detail_draw_data_.triangles++] = {
-                    .position = glm::make_vec3(&verts[cppext::narrow<ptrdiff_t>(
-                        tris[cppext::narrow<ptrdiff_t>(j * 4) + 2] * 3)]),
-                    .color = color};
-            }
-        }
-
-        for (int i{}; i != poly_mesh.detail_mesh->nmeshes; ++i)
-        {
-            unsigned int const* const m{&poly_mesh.detail_mesh
-                    ->meshes[cppext::narrow<ptrdiff_t>(i * 4)]};
-            unsigned int const bverts{m[0]};
-            unsigned int const btris{m[2]};
-            int const ntris{cppext::narrow<int>(m[3])};
-
-            float const* const verts{&poly_mesh.detail_mesh
-                    ->verts[cppext::narrow<ptrdiff_t>(bverts * 3)]};
-            unsigned char const* const tris{&poly_mesh.detail_mesh
-                    ->tris[cppext::narrow<ptrdiff_t>(btris * 4)]};
-
-            glm::vec4 const internal_color{0.0f, 0.0f, 1.0f, 128.0f / 255.0f};
-            glm::vec4 const external_color{0.0f, 1.0f, 0.0f, 128.0f / 255.0f};
-
-            for (int j{}; j != ntris; ++j)
-            {
-                unsigned char const* const t{
-                    &tris[cppext::narrow<ptrdiff_t>(j * 4)]};
-
-                for (int k{}, kp{2}; k != 3; kp = k++)
-                {
-                    auto const ef{cppext::narrow<unsigned char>(
-                        (t[3] >> (kp * 2)) & 0x3)};
-                    if (ef == 0)
-                    {
-                        // Internal edgejs
-                        if (t[kp] < t[k])
-                        {
-                            line_vertices[detail_draw_data_.lines++] = {
-                                .position = glm::make_vec3(
-                                    &verts[cppext::narrow<ptrdiff_t>(
-                                        t[cppext::narrow<ptrdiff_t>(kp)] * 3)]),
-                                .color = internal_color};
-                            line_vertices[detail_draw_data_.lines++] = {
-                                .position = glm::make_vec3(
-                                    &verts[cppext::narrow<ptrdiff_t>(
-                                        t[cppext::narrow<ptrdiff_t>(k)] * 3)]),
-                                .color = internal_color};
-                        }
-                    }
-                    else
-                    {
-                        line_vertices[detail_draw_data_.lines++] = {
-                            .position =
-                                glm::make_vec3(&verts[cppext::narrow<ptrdiff_t>(
-                                    t[cppext::narrow<ptrdiff_t>(kp)] * 3)]),
-                            .color = external_color};
-                        line_vertices[detail_draw_data_.lines++] = {
-                            .position =
-                                glm::make_vec3(&verts[cppext::narrow<ptrdiff_t>(
-                                    t[cppext::narrow<ptrdiff_t>(k)] * 3)]),
-                            .color = external_color};
-                    }
-                }
-            }
-        }
-
-        glm::vec4 const point_color{0.0f, 0.0f, 0.0f, 220.0f / 255.0f};
-        for (int i{}; i != poly_mesh.detail_mesh->nverts; ++i)
-        {
-            point_vertices[detail_draw_data_.points++] = {
-                .position = glm::make_vec3(&poly_mesh.detail_mesh
-                        ->verts[cppext::narrow<ptrdiff_t>(i * 3)]),
-                .color = point_color};
-        }
-    }
+    destroy(&backend_->device(), &detail_draw_data_.vertex_buffer);
+    detail_draw_data_ = create_detail_mesh_draw_data(backend_->device(),
+        *poly_mesh.detail_mesh);
 }
 
 void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer,
@@ -594,7 +486,7 @@ void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer,
 }
 
 void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer,
-    mesh_draw_data_t const& data) const
+    detail::mesh_draw_data_t const& data) const
 {
     if (data.triangles + data.lines + data.points == 0)
     {

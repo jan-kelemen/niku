@@ -20,6 +20,21 @@ namespace galileo
 
 namespace galileo
 {
+    namespace detail
+    {
+        struct [[nodiscard]] mesh_draw_data_t final
+        {
+            vkrndr::buffer_t vertex_buffer;
+
+            uint32_t max_triangles{};
+            uint32_t triangles{};
+            uint32_t max_lines{};
+            uint32_t lines{};
+            uint32_t max_points{};
+            uint32_t points{};
+        };
+    } // namespace detail
+
     class [[nodiscard]] navmesh_debug_t final
     {
     public:
@@ -49,27 +64,14 @@ namespace galileo
         navmesh_debug_t& operator=(navmesh_debug_t&&) noexcept = delete;
 
     private:
-        struct [[nodiscard]] mesh_draw_data_t final
-        {
-            vkrndr::buffer_t vertex_buffer;
-
-            uint32_t max_triangles{};
-            uint32_t triangles{};
-            uint32_t max_lines{};
-            uint32_t lines{};
-            uint32_t max_points{};
-            uint32_t points{};
-        };
-
-    private:
         void draw(VkCommandBuffer command_buffer,
-            mesh_draw_data_t const& data) const;
+            detail::mesh_draw_data_t const& data) const;
 
     private:
         vkrndr::backend_t* backend_;
 
-        mesh_draw_data_t main_draw_data_;
-        mesh_draw_data_t detail_draw_data_;
+        detail::mesh_draw_data_t main_draw_data_;
+        detail::mesh_draw_data_t detail_draw_data_;
 
         vkrndr::pipeline_t triangle_pipeline_;
         vkrndr::pipeline_t line_pipeline_;
