@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tidy-iwyu:
+  clang-tidy-iwyu:
     runs-on: ubuntu-24.04
     
     env:
