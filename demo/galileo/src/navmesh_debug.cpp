@@ -8,8 +8,8 @@
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_device.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>

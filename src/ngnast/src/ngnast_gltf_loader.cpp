@@ -541,7 +541,16 @@ namespace
                         std::get_if<bounds_t>(&accessor.min)};
                     auto const* const max_bound{
                         std::get_if<bounds_t>(&accessor.max)};
-                    assert(min_bound && max_bound);
+
+                    if (!min_bound || !max_bound)
+                    {
+                        spdlog::error(
+                            "Primitive in {} mesh doesn't have position attribute min/max accessors",
+                            rv.name);
+
+                        return std::unexpected{make_error_code(
+                            ngnast::error_t::load_transform_failed)};
+                    }
 
                     auto const to_glm = [](auto const* const v)
                     { return glm::make_vec3(v->data()); };
