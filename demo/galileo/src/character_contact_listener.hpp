@@ -1,7 +1,10 @@
 #ifndef GALILEO_CHARACTER_CONTACT_LISTENER_INCLUDED
 #define GALILEO_CHARACTER_CONTACT_LISTENER_INCLUDED
 
+// clang-format off
+#include <type_traits> // IWYU pragma: keep
 #include <Jolt/Jolt.h> // IWYU pragma: keep
+// clang-format on
 
 #include <Jolt/Math/MathTypes.h>
 #include <Jolt/Math/Real.h>

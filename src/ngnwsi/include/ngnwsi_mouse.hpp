@@ -20,9 +20,11 @@ namespace ngnwsi
         ~mouse_t() = default;
 
     public:
-        [[nodiscard]] glm::ivec2 position() const;
+        void set_window_handle(void* window);
 
-        [[nodiscard]] glm::ivec2 relative_offset() const;
+        [[nodiscard]] glm::vec2 position() const;
+
+        [[nodiscard]] glm::vec2 relative_offset() const;
 
         [[nodiscard]] bool captured() const;
 
@@ -34,6 +36,7 @@ namespace ngnwsi
         mouse_t& operator=(mouse_t&&) noexcept = delete;
 
     private:
+        void* window_handle_{nullptr};
         bool captured_;
     };
 } // namespace ngnwsi

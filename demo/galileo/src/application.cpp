@@ -82,9 +82,9 @@ DISABLE_WARNING_POP
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_scancode.h>
-#include <SDL2/SDL_video.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_scancode.h>
+#include <SDL3/SDL_video.h>
 
 #include <spdlog/spdlog.h>
 
@@ -210,8 +210,7 @@ galileo::application_t::application_t(bool const debug)
           .init_subsystems = {.video = true, .debug = debug},
           .title = "galileo",
           .window_flags = static_cast<SDL_WindowFlags>(
-              SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI),
-          .centered = true,
+              SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY),
           .width = 512,
           .height = 512}}
     , free_camera_controller_{camera_, mouse_}
@@ -261,18 +260,18 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
         ? free_camera_controller_.handle_event(event, delta_time)
         : character_->handle_event(event, delta_time);
 
-    if (event.type == SDL_KEYDOWN)
+    if (event.type == SDL_EVENT_KEY_DOWN)
     {
         auto const& keyboard{event.key};
-        if (keyboard.keysym.scancode == SDL_SCANCODE_F3)
+        if (keyboard.scancode == SDL_SCANCODE_F3)
         {
             mouse_.set_capture(!mouse_.captured());
         }
-        else if (keyboard.keysym.scancode == SDL_SCANCODE_F4)
+        else if (keyboard.scancode == SDL_SCANCODE_F4)
         {
             imgui_->set_enabled(!imgui_->enabled());
         }
-        else if (keyboard.keysym.scancode == SDL_SCANCODE_C)
+        else if (keyboard.scancode == SDL_SCANCODE_C)
         {
             free_camera_active_ ^= true; // NOLINT
         }
@@ -660,6 +659,8 @@ void galileo::application_t::end_frame()
 
 void galileo::application_t::on_startup()
 {
+    mouse_.set_window_handle(window()->native_handle());
+
     setup_world();
 
     frame_info_->disperse_lights(world_aabb_);

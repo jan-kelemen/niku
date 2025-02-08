@@ -4,10 +4,10 @@
 
 #include <cppext_numeric.hpp>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_timer.h>
-#include <SDL2/SDL_video.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_timer.h>
+#include <SDL3/SDL_video.h>
 
 #include <cstdint>
 #include <memory>
@@ -55,7 +55,6 @@ ngnwsi::application_t::impl::impl(startup_params_t const& params)
     : guard{to_init_flags(params.init_subsystems)}
     , window{params.title.c_str(),
           params.window_flags,
-          params.centered,
           params.width,
           params.height}
 {
@@ -66,7 +65,8 @@ ngnwsi::application_t::impl::~impl() = default;
 bool ngnwsi::application_t::impl::is_current_window_event(
     SDL_Event const& event) const
 {
-    if (event.type == SDL_WINDOWEVENT)
+    if (event.type >= SDL_EVENT_WINDOW_FIRST &&
+        event.type <= SDL_EVENT_WINDOW_LAST)
     {
         return event.window.windowID == SDL_GetWindowID(window.native_handle());
     }
@@ -98,7 +98,7 @@ void ngnwsi::application_t::run()
         float const delta{cppext::as_fp(current_tick - last_tick) / frequency};
 
         SDL_Event event;
-        while (SDL_PollEvent(&event) != 0)
+        while (SDL_PollEvent(&event))
         {
             if (impl_->is_current_window_event(event))
             {
@@ -169,10 +169,9 @@ bool ngnwsi::application_t::is_quit_event(SDL_Event const& event)
 {
     switch (event.type)
     {
-    case SDL_QUIT:
+    case SDL_EVENT_QUIT:
+    case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
         return true;
-    case SDL_WINDOWEVENT:
-        return event.window.event == SDL_WINDOWEVENT_CLOSE;
     default:
         return false;
     }

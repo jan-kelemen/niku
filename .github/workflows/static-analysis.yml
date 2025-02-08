@@ -85,7 +85,7 @@ jobs:
           cmake --build --preset release
 
   msvc-analyze:
-    runs-on: windows-2022
+    runs-on: windows-2025
 
     steps:
       - name: Initialize

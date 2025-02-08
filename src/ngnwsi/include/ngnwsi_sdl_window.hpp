@@ -3,7 +3,7 @@
 
 #include <vkrndr_window.hpp>
 
-#include <SDL2/SDL_video.h>
+#include <SDL3/SDL_video.h>
 
 #include <volk.h>
 
@@ -35,7 +35,6 @@ namespace ngnwsi
     public: // Construction
         sdl_window_t(char const* title,
             SDL_WindowFlags window_flags,
-            bool centered,
             int width,
             int height);
 

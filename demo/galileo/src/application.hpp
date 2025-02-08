@@ -22,7 +22,7 @@
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 #include <Jolt/Physics/Body/BodyID.h> // IWYU pragma: keep
 
-#include <SDL2/SDL_events.h>
+#include <SDL3/SDL_events.h>
 
 #include <cstddef>
 #include <cstdint>

@@ -25,7 +25,7 @@ target_link_libraries(ngnwsi
         vkrndr
         glm_impl
     PUBLIC
-        SDL2::SDL2
+        SDL3::SDL3
     PRIVATE
         imgui::imgui
         spdlog::spdlog

@@ -1,11 +1,11 @@
 #include <ngnwsi_sdl_window.hpp>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_error.h>
-#include <SDL2/SDL_hints.h>
-#include <SDL2/SDL_stdinc.h>
-#include <SDL2/SDL_video.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_hints.h>
+#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_video.h>
+#include <SDL3/SDL_vulkan.h>
 
 #include <algorithm>
 #include <limits>
@@ -13,23 +13,20 @@
 
 ngnwsi::sdl_guard_t::sdl_guard_t(uint32_t const flags)
 {
-    if (SDL_Init(flags) != 0)
+    if (!SDL_Init(flags))
     {
         throw std::runtime_error{SDL_GetError()};
     }
-    SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
+    SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "1");
 }
 
 ngnwsi::sdl_guard_t::~sdl_guard_t() { SDL_Quit(); }
 
 ngnwsi::sdl_window_t::sdl_window_t(char const* const title,
     SDL_WindowFlags const window_flags,
-    bool const centered,
     int const width,
     int const height)
     : window_{SDL_CreateWindow(title,
-          centered ? SDL_WINDOWPOS_CENTERED : SDL_WINDOWPOS_UNDEFINED,
-          centered ? SDL_WINDOWPOS_CENTERED : SDL_WINDOWPOS_UNDEFINED,
           width,
           height,
           static_cast<SDL_WindowFlags>(window_flags | SDL_WINDOW_VULKAN))}
@@ -45,13 +42,10 @@ ngnwsi::sdl_window_t::~sdl_window_t() { SDL_DestroyWindow(window_); }
 std::vector<char const*> ngnwsi::sdl_window_t::required_extensions() const
 {
     unsigned int extension_count{};
-    SDL_Vulkan_GetInstanceExtensions(window_, &extension_count, nullptr);
-    std::vector<char const*> required_extensions(extension_count, nullptr);
-    SDL_Vulkan_GetInstanceExtensions(window_,
-        &extension_count,
-        required_extensions.data());
+    auto const* const extensions{
+        SDL_Vulkan_GetInstanceExtensions(&extension_count)};
 
-    return required_extensions;
+    return {extensions, extensions + extension_count};
 }
 
 VkSurfaceKHR ngnwsi::sdl_window_t::create_surface(VkInstance instance)
@@ -61,7 +55,7 @@ VkSurfaceKHR ngnwsi::sdl_window_t::create_surface(VkInstance instance)
         return surface_;
     }
 
-    if (SDL_Vulkan_CreateSurface(window_, instance, &surface_) == SDL_TRUE)
+    if (SDL_Vulkan_CreateSurface(window_, instance, nullptr, &surface_))
     {
         return surface_;
     }

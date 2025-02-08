@@ -4,21 +4,22 @@
 Override packages from public Conan2 package index with updated ones from [jan-kelemen/conan-recipes](https://github.com/jan-kelemen/conan-recipes):
 ```
 git clone git@github.com:jan-kelemen/conan-recipes.git
+conan export conan-recipes/recipes/boost/all --version 1.87.0
 conan export conan-recipes/recipes/fastgltf/all --version 0.8.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3
-conan export conan-recipes/recipes/imgui/all --version 1.91.6-docking
+conan export conan-recipes/recipes/glslang/all --version 1.4.304.0
+conan export conan-recipes/recipes/imgui/all --version 1.91.8-docking
 conan export conan-recipes/recipes/joltphysics/all --version 5.2.0
 conan export conan-recipes/recipes/meshoptimizer/all --version 0.22
-conan export conan-recipes/recipes/sdl/all --version 2.30.11
-conan export conan-recipes/recipes/simdjson/all --version 3.11.5
-conan export conan-recipes/recipes/spdlog/all --version 1.15.x
+conan export conan-recipes/recipes/sdl/3.x --version 3.2.2
+conan export conan-recipes/recipes/simdjson/all --version 3.12.0
+conan export conan-recipes/recipes/spdlog/all --version 1.15.1
 conan export conan-recipes/recipes/spirv-headers/all --version 1.4.304.0
 conan export conan-recipes/recipes/spirv-cross/all --version 1.4.304.0
 conan export conan-recipes/recipes/spirv-tools/all --version 1.4.304.0
-conan export conan-recipes/recipes/glslang/all --version 1.4.304.0
 conan export conan-recipes/recipes/volk/all --version 1.4.304.0
 conan export conan-recipes/recipes/vulkan-headers/all --version 1.4.304.0
-conan export conan-recipes/recipes/vulkan-memory-allocator/all --version 3.2.0
+conan export conan-recipes/recipes/vulkan-memory-allocator/all --version 3.2.1
 ```
 
 ## Installing dependencies

@@ -1,7 +1,10 @@
 #ifndef GALILEO_PHYSICS_ENGINE_INCLUDED
 #define GALILEO_PHYSICS_ENGINE_INCLUDED
 
+// clang-format off
+#include <type_traits> // IWYU pragma: keep
 #include <Jolt/Jolt.h> // IWYU pragma: keep
+// clang-format on
 
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 

@@ -28,9 +28,9 @@ add_library(imgui_sdl_impl)
 
 target_sources(imgui_sdl_impl
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui_impl_sdl2.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/imgui_impl_sdl3.h
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_impl_sdl2.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_impl_sdl3.cpp
 )
 
 target_include_directories(imgui_sdl_impl SYSTEM
@@ -41,12 +41,12 @@ target_include_directories(imgui_sdl_impl SYSTEM
 target_link_libraries(imgui_sdl_impl
     PUBLIC
         imgui::imgui
-        SDL2::SDL2
+        SDL3::SDL3
 )
 
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_impl_vulkan.cpp 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_impl_sdl2.cpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_impl_sdl3.cpp
     PROPERTIES
         SKIP_LINTING ON
 )

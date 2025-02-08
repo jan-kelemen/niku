@@ -11,9 +11,9 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/trigonometric.hpp>
 
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_keyboard.h>
-#include <SDL2/SDL_scancode.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_scancode.h>
 
 #include <algorithm>
 #include <cmath>
@@ -30,7 +30,7 @@ galileo::camera_controller_t::camera_controller_t(
 void galileo::camera_controller_t::handle_event(SDL_Event const& event,
     float const delta_time)
 {
-    if (event.type == SDL_MOUSEMOTION && mouse_->captured())
+    if (event.type == SDL_EVENT_MOUSE_MOTION && mouse_->captured())
     {
         auto const& yaw_pitch{camera_->yaw_pitch()};
         auto const& mouse_offset{mouse_->relative_offset()};
@@ -51,30 +51,30 @@ bool galileo::camera_controller_t::update(float const delta_time)
 {
     {
         int keyboard_state_length; // NOLINT
-        uint8_t const* const keyboard_state{
+        bool const* const keyboard_state{
             SDL_GetKeyboardState(&keyboard_state_length)};
 
         velocity_ = {0.0f, 0.0f, 0.0f};
 
-        if (keyboard_state[SDL_SCANCODE_LEFT] != 0)
+        if (keyboard_state[SDL_SCANCODE_LEFT])
         {
             velocity_ -= velocity_factor_ * camera_->right_direction();
             update_needed_ = true;
         }
 
-        if (keyboard_state[SDL_SCANCODE_RIGHT] != 0)
+        if (keyboard_state[SDL_SCANCODE_RIGHT])
         {
             velocity_ += velocity_factor_ * camera_->right_direction();
             update_needed_ = true;
         }
 
-        if (keyboard_state[SDL_SCANCODE_UP] != 0)
+        if (keyboard_state[SDL_SCANCODE_UP])
         {
             velocity_ += velocity_factor_ * camera_->front_direction();
             update_needed_ = true;
         }
 
-        if (keyboard_state[SDL_SCANCODE_DOWN] != 0)
+        if (keyboard_state[SDL_SCANCODE_DOWN])
         {
             velocity_ -= velocity_factor_ * camera_->front_direction();
             update_needed_ = true;

@@ -45,9 +45,9 @@ DISABLE_WARNING_POP
 
 #include <imgui.h>
 
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_scancode.h>
-#include <SDL2/SDL_video.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_scancode.h>
+#include <SDL3/SDL_video.h>
 
 #include <spdlog/spdlog.h>
 
@@ -188,8 +188,7 @@ gltfviewer::application_t::application_t(bool const debug)
           .init_subsystems = {.video = true, .debug = debug},
           .title = "gltfviewer",
           .window_flags = static_cast<SDL_WindowFlags>(
-              SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI),
-          .centered = true,
+              SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY),
           .width = 512,
           .height = 512}}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
@@ -228,10 +227,10 @@ bool gltfviewer::application_t::handle_event(SDL_Event const& event,
 
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
-    if (event.type == SDL_KEYDOWN)
+    if (event.type == SDL_EVENT_KEY_DOWN)
     {
         auto const& keyboard{event.key};
-        if (keyboard.keysym.scancode == SDL_SCANCODE_F4)
+        if (keyboard.scancode == SDL_SCANCODE_F4)
         {
             imgui_->set_enabled(!imgui_->enabled());
         }
@@ -699,6 +698,8 @@ void gltfviewer::application_t::end_frame()
 
 void gltfviewer::application_t::on_startup()
 {
+    mouse_.set_window_handle(window()->native_handle());
+
     auto const extent{backend_->extent()};
     on_resize(extent.width, extent.height);
 

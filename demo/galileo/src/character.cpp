@@ -33,9 +33,9 @@
 #include <Jolt/Physics/Collision/ShapeFilter.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_keyboard.h>
-#include <SDL2/SDL_scancode.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_scancode.h>
 
 #include <cstdint>
 
@@ -99,7 +99,7 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
 void galileo::character_t::handle_event(SDL_Event const& event,
     float const delta_time)
 {
-    if (event.type == SDL_MOUSEMOTION && mouse_->captured())
+    if (event.type == SDL_EVENT_MOUSE_MOTION && mouse_->captured())
     {
         auto const& mouse_offset{mouse_->relative_offset()};
 
@@ -130,29 +130,29 @@ void galileo::character_t::update(float const delta_time)
         glm::quat const rot{ngnphy::to_glm(physics_entity_->GetRotation())};
 
         int keyboard_state_length; // NOLINT
-        uint8_t const* const keyboard_state{
+        bool const* const keyboard_state{
             SDL_GetKeyboardState(&keyboard_state_length)};
 
         bool has_input{false};
-        if (keyboard_state[SDL_SCANCODE_A] != 0)
+        if (keyboard_state[SDL_SCANCODE_A])
         {
             desired_direction += rot * world_left * acceleration_factor;
             has_input = true;
         }
 
-        if (keyboard_state[SDL_SCANCODE_D] != 0)
+        if (keyboard_state[SDL_SCANCODE_D])
         {
             desired_direction += rot * world_right * acceleration_factor;
             has_input = true;
         }
 
-        if (keyboard_state[SDL_SCANCODE_W] != 0)
+        if (keyboard_state[SDL_SCANCODE_W])
         {
             desired_direction += rot * world_front * acceleration_factor;
             has_input = true;
         }
 
-        if (keyboard_state[SDL_SCANCODE_S] != 0)
+        if (keyboard_state[SDL_SCANCODE_S])
         {
             desired_direction += rot * world_back * acceleration_factor;
             has_input = true;

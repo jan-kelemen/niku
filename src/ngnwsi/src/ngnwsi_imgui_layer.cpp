@@ -11,7 +11,7 @@
 #include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <imgui_impl_sdl2.h>
+#include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 
 #include <imgui.h>
@@ -78,7 +78,7 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
         ImVec4(0.32f, 0.32f, 0.63f, 1.00f);
 
     [[maybe_unused]] bool const init_sdl{
-        ImGui_ImplSDL2_InitForVulkan(window.native_handle())};
+        ImGui_ImplSDL3_InitForVulkan(window.native_handle())};
     assert(init_sdl);
 
     [[maybe_unused]] bool const load_functions{
@@ -116,7 +116,7 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
 ngnwsi::imgui_layer_t::~imgui_layer_t()
 {
     ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
     vkDestroyDescriptorPool(device_->logical, descriptor_pool_, nullptr);
@@ -126,7 +126,7 @@ bool ngnwsi::imgui_layer_t::handle_event(SDL_Event const& event) const
 {
     if (enabled_)
     {
-        return ImGui_ImplSDL2_ProcessEvent(&event);
+        return ImGui_ImplSDL3_ProcessEvent(&event);
     }
 
     return false;
@@ -135,7 +135,7 @@ bool ngnwsi::imgui_layer_t::handle_event(SDL_Event const& event) const
 void ngnwsi::imgui_layer_t::begin_frame()
 {
     ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     frame_rendered_ = false;
 }

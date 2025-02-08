@@ -27,4 +27,4 @@ Necessary build tools are:
 See [doc/BUILD.md](doc/BUILD.md) for details.
 
 ## License
-Licensed under [BSD-3-Clause](https://github.com/jan-kelemen/niku/blob/master/LICENSE). See [COPYRIGHT.md](https://github.com/jan-kelemen/niku/blob/master/COPYRIGHT.md) for additional licensing info
+Licensed under [BSD-3-Clause](LICENSE). See [COPYRIGHT.md](COPYRIGHT.md) for additional licensing info
