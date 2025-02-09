@@ -1,13 +1,9 @@
-name: GitHub CI
+name: Weekly Debug Builds
 
 on:
-  push:
-    branches: [ '**' ]
+  schedule:
+    - cron: '30 18 * * 0'
   workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
-  cancel-in-progress: true
 
 jobs:
   linux:
@@ -20,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [gcc-amd64-linux-hardened, clang-libstdcxx-amd64-linux-hardened, clang-libcxx-amd64-linux-hardened]
+        profile: [gcc-amd64-linux, clang-libstdcxx-amd64-linux, clang-libcxx-amd64-linux]
         
     steps:
       - name: Checkout repository from github
@@ -45,18 +41,19 @@ jobs:
         uses: ./.github/actions/setup-conan
         with:
           profile: ${{ matrix.profile }}
+          cache: false
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON --preset release
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON --preset debug
 
       - name: Build
         run: |
-          cmake --build --preset release
+          cmake --build --preset debug
       
       - name: Test
         run: |
-          ctest --preset release
+          ctest --preset debug
 
   windows:
     runs-on: windows-2025
@@ -76,7 +73,8 @@ jobs:
         id: setup-conan
         uses: ./.github/actions/setup-conan
         with:
-          profile: msvc-amd64-windows-hardened
+          profile: msvc-amd64-windows
+          cache: false
 
       - name: Configure CMake
         run: |
@@ -84,9 +82,9 @@ jobs:
           
       - name: Build
         run: |
-          cmake --build --preset multi-release
+          cmake --build --preset multi-debug
 
       - name: Test
         run: |
-          ctest --preset multi-release
+          ctest --preset multi-debug
 

@@ -8,6 +8,10 @@ inputs:
     description: 'Used shell for executing commands'
     required: false
     default: ${{ runner.os == 'Linux' && 'bash' || 'pwsh' }}
+  cache:
+    description: 'Use cache'
+    required: false
+    default: 'true'
 
 runs:
   using: 'composite'
@@ -40,6 +44,7 @@ runs:
 
     - name: Cache Conan packages
       id: cache-conan-packages
+      if: ${{ inputs.cache == 'true' }}
       uses: actions/cache@v4
       with:
         path: ${{ env.CONAN_CACHE_LOCATION }}/p
