@@ -24,6 +24,7 @@
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
+#include <ngnwsi_mouse.hpp>
 #include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
 
 #include <vkrndr_backend.hpp>
@@ -187,8 +188,7 @@ gltfviewer::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
           .init_subsystems = {.video = true, .debug = debug},
           .title = "gltfviewer",
-          .window_flags = static_cast<SDL_WindowFlags>(
-              SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY),
+          .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           .width = 512,
           .height = 512}}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),

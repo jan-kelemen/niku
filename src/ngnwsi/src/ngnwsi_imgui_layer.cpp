@@ -19,6 +19,8 @@
 #include <cassert>
 #include <utility>
 
+// IWYU pragma: no_include <string_view>
+
 namespace
 {
     [[nodiscard]] VkDescriptorPool create_descriptor_pool(

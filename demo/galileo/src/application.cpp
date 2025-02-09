@@ -112,6 +112,7 @@ DISABLE_WARNING_POP
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <string_view>
 // IWYU pragma: no_include <system_error>
 
 namespace
@@ -209,8 +210,7 @@ galileo::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
           .init_subsystems = {.video = true, .debug = debug},
           .title = "galileo",
-          .window_flags = static_cast<SDL_WindowFlags>(
-              SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY),
+          .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           .width = 512,
           .height = 512}}
     , free_camera_controller_{camera_, mouse_}

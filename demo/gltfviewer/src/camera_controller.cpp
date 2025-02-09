@@ -17,7 +17,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
 
 gltfviewer::camera_controller_t::camera_controller_t(
     ngngfx::perspective_camera_t& camera,

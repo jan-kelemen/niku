@@ -33,6 +33,7 @@
 #include <span>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <string_view>
 
 namespace
 {

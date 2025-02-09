@@ -153,7 +153,7 @@ galileo::physics_debug_t::~physics_debug_t()
     destroy(&backend_->device(), &line_pipeline_);
 }
 
-VkPipelineLayout galileo::physics_debug_t::pipeline_layout()
+VkPipelineLayout galileo::physics_debug_t::pipeline_layout() const
 {
     return *line_pipeline_.layout;
 }

@@ -52,7 +52,7 @@ namespace galileo
         ~physics_debug_t() override;
 
     public:
-        [[nodiscard]] VkPipelineLayout pipeline_layout();
+        [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
         void set_camera(ngngfx::camera_t const& camera);
 

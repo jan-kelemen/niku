@@ -16,6 +16,7 @@
 
 // IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <span>
+// IWYU pragma: no_include <string_view>
 
 galileo::gbuffer_t::gbuffer_t(vkrndr::backend_t& backend) : backend_{&backend}
 {

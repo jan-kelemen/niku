@@ -1,9 +1,8 @@
 #include <ngnwsi_sdl_window.hpp>
 
-#include <SDL3/SDL.h>
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_hints.h>
-#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_init.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
 
@@ -29,7 +28,7 @@ ngnwsi::sdl_window_t::sdl_window_t(char const* const title,
     : window_{SDL_CreateWindow(title,
           width,
           height,
-          static_cast<SDL_WindowFlags>(window_flags | SDL_WINDOW_VULKAN))}
+          window_flags | SDL_WINDOW_VULKAN)}
 {
     if (window_ == nullptr)
     {
