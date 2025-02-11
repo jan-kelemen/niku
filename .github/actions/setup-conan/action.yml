@@ -84,7 +84,7 @@ runs:
     - name: Build all dependencies
       shell: ${{ inputs.shell }}
       run: |
-        conan install . --build=missing --profile=ci/conan/${{ inputs.profile }}
+        conan install . --build=missing --profile=ci/conan/${{ inputs.profile }} --options '&:develop=True'
 
     - name: Cleanup temporary folders from cache
       shell: ${{ inputs.shell }}

@@ -14,7 +14,8 @@ target_sources(vkglsl
 
 target_include_directories(vkglsl
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -31,6 +32,20 @@ target_link_libraries(vkglsl
         spdlog::spdlog
         spirv-cross::spirv-cross
     PRIVATE
-        project-options
+        $<BUILD_INTERFACE:project-options>
 )
 
+install(TARGETS vkglsl
+    EXPORT ${PROJECT_NAME}-config
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_runtime
+        NAMELINK_COMPONENT ${PROJECT_NAME}_dev
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_dev
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+add_library(niku::vkglsl ALIAS vkglsl)

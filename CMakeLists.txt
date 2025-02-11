@@ -16,14 +16,13 @@ option(NIKU_BUILD_DEMOS "Building demo examples" ON)
 
 find_package(Angelscript REQUIRED)
 find_package(Boost REQUIRED)
+find_package(fastgltf REQUIRED)
 find_package(fmt REQUIRED)
-find_package(imgui REQUIRED)
-find_package(Jolt REQUIRED)
 find_package(glm REQUIRED)
 find_package(glslang REQUIRED)
-find_package(fastgltf REQUIRED)
+find_package(imgui REQUIRED)
+find_package(Jolt REQUIRED)
 find_package(meshoptimizer REQUIRED)
-find_package(recastnavigation REQUIRED)
 find_package(SDL3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(spirv-cross REQUIRED)
@@ -32,8 +31,11 @@ find_package(volk REQUIRED)
 find_package(vulkan-memory-allocator REQUIRED)
 
 if (NIKU_BUILD_DEMOS)
+    find_package(recastnavigation REQUIRED)
     find_package(simdjson REQUIRED)
 endif()
+
+include(GNUInstallDirs)
 
 if (CMAKE_POSITION_INDEPENDENT_CODE)
     include(CheckPIESupported)
@@ -68,3 +70,7 @@ if (NIKU_BUILD_DEMOS)
     add_subdirectory(demo)
 endif()
 
+install(EXPORT ${PROJECT_NAME}-config
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)

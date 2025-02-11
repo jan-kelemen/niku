@@ -48,7 +48,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON --preset release
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset release
 
       - name: Build
         run: |
@@ -58,8 +58,17 @@ jobs:
         run: |
           ctest --preset release
 
+      - name: Install
+        run: |
+          cmake --install build/Release
+
   windows:
     runs-on: windows-2025
+
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [msvc-amd64-windows-hardened]
 
     steps:
       - name: Initialize
@@ -76,11 +85,11 @@ jobs:
         id: setup-conan
         uses: ./.github/actions/setup-conan
         with:
-          profile: msvc-amd64-windows-hardened
+          profile: ${{ matrix.profile }}
 
       - name: Configure CMake
         run: |
-          cmake --preset default
+          cmake -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset default
           
       - name: Build
         run: |
@@ -90,3 +99,6 @@ jobs:
         run: |
           ctest --preset multi-release
 
+      - name: Install
+        run: |
+          cmake --install build --config Release

@@ -16,4 +16,16 @@ set_source_files_properties(
         SKIP_LINTING ON
 )
 
+install(TARGETS stb_impl
+    EXPORT ${PROJECT_NAME}-config
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_runtime
+        NAMELINK_COMPONENT ${PROJECT_NAME}_dev
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_dev
+)
+
+add_library(niku::stb_impl ALIAS stb_impl)
+
 set_target_properties(stb_impl PROPERTIES FOLDER "vendor")

@@ -12,15 +12,27 @@ target_sources(cppext
         
 )
 
-target_include_directories(cppext
+target_include_directories(cppext 
     INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 target_link_libraries(cppext
     INTERFACE
-        project-options
+        $<BUILD_INTERFACE:project-options>
 )
+
+install(TARGETS cppext
+    EXPORT ${PROJECT_NAME}-config
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+add_library(niku::cppext ALIAS cppext)
 
 if (NIKU_BUILD_TESTS)
     add_executable(cppext_test)
@@ -35,7 +47,7 @@ if (NIKU_BUILD_TESTS)
             cppext
         PRIVATE
             Catch2::Catch2WithMain
-            project-options
+            $<BUILD_INTERFACE:project-options>
     )
 
     if (NOT CMAKE_CROSSCOMPILING)

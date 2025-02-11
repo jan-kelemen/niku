@@ -9,7 +9,7 @@ target_sources(imgui_vulkan_impl
 
 target_include_directories(imgui_vulkan_impl SYSTEM
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 target_link_libraries(imgui_vulkan_impl
@@ -24,6 +24,18 @@ target_compile_definitions(imgui_vulkan_impl
         VK_NO_PROTOTYPES
 )
 
+install(TARGETS imgui_vulkan_impl
+    EXPORT ${PROJECT_NAME}-config
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_runtime
+        NAMELINK_COMPONENT ${PROJECT_NAME}_dev
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_dev
+)
+
+add_library(niku::imgui_vulkan_impl ALIAS imgui_vulkan_impl)
+
 add_library(imgui_sdl_impl)
 
 target_sources(imgui_sdl_impl
@@ -35,7 +47,7 @@ target_sources(imgui_sdl_impl
 
 target_include_directories(imgui_sdl_impl SYSTEM
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 target_link_libraries(imgui_sdl_impl
@@ -43,6 +55,18 @@ target_link_libraries(imgui_sdl_impl
         imgui::imgui
         SDL3::SDL3
 )
+
+install(TARGETS imgui_sdl_impl
+    EXPORT ${PROJECT_NAME}-config
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_runtime
+        NAMELINK_COMPONENT ${PROJECT_NAME}_dev
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_dev
+)
+
+add_library(niku::imgui_sdl_impl ALIAS imgui_sdl_impl)
 
 set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/imgui_impl_vulkan.cpp 

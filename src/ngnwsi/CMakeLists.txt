@@ -15,7 +15,8 @@ target_sources(ngnwsi
 
 target_include_directories(ngnwsi
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -33,6 +34,21 @@ target_link_libraries(ngnwsi
         imgui_sdl_impl
         imgui_vulkan_impl
     PRIVATE
-        project-options
+        $<BUILD_INTERFACE:project-options>
 )
 
+install(TARGETS ngnwsi
+    EXPORT ${PROJECT_NAME}-config
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_runtime
+        NAMELINK_COMPONENT ${PROJECT_NAME}_dev
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_dev
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+add_library(niku::ngnwsi ALIAS ngnwsi)

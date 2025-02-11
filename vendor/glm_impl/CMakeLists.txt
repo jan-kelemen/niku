@@ -11,4 +11,10 @@ target_link_libraries(glm_impl
         glm::glm
 )
 
+install(TARGETS glm_impl
+    EXPORT ${PROJECT_NAME}-config
+)
+
+add_library(niku::glm_impl ALIAS glm_impl)
+
 set_target_properties(glm_impl PROPERTIES FOLDER "vendor")

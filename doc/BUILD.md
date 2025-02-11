@@ -22,36 +22,24 @@ conan export conan-recipes/recipes/vulkan-headers/all --version 1.4.304.0
 conan export conan-recipes/recipes/vulkan-memory-allocator/all --version 3.2.1
 ```
 
-## Installing dependencies
-On Linux install Conan2 packages by executing:
-```
-conan install . --profile=conan/clang-19-libstdcxx-amd64-linux --profile=conan/dependencies --profile=conan/opt/linux-native --build=missing --settings build_type=Release
-```
+Install Conan2 dependencies. See folder [conan](../conan) for available profiles. 
+Folder [ci/conan](../ci/conan) contains preconfigured profile combinations for CI builds.
 
-Or on Windows:
+## Windows
 ```
 conan install . --profile=conan/msvc-2022-amd64-windows --profile=conan/dependencies --build=missing -s build_type=Release 
-```
-
-See folder [conan](../conan) for available profiles. Folder [ci/conan](../conan) contains preconfigured profile combinations for CI builds.
-
-## Configure CMake build
-Configure the build by using the required preset for the build type. Visual Studio builds use a `default` preset instead of the build type used when installing dependencies.
-```
 cmake --preset release
+cmake --build --preset multi-release --config Release
 ```
 
-### Configuration options
-* `NIKU_BUILD_DEMOS` - build engine demo examples, ON by default
-* `NIKU_VKRNDR_ENABLE_DEBUG_UTILS` - debug utilities for Vulkan, ON by default in `Debug` and `RelWitDebInfo` configurations
-
-## Compile
-On Linux compile the code by executing:
+## Linux
 ```
+conan install . --profile=conan/clang-19-libstdcxx-amd64-linux --profile=conan/dependencies --profile=conan/opt/linux-native --build=missing --settings build_type=Release
+cmake --preset release
 cmake --build --preset release
 ```
 
-Or on Windows:
-```
-cmake --build --preset multi-debug --config Debug
-```
+## CMake configuration options
+* `NIKU_BUILD_DEMOS` - build engine demo examples, ON by default
+* `NIKU_VKRNDR_ENABLE_DEBUG_UTILS` - debug utilities for Vulkan, ON by default in `Debug` and `RelWitDebInfo` configurations
+
