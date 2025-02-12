@@ -4,6 +4,7 @@
 Override packages from public Conan2 package index with updated ones from [jan-kelemen/conan-recipes](https://github.com/jan-kelemen/conan-recipes):
 ```
 git clone git@github.com:jan-kelemen/conan-recipes.git
+conan export conan-recipes/recipes/angelscript/all --version 2.37.0
 conan export conan-recipes/recipes/boost/all --version 1.87.0
 conan export conan-recipes/recipes/fastgltf/all --version 0.8.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3

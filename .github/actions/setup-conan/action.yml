@@ -64,6 +64,7 @@ runs:
     - name: Override public Conan recipes
       shell: ${{ inputs.shell }}
       run: |
+        conan export recipes/recipes/angelscript/all --version 2.37.0
         conan export recipes/recipes/boost/all --version 1.87.0
         conan export recipes/recipes/freetype/meson --version 2.13.3
         conan export recipes/recipes/fastgltf/all --version 0.8.0
