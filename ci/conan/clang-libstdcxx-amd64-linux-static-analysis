@@ -1,5 +1,5 @@
 include(../../conan/clang-{{ os.getenv("CLANG_VER") }}-libstdcxx-amd64-linux)
-include(../../conan/opt/amd64-linux-v3)
+include(../../conan/opt/arch-amd64-v3)
 include(../../conan/dependencies)
 
 [settings]

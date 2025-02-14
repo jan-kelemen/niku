@@ -55,9 +55,14 @@ jobs:
         run: |
           ctest --preset debug
 
-  windows:
+  windows-msvc:
     runs-on: windows-2025
-
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [msvc-amd64-windows]
+        
     steps:
       - name: Initialize
         run: |
@@ -73,7 +78,7 @@ jobs:
         id: setup-conan
         uses: ./.github/actions/setup-conan
         with:
-          profile: msvc-amd64-windows
+          profile: ${{ matrix.profile }}
           cache: false
 
       - name: Configure CMake
@@ -87,4 +92,49 @@ jobs:
       - name: Test
         run: |
           ctest --preset multi-debug
+
+  windows-clang:
+    runs-on: windows-2025
+    
+    env:
+      CLANG_VER: 19
+      
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [clang-amd64-windows]
+
+    steps:
+      - name: Initialize
+        run: |
+          git config --global core.autocrlf input
+          
+      - name: Checkout repository from github
+        uses: actions/checkout@v4
+
+      - name: Install Vulkan SDK
+        uses: ./.github/actions/install-vulkan-sdk
+        
+      - name: Install Ninja
+        run: |
+          choco install ninja
+          
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: ${{ matrix.profile }}
+          cache: false
+
+      - name: Configure CMake
+        run: |
+          cmake -G=Ninja -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset debug
+          
+      - name: Build
+        run: |
+          cmake --build --preset debug
+
+      - name: Test
+        run: |
+          ctest --preset debug
 

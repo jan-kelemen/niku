@@ -50,7 +50,6 @@
   { symbol: [ "std::pair", private, "<utility>", public ] },
   { symbol: [ "std::vector", private, "<vector>", public ] },
 
-
   # libc++ aliases
   { include: [ "<__fwd/fstream.h>", private, "<fstream>", public ] },
   { include: [ "<__fwd/ios.h>", private, "<ios>", public ] },

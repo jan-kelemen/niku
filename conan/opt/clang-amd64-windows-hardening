@@ -1,0 +1,5 @@
+[conf]
+tools.build:cflags+=["-fstack-protector-strong","-Xclang", "-cfguard"]
+tools.build:cxxflags+=["-fstack-protector-strong","-Xclang", "-cfguard"]
+tools.build:sharedlinkflags+=["-Xlinker", "/DYNAMICBASE", "-Xlinker", "/NXCOMPAT", "-Xlinker", "/CETCOMPAT", "-Xlinker", "/GUARD:CF"]
+tools.build:exelinkflags+=["-Xlinker", "/DYNAMICBASE", "-Xlinker", "/NXCOMPAT","-Xlinker",  "/CETCOMPAT", "-Xlinker", "/GUARD:CF"]

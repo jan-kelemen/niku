@@ -1,0 +1,15 @@
+[settings]
+os=Windows
+arch=x86_64
+compiler=clang
+compiler.version=19
+compiler.cppstd=23
+compiler.runtime=dynamic
+compiler.runtime_version=v144
+
+[buildenv]
+CC=clang
+CXX=clang++
+
+[conf]
+tools.cmake.cmaketoolchain:generator=Ninja

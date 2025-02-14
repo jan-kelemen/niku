@@ -1,0 +1,7 @@
+include(../../conan/clang-{{ os.getenv("CLANG_VER") }}-amd64-windows)
+include(../../conan/opt/clang-amd64-windows-hardening)
+include(../../conan/opt/arch-amd64-v3)
+include(../../conan/dependencies)
+
+[settings]
+build_type=Release

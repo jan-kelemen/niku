@@ -62,7 +62,7 @@ jobs:
         run: |
           cmake --install build/Release
 
-  windows:
+  windows-msvc:
     runs-on: windows-2025
 
     strategy:
@@ -102,3 +102,51 @@ jobs:
       - name: Install
         run: |
           cmake --install build --config Release
+          
+  windows-clang:
+    runs-on: windows-2025
+    
+    env:
+      CLANG_VER: 19
+      
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [clang-amd64-windows-hardened]
+
+    steps:
+      - name: Initialize
+        run: |
+          git config --global core.autocrlf input
+          
+      - name: Checkout repository from github
+        uses: actions/checkout@v4
+
+      - name: Install Vulkan SDK
+        uses: ./.github/actions/install-vulkan-sdk
+        
+      - name: Install Ninja
+        run: |
+          choco install ninja
+          
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: ${{ matrix.profile }}
+
+      - name: Configure CMake
+        run: |
+          cmake -G=Ninja -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset release
+          
+      - name: Build
+        run: |
+          cmake --build --preset release
+
+      - name: Test
+        run: |
+          ctest --preset release
+
+      - name: Install
+        run: |
+          cmake --install build/Release
