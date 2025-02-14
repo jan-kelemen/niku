@@ -4,7 +4,7 @@
 // https://www.fluentcpp.com/2019/08/30/how-to-disable-a-warning-in-cpp/
 
 // clang-format off
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 #define DISABLE_WARNING_PUSH __pragma(warning(push))
 #define DISABLE_WARNING_POP __pragma(warning(pop))
 #define DISABLE_WARNING(warningNumber) \
