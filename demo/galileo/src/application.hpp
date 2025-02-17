@@ -118,12 +118,18 @@ namespace galileo
 
         physics_engine_t physics_engine_;
         std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
-        size_t sphere_idx_{};
+        size_t sphere_body_idx_{};
+        JPH::BodyID spawner_id_{JPH::BodyID::cInvalidBodyID};
 
-        navmesh_parameters_t navmesh_params_;
+        polymesh_parameters_t polymesh_params_;
         poly_mesh_t poly_mesh_;
-        bool draw_main_navmesh_{true};
-        bool draw_detail_navmesh_{true};
+        navigation_mesh_ptr_t navigation_mesh_;
+        bool draw_main_polymesh_{true};
+        bool draw_detail_polymesh_{true};
+
+        navigation_mesh_query_ptr_t navigation_mesh_query_;
+        bool draw_navigation_mesh_query_{false};
+        JPH::BodyID tracking_sphere_id_{JPH::BodyID::cInvalidBodyID};
 
         ngnscr::scripting_engine_t scripting_engine_;
 

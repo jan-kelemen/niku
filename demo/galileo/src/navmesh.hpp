@@ -6,6 +6,7 @@
 #include <glm/gtc/constants.hpp>
 
 #include <recastnavigation/DetourNavMesh.h>
+#include <recastnavigation/DetourNavMeshQuery.h>
 #include <recastnavigation/Recast.h>
 
 namespace ngnast
@@ -23,7 +24,7 @@ namespace galileo
         layers
     };
 
-    struct [[nodiscard]] navmesh_parameters_t final
+    struct [[nodiscard]] polymesh_parameters_t final
     {
         float cell_size{0.3f};
         float cell_height{0.2f};
@@ -53,9 +54,24 @@ namespace galileo
         poly_mesh_detail_ptr_t detail_mesh;
     };
 
-    poly_mesh_t generate_navigation_mesh(navmesh_parameters_t const& parameters,
+    poly_mesh_t generate_poly_mesh(polymesh_parameters_t const& parameters,
         ngnast::primitive_t const& primitive,
         ngnast::bounding_box_t const& bounding_box);
+
+    using navigation_mesh_ptr_t =
+        cppext::unique_ptr_with_static_deleter_t<dtNavMesh, &dtFreeNavMesh>;
+
+    [[nodiscard]] navigation_mesh_ptr_t generate_navigation_mesh(
+        polymesh_parameters_t const& parameters,
+        poly_mesh_t const& poly_mesh,
+        ngnast::bounding_box_t const& bounding_box);
+
+    using navigation_mesh_query_ptr_t =
+        cppext::unique_ptr_with_static_deleter_t<dtNavMeshQuery,
+            &dtFreeNavMeshQuery>;
+
+    [[nodiscard]] navigation_mesh_query_ptr_t
+    create_query(dtNavMesh const* navigation_mesh, int max_nodes = 2048);
 } // namespace galileo
 
 #endif

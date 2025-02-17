@@ -6,8 +6,13 @@
 #include <ngnast_mesh_transform.hpp>
 #include <ngnast_scene_model.hpp>
 
+#include <boost/scope/scope_exit.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
+
+#include <recastnavigation/DetourNavMeshBuilder.h>
+#include <recastnavigation/DetourNavMeshQuery.h>
 
 #include <algorithm>
 #include <cmath>
@@ -18,8 +23,8 @@
 
 // IWYU pragma: no_include <memory>
 
-galileo::poly_mesh_t galileo::generate_navigation_mesh(
-    navmesh_parameters_t const& parameters,
+galileo::poly_mesh_t galileo::generate_poly_mesh(
+    polymesh_parameters_t const& parameters,
     ngnast::primitive_t const& primitive,
     ngnast::bounding_box_t const& bounding_box)
 {
@@ -244,4 +249,82 @@ galileo::poly_mesh_t galileo::generate_navigation_mesh(
     contour_set.reset();
 
     return {std::move(poly_mesh), std::move(poly_mesh_detail)};
+}
+
+galileo::navigation_mesh_ptr_t galileo::generate_navigation_mesh(
+    polymesh_parameters_t const& parameters,
+    poly_mesh_t const& poly_mesh,
+    ngnast::bounding_box_t const& bounding_box)
+{
+    dtNavMeshCreateParams params{.verts = poly_mesh.mesh->verts,
+        .vertCount = poly_mesh.mesh->nverts,
+        .polys = poly_mesh.mesh->polys,
+        .polyFlags = poly_mesh.mesh->flags,
+        .polyAreas = poly_mesh.mesh->areas,
+        .polyCount = poly_mesh.mesh->npolys,
+        .nvp = poly_mesh.mesh->nvp,
+        .detailMeshes = poly_mesh.detail_mesh->meshes,
+        .detailVerts = poly_mesh.detail_mesh->verts,
+        .detailVertsCount = poly_mesh.detail_mesh->nverts,
+        .detailTris = poly_mesh.detail_mesh->tris,
+        .detailTriCount = poly_mesh.detail_mesh->ntris,
+        .walkableHeight = parameters.walkable_height,
+        .walkableRadius = parameters.walkable_radius,
+        .walkableClimb = parameters.walkable_climb,
+        .cs = parameters.cell_size,
+        .ch = parameters.cell_height,
+        .buildBvTree = true};
+
+    std::ranges::copy_n(glm::value_ptr(bounding_box.min),
+        3,
+        std::begin(params.bmin));
+    std::ranges::copy_n(glm::value_ptr(bounding_box.max),
+        3,
+        std::begin(params.bmax));
+
+    unsigned char* mesh_data{};
+    int mesh_size{};
+    if (!dtCreateNavMeshData(&params, &mesh_data, &mesh_size))
+    {
+        throw std::runtime_error{"Can't build Detour navigation mesh data"};
+    }
+    boost::scope::scope_exit mesh_data_guard{
+        [&mesh_data]() { dtFree(mesh_data); }};
+
+    navigation_mesh_ptr_t rv{dtAllocNavMesh()};
+    if (!rv)
+    {
+        throw std::runtime_error{"Can't allocate Detour navigation mesh"};
+    }
+
+    if (dtStatus const status{
+            rv->init(mesh_data, mesh_size, DT_TILE_FREE_DATA)};
+        dtStatusFailed(status))
+    {
+        throw std::runtime_error{
+            "Can't initialize Detour navigation mesh for single tile use"};
+    }
+    mesh_data_guard.set_active(false);
+
+    return rv;
+}
+
+galileo::navigation_mesh_query_ptr_t galileo::create_query(
+    dtNavMesh const* const navigation_mesh,
+    int const max_nodes)
+{
+    navigation_mesh_query_ptr_t rv{dtAllocNavMeshQuery()};
+    if (!rv)
+    {
+        throw std::runtime_error{"Can't allocate Detour navigation mesh query"};
+    }
+
+    if (dtStatus const status{rv->init(navigation_mesh, max_nodes)};
+        dtStatusFailed(status))
+    {
+        throw std::runtime_error{
+            "Can't initialize Detour navigation mesh query"};
+    }
+
+    return rv;
 }

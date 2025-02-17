@@ -59,6 +59,7 @@ DISABLE_WARNING_POP
 
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
@@ -216,7 +217,7 @@ galileo::application_t::application_t(bool const debug)
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
-    , navmesh_params_{.walkable_slope_angle = character_t::max_slope_angle}
+    , polymesh_params_{.walkable_slope_angle = character_t::max_slope_angle}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
@@ -282,6 +283,8 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
 
 void galileo::application_t::update(float const delta_time)
 {
+    character_->update(delta_time);
+
     ImGui::Begin("Lights");
     ImGui::SliderInt("Count", &light_count_, 0, 1000);
     ImGui::End();
@@ -290,84 +293,88 @@ void galileo::application_t::update(float const delta_time)
         bool update_navmesh{false};
         ImGui::Begin("Navmesh");
         update_navmesh |= ImGui::SliderFloat("Cell Size",
-            &navmesh_params_.cell_size,
+            &polymesh_params_.cell_size,
             0.1f,
             1.0f,
             "%.2f");
         update_navmesh |= ImGui::SliderFloat("Cell Height",
-            &navmesh_params_.cell_height,
+            &polymesh_params_.cell_height,
             0.1f,
             1.0f,
             "%.2f");
 
         update_navmesh |= ImGui::SliderFloat("Walkable Slope Angle",
-            &navmesh_params_.walkable_slope_angle,
+            &polymesh_params_.walkable_slope_angle,
             0.02f,
             glm::half_pi<float>(),
             "%.3f");
 
         update_navmesh |= ImGui::SliderFloat("Walkable Height",
-            &navmesh_params_.walkable_height,
+            &polymesh_params_.walkable_height,
             0.1f,
             5.0f,
             "%.1f");
 
         update_navmesh |= ImGui::SliderFloat("Walkable Climb",
-            &navmesh_params_.walkable_climb,
+            &polymesh_params_.walkable_climb,
             0.0f,
             5.0f,
             "%.1f");
 
         update_navmesh |= ImGui::SliderFloat("Walkable Radius",
-            &navmesh_params_.walkable_radius,
+            &polymesh_params_.walkable_radius,
             0.0f,
             5.0f,
             "%.1f");
 
         update_navmesh |= ImGui::SliderFloat("Max Edge Length",
-            &navmesh_params_.max_edge_length,
+            &polymesh_params_.max_edge_length,
             0.0f,
             50.0f,
             "%.0f");
 
         update_navmesh |= ImGui::SliderFloat("Max Simplification Error",
-            &navmesh_params_.max_simplification_error,
+            &polymesh_params_.max_simplification_error,
             0.1f,
             3.0f,
             "%.1f");
 
         update_navmesh |= ImGui::SliderFloat("Min Region Size",
-            &navmesh_params_.min_region_size,
+            &polymesh_params_.min_region_size,
             0.0f,
             150.0f,
             "%.0f");
 
         update_navmesh |= ImGui::SliderFloat("Merge Region Size",
-            &navmesh_params_.merge_region_size,
+            &polymesh_params_.merge_region_size,
             0.0f,
             150.0f,
             "%.0f");
 
         update_navmesh |= ImGui::SliderInt("Max Verts Per Poly",
-            &navmesh_params_.max_verts_per_poly,
+            &polymesh_params_.max_verts_per_poly,
             3,
             12);
 
         update_navmesh |= ImGui::SliderFloat("Detail Sample Distance",
-            &navmesh_params_.detail_sample_distance,
+            &polymesh_params_.detail_sample_distance,
             1.0f,
             16.0f,
             "%.0f");
 
         update_navmesh |= ImGui::SliderFloat("Detail Sample Max Error",
-            &navmesh_params_.detail_sample_max_error,
+            &polymesh_params_.detail_sample_max_error,
             0.0f,
             16.0f,
             "%.0f");
 
-        ImGui::Checkbox("Draw Mesh", &draw_main_navmesh_);
+        ImGui::Checkbox("Draw Mesh", &draw_main_polymesh_);
 
-        ImGui::Checkbox("Draw Detail Mesh", &draw_detail_navmesh_);
+        ImGui::Checkbox("Draw Detail Mesh", &draw_detail_polymesh_);
+
+        ImGui::Separator();
+
+        bool find_path_to_spawner{ImGui::Button("Find Path To Spawner")};
 
         ImGui::End();
 
@@ -376,9 +383,15 @@ void galileo::application_t::update(float const delta_time)
             try
             {
                 auto const now{std::chrono::system_clock::now()};
-                poly_mesh_ = generate_navigation_mesh(navmesh_params_,
-                    world_,
+                poly_mesh_ =
+                    generate_poly_mesh(polymesh_params_, world_, world_aabb_);
+
+                navigation_mesh_ = generate_navigation_mesh(polymesh_params_,
+                    poly_mesh_,
                     world_aabb_);
+
+                navigation_mesh_query_ = create_query(navigation_mesh_.get());
+
                 auto const diff{std::chrono::system_clock::now() - now};
                 spdlog::info("Navigation mesh generation took {}",
                     std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -392,9 +405,68 @@ void galileo::application_t::update(float const delta_time)
                 spdlog::error(ex.what());
             }
         }
-    }
 
-    character_->update(delta_time);
+        while (find_path_to_spawner)
+        {
+            find_path_to_spawner = false;
+
+            dtQueryFilter filter;
+            glm::vec3 const half_extent{
+                (world_aabb_.max - world_aabb_.min) / 2.0f};
+
+            glm::vec3 const character_position{character_->position()};
+
+            dtPolyRef start_ref{};
+            glm::vec3 character_nearest_point{};
+            if (dtStatus const status{navigation_mesh_query_->findNearestPoly(
+                    glm::value_ptr(character_position),
+                    glm::value_ptr(half_extent),
+                    &filter,
+                    &start_ref,
+                    glm::value_ptr(character_nearest_point))};
+                dtStatusFailed(status) || start_ref == 0)
+            {
+                spdlog::error(
+                    "Can't find nearest polygon for character position");
+                break;
+            }
+
+            auto const& body_interface{physics_engine_.body_interface()};
+            glm::vec3 const spawner_position{
+                ngnphy::to_glm(body_interface.GetPosition(spawner_id_))};
+            dtPolyRef end_ref{};
+            glm::vec3 spawner_nearest_point{};
+            if (dtStatus const status{navigation_mesh_query_->findNearestPoly(
+                    glm::value_ptr(spawner_position),
+                    glm::value_ptr(half_extent),
+                    &filter,
+                    &end_ref,
+                    glm::value_ptr(spawner_nearest_point))};
+                dtStatusFailed(status) || end_ref == 0)
+            {
+                spdlog::error(
+                    "Can't find nearest polygon for spawner position");
+                break;
+            }
+
+            std::array<dtPolyRef, 2048> path_nodes{};
+            int count{};
+            if (dtStatus const status{
+                    navigation_mesh_query_->findPath(start_ref,
+                        end_ref,
+                        glm::value_ptr(character_position),
+                        glm::value_ptr(spawner_position),
+                        &filter,
+                        path_nodes.data(),
+                        &count,
+                        std::extent_v<decltype(path_nodes)>)};
+                dtStatusFailed(status))
+            {
+                spdlog::error("Can't find path between character and spawner");
+                break;
+            }
+        }
+    }
 
     if (free_camera_active_)
     {
@@ -590,7 +662,7 @@ void galileo::application_t::draw()
             physics_debug_->draw(command_buffer);
         }
 
-        if (draw_main_navmesh_ || draw_detail_navmesh_)
+        if (draw_main_polymesh_ || draw_detail_polymesh_)
         {
             if (VkPipelineLayout const layout{
                     navmesh_debug_->pipeline_layout()})
@@ -600,8 +672,8 @@ void galileo::application_t::draw()
                     VK_PIPELINE_BIND_POINT_GRAPHICS);
 
                 navmesh_debug_->draw(command_buffer,
-                    draw_main_navmesh_,
-                    draw_detail_navmesh_);
+                    draw_main_polymesh_,
+                    draw_detail_polymesh_);
             }
         }
     }
@@ -825,10 +897,18 @@ void galileo::application_t::setup_world()
                 try
                 {
                     auto const now{std::chrono::system_clock::now()};
-                    poly_mesh_ =
-                        galileo::generate_navigation_mesh(navmesh_params_,
-                            world_,
+                    poly_mesh_ = generate_poly_mesh(polymesh_params_,
+                        world_,
+                        world_aabb_);
+
+                    navigation_mesh_ =
+                        generate_navigation_mesh(polymesh_params_,
+                            poly_mesh_,
                             world_aabb_);
+
+                    navigation_mesh_query_ =
+                        create_query(navigation_mesh_.get());
+
                     auto const diff{std::chrono::system_clock::now() - now};
                     spdlog::info("Navigation mesh generation took {}",
                         std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -852,7 +932,7 @@ void galileo::application_t::setup_world()
                     body_interface.CreateAndAddBody(sphere_settings,
                         JPH::EActivation::Activate)};
 
-                sphere_idx_ = bodies_.size();
+                sphere_body_idx_ = bodies_.size();
                 bodies_.emplace_back(root_index, sphere_id);
             }
             else if (root.name == "Spawn")
@@ -865,13 +945,13 @@ void galileo::application_t::setup_world()
                     JPH::EMotionType::Static,
                     galileo::object_layers::non_moving};
 
-                JPH::BodyID const spawn_id{
+                spawner_id_ =
                     body_interface.CreateAndAddBody(spawn_body_settings,
-                        JPH::EActivation::DontActivate)};
+                        JPH::EActivation::DontActivate);
 
-                body_interface.SetUserData(spawn_id, 1);
+                body_interface.SetUserData(spawner_id_, 1);
 
-                bodies_.emplace_back(root_index, spawn_id);
+                bodies_.emplace_back(root_index, spawner_id_);
             }
             else if (root.name.starts_with("Character"))
             {
@@ -888,7 +968,7 @@ void galileo::application_t::spawn_sphere()
     std::uniform_real_distribution dist{-25.0f, 25.0f};
 
     JPH::BodyCreationSettings const settings{
-        body_interface.GetShape(bodies_[sphere_idx_].second),
+        body_interface.GetShape(bodies_[sphere_body_idx_].second),
         JPH::Vec3{dist(random_engine_), 10.0f, dist(random_engine_)},
         JPH::Quat::sIdentity(),
         JPH::EMotionType::Dynamic,
@@ -897,5 +977,5 @@ void galileo::application_t::spawn_sphere()
     JPH::BodyID const id{
         body_interface.CreateAndAddBody(settings, JPH::EActivation::Activate)};
 
-    bodies_.emplace_back(bodies_[sphere_idx_].first, id);
+    bodies_.emplace_back(bodies_[sphere_body_idx_].first, id);
 }
