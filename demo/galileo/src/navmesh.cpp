@@ -245,6 +245,17 @@ galileo::poly_mesh_t galileo::generate_poly_mesh(
         throw std::runtime_error{"Can't build detail mesh"};
     }
 
+    if (config.maxVertsPerPoly <= DT_VERTS_PER_POLYGON)
+    {
+        for (int i = 0; i < poly_mesh->npolys; ++i)
+        {
+            if (poly_mesh->areas[i] == RC_WALKABLE_AREA)
+            {
+                poly_mesh->flags[i] = RC_WALKABLE_AREA;
+            }
+        }
+    }
+
     compact_heightfield.reset();
     contour_set.reset();
 

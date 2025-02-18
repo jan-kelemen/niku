@@ -459,7 +459,7 @@ void galileo::application_t::update(float const delta_time)
                         &filter,
                         path_nodes.data(),
                         &count,
-                        std::extent_v<decltype(path_nodes)>)};
+                        static_cast<int>(path_nodes.size()))};
                 dtStatusFailed(status))
             {
                 spdlog::error("Can't find path between character and spawner");
