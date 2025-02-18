@@ -128,8 +128,6 @@ namespace galileo
         bool draw_detail_polymesh_{true};
 
         navigation_mesh_query_ptr_t navigation_mesh_query_;
-        bool draw_navigation_mesh_query_{false};
-        JPH::BodyID tracking_sphere_id_{JPH::BodyID::cInvalidBodyID};
 
         ngnscr::scripting_engine_t scripting_engine_;
 

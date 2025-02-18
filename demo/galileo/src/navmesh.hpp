@@ -4,10 +4,14 @@
 #include <cppext_memory.hpp>
 
 #include <glm/gtc/constants.hpp>
+#include <glm/vec3.hpp>
 
 #include <recastnavigation/DetourNavMesh.h>
 #include <recastnavigation/DetourNavMeshQuery.h>
 #include <recastnavigation/Recast.h>
+
+#include <optional>
+#include <vector>
 
 namespace ngnast
 {
@@ -72,6 +76,25 @@ namespace galileo
 
     [[nodiscard]] navigation_mesh_query_ptr_t
     create_query(dtNavMesh const* navigation_mesh, int max_nodes = 2048);
+
+    struct [[nodiscard]] path_iterator_t final
+    {
+        dtNavMeshQuery* query;
+        std::vector<dtPolyRef> polys;
+        glm::vec3 current_position;
+        glm::vec3 target_position;
+    };
+
+    // Search for a path from start to end within a bounding box around start.
+    [[nodiscard]] std::optional<path_iterator_t> find_path(
+        dtNavMeshQuery* query,
+        glm::vec3 start,
+        glm::vec3 end,
+        glm::vec3 bb_half_extent,
+        int max_nodes = 2048);
+
+    [[nodiscard]] bool increment(path_iterator_t& iterator);
+
 } // namespace galileo
 
 #endif

@@ -289,6 +289,8 @@ void galileo::application_t::update(float const delta_time)
     ImGui::SliderInt("Count", &light_count_, 0, 1000);
     ImGui::End();
 
+    bool find_path_to_spawner{false};
+
     {
         bool update_navmesh{false};
         ImGui::Begin("Navmesh");
@@ -374,7 +376,7 @@ void galileo::application_t::update(float const delta_time)
 
         ImGui::Separator();
 
-        bool find_path_to_spawner{ImGui::Button("Find Path To Spawner")};
+        find_path_to_spawner = ImGui::Button("Find Path To Spawner");
 
         ImGui::End();
 
@@ -405,67 +407,6 @@ void galileo::application_t::update(float const delta_time)
                 spdlog::error(ex.what());
             }
         }
-
-        while (find_path_to_spawner)
-        {
-            find_path_to_spawner = false;
-
-            dtQueryFilter filter;
-            glm::vec3 const half_extent{
-                (world_aabb_.max - world_aabb_.min) / 2.0f};
-
-            glm::vec3 const character_position{character_->position()};
-
-            dtPolyRef start_ref{};
-            glm::vec3 character_nearest_point{};
-            if (dtStatus const status{navigation_mesh_query_->findNearestPoly(
-                    glm::value_ptr(character_position),
-                    glm::value_ptr(half_extent),
-                    &filter,
-                    &start_ref,
-                    glm::value_ptr(character_nearest_point))};
-                dtStatusFailed(status) || start_ref == 0)
-            {
-                spdlog::error(
-                    "Can't find nearest polygon for character position");
-                break;
-            }
-
-            auto const& body_interface{physics_engine_.body_interface()};
-            glm::vec3 const spawner_position{
-                ngnphy::to_glm(body_interface.GetPosition(spawner_id_))};
-            dtPolyRef end_ref{};
-            glm::vec3 spawner_nearest_point{};
-            if (dtStatus const status{navigation_mesh_query_->findNearestPoly(
-                    glm::value_ptr(spawner_position),
-                    glm::value_ptr(half_extent),
-                    &filter,
-                    &end_ref,
-                    glm::value_ptr(spawner_nearest_point))};
-                dtStatusFailed(status) || end_ref == 0)
-            {
-                spdlog::error(
-                    "Can't find nearest polygon for spawner position");
-                break;
-            }
-
-            std::array<dtPolyRef, 2048> path_nodes{};
-            int count{};
-            if (dtStatus const status{
-                    navigation_mesh_query_->findPath(start_ref,
-                        end_ref,
-                        glm::value_ptr(character_position),
-                        glm::value_ptr(spawner_position),
-                        &filter,
-                        path_nodes.data(),
-                        &count,
-                        static_cast<int>(path_nodes.size()))};
-                dtStatusFailed(status))
-            {
-                spdlog::error("Can't find path between character and spawner");
-                break;
-            }
-        }
     }
 
     if (free_camera_active_)
@@ -490,6 +431,33 @@ void galileo::application_t::update(float const delta_time)
         else
         {
             render_graph_->update(index, character_->world_transform());
+        }
+    }
+
+    if (find_path_to_spawner)
+    {
+        glm::vec3 const half_extent{(world_aabb_.max - world_aabb_.min) / 2.0f};
+
+        glm::vec3 const character_position{character_->position()};
+
+        glm::vec3 const spawner_position{
+            ngnphy::to_glm(body_interface.GetPosition(spawner_id_))};
+
+        std::optional<path_iterator_t> iterator{
+            find_path(navigation_mesh_query_.get(),
+                character_position,
+                spawner_position,
+                half_extent)};
+        if (iterator)
+        {
+            std::vector<glm::vec3> positions;
+            do
+            {
+                positions.push_back(iterator->current_position);
+            } while (increment(*iterator));
+            positions.push_back(iterator->current_position);
+
+            navmesh_debug_->update(positions);
         }
     }
 
@@ -662,19 +630,15 @@ void galileo::application_t::draw()
             physics_debug_->draw(command_buffer);
         }
 
-        if (draw_main_polymesh_ || draw_detail_polymesh_)
+        if (VkPipelineLayout const layout{navmesh_debug_->pipeline_layout()})
         {
-            if (VkPipelineLayout const layout{
-                    navmesh_debug_->pipeline_layout()})
-            {
-                frame_info_->bind_on(command_buffer,
-                    layout,
-                    VK_PIPELINE_BIND_POINT_GRAPHICS);
+            frame_info_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-                navmesh_debug_->draw(command_buffer,
-                    draw_main_polymesh_,
-                    draw_detail_polymesh_);
-            }
+            navmesh_debug_->draw(command_buffer,
+                draw_main_polymesh_,
+                draw_detail_polymesh_);
         }
     }
 

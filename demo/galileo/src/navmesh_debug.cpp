@@ -363,6 +363,39 @@ namespace
 
         return rv;
     }
+
+    galileo::detail::mesh_draw_data_t create_path_draw_data(
+        vkrndr::device_t const& device,
+        std::span<glm::vec3 const> const& path_points)
+    {
+        galileo::detail::mesh_draw_data_t rv{
+            .max_lines = cppext::narrow<uint32_t>(path_points.size()),
+            .max_points = cppext::narrow<uint32_t>(path_points.size())};
+
+        allocate_buffer(device, rv);
+        boost::scope::scope_fail const rollback{
+            [&device, &rv]() { destroy(&device, &rv.vertex_buffer); }};
+
+        auto vertex_map{vkrndr::map_memory(device, rv.vertex_buffer)};
+        [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+            [device, map = &vertex_map]() { unmap_memory(device, map); }};
+
+        auto* const vertices{vertex_map.as<vertex_t>()};
+
+        auto* const line_vertices{vertices + rv.max_triangles};
+        auto* const point_vertices{line_vertices + rv.max_lines};
+
+        for (auto const& point : path_points)
+        {
+            line_vertices[rv.lines++] = {.position = point,
+                .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.6f}};
+
+            point_vertices[rv.points++] = {.position = point,
+                .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.8f}};
+        }
+
+        return rv;
+    }
 } // namespace
 
 galileo::navmesh_debug_t::navmesh_debug_t(vkrndr::backend_t& backend,
@@ -451,6 +484,7 @@ galileo::navmesh_debug_t::~navmesh_debug_t()
     destroy(&backend_->device(), &line_pipeline_);
     destroy(&backend_->device(), &triangle_pipeline_);
 
+    destroy(&backend_->device(), &path_draw_data_.vertex_buffer);
     destroy(&backend_->device(), &detail_draw_data_.vertex_buffer);
     destroy(&backend_->device(), &main_draw_data_.vertex_buffer);
 }
@@ -471,6 +505,13 @@ void galileo::navmesh_debug_t::update(poly_mesh_t const& poly_mesh)
         *poly_mesh.detail_mesh);
 }
 
+void galileo::navmesh_debug_t::update(
+    std::span<glm::vec3 const> const& path_points)
+{
+    destroy(&backend_->device(), &path_draw_data_.vertex_buffer);
+    path_draw_data_ = create_path_draw_data(backend_->device(), path_points);
+}
+
 void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer,
     bool const draw_main_mesh,
     bool const draw_detail_mesh) const
@@ -479,10 +520,13 @@ void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer,
     {
         draw(command_buffer, main_draw_data_);
     }
+
     if (draw_detail_mesh)
     {
         draw(command_buffer, detail_draw_data_);
     }
+
+    draw(command_buffer, path_draw_data_);
 }
 
 void galileo::navmesh_debug_t::draw(VkCommandBuffer command_buffer,
