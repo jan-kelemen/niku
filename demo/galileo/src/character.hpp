@@ -14,6 +14,8 @@
 #include <glm/trigonometric.hpp>
 #include <glm/vec3.hpp>
 
+#include <optional>
+
 union SDL_Event;
 
 namespace ngnwsi
@@ -39,7 +41,8 @@ namespace galileo
             ngnwsi::mouse_t& mouse);
 
     public:
-        void handle_event(SDL_Event const& event, float delta_time);
+        [[nodiscard]] std::optional<JPH::BodyID>
+        handle_event(SDL_Event const& event, float delta_time);
 
         void set_contact_listener(JPH::CharacterContactListener* listener);
 

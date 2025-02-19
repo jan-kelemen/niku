@@ -257,9 +257,15 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
-    free_camera_active_
-        ? free_camera_controller_.handle_event(event, delta_time)
-        : character_->handle_event(event, delta_time);
+    std::optional<JPH::BodyID> hit_body{free_camera_active_
+            ? (free_camera_controller_.handle_event(event, delta_time),
+                  std::nullopt)
+            : character_->handle_event(event, delta_time)};
+    if (hit_body)
+    {
+        spdlog::info("Body selected: {}",
+            hit_body->GetIndexAndSequenceNumber());
+    }
 
     if (event.type == SDL_EVENT_KEY_DOWN)
     {

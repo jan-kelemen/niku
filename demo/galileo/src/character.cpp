@@ -26,7 +26,9 @@
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/BackFaceMode.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
@@ -94,10 +96,16 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
         &physics_engine.physics_system()};
 }
 
-void galileo::character_t::handle_event(SDL_Event const& event,
+[[nodiscard]] std::optional<JPH::BodyID> galileo::character_t::handle_event(
+    SDL_Event const& event,
     float const delta_time)
 {
-    if (event.type == SDL_EVENT_MOUSE_MOTION && mouse_->captured())
+    if (!mouse_->captured())
+    {
+        return std::nullopt;
+    }
+
+    if (event.type == SDL_EVENT_MOUSE_MOTION)
     {
         auto const& mouse_offset{mouse_->relative_offset()};
 
@@ -109,6 +117,32 @@ void galileo::character_t::handle_event(SDL_Event const& event,
 
         physics_entity_->SetRotation(ngnphy::to_jolt(new_rot));
     }
+    else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+    {
+        if (event.button.button != SDL_BUTTON_LEFT)
+        {
+            return std::nullopt;
+        }
+
+        JPH::Quat const rot{physics_entity_->GetRotation()};
+        JPH::Vec3 const direction_and_reach{rot * ngnphy::to_jolt(world_front)};
+
+        JPH::RRayCast ray{physics_entity_->GetCenterOfMassPosition(),
+            direction_and_reach};
+
+        auto& system{physics_engine_->physics_system()};
+        JPH::RayCastResult hit;
+        bool const had_hit{system.GetNarrowPhaseQuery().CastRay(ray,
+            hit,
+            system.GetDefaultBroadPhaseLayerFilter(object_layers::moving),
+            system.GetDefaultLayerFilter(object_layers::moving))};
+        if (had_hit)
+        {
+            return hit.mBodyID;
+        }
+    }
+
+    return std::nullopt;
 }
 
 void galileo::character_t::set_contact_listener(
