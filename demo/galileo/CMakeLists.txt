@@ -19,6 +19,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
@@ -63,6 +64,7 @@ target_link_libraries(galileo
         vkglsl
     PRIVATE
         Boost::headers
+        EnTT::EnTT
         fmt::fmt
         imgui::imgui
         Jolt::Jolt

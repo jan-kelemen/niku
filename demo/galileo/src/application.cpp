@@ -15,6 +15,7 @@
 #include <physics_engine.hpp>
 #include <postprocess_shader.hpp>
 #include <render_graph.hpp>
+#include <scripting.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
@@ -427,17 +428,19 @@ void galileo::application_t::update(float const delta_time)
     physics_engine_.update(delta_time);
 
     auto& body_interface{physics_engine_.body_interface()};
-    for (auto const& [index, body_id] : bodies_)
+    for (auto const entity :
+        registry_.view<component::mesh_t, component::physics_t>())
     {
-        if (!body_id.IsInvalid())
-        {
-            render_graph_->update(index,
-                ngnphy::to_glm(body_interface.GetWorldTransform(body_id)));
-        }
-        else
-        {
-            render_graph_->update(index, character_->world_transform());
-        }
+        render_graph_->update(registry_.get<component::mesh_t>(entity).index,
+            ngnphy::to_glm(body_interface.GetWorldTransform(
+                registry_.get<component::physics_t>(entity).id)));
+    }
+
+    for (auto const entity :
+        registry_.view<component::mesh_t, component::character_t>())
+    {
+        render_graph_->update(registry_.get<component::mesh_t>(entity).index,
+            character_->world_transform());
     }
 
     if (find_path_to_spawner)
@@ -447,7 +450,8 @@ void galileo::application_t::update(float const delta_time)
         glm::vec3 const character_position{character_->position()};
 
         glm::vec3 const spawner_position{
-            ngnphy::to_glm(body_interface.GetPosition(spawner_id_))};
+            ngnphy::to_glm(body_interface.GetPosition(
+                registry_.get<component::physics_t>(spawner_).id))};
 
         std::optional<path_iterator_t> iterator{
             find_path(navigation_mesh_query_.get(),
@@ -721,6 +725,12 @@ void galileo::application_t::on_startup()
         script_compiled &= compiler.add_section("spawner.as");
         script_compiled &= compiler.build();
         assert(script_compiled);
+
+        asIScriptModule* const mod{
+            scripting_engine_.engine().GetModule("MyModule")};
+        asIScriptFunction* on_hit_script{mod->GetFunctionByDecl("void main()")};
+        assert(on_hit_script);
+        registry_.emplace<component::scripts_t>(spawner_, on_hit_script);
     }
 
     character_ = std::make_unique<character_t>(physics_engine_, mouse_);
@@ -728,7 +738,8 @@ void galileo::application_t::on_startup()
 
     character_listener_ =
         std::make_unique<character_contact_listener_t>(physics_engine_,
-            scripting_engine_);
+            scripting_engine_,
+            registry_);
     character_->set_contact_listener(character_listener_.get());
 
     gbuffer_shader_ = std::make_unique<gbuffer_shader_t>(*backend_,
@@ -862,7 +873,9 @@ void galileo::application_t::setup_world()
                 body_interface.AddBody(floor->GetID(),
                     JPH::EActivation::DontActivate);
 
-                bodies_.emplace_back(root_index, floor->GetID());
+                entt::entity const entity{registry_.create()};
+                registry_.emplace<component::mesh_t>(entity, root_index);
+                registry_.emplace<component::physics_t>(entity, floor->GetID());
 
                 try
                 {
@@ -902,8 +915,9 @@ void galileo::application_t::setup_world()
                     body_interface.CreateAndAddBody(sphere_settings,
                         JPH::EActivation::Activate)};
 
-                sphere_body_idx_ = bodies_.size();
-                bodies_.emplace_back(root_index, sphere_id);
+                sphere_ = registry_.create();
+                registry_.emplace<component::mesh_t>(sphere_, root_index);
+                registry_.emplace<component::physics_t>(sphere_, sphere_id);
             }
             else if (root.name == "Spawn")
             {
@@ -915,17 +929,22 @@ void galileo::application_t::setup_world()
                     JPH::EMotionType::Static,
                     galileo::object_layers::non_moving};
 
-                spawner_id_ =
+                JPH::BodyID const spawner_id{
                     body_interface.CreateAndAddBody(spawn_body_settings,
-                        JPH::EActivation::DontActivate);
+                        JPH::EActivation::DontActivate)};
 
-                body_interface.SetUserData(spawner_id_, 1);
+                spawner_ = registry_.create();
+                body_interface.SetUserData(spawner_id,
+                    static_cast<JPH::uint64>(spawner_));
 
-                bodies_.emplace_back(root_index, spawner_id_);
+                registry_.emplace<component::mesh_t>(spawner_, root_index);
+                registry_.emplace<component::physics_t>(spawner_, spawner_id);
             }
             else if (root.name.starts_with("Character"))
             {
-                bodies_.emplace_back(root_index, JPH::BodyID::cInvalidBodyID);
+                entt::entity const entity{registry_.create()};
+                registry_.emplace<component::mesh_t>(entity, root_index);
+                registry_.emplace<component::character_t>(entity);
             }
         }
     }
@@ -938,7 +957,8 @@ void galileo::application_t::spawn_sphere()
     std::uniform_real_distribution dist{-25.0f, 25.0f};
 
     JPH::BodyCreationSettings const settings{
-        body_interface.GetShape(bodies_[sphere_body_idx_].second),
+        body_interface.GetShape(
+            registry_.get<component::physics_t>(sphere_).id),
         JPH::Vec3{dist(random_engine_), 10.0f, dist(random_engine_)},
         JPH::Quat::sIdentity(),
         JPH::EMotionType::Dynamic,
@@ -947,5 +967,8 @@ void galileo::application_t::spawn_sphere()
     JPH::BodyID const id{
         body_interface.CreateAndAddBody(settings, JPH::EActivation::Activate)};
 
-    bodies_.emplace_back(bodies_[sphere_body_idx_].first, id);
+    entt::entity const entity{registry_.create()};
+    registry_.emplace<component::mesh_t>(entity,
+        registry_.get<component::mesh_t>(sphere_).index);
+    registry_.emplace<component::physics_t>(entity, id);
 }

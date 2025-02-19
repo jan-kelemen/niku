@@ -6,6 +6,7 @@
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 // clang-format on
 
+#include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 
 #include <memory>
@@ -61,5 +62,13 @@ namespace galileo
         std::unique_ptr<impl> impl_;
     };
 } // namespace galileo
+
+namespace galileo::component
+{
+    struct [[nodiscard]] physics_t final
+    {
+        JPH::BodyID id;
+    };
+} // namespace galileo::component
 
 #endif

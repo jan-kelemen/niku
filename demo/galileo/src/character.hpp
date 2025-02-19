@@ -66,4 +66,11 @@ namespace galileo
     };
 } // namespace galileo
 
+namespace galileo::component
+{
+    struct [[nodiscard]] character_t final
+    {
+    };
+} // namespace galileo::component
+
 #endif

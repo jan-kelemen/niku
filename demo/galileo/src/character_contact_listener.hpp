@@ -1,6 +1,8 @@
 #ifndef GALILEO_CHARACTER_CONTACT_LISTENER_INCLUDED
 #define GALILEO_CHARACTER_CONTACT_LISTENER_INCLUDED
 
+#include <entt/entt.hpp>
+
 // clang-format off
 #include <type_traits> // IWYU pragma: keep
 #include <Jolt/Jolt.h> // IWYU pragma: keep
@@ -11,8 +13,6 @@
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 
 #include <chrono>
-
-class asIScriptFunction;
 
 namespace ngnscr
 {
@@ -31,7 +31,8 @@ namespace galileo
     {
     public:
         explicit character_contact_listener_t(physics_engine_t& physics_engine,
-            ngnscr::scripting_engine_t& scripting_engine);
+            ngnscr::scripting_engine_t& scripting_engine,
+            entt::registry& registry);
 
         character_contact_listener_t(
             character_contact_listener_t const&) = default;
@@ -59,8 +60,7 @@ namespace galileo
     private:
         physics_engine_t* physics_engine_;
         ngnscr::scripting_engine_t* scripting_engine_;
-
-        asIScriptFunction* script_;
+        entt::registry* registry_;
 
         std::chrono::steady_clock::time_point last_spawn_{
             std::chrono::steady_clock::now()};

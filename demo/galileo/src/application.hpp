@@ -19,8 +19,7 @@
 
 #include <vkrndr_image.hpp>
 
-#include <Jolt/Jolt.h> // IWYU pragma: keep
-#include <Jolt/Physics/Body/BodyID.h> // IWYU pragma: keep
+#include <entt/entt.hpp>
 
 #include <SDL3/SDL_events.h>
 
@@ -105,6 +104,8 @@ namespace galileo
         ngnwsi::mouse_t mouse_;
         ngngfx::perspective_camera_t camera_;
 
+        entt::registry registry_;
+
         ngnast::primitive_t world_;
         ngnast::bounding_box_t world_aabb_;
 
@@ -117,9 +118,8 @@ namespace galileo
         int light_count_{1};
 
         physics_engine_t physics_engine_;
-        std::vector<std::pair<size_t, JPH::BodyID>> bodies_;
-        size_t sphere_body_idx_{};
-        JPH::BodyID spawner_id_{JPH::BodyID::cInvalidBodyID};
+        entt::entity sphere_;
+        entt::entity spawner_;
 
         polymesh_parameters_t polymesh_params_;
         poly_mesh_t poly_mesh_;

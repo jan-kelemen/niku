@@ -16,6 +16,7 @@ option(NIKU_BUILD_DEMOS "Building demo examples" ON)
 
 find_package(Angelscript REQUIRED)
 find_package(Boost REQUIRED)
+find_package(EnTT REQUIRED)
 find_package(fastgltf REQUIRED)
 find_package(fmt REQUIRED)
 find_package(glm REQUIRED)

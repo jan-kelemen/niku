@@ -128,4 +128,12 @@ namespace galileo
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };
 } // namespace galileo
+
+namespace galileo::component
+{
+    struct [[nodiscard]] mesh_t final
+    {
+        size_t index{};
+    };
+} // namespace galileo::component
 #endif
