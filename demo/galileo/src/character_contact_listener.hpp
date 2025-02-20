@@ -12,8 +12,6 @@
 #include <Jolt/Math/Real.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 
-#include <chrono>
-
 namespace ngnscr
 {
     class scripting_engine_t;
@@ -61,9 +59,6 @@ namespace galileo
         physics_engine_t* physics_engine_;
         ngnscr::scripting_engine_t* scripting_engine_;
         entt::registry* registry_;
-
-        std::chrono::steady_clock::time_point last_spawn_{
-            std::chrono::steady_clock::now()};
     };
 
 } // namespace galileo

@@ -47,22 +47,14 @@ void galileo::character_contact_listener_t::OnContactAdded(
     {
         auto* const scripts{registry_->try_get<component::scripts_t>(
             static_cast<entt::entity>(interface.GetUserData(inBodyID2)))};
-        if (scripts && scripts->on_character_hit_script)
-        {
-            auto const now{std::chrono::steady_clock::now()};
-            if (auto const diff{now - last_spawn_}; diff < 5s)
-            {
-                return;
-            }
-            last_spawn_ = now;
 
+        if (scripts && scripts->object && scripts->on_character_hit_script)
+        {
             auto context{scripting_engine_->execution_context(
                 scripts->on_character_hit_script)};
+            assert(context);
 
-            if (!context)
-            {
-                std::terminate();
-            }
+            context->SetObject(scripts->object);
 
             if (auto const execution_result{context->Execute()};
                 execution_result != asEXECUTION_FINISHED)

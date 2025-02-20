@@ -38,6 +38,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.cpp
 )
 
 target_compile_definitions(galileo 

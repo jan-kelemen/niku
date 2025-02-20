@@ -98,6 +98,9 @@ namespace galileo
 
         void spawn_sphere();
 
+        void destroy_script_component(entt::registry& registry,
+            entt::entity ent);
+
     private:
         vkglsl::guard_t glsl_guard_;
 
@@ -118,8 +121,8 @@ namespace galileo
         int light_count_{1};
 
         physics_engine_t physics_engine_;
-        entt::entity sphere_;
-        entt::entity spawner_;
+        entt::entity sphere_{entt::null};
+        entt::entity spawner_{entt::null};
 
         polymesh_parameters_t polymesh_params_;
         poly_mesh_t poly_mesh_;

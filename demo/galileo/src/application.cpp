@@ -249,6 +249,9 @@ galileo::application_t::application_t(bool const debug)
     camera_.set_position({-25.0f, 5.0f, -25.0f});
 
     physics_debug_->set_camera(camera_);
+
+    registry_.on_destroy<component::scripts_t>()
+        .connect<&application_t::destroy_script_component>(this);
 }
 
 galileo::application_t::~application_t() = default;
@@ -720,17 +723,55 @@ void galileo::application_t::on_startup()
                 this)};
         assert(registered);
 
+        auto const spawner_registered{register_spawner_type(scripting_engine_)};
+        assert(spawner_registered);
+
         ngnscr::script_compiler_t compiler{scripting_engine_};
         [[maybe_unused]] bool script_compiled{compiler.new_module("MyModule")};
         script_compiled &= compiler.add_section("spawner.as");
         script_compiled &= compiler.build();
         assert(script_compiled);
 
+        auto& spawner_data{registry_.emplace<spawner_t>(spawner_)};
+
         asIScriptModule* const mod{
             scripting_engine_.engine().GetModule("MyModule")};
-        asIScriptFunction* on_hit_script{mod->GetFunctionByDecl("void main()")};
-        assert(on_hit_script);
-        registry_.emplace<component::scripts_t>(spawner_, on_hit_script);
+
+        component::scripts_t controller;
+        controller.type = mod->GetTypeInfoByName("spawner");
+        assert(controller.type);
+
+        controller.factory =
+            mod->GetFunctionByDecl("spawner@ create_spawner(spawner_t@)");
+        assert(controller.factory);
+
+        controller.on_character_hit_script =
+            controller.type->GetMethodByDecl("void on_character_contact()");
+        assert(controller.on_character_hit_script);
+
+        auto context{scripting_engine_.execution_context(controller.factory)};
+        assert(context);
+
+        context->SetArgObject(0, &spawner_data);
+
+        if (auto const execution_result{context->Execute()};
+            execution_result != asEXECUTION_FINISHED)
+        {
+            if (execution_result == asEXECUTION_EXCEPTION)
+            {
+                spdlog::error(
+                    "An exception '{}' occurred. Please correct the code and try again.",
+                    context->GetExceptionString());
+            }
+        }
+        else if (asIScriptObject* const obj{
+                     *(asIScriptObject**) context->GetAddressOfReturnValue()})
+        {
+            obj->AddRef();
+            controller.object = obj;
+            registry_.emplace<component::scripts_t>(spawner_,
+                std::move(controller));
+        }
     }
 
     character_ = std::make_unique<character_t>(physics_engine_, mouse_);
@@ -757,6 +798,8 @@ void galileo::application_t::on_startup()
 void galileo::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device().logical);
+
+    registry_.clear();
 
     navmesh_debug_.reset();
 
@@ -971,4 +1014,13 @@ void galileo::application_t::spawn_sphere()
     registry_.emplace<component::mesh_t>(entity,
         registry_.get<component::mesh_t>(sphere_).index);
     registry_.emplace<component::physics_t>(entity, id);
+}
+
+void galileo::application_t::destroy_script_component(entt::registry& registry,
+    entt::entity const ent)
+{
+    if (auto* obj{registry.get<component::scripts_t>(ent).object})
+    {
+        obj->Release();
+    }
 }
