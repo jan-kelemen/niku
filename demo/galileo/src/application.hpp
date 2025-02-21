@@ -98,9 +98,6 @@ namespace galileo
 
         void spawn_sphere();
 
-        void destroy_script_component(entt::registry& registry,
-            entt::entity ent);
-
     private:
         vkglsl::guard_t glsl_guard_;
 

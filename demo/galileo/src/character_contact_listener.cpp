@@ -54,7 +54,7 @@ void galileo::character_contact_listener_t::OnContactAdded(
                 scripts->on_character_hit_script)};
             assert(context);
 
-            context->SetObject(scripts->object);
+            context->SetObject(scripts->object.get());
 
             if (auto const execution_result{context->Execute()};
                 execution_result != asEXECUTION_FINISHED)

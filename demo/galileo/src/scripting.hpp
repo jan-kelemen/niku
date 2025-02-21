@@ -1,6 +1,11 @@
 #ifndef GALILEO_SCRIPTING_INCLUDED
 #define GALILEO_SCRIPTING_INCLUDED
 
+#include <ngnscr_types.hpp>
+
+#include <angelscript.h>
+
+#include <expected>
 #include <chrono>
 
 namespace ngnscr
@@ -8,6 +13,7 @@ namespace ngnscr
     class scripting_engine_t;
 } // namespace ngnscr
 
+class asIScriptModule;
 class asIScriptFunction;
 class asIScriptObject;
 class asITypeInfo;
@@ -17,25 +23,25 @@ namespace galileo
     [[nodiscard]] bool register_spawner_type(
         ngnscr::scripting_engine_t& scripting_engine);
 
-    class [[nodiscard]] spawner_t final
+    class [[nodiscard]] spawner_data_t final
     {
     public:
         static constexpr auto in_place_delete = true;
 
     public:
-        spawner_t() = default;
+        spawner_data_t() = default;
 
-        spawner_t(spawner_t const&) = delete;
+        spawner_data_t(spawner_data_t const&) = delete;
 
-        spawner_t(spawner_t&&) noexcept = delete;
-
-    public:
-        ~spawner_t();
+        spawner_data_t(spawner_data_t&&) noexcept = delete;
 
     public:
-        spawner_t& operator=(spawner_t const&) = delete;
+        ~spawner_data_t() = default;
 
-        spawner_t& operator=(spawner_t&&) = delete;
+    public:
+        spawner_data_t& operator=(spawner_data_t const&) = delete;
+
+        spawner_data_t& operator=(spawner_data_t&&) = delete;
 
     private:
         bool should_spawn_sphere();
@@ -53,11 +59,17 @@ namespace galileo::component
 {
     struct [[nodiscard]] scripts_t final
     {
-        asITypeInfo* type{nullptr};
         asIScriptFunction* factory{nullptr};
-        asIScriptObject* object{nullptr};
         asIScriptFunction* on_character_hit_script{nullptr};
+
+        ngnscr::script_object_ptr_t object{nullptr};
     };
+
+    [[nodiscard]] std::expected<scripts_t, asEContextState> create_spawner_scripts(
+        spawner_data_t& spawner,
+        ngnscr::scripting_engine_t& engine,
+        asIScriptModule const& module);
+
 } // namespace galileo::component
 
 #endif

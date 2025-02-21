@@ -2,9 +2,11 @@ add_library(ngnscr)
 
 target_sources(ngnscr
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnscr_types.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnscr_scripting_engine.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnscr_script_compiler.hpp
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnscr_types.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnscr_scripting_engine.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnscr_script_compiler.cpp
 )
@@ -22,6 +24,7 @@ target_link_libraries(ngnscr
         cppext
     PUBLIC
         Angelscript::angelscript
+        Boost::headers
     PRIVATE
         Angelscript::scriptbuilder
         Angelscript::scriptstdstring

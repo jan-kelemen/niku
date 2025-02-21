@@ -1,6 +1,6 @@
 class spawner
 {
-    spawner(spawner_t@ obj)
+    spawner(spawner_data@ obj)
     {
         @self = obj;
     }
@@ -13,9 +13,9 @@ class spawner
         }
     }
 
-    spawner_t@ self;
+    spawner_data@ self;
 }
 
-spawner@ create_spawner(spawner_t@ obj) {
+spawner@ create_spawner(spawner_data@ obj) {
     return spawner(obj);
 }
