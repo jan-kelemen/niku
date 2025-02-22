@@ -20,6 +20,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/sphere.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/world.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
@@ -40,6 +41,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/sphere.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/world.cpp
 )
 

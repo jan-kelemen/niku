@@ -119,7 +119,6 @@ namespace galileo
         int light_count_{1};
 
         physics_engine_t physics_engine_;
-        entt::entity sphere_{entt::null};
         entt::entity spawner_{entt::null};
 
         polymesh_parameters_t polymesh_params_;

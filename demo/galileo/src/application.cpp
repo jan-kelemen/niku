@@ -16,6 +16,7 @@
 #include <postprocess_shader.hpp>
 #include <render_graph.hpp>
 #include <scripting.hpp>
+#include <sphere.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
@@ -274,34 +275,38 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
                 character_->rotation() * ngnphy::coordinate_system_t::front *
                     2.0f)})
         {
-            spdlog::info("selected body {} ",
-                body->GetIndexAndSequenceNumber());
-
-            navigation_mesh_query_ptr_t query{world_.get_navigation_query()};
-
             auto& body_interface{physics_engine_.body_interface()};
-            glm::vec3 const spawner_position{
-                ngnphy::to_glm(body_interface.GetPosition(
-                    registry_.get<component::physics_t>(spawner_).id))};
 
-            glm::vec3 const sphere_position{
-                ngnphy::to_glm(body_interface.GetPosition(*body))};
-
-            std::optional<path_iterator_t> iterator{find_path(query.get(),
-                sphere_position,
-                spawner_position,
-                (world_aabb_.max - world_aabb_.min) / 2.0f)};
-
-            if (iterator)
+            if (!registry_.try_get<component::sphere_path_t>(
+                    static_cast<entt::entity>(
+                        body_interface.GetUserData(*body))))
             {
-                std::vector<glm::vec3> positions;
-                do
-                {
-                    positions.push_back(iterator->current_position);
-                } while (increment(*iterator));
-                positions.push_back(iterator->current_position);
+                spdlog::info("selected body {} ",
+                    body->GetIndexAndSequenceNumber());
 
-                navmesh_debug_->update(positions);
+                navigation_mesh_query_ptr_t query{
+                    world_.get_navigation_query()};
+
+                glm::vec3 const spawner_position{
+                    ngnphy::to_glm(body_interface.GetPosition(
+                        registry_.get<component::physics_t>(spawner_).id))};
+
+                glm::vec3 const sphere_position{
+                    ngnphy::to_glm(body_interface.GetPosition(*body))};
+
+                std::optional<path_iterator_t> iterator{find_path(query.get(),
+                    sphere_position,
+                    spawner_position,
+                    (world_aabb_.max - world_aabb_.min) / 2.0f)};
+
+                if (iterator)
+                {
+                    registry_.emplace<component::sphere_path_t>(
+                        static_cast<entt::entity>(
+                            body_interface.GetUserData(*body)),
+                        std::move(query),
+                        *std::move(iterator));
+                }
             }
         }
     }
@@ -474,6 +479,33 @@ void galileo::application_t::update(float const delta_time)
         render_graph_->update(registry_.get<component::mesh_t>(entity).index,
             character_->world_transform());
     }
+
+    std::vector<entt::entity> to_remove;
+    for (auto const entity :
+        registry_.view<component::sphere_path_t, component::physics_t>())
+    {
+        auto& path{registry_.get<component::sphere_path_t>(entity)};
+
+        auto const physics_id{registry_.get<component::physics_t>(entity).id};
+
+        auto new_pos{ngnphy::to_jolt(path.iterator.current_position) -
+            body_interface.GetPosition(physics_id)};
+        new_pos.SetY(0.0f);
+
+        spdlog::info("{} {} {} {}",
+            new_pos.GetX(),
+            new_pos.GetY(),
+            new_pos.GetZ(),
+            new_pos.Length());
+
+        body_interface.SetLinearVelocity(physics_id, new_pos);
+        if (new_pos.Length() < 0.5f && !increment(path.iterator))
+        {
+            to_remove.push_back(entity);
+        }
+    }
+    registry_.remove<component::sphere_path_t>(to_remove.cbegin(),
+        to_remove.cend());
 
     physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
     character_->debug(physics_debug_.get());
@@ -918,20 +950,11 @@ void galileo::application_t::setup_world()
             }
             else if (root.name.starts_with("Icosphere"))
             {
-                JPH::BodyCreationSettings const sphere_settings{
-                    new JPH::SphereShape{half_extents.x},
-                    ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
-                    ngnphy::to_jolt(glm::quat_cast(root.matrix)),
-                    JPH::EMotionType::Dynamic,
-                    galileo::object_layers::moving};
-
-                JPH::BodyID const sphere_id{
-                    body_interface.CreateAndAddBody(sphere_settings,
-                        JPH::EActivation::Activate)};
-
-                sphere_ = registry_.create();
-                registry_.emplace<component::mesh_t>(sphere_, root_index);
-                registry_.emplace<component::physics_t>(sphere_, sphere_id);
+                auto sphere_entity{create_sphere(registry_,
+                    physics_engine_,
+                    glm::vec3{root.matrix[3]},
+                    half_extents.x)};
+                registry_.emplace<component::mesh_t>(sphere_entity, root_index);
             }
             else if (root.name == "Spawn")
             {
@@ -962,27 +985,13 @@ void galileo::application_t::setup_world()
             }
         }
     }
+    spawn_sphere();
 }
 
 void galileo::application_t::spawn_sphere()
 {
-    auto& body_interface{physics_engine_.body_interface()};
-
     std::uniform_real_distribution dist{-25.0f, 25.0f};
-
-    JPH::BodyCreationSettings const settings{
-        body_interface.GetShape(
-            registry_.get<component::physics_t>(sphere_).id),
-        JPH::Vec3{dist(random_engine_), 10.0f, dist(random_engine_)},
-        JPH::Quat::sIdentity(),
-        JPH::EMotionType::Dynamic,
-        galileo::object_layers::moving};
-
-    JPH::BodyID const id{
-        body_interface.CreateAndAddBody(settings, JPH::EActivation::Activate)};
-
-    entt::entity const entity{registry_.create()};
-    registry_.emplace<component::mesh_t>(entity,
-        registry_.get<component::mesh_t>(sphere_).index);
-    registry_.emplace<component::physics_t>(entity, id);
+    ::galileo::spawn_sphere(registry_,
+        physics_engine_,
+        glm::vec3{dist(random_engine_), 10.0f, dist(random_engine_)});
 }
