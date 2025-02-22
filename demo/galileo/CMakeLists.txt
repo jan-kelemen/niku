@@ -20,6 +20,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/world.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
@@ -39,6 +40,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/world.cpp
 )
 
 target_compile_definitions(galileo 

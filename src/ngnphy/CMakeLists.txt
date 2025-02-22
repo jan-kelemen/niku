@@ -2,6 +2,7 @@ add_library(ngnphy)
 
 target_sources(ngnphy
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnphy_coordinate_system.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnphy_jolt_adapter.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnphy_jolt_geometry.hpp
     PRIVATE

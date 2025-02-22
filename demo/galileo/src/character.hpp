@@ -31,6 +31,12 @@ namespace galileo
 
 namespace galileo
 {
+    enum class [[nodiscard]] character_action_t
+    {
+        none,
+        select_body,
+    };
+
     class [[nodiscard]] character_t final
     {
     public:
@@ -41,8 +47,8 @@ namespace galileo
             ngnwsi::mouse_t& mouse);
 
     public:
-        [[nodiscard]] std::optional<JPH::BodyID>
-        handle_event(SDL_Event const& event, float delta_time);
+        [[nodiscard]] character_action_t handle_event(SDL_Event const& event,
+            float delta_time);
 
         void set_contact_listener(JPH::CharacterContactListener* listener);
 
@@ -53,6 +59,8 @@ namespace galileo
         [[nodiscard]] glm::vec3 position() const;
 
         void set_position(glm::vec3 position);
+
+        [[nodiscard]] glm::vec3 center_of_mass() const;
 
         [[nodiscard]] glm::quat rotation() const;
 

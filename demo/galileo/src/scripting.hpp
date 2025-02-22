@@ -5,8 +5,8 @@
 
 #include <angelscript.h>
 
-#include <expected>
 #include <chrono>
+#include <expected>
 
 namespace ngnscr
 {
@@ -65,8 +65,8 @@ namespace galileo::component
         ngnscr::script_object_ptr_t object{nullptr};
     };
 
-    [[nodiscard]] std::expected<scripts_t, asEContextState> create_spawner_scripts(
-        spawner_data_t& spawner,
+    [[nodiscard]] std::expected<scripts_t, asEContextState>
+    create_spawner_scripts(spawner_data_t& spawner,
         ngnscr::scripting_engine_t& engine,
         asIScriptModule const& module);
 

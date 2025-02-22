@@ -5,6 +5,7 @@
 #include <follow_camera_controller.hpp>
 #include <navmesh.hpp>
 #include <physics_engine.hpp>
+#include <world.hpp>
 
 #include <ngnast_scene_model.hpp>
 
@@ -106,7 +107,7 @@ namespace galileo
 
         entt::registry registry_;
 
-        ngnast::primitive_t world_;
+        ngnast::primitive_t world_primitive_;
         ngnast::bounding_box_t world_aabb_;
 
         bool free_camera_active_{false};
@@ -123,13 +124,12 @@ namespace galileo
 
         polymesh_parameters_t polymesh_params_;
         poly_mesh_t poly_mesh_;
-        navigation_mesh_ptr_t navigation_mesh_;
         bool draw_main_polymesh_{true};
         bool draw_detail_polymesh_{true};
 
-        navigation_mesh_query_ptr_t navigation_mesh_query_;
-
         ngnscr::scripting_engine_t scripting_engine_;
+
+        world_t world_;
 
         std::unique_ptr<character_t> character_;
         std::unique_ptr<character_contact_listener_t> character_listener_;

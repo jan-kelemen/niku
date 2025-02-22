@@ -27,6 +27,7 @@
 
 #include <ngngfx_perspective_camera.hpp>
 
+#include <ngnphy_coordinate_system.hpp>
 #include <ngnphy_jolt_adapter.hpp>
 #include <ngnphy_jolt_geometry.hpp>
 
@@ -219,6 +220,7 @@ galileo::application_t::application_t(bool const debug)
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
     , polymesh_params_{.walkable_slope_angle = character_t::max_slope_angle}
+    , world_{physics_engine_}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
@@ -258,14 +260,50 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
-    std::optional<JPH::BodyID> hit_body{free_camera_active_
-            ? (free_camera_controller_.handle_event(event, delta_time),
-                  std::nullopt)
-            : character_->handle_event(event, delta_time)};
-    if (hit_body)
+    if (free_camera_active_)
     {
-        spdlog::info("Body selected: {}",
-            hit_body->GetIndexAndSequenceNumber());
+        free_camera_controller_.handle_event(event, delta_time);
+    }
+    else if (character_action_t const action{
+                 character_->handle_event(event, delta_time)};
+        action != character_action_t::none)
+    {
+        assert(action == character_action_t::select_body);
+
+        if (auto const body{world_.cast_ray(character_->center_of_mass(),
+                character_->rotation() * ngnphy::coordinate_system_t::front *
+                    2.0f)})
+        {
+            spdlog::info("selected body {} ",
+                body->GetIndexAndSequenceNumber());
+
+            navigation_mesh_query_ptr_t query{world_.get_navigation_query()};
+
+            auto& body_interface{physics_engine_.body_interface()};
+            glm::vec3 const spawner_position{
+                ngnphy::to_glm(body_interface.GetPosition(
+                    registry_.get<component::physics_t>(spawner_).id))};
+
+            glm::vec3 const sphere_position{
+                ngnphy::to_glm(body_interface.GetPosition(*body))};
+
+            std::optional<path_iterator_t> iterator{find_path(query.get(),
+                sphere_position,
+                spawner_position,
+                (world_aabb_.max - world_aabb_.min) / 2.0f)};
+
+            if (iterator)
+            {
+                std::vector<glm::vec3> positions;
+                do
+                {
+                    positions.push_back(iterator->current_position);
+                } while (increment(*iterator));
+                positions.push_back(iterator->current_position);
+
+                navmesh_debug_->update(positions);
+            }
+        }
     }
 
     if (event.type == SDL_EVENT_KEY_DOWN)
@@ -295,8 +333,6 @@ void galileo::application_t::update(float const delta_time)
     ImGui::Begin("Lights");
     ImGui::SliderInt("Count", &light_count_, 0, 1000);
     ImGui::End();
-
-    bool find_path_to_spawner{false};
 
     {
         bool update_navmesh{false};
@@ -381,10 +417,6 @@ void galileo::application_t::update(float const delta_time)
 
         ImGui::Checkbox("Draw Detail Mesh", &draw_detail_polymesh_);
 
-        ImGui::Separator();
-
-        find_path_to_spawner = ImGui::Button("Find Path To Spawner");
-
         ImGui::End();
 
         if (update_navmesh)
@@ -392,14 +424,14 @@ void galileo::application_t::update(float const delta_time)
             try
             {
                 auto const now{std::chrono::system_clock::now()};
-                poly_mesh_ =
-                    generate_poly_mesh(polymesh_params_, world_, world_aabb_);
-
-                navigation_mesh_ = generate_navigation_mesh(polymesh_params_,
-                    poly_mesh_,
+                poly_mesh_ = generate_poly_mesh(polymesh_params_,
+                    world_primitive_,
                     world_aabb_);
 
-                navigation_mesh_query_ = create_query(navigation_mesh_.get());
+                world_.update_navigation_mesh(
+                    generate_navigation_mesh(polymesh_params_,
+                        poly_mesh_,
+                        world_aabb_));
 
                 auto const diff{std::chrono::system_clock::now() - now};
                 spdlog::info("Navigation mesh generation took {}",
@@ -441,34 +473,6 @@ void galileo::application_t::update(float const delta_time)
     {
         render_graph_->update(registry_.get<component::mesh_t>(entity).index,
             character_->world_transform());
-    }
-
-    if (find_path_to_spawner)
-    {
-        glm::vec3 const half_extent{(world_aabb_.max - world_aabb_.min) / 2.0f};
-
-        glm::vec3 const character_position{character_->position()};
-
-        glm::vec3 const spawner_position{
-            ngnphy::to_glm(body_interface.GetPosition(
-                registry_.get<component::physics_t>(spawner_).id))};
-
-        std::optional<path_iterator_t> iterator{
-            find_path(navigation_mesh_query_.get(),
-                character_position,
-                spawner_position,
-                half_extent)};
-        if (iterator)
-        {
-            std::vector<glm::vec3> positions;
-            do
-            {
-                positions.push_back(iterator->current_position);
-            } while (increment(*iterator));
-            positions.push_back(iterator->current_position);
-
-            navmesh_debug_->update(positions);
-        }
     }
 
     physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
@@ -735,9 +739,12 @@ void galileo::application_t::on_startup()
             scripting_engine_.engine().GetModule("MyModule")};
         assert(mod);
 
-        if (auto scripts{ component::create_spawner_scripts(spawner_data, scripting_engine_, *mod) })
+        if (auto scripts{component::create_spawner_scripts(spawner_data,
+                scripting_engine_,
+                *mod)})
         {
-            registry_.emplace<component::scripts_t>(spawner_, std::move(*scripts));
+            registry_.emplace<component::scripts_t>(spawner_,
+                std::move(*scripts));
         }
     }
 
@@ -860,11 +867,11 @@ void galileo::application_t::setup_world()
                     continue;
                 }
 
-                world_ = model->primitives[mesh.primitive_indices[0]];
+                world_primitive_ = model->primitives[mesh.primitive_indices[0]];
                 world_aabb_ = root.aabb;
 
                 JPH::MeshShapeSettings const floor_shape_settings{
-                    to_jolt_mesh_shape(world_)};
+                    to_jolt_mesh_shape(world_primitive_)};
                 floor_shape_settings.SetEmbedded();
 
                 JPH::ShapeSettings::ShapeResult const floor_shape_result{
@@ -891,16 +898,13 @@ void galileo::application_t::setup_world()
                 {
                     auto const now{std::chrono::system_clock::now()};
                     poly_mesh_ = generate_poly_mesh(polymesh_params_,
-                        world_,
+                        world_primitive_,
                         world_aabb_);
 
-                    navigation_mesh_ =
+                    world_.update_navigation_mesh(
                         generate_navigation_mesh(polymesh_params_,
                             poly_mesh_,
-                            world_aabb_);
-
-                    navigation_mesh_query_ =
-                        create_query(navigation_mesh_.get());
+                            world_aabb_));
 
                     auto const diff{std::chrono::system_clock::now() - now};
                     spdlog::info("Navigation mesh generation took {}",

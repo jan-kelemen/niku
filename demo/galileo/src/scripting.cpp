@@ -45,8 +45,7 @@ bool galileo::spawner_data_t::should_spawn_sphere()
 }
 
 std::expected<galileo::component::scripts_t, asEContextState>
-galileo::component::create_spawner_scripts(
-    spawner_data_t& spawner,
+galileo::component::create_spawner_scripts(spawner_data_t& spawner,
     ngnscr::scripting_engine_t& engine,
     asIScriptModule const& module)
 {
@@ -81,6 +80,6 @@ galileo::component::create_spawner_scripts(
     }
     rv.object = *(asIScriptObject**) context->GetAddressOfReturnValue();
     assert(rv.object);
-    
+
     return rv;
 }

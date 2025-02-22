@@ -2,6 +2,7 @@
 
 #include <cppext_numeric.hpp>
 
+#include <ngnphy_coordinate_system.hpp>
 #include <ngnphy_jolt_adapter.hpp>
 
 #include <ngnwsi_mouse.hpp>
@@ -28,7 +29,6 @@
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
-#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
@@ -51,11 +51,6 @@ namespace
     constexpr float padding{0.02f};
     constexpr float recovery_speed{1.0f};
     constexpr float predictive_contact_distance{0.1f};
-
-    constexpr glm::vec3 world_left{-1.0f, 0.0f, 0.0f};
-    constexpr glm::vec3 world_right{1.0f, 0.0f, 0.0f};
-    constexpr glm::vec3 world_front{0.0f, 0.0f, -1.0f};
-    constexpr glm::vec3 world_back{0.0f, 0.0f, 1.0f};
 
     constexpr float acceleration_factor{3.09f};
 } // namespace
@@ -96,13 +91,13 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
         &physics_engine.physics_system()};
 }
 
-[[nodiscard]] std::optional<JPH::BodyID> galileo::character_t::handle_event(
+[[nodiscard]] galileo::character_action_t galileo::character_t::handle_event(
     SDL_Event const& event,
     float const delta_time)
 {
     if (!mouse_->captured())
     {
-        return std::nullopt;
+        return character_action_t::none;
     }
 
     if (event.type == SDL_EVENT_MOUSE_MOTION)
@@ -117,32 +112,13 @@ galileo::character_t::character_t(physics_engine_t& physics_engine,
 
         physics_entity_->SetRotation(ngnphy::to_jolt(new_rot));
     }
-    else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+    else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+        event.button.button == SDL_BUTTON_LEFT)
     {
-        if (event.button.button != SDL_BUTTON_LEFT)
-        {
-            return std::nullopt;
-        }
-
-        JPH::Quat const rot{physics_entity_->GetRotation()};
-        JPH::Vec3 const direction_and_reach{rot * ngnphy::to_jolt(world_front)};
-
-        JPH::RRayCast ray{physics_entity_->GetCenterOfMassPosition(),
-            direction_and_reach};
-
-        auto& system{physics_engine_->physics_system()};
-        JPH::RayCastResult hit;
-        bool const had_hit{system.GetNarrowPhaseQuery().CastRay(ray,
-            hit,
-            system.GetDefaultBroadPhaseLayerFilter(object_layers::moving),
-            system.GetDefaultLayerFilter(object_layers::moving))};
-        if (had_hit)
-        {
-            return hit.mBodyID;
-        }
+        return character_action_t::select_body;
     }
 
-    return std::nullopt;
+    return character_action_t::none;
 }
 
 void galileo::character_t::set_contact_listener(
@@ -168,25 +144,29 @@ void galileo::character_t::update(float const delta_time)
         bool has_input{false};
         if (keyboard_state[SDL_SCANCODE_A])
         {
-            desired_direction += rot * world_left * acceleration_factor;
+            desired_direction +=
+                rot * ngnphy::coordinate_system_t::left * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_D])
         {
-            desired_direction += rot * world_right * acceleration_factor;
+            desired_direction +=
+                rot * ngnphy::coordinate_system_t::right * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_W])
         {
-            desired_direction += rot * world_front * acceleration_factor;
+            desired_direction +=
+                rot * ngnphy::coordinate_system_t::front * acceleration_factor;
             has_input = true;
         }
 
         if (keyboard_state[SDL_SCANCODE_S])
         {
-            desired_direction += rot * world_back * acceleration_factor;
+            desired_direction +=
+                rot * ngnphy::coordinate_system_t::back * acceleration_factor;
             has_input = true;
         }
 
@@ -240,7 +220,8 @@ void galileo::character_t::debug(physics_debug_t* const physics_debug)
 
     JPH::Quat const rot{physics_entity_->GetRotation()};
 
-    JPH::Vec3 const front_direction{rot * ngnphy::to_jolt(world_front)};
+    JPH::Vec3 const front_direction{
+        rot * ngnphy::to_jolt(ngnphy::coordinate_system_t::front)};
     JPH::RVec3 const pos{physics_entity_->GetCenterOfMassPosition()};
 
     physics_debug->DrawArrow(pos, pos + front_direction, JPH::Color::sRed, .1f);
@@ -262,6 +243,11 @@ void galileo::character_t::set_position(glm::vec3 position)
         {},
         {},
         physics_engine_->allocator());
+}
+
+glm::vec3 galileo::character_t::center_of_mass() const
+{
+    return ngnphy::to_glm(physics_entity_->GetCenterOfMassPosition());
 }
 
 glm::quat galileo::character_t::rotation() const
