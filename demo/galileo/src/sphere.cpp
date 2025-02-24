@@ -29,6 +29,10 @@
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
+#include <spdlog/spdlog.h>
+
 #include <cassert>
 
 entt::entity galileo::create_sphere(entt::registry& registry,
@@ -92,4 +96,69 @@ entt::entity galileo::spawn_sphere(entt::registry& registry,
     }
 
     return entt::null;
+}
+
+void galileo::move_spheres(entt::registry& registry,
+    physics_engine_t& physics_engine,
+    float const delta_time)
+{
+    auto& body_interface{physics_engine.body_interface()};
+
+    std::vector<entt::entity> to_remove;
+    for (auto const entity :
+        registry.view<component::sphere_path_t, component::physics_t>())
+    {
+        auto& path{registry.get<component::sphere_path_t>(entity)};
+
+        auto const physics_id{registry.get<component::physics_t>(entity).id};
+
+        glm::vec3 const current{
+            ngnphy::to_glm(body_interface.GetPosition(physics_id))};
+
+        glm::vec3 closest{current};
+        if (dtStatus const status{path.iterator.query->closestPointOnPoly(
+                path.iterator.polys.front(),
+                glm::value_ptr(current),
+                glm::value_ptr(closest),
+                nullptr)};
+            dtStatusFailed(status))
+        {
+            spdlog::error(
+                "Can't find closest point on polygon for start position");
+        }
+        auto const diff{current - closest};
+
+        auto const error{path.iterator.current_position -
+            ngnphy::to_glm(body_interface.GetPosition(physics_id)) + diff};
+
+        auto const proportional{error};
+        auto const integral{path.integral + error * delta_time};
+        auto const derivative{(error - path.error) / delta_time};
+
+        auto const force{proportional + 0.0f * integral + derivative};
+
+        body_interface.AddImpulse(physics_id, 100.0f * ngnphy::to_jolt(force));
+
+        path.integral = integral;
+        path.error = error;
+
+        path.iterator.current_position = closest;
+
+        spdlog::info("{} {} {} {}",
+            error.x,
+            error.y,
+            error.z,
+            path.iterator.polys.front());
+
+        if (glm::length(path.error) < 1.0f)
+        {
+            if (!increment(path.iterator))
+            {
+                to_remove.push_back(entity);
+            }
+        }
+    }
+
+    registry.remove<component::sphere_path_t>(to_remove.cbegin(),
+        to_remove.cend());
 }

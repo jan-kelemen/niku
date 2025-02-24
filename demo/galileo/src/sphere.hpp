@@ -23,6 +23,10 @@ namespace galileo
     entt::entity spawn_sphere(entt::registry& registry,
         physics_engine_t& physics_engine,
         glm::vec3 position);
+
+    void move_spheres(entt::registry& registry,
+        physics_engine_t& physics_engine,
+        float const delta_time);
 } // namespace galileo
 
 namespace galileo::component
@@ -35,6 +39,9 @@ namespace galileo::component
     {
         navigation_mesh_query_ptr_t query;
         path_iterator_t iterator;
+
+        glm::vec3 error{};
+        glm::vec3 integral{};
     };
 } // namespace galileo::component
 

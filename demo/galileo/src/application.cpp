@@ -306,6 +306,20 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
                             body_interface.GetUserData(*body)),
                         std::move(query),
                         *std::move(iterator));
+
+                    query = world_.get_navigation_query();
+                    std::vector<glm::vec3> debug;
+                    iterator = find_path(query.get(),
+                        sphere_position,
+                        spawner_position,
+                        (world_aabb_.max - world_aabb_.min) / 2.0f);
+                    do
+                    {
+                        debug.push_back(iterator->current_position);
+                    } while (increment(*iterator));
+                    debug.push_back(iterator->current_position);
+
+                    navmesh_debug_->update(debug);
                 }
             }
         }
@@ -462,6 +476,8 @@ void galileo::application_t::update(float const delta_time)
         follow_camera_controller_.update(*character_);
     }
 
+    move_spheres(registry_, physics_engine_, delta_time);
+
     physics_engine_.update(delta_time);
 
     auto& body_interface{physics_engine_.body_interface()};
@@ -480,34 +496,8 @@ void galileo::application_t::update(float const delta_time)
             character_->world_transform());
     }
 
-    std::vector<entt::entity> to_remove;
-    for (auto const entity :
-        registry_.view<component::sphere_path_t, component::physics_t>())
-    {
-        auto& path{registry_.get<component::sphere_path_t>(entity)};
-
-        auto const physics_id{registry_.get<component::physics_t>(entity).id};
-
-        auto new_pos{ngnphy::to_jolt(path.iterator.current_position) -
-            body_interface.GetPosition(physics_id)};
-        new_pos.SetY(0.0f);
-
-        spdlog::info("{} {} {} {}",
-            new_pos.GetX(),
-            new_pos.GetY(),
-            new_pos.GetZ(),
-            new_pos.Length());
-
-        body_interface.SetLinearVelocity(physics_id, new_pos);
-        if (new_pos.Length() < 0.5f && !increment(path.iterator))
-        {
-            to_remove.push_back(entity);
-        }
-    }
-    registry_.remove<component::sphere_path_t>(to_remove.cbegin(),
-        to_remove.cend());
-
-    physics_engine_.physics_system().DrawBodies({}, physics_debug_.get());
+    JPH::BodyManager::DrawSettings const ds{.mDrawVelocity = true};
+    physics_engine_.physics_system().DrawBodies(ds, physics_debug_.get());
     character_->debug(physics_debug_.get());
 
     frame_info_->update(camera_, static_cast<uint32_t>(light_count_));
@@ -925,28 +915,6 @@ void galileo::application_t::setup_world()
                 entt::entity const entity{registry_.create()};
                 registry_.emplace<component::mesh_t>(entity, root_index);
                 registry_.emplace<component::physics_t>(entity, floor->GetID());
-
-                try
-                {
-                    auto const now{std::chrono::system_clock::now()};
-                    poly_mesh_ = generate_poly_mesh(polymesh_params_,
-                        world_primitive_,
-                        world_aabb_);
-
-                    world_.update_navigation_mesh(
-                        generate_navigation_mesh(polymesh_params_,
-                            poly_mesh_,
-                            world_aabb_));
-
-                    auto const diff{std::chrono::system_clock::now() - now};
-                    spdlog::info("Navigation mesh generation took {}",
-                        std::chrono::duration_cast<std::chrono::milliseconds>(
-                            diff));
-                }
-                catch (std::exception const& ex)
-                {
-                    spdlog::error(ex.what());
-                }
             }
             else if (root.name.starts_with("Icosphere"))
             {
@@ -985,7 +953,29 @@ void galileo::application_t::setup_world()
             }
         }
     }
-    spawn_sphere();
+
+    try
+    {
+        polymesh_params_.walkable_radius = 2.0f;
+
+        auto const now{std::chrono::system_clock::now()};
+        poly_mesh_ =
+            generate_poly_mesh(polymesh_params_, world_primitive_, world_aabb_);
+
+        world_.update_navigation_mesh(generate_navigation_mesh(polymesh_params_,
+            poly_mesh_,
+            world_aabb_));
+
+        auto const diff{std::chrono::system_clock::now() - now};
+        spdlog::info("Navigation mesh generation took {}",
+            std::chrono::duration_cast<std::chrono::milliseconds>(diff));
+
+        navmesh_debug_->update(poly_mesh_);
+    }
+    catch (std::exception const& ex)
+    {
+        spdlog::error(ex.what());
+    }
 }
 
 void galileo::application_t::spawn_sphere()
