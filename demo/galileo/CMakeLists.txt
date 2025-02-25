@@ -3,6 +3,7 @@ add_executable(galileo)
 target_sources(galileo
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/batch_renderer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/character.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/character_contact_listener.hpp
@@ -24,6 +25,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/world.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/batch_renderer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/character.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/character_contact_listener.cpp

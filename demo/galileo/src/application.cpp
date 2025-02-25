@@ -1,5 +1,6 @@
 #include <application.hpp>
 
+#include <batch_renderer.hpp>
 #include <camera_controller.hpp>
 #include <character.hpp>
 #include <character_contact_listener.hpp>
@@ -242,12 +243,13 @@ galileo::application_t::application_t(bool const debug)
     , deferred_shader_{std::make_unique<deferred_shader_t>(*backend_,
           frame_info_->descriptor_set_layout())}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
+    , batch_renderer_{std::make_unique<batch_renderer_t>(*backend_,
+          frame_info_->descriptor_set_layout(),
+          depth_buffer_.format)}
     , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
           frame_info_->descriptor_set_layout(),
           depth_buffer_.format)}
-    , navmesh_debug_{std::make_unique<navmesh_debug_t>(*backend_,
-          frame_info_->descriptor_set_layout(),
-          depth_buffer_.format)}
+    , navmesh_debug_{std::make_unique<navmesh_debug_t>(*batch_renderer_)}
 {
     camera_.set_position({-25.0f, 5.0f, -25.0f});
 
@@ -261,7 +263,7 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
-    if (free_camera_active_)
+    if (free_camera_active_ && event.type != SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
         free_camera_controller_.handle_event(event, delta_time);
     }
@@ -456,9 +458,6 @@ void galileo::application_t::update(float const delta_time)
                 spdlog::info("Navigation mesh generation took {}",
                     std::chrono::duration_cast<std::chrono::milliseconds>(
                         diff));
-
-                vkDeviceWaitIdle(backend_->device().logical);
-                navmesh_debug_->update(poly_mesh_);
             }
             catch (std::exception const& ex)
             {
@@ -533,6 +532,16 @@ void galileo::application_t::draw()
     if (free_camera_active_)
     {
         free_camera_controller_.draw_imgui();
+    }
+
+    if (draw_main_polymesh_)
+    {
+        navmesh_debug_->update(*poly_mesh_.mesh);
+    }
+
+    if (draw_detail_polymesh_)
+    {
+        navmesh_debug_->update(*poly_mesh_.detail_mesh);
     }
 
     auto target_image{backend_->swapchain_image()};
@@ -666,15 +675,13 @@ void galileo::application_t::draw()
             physics_debug_->draw(command_buffer);
         }
 
-        if (VkPipelineLayout const layout{navmesh_debug_->pipeline_layout()})
+        if (VkPipelineLayout const layout{batch_renderer_->pipeline_layout()})
         {
             frame_info_->bind_on(command_buffer,
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            navmesh_debug_->draw(command_buffer,
-                draw_main_polymesh_,
-                draw_detail_polymesh_);
+            batch_renderer_->draw(command_buffer);
         }
     }
 
@@ -785,8 +792,6 @@ void galileo::application_t::on_startup()
         render_graph_->descriptor_set_layout(),
         depth_buffer_.format);
 
-    navmesh_debug_->update(poly_mesh_);
-
     auto const extent{backend_->extent()};
     on_resize(extent.width, extent.height);
 }
@@ -797,9 +802,9 @@ void galileo::application_t::on_shutdown()
 
     registry_.clear();
 
-    navmesh_debug_.reset();
-
     physics_debug_.reset();
+
+    batch_renderer_.reset();
 
     postprocess_shader_.reset();
 
@@ -969,8 +974,6 @@ void galileo::application_t::setup_world()
         auto const diff{std::chrono::system_clock::now() - now};
         spdlog::info("Navigation mesh generation took {}",
             std::chrono::duration_cast<std::chrono::milliseconds>(diff));
-
-        navmesh_debug_->update(poly_mesh_);
     }
     catch (std::exception const& ex)
     {

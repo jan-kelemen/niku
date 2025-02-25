@@ -43,6 +43,7 @@ namespace vkrndr
 
 namespace galileo
 {
+    class batch_renderer_t;
     class character_t;
     class character_contact_listener_t;
     class deferred_shader_t;
@@ -146,6 +147,7 @@ namespace galileo
         std::unique_ptr<gbuffer_shader_t> gbuffer_shader_;
         std::unique_ptr<deferred_shader_t> deferred_shader_;
         std::unique_ptr<postprocess_shader_t> postprocess_shader_;
+        std::unique_ptr<batch_renderer_t> batch_renderer_;
         std::unique_ptr<physics_debug_t> physics_debug_;
         std::unique_ptr<navmesh_debug_t> navmesh_debug_;
     };
