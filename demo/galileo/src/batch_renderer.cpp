@@ -35,6 +35,10 @@ namespace
                 .offset = offsetof(galileo::batch_vertex_t, position)},
             VkVertexInputAttributeDescription{.location = 1,
                 .binding = 0,
+                .format = VK_FORMAT_R32_SFLOAT,
+                .offset = offsetof(galileo::batch_vertex_t, width)},
+            VkVertexInputAttributeDescription{.location = 2,
+                .binding = 0,
                 .format = VK_FORMAT_R32G32B32A32_SFLOAT,
                 .offset = offsetof(galileo::batch_vertex_t, color)},
         };
@@ -55,7 +59,7 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
     auto vertex_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
         VK_SHADER_STAGE_VERTEX_BIT,
-        "navmesh_debug.vert")};
+        "debug.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
         [this, shd = &vertex_shader.value()]()
@@ -64,7 +68,7 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
         VK_SHADER_STAGE_FRAGMENT_BIT,
-        "navmesh_debug.frag")};
+        "debug.frag")};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
         [this, shd = &fragment_shader.value()]()
@@ -100,6 +104,7 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
         vkrndr::pipeline_builder_t{backend_->device(),
             triangle_pipeline_.layout}
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
+            .with_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT, alpha_blend)
@@ -222,6 +227,7 @@ void galileo::batch_renderer_t::draw(VkCommandBuffer command_buffer)
     if (line_buffer_)
     {
         vkrndr::bind_pipeline(command_buffer, line_pipeline_);
+        vkCmdSetLineWidth(command_buffer, 3.0f);
         draw_topology(frame_data_->buffers, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
     }
 

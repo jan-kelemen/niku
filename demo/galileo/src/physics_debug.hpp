@@ -1,12 +1,6 @@
 #ifndef GALILEO_PHYSICS_DEBUG_INCLUDED
 #define GALILEO_PHYSICS_DEBUG_INCLUDED
 
-#include <cppext_cycled_buffer.hpp>
-
-#include <vkrndr_buffer.hpp>
-#include <vkrndr_memory.hpp>
-#include <vkrndr_pipeline.hpp>
-
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Core/Array.h>
@@ -30,33 +24,27 @@ namespace ngngfx
     class camera_t;
 } // namespace ngngfx
 
-namespace vkrndr
+namespace galileo
 {
-    class backend_t;
-} // namespace vkrndr
+    class batch_renderer_t;
+} // namespace galileo
 
 namespace galileo
 {
     class [[nodiscard]] physics_debug_t final : public JPH::DebugRenderer
     {
     public:
-        physics_debug_t(vkrndr::backend_t& backend,
-            VkDescriptorSetLayout frame_info_layout,
-            VkFormat depth_buffer_format);
+        physics_debug_t(batch_renderer_t& batch_renderer);
 
         physics_debug_t(physics_debug_t const&) = delete;
 
         physics_debug_t(physics_debug_t&&) noexcept = delete;
 
     public:
-        ~physics_debug_t() override;
+        ~physics_debug_t() override = default;
 
     public:
-        [[nodiscard]] VkPipelineLayout pipeline_layout() const;
-
         void set_camera(ngngfx::camera_t const& camera);
-
-        void draw(VkCommandBuffer command_buffer);
 
     public:
         physics_debug_t& operator=(physics_debug_t const&) = delete;
@@ -84,13 +72,6 @@ namespace galileo
 
         private:
             std::atomic<uint32_t> ref_count_ = 0;
-        };
-
-        struct [[nodiscard]] frame_data_t final
-        {
-            vkrndr::buffer_t vertex_buffer;
-            vkrndr::mapped_memory_t vertex_map;
-            uint32_t vertex_count{};
         };
 
     private: // JPH::DebugRenderer overrides
@@ -127,12 +108,8 @@ namespace galileo
             float inHeight) override;
 
     private:
-        vkrndr::backend_t* backend_;
+        batch_renderer_t* batch_renderer_;
         ngngfx::camera_t const* camera_{nullptr};
-
-        vkrndr::pipeline_t line_pipeline_;
-
-        cppext::cycled_buffer_t<frame_data_t> frame_data_;
     };
 } // namespace galileo
 #endif

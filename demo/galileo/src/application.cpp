@@ -246,9 +246,7 @@ galileo::application_t::application_t(bool const debug)
     , batch_renderer_{std::make_unique<batch_renderer_t>(*backend_,
           frame_info_->descriptor_set_layout(),
           depth_buffer_.format)}
-    , physics_debug_{std::make_unique<physics_debug_t>(*backend_,
-          frame_info_->descriptor_set_layout(),
-          depth_buffer_.format)}
+    , physics_debug_{std::make_unique<physics_debug_t>(*batch_renderer_)}
     , navmesh_debug_{std::make_unique<navmesh_debug_t>(*batch_renderer_)}
 {
     camera_.set_position({-25.0f, 5.0f, -25.0f});
@@ -665,16 +663,6 @@ void galileo::application_t::draw()
 
         [[maybe_unused]] auto const guard{debug_pass.begin(command_buffer,
             {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
-
-        if (VkPipelineLayout const layout{physics_debug_->pipeline_layout()})
-        {
-            frame_info_->bind_on(command_buffer,
-                layout,
-                VK_PIPELINE_BIND_POINT_GRAPHICS);
-
-            physics_debug_->draw(command_buffer);
-        }
-
         if (VkPipelineLayout const layout{batch_renderer_->pipeline_layout()})
         {
             frame_info_->bind_on(command_buffer,

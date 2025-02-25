@@ -112,10 +112,8 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/navmesh_debug.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/navmesh_debug.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tone_mapping.comp
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -131,10 +129,8 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/navmesh_debug.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/navmesh_debug.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/physics_debug_line.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tone_mapping.comp
 )

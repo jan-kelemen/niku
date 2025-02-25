@@ -68,7 +68,9 @@ void galileo::navmesh_debug_t::update(rcPolyMesh const& poly_mesh)
     {
         unsigned short const* const v{
             &poly_mesh.verts[cppext::narrow<ptrdiff_t>(i * 3)]};
-        return {.position = make_position(v[0], v[1], v[2]), .color = color};
+        return {.position = make_position(v[0], v[1], v[2]),
+            .width = 10.0f,
+            .color = color};
     };
 
     for (int i{}; i != poly_mesh.npolys; ++i)
@@ -248,6 +250,7 @@ void galileo::navmesh_debug_t::update(rcPolyMeshDetail const& poly_mesh_detail)
     {
         batch_renderer_->add_point(
             {.position = glm::make_vec3(&poly_mesh_detail.verts[i * 3]),
+                .width = 10.0f,
                 .color = point_color});
     }
 }
@@ -267,7 +270,8 @@ void galileo::navmesh_debug_t::update(
                     .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.6f}});
         }
 
-        batch_renderer_->add_point(
-            {.position = point, .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.8f}});
+        batch_renderer_->add_point({.position = point,
+            .width = 10.0f,
+            .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.8f}});
     }
 }

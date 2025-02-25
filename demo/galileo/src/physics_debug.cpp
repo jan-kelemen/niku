@@ -1,5 +1,6 @@
 #include <physics_debug.hpp>
 
+#include <batch_renderer.hpp>
 #include <config.hpp>
 
 #include <cppext_cycled_buffer.hpp>
@@ -45,117 +46,10 @@
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <system_error>
 
-namespace
-{
-    struct [[nodiscard]] line_vertex_t final
-    {
-        glm::vec3 position;
-        char padding;
-        glm::vec4 color;
-    };
-
-    consteval auto binding_description()
-    {
-        constexpr std::array descriptions{
-            VkVertexInputBindingDescription{.binding = 0,
-                .stride = sizeof(line_vertex_t),
-                .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
-        };
-
-        return descriptions;
-    }
-
-    consteval auto attribute_description()
-    {
-        constexpr std::array descriptions{
-            VkVertexInputAttributeDescription{.location = 0,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(line_vertex_t, position)},
-            VkVertexInputAttributeDescription{.location = 1,
-                .binding = 0,
-                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                .offset = offsetof(line_vertex_t, color)},
-        };
-
-        return descriptions;
-    }
-
-    constexpr size_t max_line_count{50000};
-} // namespace
-
-galileo::physics_debug_t::physics_debug_t(vkrndr::backend_t& backend,
-    VkDescriptorSetLayout frame_info_layout,
-    VkFormat depth_buffer_format)
-    : backend_{&backend}
-    , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
+galileo::physics_debug_t::physics_debug_t(batch_renderer_t& batch_renderer)
+    : batch_renderer_{&batch_renderer}
 {
     Initialize();
-
-    vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
-        enable_shader_optimization};
-
-    auto vertex_shader{add_shader_module_from_path(shader_set,
-        backend_->device(),
-        VK_SHADER_STAGE_VERTEX_BIT,
-        "physics_debug_line.vert")};
-    assert(vertex_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
-
-    auto fragment_shader{add_shader_module_from_path(shader_set,
-        backend_->device(),
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        "physics_debug_line.frag")};
-    assert(fragment_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
-
-    line_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(frame_info_layout)
-                .build()}
-            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
-            .add_shader(as_pipeline_shader(*vertex_shader))
-            .add_shader(as_pipeline_shader(*fragment_shader))
-            .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
-            .with_depth_test(depth_buffer_format)
-            .with_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
-            .add_vertex_input(binding_description(), attribute_description())
-            .build();
-
-    for (frame_data_t& data : cppext::as_span(frame_data_))
-    {
-        data.vertex_buffer = vkrndr::create_buffer(backend_->device(),
-            {.size = max_line_count * sizeof(line_vertex_t),
-                .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                .allocation_flags =
-                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
-        data.vertex_map =
-            vkrndr::map_memory(backend_->device(), data.vertex_buffer);
-    }
-}
-
-galileo::physics_debug_t::~physics_debug_t()
-{
-    for (frame_data_t& data : cppext::as_span(frame_data_))
-    {
-        unmap_memory(backend_->device(), &data.vertex_map);
-        destroy(&backend_->device(), &data.vertex_buffer);
-    }
-
-    destroy(&backend_->device(), &line_pipeline_);
-}
-
-VkPipelineLayout galileo::physics_debug_t::pipeline_layout() const
-{
-    return *line_pipeline_.layout;
 }
 
 void galileo::physics_debug_t::set_camera(ngngfx::camera_t const& camera)
@@ -163,50 +57,14 @@ void galileo::physics_debug_t::set_camera(ngngfx::camera_t const& camera)
     camera_ = &camera;
 }
 
-void galileo::physics_debug_t::draw(VkCommandBuffer command_buffer)
-{
-    [[maybe_unused]] boost::scope::defer_guard const on_exit{[this]()
-        {
-            frame_data_.cycle(
-                [](auto& current, auto&) { current.vertex_count = 0; });
-        }};
-
-    if (frame_data_->vertex_count == 0)
-    {
-        return;
-    }
-
-    VkDeviceSize const zero_offset{};
-    vkCmdBindVertexBuffers(command_buffer,
-        0,
-        1,
-        &frame_data_->vertex_buffer.buffer,
-        &zero_offset);
-
-    vkrndr::bind_pipeline(command_buffer, line_pipeline_);
-
-    vkCmdSetLineWidth(command_buffer, 3.0f);
-
-    vkCmdDraw(command_buffer, frame_data_->vertex_count, 1, 0, 0);
-}
-
 void galileo::physics_debug_t::DrawLine(JPH::RVec3Arg const inFrom,
     JPH::RVec3Arg const inTo,
     JPH::ColorArg const inColor)
 {
-    auto* const lines{frame_data_->vertex_map.as<line_vertex_t>()};
-    if (frame_data_->vertex_count + 2 <= max_line_count)
-    {
-        auto const color{ngnphy::to_glm(inColor.ToVec4())};
-
-        line_vertex_t& first{lines[frame_data_->vertex_count++]};
-        first.position = ngnphy::to_glm(inFrom);
-        first.color = color;
-
-        line_vertex_t& second{lines[frame_data_->vertex_count++]};
-        second.position = ngnphy::to_glm(inTo);
-        second.color = color;
-    }
+    auto const color{ngnphy::to_glm(inColor.ToVec4())};
+    batch_renderer_->add_line(
+        {.position = ngnphy::to_glm(inFrom), .color = color},
+        {.position = ngnphy::to_glm(inTo), .color = color});
 }
 
 void galileo::physics_debug_t::DrawTriangle(JPH::RVec3Arg inV1,
