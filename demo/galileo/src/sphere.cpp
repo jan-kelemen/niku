@@ -135,9 +135,9 @@ void galileo::move_spheres(entt::registry& registry,
         auto const integral{path.integral + error * delta_time};
         auto const derivative{(error - path.error) / delta_time};
 
-        auto const force{proportional + 0.0f * integral + derivative};
+        auto const force{proportional + 0.001f * integral + 0.5f * derivative};
 
-        body_interface.AddImpulse(physics_id, 100.0f * ngnphy::to_jolt(force));
+        body_interface.AddImpulse(physics_id, 500.0f * ngnphy::to_jolt(force));
 
         path.integral = integral;
         path.error = error;

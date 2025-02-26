@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <span>
 
+class dtNavMesh;
 struct rcPolyMesh;
 struct rcPolyMeshDetail;
 
@@ -36,11 +37,13 @@ namespace galileo
         ~navmesh_debug_t() = default;
 
     public:
-        void update(rcPolyMesh const& poly_mesh);
+        void draw_poly_mesh(rcPolyMesh const& poly_mesh);
 
-        void update(rcPolyMeshDetail const& poly_mesh_detail);
+        void draw_detail_poly_mesh(rcPolyMeshDetail const& poly_mesh_detail);
 
-        void update(std::span<glm::vec3 const> const& path_points);
+        void draw_path_points(std::span<glm::vec3 const> const& path_points);
+
+        void draw_navigation_mesh(dtNavMesh const& navigation_mesh);
 
     public:
         navmesh_debug_t& operator=(navmesh_debug_t const&) = delete;

@@ -39,6 +39,8 @@ namespace galileo
 
         [[nodiscard]] navigation_mesh_query_ptr_t get_navigation_query();
 
+        [[nodiscard]] dtNavMesh const& get_navigation_mesh() const;
+
         void update_navigation_mesh(navigation_mesh_ptr_t navigation_mesh);
 
     public:

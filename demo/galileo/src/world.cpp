@@ -41,6 +41,11 @@ galileo::navigation_mesh_query_ptr_t galileo::world_t::get_navigation_query()
     return create_query(navigation_mesh_.get());
 }
 
+dtNavMesh const& galileo::world_t::get_navigation_mesh() const
+{
+    return *navigation_mesh_;
+}
+
 void galileo::world_t::update_navigation_mesh(
     navigation_mesh_ptr_t navigation_mesh)
 {

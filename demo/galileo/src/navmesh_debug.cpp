@@ -42,12 +42,192 @@
 // IWYU pragma: no_include <span>
 // IWYU pragma: no_include <system_error>
 
+namespace
+{
+    void draw_poly_boundaries(galileo::batch_renderer_t& batch_renderer,
+        dtMeshTile const& tile,
+        glm::vec4 const base_color,
+        bool const inner)
+    {
+        auto const distance_2d = [](float const* const pt,
+                                     float const* const p,
+                                     float const* const q)
+        {
+            float const pqx{q[0] - p[0]};
+            float const pqz{q[2] - p[2]};
+            float dx{pt[0] - p[0]};
+            float dz{pt[2] - p[2]};
+            float const d{pqx * pqx + pqz * pqz};
+            float t{pqx * dx + pqz * dz};
+
+            if (d != 0)
+            {
+                t /= d;
+            }
+
+            dx = p[0] + t * pqx - pt[0];
+            dz = p[2] + t * pqz - pt[2];
+
+            return dx * dx + dz * dz;
+        };
+
+        for (int i{}; i != tile.header->polyCount; ++i)
+        {
+            dtPoly const& poly{tile.polys[i]};
+            dtPolyDetail const& poly_detail{tile.detailMeshes[i]};
+
+            for (int j{}; j != poly.vertCount; ++j)
+            {
+                glm::vec4 color{base_color};
+                if (inner)
+                {
+                    if (poly.neis[j] == 0)
+                    {
+                        continue;
+                    }
+
+                    if (poly.neis[j] & DT_EXT_LINK)
+                    {
+                        bool connection{false};
+                        for (unsigned int k{poly.firstLink}; k != DT_NULL_LINK;
+                            k = tile.links[k].next)
+                        {
+                            if (tile.links[k].edge == j)
+                            {
+                                connection = true;
+                            }
+                        }
+
+                        color = connection ? glm::vec4{1.0f, 1.0f, 1.0f, 0.2f}
+                                           : glm::vec4{0.0f, 0.0f, 0.0f, 0.2f};
+                    }
+                    else
+                    {
+                        color = glm::vec4{0.0f, 0.2f, 0.4f, 0.3f};
+                    }
+                }
+                else
+                {
+                    if (poly.neis[j] != 0)
+                    {
+                        continue;
+                    }
+                }
+
+                float const* const v0{&tile.verts[poly.verts[j] * 3]};
+                float const* const v1{
+                    &tile.verts[poly.verts[(j + 1) % poly.vertCount] * 3]};
+
+                auto const make_tv = [&tile, &poly, &poly_detail](
+                                         unsigned char const tv)
+                {
+                    return tv < poly.vertCount
+                        ? &tile.verts[poly.verts[tv] * 3]
+                        : &tile.detailVerts[(poly_detail.vertBase + tv -
+                                                poly.vertCount) *
+                              3];
+                };
+
+                for (int k{}; k != poly_detail.triCount; ++k)
+                {
+                    unsigned char const* const t{
+                        &tile.detailTris[(poly_detail.triBase + k) * 4]};
+                    std::array<float*, 3> const tv{make_tv(t[0]),
+                        make_tv(t[1]),
+                        make_tv(t[2])};
+
+                    for (int m{}, n{2}; m < 3; n = m, ++m)
+                    {
+                        if ((dtGetDetailTriEdgeFlags(t[3], n) &
+                                DT_DETAIL_EDGE_BOUNDARY) == 0)
+                        {
+                            continue;
+                        }
+
+                        constexpr float threshold{0.01f * 0.01f};
+                        if (distance_2d(tv[n], v0, v1) < threshold &&
+                            distance_2d(tv[m], v0, v1) < threshold)
+                        {
+                            batch_renderer.add_line(
+                                {.position = glm::make_vec3(tv[n]),
+                                    .color = color},
+                                {.position = glm::make_vec3(tv[m]),
+                                    .color = color});
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void draw_mesh_tile(galileo::batch_renderer_t& batch_renderer,
+        dtNavMesh const& navigation_mesh,
+        dtMeshTile const& tile)
+    {
+        dtPolyRef const base{navigation_mesh.getPolyRefBase(&tile)};
+
+        unsigned int const tile_number{navigation_mesh.decodePolyIdTile(base)};
+        glm::vec4 const tile_color{0.5f, 0.5f, 0.5f, 0.5f};
+
+        for (int i{}; i != tile.header->polyCount; ++i)
+        {
+            dtPoly const& poly{tile.polys[i]};
+            dtPolyDetail const& poly_detail{tile.detailMeshes[i]};
+
+            auto const make_vertex =
+                [&tile, &poly, &poly_detail](
+                    unsigned char const tv) -> galileo::batch_vertex_t
+            {
+                auto const color{cppext::as_fp(poly.getArea()) / 255.0f};
+
+                float const* const position_data{tv < poly.vertCount
+                        ? &tile.verts[poly.verts[tv] * 3]
+                        : &tile.detailVerts[(poly_detail.vertBase + tv -
+                                                poly.vertCount) *
+                              3]};
+
+                return {.position = glm::make_vec3(position_data) +
+                        glm::vec3{0.01f, 0.01f, 0.01f},
+                    .color = glm::vec4{color, color, color, 0.5f}};
+            };
+
+            for (int j{}; j != poly_detail.triCount; ++j)
+            {
+                unsigned char const* const t{
+                    &tile.detailTris[(poly_detail.triBase + j) * 4]};
+
+                batch_renderer.add_triangle(make_vertex(t[0]),
+                    make_vertex(t[1]),
+                    make_vertex(t[2]));
+            }
+        }
+
+        draw_poly_boundaries(batch_renderer,
+            tile,
+            {0.0f, 0.2f, 0.3f, 0.2f},
+            true);
+
+        draw_poly_boundaries(batch_renderer,
+            tile,
+            {0.2f, 0.2f, 0.3f, 0.8f},
+            false);
+
+        for (int i{}; i != tile.header->vertCount; ++i)
+        {
+            batch_renderer.add_point(
+                {.position = glm::make_vec3(&tile.verts[i * 3]),
+                    .width = 10.0f,
+                    .color = glm::vec4{0.0f, 0.0f, 0.0f, 0.75f}});
+        }
+    }
+} // namespace
+
 galileo::navmesh_debug_t::navmesh_debug_t(batch_renderer_t& batch_renderer)
     : batch_renderer_{&batch_renderer}
 {
 }
 
-void galileo::navmesh_debug_t::update(rcPolyMesh const& poly_mesh)
+void galileo::navmesh_debug_t::draw_poly_mesh(rcPolyMesh const& poly_mesh)
 {
     int const vertices_per_polygon{poly_mesh.nvp};
 
@@ -154,7 +334,8 @@ void galileo::navmesh_debug_t::update(rcPolyMesh const& poly_mesh)
     }
 }
 
-void galileo::navmesh_debug_t::update(rcPolyMeshDetail const& poly_mesh_detail)
+void galileo::navmesh_debug_t::draw_detail_poly_mesh(
+    rcPolyMeshDetail const& poly_mesh_detail)
 {
     std::minstd_rand generator;
 
@@ -255,7 +436,7 @@ void galileo::navmesh_debug_t::update(rcPolyMeshDetail const& poly_mesh_detail)
     }
 }
 
-void galileo::navmesh_debug_t::update(
+void galileo::navmesh_debug_t::draw_path_points(
     std::span<glm::vec3 const> const& path_points)
 {
     for (size_t i{}; i != path_points.size(); ++i)
@@ -273,5 +454,20 @@ void galileo::navmesh_debug_t::update(
         batch_renderer_->add_point({.position = point,
             .width = 10.0f,
             .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.8f}});
+    }
+}
+
+void galileo::navmesh_debug_t::draw_navigation_mesh(
+    dtNavMesh const& navigation_mesh)
+{
+    for (int i{}; i != navigation_mesh.getMaxTiles(); ++i)
+    {
+        dtMeshTile const* const tile{navigation_mesh.getTile(i)};
+        if (!tile || !tile->header)
+        {
+            continue;
+        }
+
+        draw_mesh_tile(*batch_renderer_, navigation_mesh, *tile);
     }
 }

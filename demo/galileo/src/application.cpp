@@ -319,7 +319,7 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
                     } while (increment(*iterator));
                     debug.push_back(iterator->current_position);
 
-                    navmesh_debug_->update(debug);
+                    navmesh_debug_->draw_path_points(debug);
                 }
             }
         }
@@ -351,6 +351,13 @@ void galileo::application_t::update(float const delta_time)
 
     ImGui::Begin("Lights");
     ImGui::SliderInt("Count", &light_count_, 0, 1000);
+    ImGui::End();
+
+    ImGui::Begin("Debug");
+    ImGui::Checkbox("Draw Physics", &draw_physics_);
+    ImGui::Checkbox("Draw Mesh", &draw_main_polymesh_);
+    ImGui::Checkbox("Draw Detail Mesh", &draw_detail_polymesh_);
+    ImGui::Checkbox("Draw Navigation Mesh", &draw_navigation_mesh_);
     ImGui::End();
 
     {
@@ -432,10 +439,6 @@ void galileo::application_t::update(float const delta_time)
             16.0f,
             "%.0f");
 
-        ImGui::Checkbox("Draw Mesh", &draw_main_polymesh_);
-
-        ImGui::Checkbox("Draw Detail Mesh", &draw_detail_polymesh_);
-
         ImGui::End();
 
         if (update_navmesh)
@@ -493,10 +496,6 @@ void galileo::application_t::update(float const delta_time)
             character_->world_transform());
     }
 
-    JPH::BodyManager::DrawSettings const ds{.mDrawVelocity = true};
-    physics_engine_.physics_system().DrawBodies(ds, physics_debug_.get());
-    character_->debug(physics_debug_.get());
-
     frame_info_->update(camera_, static_cast<uint32_t>(light_count_));
 }
 
@@ -532,14 +531,26 @@ void galileo::application_t::draw()
         free_camera_controller_.draw_imgui();
     }
 
+    if (draw_physics_)
+    {
+        JPH::BodyManager::DrawSettings const ds{.mDrawVelocity = true};
+        physics_engine_.physics_system().DrawBodies(ds, physics_debug_.get());
+        character_->debug(physics_debug_.get());
+    }
+
     if (draw_main_polymesh_)
     {
-        navmesh_debug_->update(*poly_mesh_.mesh);
+        navmesh_debug_->draw_poly_mesh(*poly_mesh_.mesh);
     }
 
     if (draw_detail_polymesh_)
     {
-        navmesh_debug_->update(*poly_mesh_.detail_mesh);
+        navmesh_debug_->draw_detail_poly_mesh(*poly_mesh_.detail_mesh);
+    }
+
+    if (draw_navigation_mesh_)
+    {
+        navmesh_debug_->draw_navigation_mesh(world_.get_navigation_mesh());
     }
 
     auto target_image{backend_->swapchain_image()};

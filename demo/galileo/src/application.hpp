@@ -120,12 +120,15 @@ namespace galileo
         int light_count_{1};
 
         physics_engine_t physics_engine_;
+        bool draw_physics_{true};
+
         entt::entity spawner_{entt::null};
 
         polymesh_parameters_t polymesh_params_;
         poly_mesh_t poly_mesh_;
         bool draw_main_polymesh_{true};
         bool draw_detail_polymesh_{true};
+        bool draw_navigation_mesh_{true};
 
         ngnscr::scripting_engine_t scripting_engine_;
 
