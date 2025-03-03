@@ -4,8 +4,8 @@
 #include <navmesh.hpp>
 
 // clang-format off
-#include <type_traits>
-#include <Jolt/Jolt.h>
+#include <type_traits> // IWYU pragma: keep
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 // clang-format on
 
 #include <Jolt/Physics/Body/BodyID.h>
@@ -13,6 +13,8 @@
 #include <glm/vec3.hpp>
 
 #include <optional>
+
+// IWYU pragma: no_include <recastnavigation/DetourNavMesh.h>
 
 namespace galileo
 {
@@ -24,7 +26,7 @@ namespace galileo
     class [[nodiscard]] world_t final
     {
     public:
-        world_t(physics_engine_t& physics_engine);
+        explicit world_t(physics_engine_t& physics_engine);
 
         world_t(world_t const&) = delete;
 

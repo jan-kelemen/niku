@@ -14,8 +14,6 @@
 #include <glm/trigonometric.hpp>
 #include <glm/vec3.hpp>
 
-#include <optional>
-
 union SDL_Event;
 
 namespace ngnwsi

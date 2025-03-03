@@ -13,7 +13,9 @@
 #include <volk.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace vkrndr
 {

@@ -5,8 +5,10 @@
 
 #include <entt/entt.hpp>
 
-#include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
+
+// IWYU pragma: no_include <recastnavigation/DetourNavMeshQuery.h>
+// IWYU pragma: no_include <memory>
 
 namespace galileo
 {
@@ -26,7 +28,7 @@ namespace galileo
 
     void move_spheres(entt::registry& registry,
         physics_engine_t& physics_engine,
-        float const delta_time);
+        float delta_time);
 } // namespace galileo
 
 namespace galileo::component

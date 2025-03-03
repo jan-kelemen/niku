@@ -18,6 +18,7 @@
 #include <render_graph.hpp>
 #include <scripting.hpp>
 #include <sphere.hpp>
+#include <world.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
@@ -63,27 +64,25 @@ DISABLE_WARNING_POP
 
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
-#include <Jolt/Core/Reference.h>
+#include <Jolt/Core/Core.h>
 #include <Jolt/Geometry/IndexedTriangle.h>
 #include <Jolt/Geometry/Triangle.h>
 #include <Jolt/Math/Float3.h>
-#include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Body/BodyManager.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
@@ -115,6 +114,8 @@ DISABLE_WARNING_POP
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <recastnavigation/DetourNavMeshQuery.h>
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string_view>

@@ -13,11 +13,6 @@ namespace ngnscr
     class scripting_engine_t;
 } // namespace ngnscr
 
-class asIScriptModule;
-class asIScriptFunction;
-class asIScriptObject;
-class asITypeInfo;
-
 namespace galileo
 {
     [[nodiscard]] bool register_spawner_type(

@@ -1,40 +1,19 @@
 #include <physics_debug.hpp>
 
 #include <batch_renderer.hpp>
-#include <config.hpp>
-
-#include <cppext_cycled_buffer.hpp>
 
 #include <ngnphy_jolt_adapter.hpp>
 
 #include <ngngfx_camera.hpp>
 
-#include <vkglsl_shader_set.hpp>
-
-#include <vkrndr_backend.hpp>
-#include <vkrndr_buffer.hpp>
-#include <vkrndr_memory.hpp>
-#include <vkrndr_pipeline.hpp>
-#include <vkrndr_shader_module.hpp>
-
-#include <boost/scope/defer.hpp>
-
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 #include <Jolt/Math/Mat44.h>
 #include <Jolt/Math/Vec3.h>
 
-#include <vma_impl.hpp>
-
 #include <spdlog/spdlog.h>
 
-#include <array>
-#include <cassert>
 #include <cstddef>
 #include <memory>
-#include <span>
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>

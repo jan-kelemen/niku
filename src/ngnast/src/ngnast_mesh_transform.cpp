@@ -2,6 +2,8 @@
 
 #include <ngnast_scene_model.hpp>
 
+#include <cppext_pragma_warning.hpp>
+
 #include <meshoptimizer.h>
 
 #include <algorithm>
@@ -40,7 +42,11 @@ bool ngnast::mesh::make_indexed(primitive_t& primitive)
     size_t const unindexed_vertex_count{primitive.vertices.size()};
 
     std::vector<unsigned int> remap;
+
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_NULL_DEREFERENCE
     remap.resize(index_count);
+    DISABLE_WARNING_POP
 
     size_t const vertex_count{meshopt_generateVertexRemap(remap.data(),
         nullptr,

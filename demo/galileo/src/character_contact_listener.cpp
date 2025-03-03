@@ -14,7 +14,8 @@
 
 #include <spdlog/spdlog.h>
 
-#include <exception>
+#include <cassert>
+#include <chrono>
 #include <memory>
 
 // IWYU pragma: no_include <fmt/base.h>

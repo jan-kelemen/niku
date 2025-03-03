@@ -1,14 +1,22 @@
 #include <world.hpp>
 
+#include <navmesh.hpp>
 #include <physics_engine.hpp>
 
 #include <ngnphy_jolt_adapter.hpp>
 
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
 #include <glm/vec3.hpp>
+
+#include <recastnavigation/DetourNavMesh.h>
+
+#include <utility>
 
 galileo::world_t::world_t(physics_engine_t& physics_engine)
     : physics_engine_{&physics_engine}
@@ -18,7 +26,7 @@ galileo::world_t::world_t(physics_engine_t& physics_engine)
 std::optional<JPH::BodyID> galileo::world_t::cast_ray(glm::vec3 const from,
     glm::vec3 const direction_and_reach)
 {
-    JPH::RRayCast ray{ngnphy::to_jolt(from),
+    JPH::RRayCast const ray{ngnphy::to_jolt(from),
         ngnphy::to_jolt(direction_and_reach)};
 
     auto& system{physics_engine_->physics_system()};

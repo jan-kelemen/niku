@@ -11,8 +11,6 @@
 #include <Jolt/Math/Real.h>
 #include <Jolt/Renderer/DebugRenderer.h>
 
-#include <volk.h>
-
 #include <atomic>
 #include <cstdint>
 
@@ -34,7 +32,7 @@ namespace galileo
     class [[nodiscard]] physics_debug_t final : public JPH::DebugRenderer
     {
     public:
-        physics_debug_t(batch_renderer_t& batch_renderer);
+        explicit physics_debug_t(batch_renderer_t& batch_renderer);
 
         physics_debug_t(physics_debug_t const&) = delete;
 

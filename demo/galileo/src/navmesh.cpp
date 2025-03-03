@@ -8,17 +8,21 @@
 
 #include <boost/scope/scope_exit.hpp>
 
+#include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
 
+#include <recastnavigation/DetourAlloc.h>
 #include <recastnavigation/DetourNavMeshBuilder.h>
 #include <recastnavigation/DetourNavMeshQuery.h>
 #include <recastnavigation/DetourPathCorridor.h>
+#include <recastnavigation/DetourStatus.h>
 
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <iterator>
 #include <stdexcept>
 #include <utility>
@@ -48,7 +52,7 @@ namespace
     {
         std::vector<intermediate_path_point_t> points;
 
-        intermediate_path_point_t target;
+        intermediate_path_point_t target{};
     };
 
     [[nodiscard]] std::optional<intermediate_path_t> find_intermediate_path(
@@ -60,27 +64,32 @@ namespace
         unsigned char flags[max_intermediate_points]{};
         dtPolyRef polys[max_intermediate_points]{};
 
-        int nsteerPath{};
-        if (dtStatus const status{iterator.query->findStraightPath(
-                glm::value_ptr(iterator.current_position),
-                glm::value_ptr(iterator.target_position),
-                iterator.polys.data(),
-                cppext::narrow<int>(iterator.polys.size()),
-                path,
-                flags,
-                polys,
-                &nsteerPath,
-                max_intermediate_points)};
-            dtStatusFailed(status))
+        size_t steer_path_size{};
         {
-            spdlog::error("Failed to find intermediate path");
-            return std::nullopt;
+            int points{};
+            if (dtStatus const status{iterator.query->findStraightPath(
+                    glm::value_ptr(iterator.current_position),
+                    glm::value_ptr(iterator.target_position),
+                    iterator.polys.data(),
+                    cppext::narrow<int>(iterator.polys.size()),
+                    static_cast<float*>(path),
+                    static_cast<unsigned char*>(flags),
+                    static_cast<dtPolyRef*>(polys),
+                    &points,
+                    max_intermediate_points)};
+                dtStatusFailed(status))
+            {
+                spdlog::error("Failed to find intermediate path");
+                return std::nullopt;
+            }
+
+            steer_path_size = cppext::narrow<size_t>(points);
         }
 
         intermediate_path_t rv;
-        rv.points.reserve(cppext::narrow<size_t>(nsteerPath));
+        rv.points.reserve(steer_path_size);
 
-        for (int i{}; i != nsteerPath; ++i)
+        for (size_t i{}; i != steer_path_size; ++i)
         {
             rv.points.emplace_back(glm::make_vec3(&path[i * 3]),
                 static_cast<dtStraightPathFlags>(flags[i]),
@@ -88,8 +97,8 @@ namespace
         }
 
         // Find vertex far enough to steer to.
-        int ns{};
-        while (ns < nsteerPath)
+        size_t ns{};
+        while (ns < steer_path_size)
         {
             if (!in_cylinder(&path[ns * 3],
                     glm::value_ptr(iterator.current_position),
@@ -103,7 +112,7 @@ namespace
         }
 
         // Failed to find good point to steer to.
-        if (ns >= nsteerPath)
+        if (ns >= steer_path_size)
         {
             spdlog::error("Failed to find intermediate path point");
             return std::nullopt;
@@ -445,7 +454,7 @@ std::optional<galileo::path_iterator_t> galileo::find_path(
     glm::vec3 const bb_half_extent,
     int const max_nodes)
 {
-    dtQueryFilter filter;
+    dtQueryFilter const filter;
 
     dtPolyRef start_ref{};
     glm::vec3 start_nearest_point{};
@@ -474,7 +483,7 @@ std::optional<galileo::path_iterator_t> galileo::find_path(
     }
 
     std::vector<dtPolyRef> path_nodes;
-    path_nodes.resize(max_nodes);
+    path_nodes.resize(cppext::narrow<size_t>(max_nodes));
 
     int count{};
     if (dtStatus const status{query->findPath(start_ref,
@@ -540,7 +549,7 @@ bool galileo::increment(path_iterator_t& iterator)
 
     glm::vec3 const target{iterator.current_position + delta * length};
 
-    dtQueryFilter filter;
+    dtQueryFilter const filter;
 
     glm::vec3 result{};
     dtPolyRef visited[16]{};
@@ -551,7 +560,7 @@ bool galileo::increment(path_iterator_t& iterator)
                 glm::value_ptr(target),
                 &filter,
                 glm::value_ptr(result),
-                visited,
+                static_cast<dtPolyRef*>(visited),
                 &nvisited,
                 16)};
         dtStatusFailed(status))
@@ -561,11 +570,11 @@ bool galileo::increment(path_iterator_t& iterator)
     }
 
     auto const new_size{dtMergeCorridorStartMoved(iterator.polys.data(),
-        iterator.polys.size(),
+        cppext::narrow<int>(iterator.polys.size()),
         2048,
-        visited,
+        static_cast<dtPolyRef*>(visited),
         nvisited)};
-    iterator.polys.resize(new_size);
+    iterator.polys.resize(cppext::narrow<size_t>(new_size));
 
     float h{};
     if (dtStatus const status{

@@ -1,5 +1,7 @@
 #include <ngnscr_scripting_engine.hpp>
 
+#include <ngnscr_types.hpp>
+
 #include <angelscript.h>
 #include <scriptstdstring/scriptstdstring.h>
 

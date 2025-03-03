@@ -1,39 +1,38 @@
 #include <sphere.hpp>
 
+#include <navmesh.hpp>
 #include <physics_engine.hpp>
 #include <render_graph.hpp>
 
 #include <ngnphy_jolt_adapter.hpp>
 
 // clang-format off
-#include <type_traits>
-#include <Jolt/Jolt.h>
+#include <type_traits> // IWYU pragma: keep
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 // clang-format on
 
 #include <Jolt/Core/Reference.h>
-#include <Jolt/Geometry/IndexedTriangle.h>
-#include <Jolt/Geometry/Triangle.h>
-#include <Jolt/Math/Float3.h>
 #include <Jolt/Math/Quat.h>
-#include <Jolt/Math/Real.h>
 #include <Jolt/Math/Vec3.h>
-#include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/MotionType.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/MeshShape.h>
-#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EActivation.h>
-#include <Jolt/Physics/PhysicsSystem.h>
 
+#include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <recastnavigation/DetourStatus.h>
 
 #include <spdlog/spdlog.h>
 
-#include <cassert>
+#include <cstdint>
+#include <vector>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 
 entt::entity galileo::create_sphere(entt::registry& registry,
     physics_engine_t& physics_engine,

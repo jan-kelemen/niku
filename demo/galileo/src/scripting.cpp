@@ -1,6 +1,7 @@
 #include <scripting.hpp>
 
 #include <ngnscr_scripting_engine.hpp>
+#include <ngnscr_types.hpp>
 
 #include <angelscript.h>
 
@@ -8,6 +9,11 @@
 
 #include <cassert>
 #include <expected>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <compare>
+// IWYU pragma: no_include <memory>
 
 bool galileo::register_spawner_type(
     ngnscr::scripting_engine_t& scripting_engine)
@@ -78,7 +84,8 @@ galileo::component::create_spawner_scripts(spawner_data_t& spawner,
 
         return std::unexpected{static_cast<asEContextState>(execution_result)};
     }
-    rv.object = *(asIScriptObject**) context->GetAddressOfReturnValue();
+    rv.object =
+        *static_cast<asIScriptObject**>(context->GetAddressOfReturnValue());
     assert(rv.object);
 
     return rv;

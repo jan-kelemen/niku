@@ -24,12 +24,9 @@
 
 #include <SDL3/SDL_events.h>
 
-#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <random>
-#include <utility>
-#include <vector>
 
 namespace ngnwsi
 {

@@ -2,16 +2,34 @@
 
 #include <config.hpp>
 
+#include <cppext_cycled_buffer.hpp>
+
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
+#include <vkrndr_shader_module.hpp>
+
+#include <vma_impl.hpp>
 
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_fail.hpp>
 
-#include <ranges>
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <iterator>
+
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
+// IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <functional>
+// IWYU pragma: no_include <expected>
+// IWYU pragma: no_include <system_error>
+// IWYU pragma: no_include <span>
+// IWYU pragma: no_include <utility>
 
 namespace
 {
@@ -283,7 +301,6 @@ galileo::batch_renderer_t::buffer_for(VkPrimitiveTopology topology)
         {
             cached_index =
                 std::distance(frame_data_->buffers.begin(), existing);
-            return &(*existing);
         }
         else
         {
@@ -299,7 +316,7 @@ galileo::batch_renderer_t::buffer_for(VkPrimitiveTopology topology)
             boost::scope::scope_fail f{
                 [this, &buffer]() { destroy(&backend_->device(), &buffer); }};
 
-            &frame_data_->buffers.emplace_back(topology,
+            frame_data_->buffers.emplace_back(topology,
                 buffer,
                 vkrndr::mapped_memory_t{},
                 0,

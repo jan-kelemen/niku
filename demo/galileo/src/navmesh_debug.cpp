@@ -1,35 +1,17 @@
 #include <navmesh_debug.hpp>
 
 #include <batch_renderer.hpp>
-#include <config.hpp>
-#include <navmesh.hpp>
 
 #include <cppext_numeric.hpp>
-
-#include <vkglsl_shader_set.hpp>
-
-#include <vkrndr_backend.hpp>
-#include <vkrndr_buffer.hpp>
-#include <vkrndr_device.hpp>
-#include <vkrndr_memory.hpp>
-#include <vkrndr_pipeline.hpp>
-#include <vkrndr_shader_module.hpp>
-
-#include <boost/scope/defer.hpp>
-#include <boost/scope/scope_fail.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include <recastnavigation/DetourNavMesh.h>
 #include <recastnavigation/Recast.h>
 
-#include <vma_impl.hpp>
-
-#include <volk.h>
-
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <random>
 
@@ -44,6 +26,7 @@
 
 namespace
 {
+    // cppcheck-suppress constParameterReference
     void draw_poly_boundaries(galileo::batch_renderer_t& batch_renderer,
         dtMeshTile const& tile,
         glm::vec4 const base_color,
@@ -114,31 +97,40 @@ namespace
                     }
                 }
 
-                float const* const v0{&tile.verts[poly.verts[j] * 3]};
+                float const* const v0{
+                    &tile.verts[cppext::narrow<ptrdiff_t>(poly.verts[j]) * 3]};
                 float const* const v1{
-                    &tile.verts[poly.verts[(j + 1) % poly.vertCount] * 3]};
+                    &tile.verts[cppext::narrow<ptrdiff_t>(
+                                    poly.verts[(j + 1) % poly.vertCount]) *
+                        3]};
 
                 auto const make_tv = [&tile, &poly, &poly_detail](
                                          unsigned char const tv)
                 {
                     return tv < poly.vertCount
-                        ? &tile.verts[poly.verts[tv] * 3]
-                        : &tile.detailVerts[(poly_detail.vertBase + tv -
+                        ? &tile.verts[cppext::narrow<ptrdiff_t>(
+                                          poly.verts[tv]) *
+                              3]
+                        : &tile.detailVerts[cppext::narrow<ptrdiff_t>(
+                                                poly_detail.vertBase + tv -
                                                 poly.vertCount) *
                               3];
                 };
 
-                for (int k{}; k != poly_detail.triCount; ++k)
+                for (unsigned int k{}; k != poly_detail.triCount; ++k)
                 {
                     unsigned char const* const t{
-                        &tile.detailTris[(poly_detail.triBase + k) * 4]};
+                        &tile.detailTris[cppext::narrow<ptrdiff_t>(
+                                             poly_detail.triBase + k) *
+                            4]};
                     std::array<float*, 3> const tv{make_tv(t[0]),
                         make_tv(t[1]),
                         make_tv(t[2])};
 
-                    for (int m{}, n{2}; m < 3; n = m, ++m)
+                    for (unsigned int m{}, n{2}; m < 3; n = m, ++m)
                     {
-                        if ((dtGetDetailTriEdgeFlags(t[3], n) &
+                        if ((dtGetDetailTriEdgeFlags(t[3],
+                                 static_cast<int>(n)) &
                                 DT_DETAIL_EDGE_BOUNDARY) == 0)
                         {
                             continue;
@@ -161,14 +153,8 @@ namespace
     }
 
     void draw_mesh_tile(galileo::batch_renderer_t& batch_renderer,
-        dtNavMesh const& navigation_mesh,
         dtMeshTile const& tile)
     {
-        dtPolyRef const base{navigation_mesh.getPolyRefBase(&tile)};
-
-        unsigned int const tile_number{navigation_mesh.decodePolyIdTile(base)};
-        glm::vec4 const tile_color{0.5f, 0.5f, 0.5f, 0.5f};
-
         for (int i{}; i != tile.header->polyCount; ++i)
         {
             dtPoly const& poly{tile.polys[i]};
@@ -181,8 +167,11 @@ namespace
                 auto const color{cppext::as_fp(poly.getArea()) / 255.0f};
 
                 float const* const position_data{tv < poly.vertCount
-                        ? &tile.verts[poly.verts[tv] * 3]
-                        : &tile.detailVerts[(poly_detail.vertBase + tv -
+                        ? &tile
+                              .verts[cppext::narrow<ptrdiff_t>(poly.verts[tv]) *
+                                  3]
+                        : &tile.detailVerts[cppext::narrow<ptrdiff_t>(
+                                                poly_detail.vertBase + tv -
                                                 poly.vertCount) *
                               3]};
 
@@ -191,10 +180,12 @@ namespace
                     .color = glm::vec4{color, color, color, 0.5f}};
             };
 
-            for (int j{}; j != poly_detail.triCount; ++j)
+            for (unsigned int j{}; j != poly_detail.triCount; ++j)
             {
                 unsigned char const* const t{
-                    &tile.detailTris[(poly_detail.triBase + j) * 4]};
+                    &tile.detailTris[cppext::narrow<ptrdiff_t>(
+                                         poly_detail.triBase + j) *
+                        4]};
 
                 batch_renderer.add_triangle(make_vertex(t[0]),
                     make_vertex(t[1]),
@@ -215,7 +206,8 @@ namespace
         for (int i{}; i != tile.header->vertCount; ++i)
         {
             batch_renderer.add_point(
-                {.position = glm::make_vec3(&tile.verts[i * 3]),
+                {.position = glm::make_vec3(
+                     &tile.verts[cppext::narrow<ptrdiff_t>(i) * 3]),
                     .width = 10.0f,
                     .color = glm::vec4{0.0f, 0.0f, 0.0f, 0.75f}});
         }
@@ -468,6 +460,6 @@ void galileo::navmesh_debug_t::draw_navigation_mesh(
             continue;
         }
 
-        draw_mesh_tile(*batch_renderer_, navigation_mesh, *tile);
+        draw_mesh_tile(*batch_renderer_, *tile);
     }
 }

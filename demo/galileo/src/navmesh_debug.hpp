@@ -3,19 +3,11 @@
 
 #include <glm/vec3.hpp>
 
-#include <volk.h>
-
-#include <cstdint>
 #include <span>
 
 class dtNavMesh;
 struct rcPolyMesh;
 struct rcPolyMeshDetail;
-
-namespace vkrndr
-{
-    class backend_t;
-} // namespace vkrndr
 
 namespace galileo
 {
@@ -27,7 +19,7 @@ namespace galileo
     class [[nodiscard]] navmesh_debug_t final
     {
     public:
-        navmesh_debug_t(batch_renderer_t& batch_renderer);
+        explicit navmesh_debug_t(batch_renderer_t& batch_renderer);
 
         navmesh_debug_t(navmesh_debug_t const&) = delete;
 
