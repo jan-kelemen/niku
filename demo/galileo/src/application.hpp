@@ -126,6 +126,7 @@ namespace galileo
         bool draw_main_polymesh_{true};
         bool draw_detail_polymesh_{true};
         bool draw_navigation_mesh_{true};
+        bool draw_navigation_queries_{true};
 
         ngnscr::scripting_engine_t scripting_engine_;
 

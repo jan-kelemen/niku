@@ -9,6 +9,9 @@
 #include <glm/vec4.hpp>
 
 #include <recastnavigation/DetourNavMesh.h>
+#include <recastnavigation/DetourNavMeshQuery.h>
+#include <recastnavigation/DetourNode.h>
+#include <recastnavigation/DetourStatus.h>
 #include <recastnavigation/Recast.h>
 
 #include <array>
@@ -176,7 +179,7 @@ namespace
                               3]};
 
                 return {.position = glm::make_vec3(position_data) +
-                        glm::vec3{0.01f, 0.01f, 0.01f},
+                        glm::vec3{0.0f, 0.0f, 0.0f},
                     .color = glm::vec4{color, color, color, 0.5f}};
             };
 
@@ -428,27 +431,6 @@ void galileo::navmesh_debug_t::draw_detail_poly_mesh(
     }
 }
 
-void galileo::navmesh_debug_t::draw_path_points(
-    std::span<glm::vec3 const> const& path_points)
-{
-    for (size_t i{}; i != path_points.size(); ++i)
-    {
-        auto const& point{path_points[i]};
-
-        if (i != path_points.size() - 1)
-        {
-            batch_renderer_->add_line(
-                {.position = point, .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.6f}},
-                {.position = path_points[i + 1],
-                    .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.6f}});
-        }
-
-        batch_renderer_->add_point({.position = point,
-            .width = 10.0f,
-            .color = glm::vec4{1.0f, 1.0f, 0.0f, 0.8f}});
-    }
-}
-
 void galileo::navmesh_debug_t::draw_navigation_mesh(
     dtNavMesh const& navigation_mesh)
 {
@@ -461,5 +443,97 @@ void galileo::navmesh_debug_t::draw_navigation_mesh(
         }
 
         draw_mesh_tile(*batch_renderer_, *tile);
+    }
+}
+
+void galileo::navmesh_debug_t::draw_nodes(dtNavMeshQuery const& query)
+{
+    dtNodePool const* const pool{query.getNodePool()};
+    if (!pool)
+    {
+        return;
+    }
+
+    auto const make_vertex = [](dtNode const& node) -> batch_vertex_t
+    {
+        return {
+            .position = glm::vec3{node.pos[0], node.pos[1] + 0.1f, node.pos[2]},
+            .width = 10.0f,
+            .color = glm::vec4{1.0f, 0.8f, 0.0f, 1.0f}};
+    };
+
+    for (int i{}; i != pool->getHashSize(); ++i)
+    {
+        for (dtNodeIndex j{pool->getFirst(i)}; j != DT_NULL_IDX;
+            j = pool->getNext(j))
+        {
+            dtNode const* const node{pool->getNodeAtIdx(j + 1)};
+            if (!node)
+            {
+                continue;
+            }
+
+            batch_renderer_->add_point(make_vertex(*node));
+        }
+    }
+
+    for (int i{}; i != pool->getHashSize(); ++i)
+    {
+        for (dtNodeIndex j{pool->getFirst(i)}; j != DT_NULL_IDX;
+            j = pool->getNext(j))
+        {
+            dtNode const* node{pool->getNodeAtIdx(j + 1)};
+            if (!node || !node->pidx)
+            {
+                continue;
+            }
+
+            dtNode const* parent = pool->getNodeAtIdx(node->pidx);
+            if (!parent)
+            {
+                continue;
+            }
+
+            batch_renderer_->add_line(make_vertex(*node), make_vertex(*parent));
+        }
+    }
+}
+
+void galileo::navmesh_debug_t::draw_poly(dtNavMesh const& navigation_mesh,
+    dtPolyRef const reference)
+{
+    dtMeshTile const* tile{nullptr};
+    dtPoly const* poly{nullptr};
+    if (dtStatusFailed(
+            navigation_mesh.getTileAndPolyByRef(reference, &tile, &poly)))
+    {
+        return;
+    }
+
+    ptrdiff_t const detail_index{poly - tile->polys};
+    dtPolyDetail const* poly_detail = &tile->detailMeshes[detail_index];
+
+    auto const make_vertex = [&tile, &poly, &poly_detail](
+                                 unsigned char const tv) -> batch_vertex_t
+    {
+        float const* const position_data{tv < poly->vertCount
+                ? &tile->verts[cppext::narrow<ptrdiff_t>(poly->verts[tv]) * 3]
+                : &tile->detailVerts[cppext::narrow<ptrdiff_t>(
+                                         poly_detail->vertBase + tv -
+                                         poly->vertCount) *
+                      3]};
+
+        return {.position = glm::make_vec3(position_data) +
+                glm::vec3{0.0f, 0.01f, 0.0f},
+            .color = glm::vec4{1.0f, 0.0f, 0.0f, 0.5f}};
+    };
+
+    for (unsigned int i{}; i < poly_detail->triCount; ++i)
+    {
+        unsigned char const* const t{&tile->detailTris
+                [cppext::narrow<ptrdiff_t>(poly_detail->triBase + i) * 4]};
+        batch_renderer_->add_triangle(make_vertex(t[0]),
+            make_vertex(t[1]),
+            make_vertex(t[2]));
     }
 }

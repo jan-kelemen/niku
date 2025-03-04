@@ -1,11 +1,9 @@
 #ifndef GALILEO_NAVMESH_DEBUG_INCLUDED
 #define GALILEO_NAVMESH_DEBUG_INCLUDED
 
-#include <glm/vec3.hpp>
+#include <recastnavigation/DetourNavMesh.h>
 
-#include <span>
-
-class dtNavMesh;
+class dtNavMeshQuery;
 struct rcPolyMesh;
 struct rcPolyMeshDetail;
 
@@ -33,9 +31,11 @@ namespace galileo
 
         void draw_detail_poly_mesh(rcPolyMeshDetail const& poly_mesh_detail);
 
-        void draw_path_points(std::span<glm::vec3 const> const& path_points);
-
         void draw_navigation_mesh(dtNavMesh const& navigation_mesh);
+
+        void draw_nodes(dtNavMeshQuery const& query);
+
+        void draw_poly(dtNavMesh const& navigation_mesh, dtPolyRef reference);
 
     public:
         navmesh_debug_t& operator=(navmesh_debug_t const&) = delete;

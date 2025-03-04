@@ -86,6 +86,8 @@ DISABLE_WARNING_POP
 #include <Jolt/Physics/EActivation.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 
+#include <recastnavigation/DetourNavMesh.h>
+
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_scancode.h>
 #include <SDL3/SDL_video.h>
@@ -307,20 +309,6 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
                             body_interface.GetUserData(*body)),
                         std::move(query),
                         *std::move(iterator));
-
-                    query = world_.get_navigation_query();
-                    std::vector<glm::vec3> debug;
-                    iterator = find_path(query.get(),
-                        sphere_position,
-                        spawner_position,
-                        (world_aabb_.max - world_aabb_.min) / 2.0f);
-                    do
-                    {
-                        debug.push_back(iterator->current_position);
-                    } while (increment(*iterator));
-                    debug.push_back(iterator->current_position);
-
-                    navmesh_debug_->draw_path_points(debug);
                 }
             }
         }
@@ -359,6 +347,7 @@ void galileo::application_t::update(float const delta_time)
     ImGui::Checkbox("Draw Mesh", &draw_main_polymesh_);
     ImGui::Checkbox("Draw Detail Mesh", &draw_detail_polymesh_);
     ImGui::Checkbox("Draw Navigation Mesh", &draw_navigation_mesh_);
+    ImGui::Checkbox("Draw Navigation Queries", &draw_navigation_queries_);
     ImGui::End();
 
     {
@@ -552,6 +541,18 @@ void galileo::application_t::draw()
     if (draw_navigation_mesh_)
     {
         navmesh_debug_->draw_navigation_mesh(world_.get_navigation_mesh());
+    }
+
+    if (draw_navigation_queries_)
+    {
+        for (auto const entity : registry_.view<component::sphere_path_t>())
+        {
+            auto const& path{registry_.get<component::sphere_path_t>(entity)};
+            navmesh_debug_->draw_nodes(*path.query);
+            std::ranges::for_each(path.iterator.polys,
+                [this, &nm = world_.get_navigation_mesh()](dtPolyRef const r)
+                { navmesh_debug_->draw_poly(nm, r); });
+        }
     }
 
     auto target_image{backend_->swapchain_image()};
