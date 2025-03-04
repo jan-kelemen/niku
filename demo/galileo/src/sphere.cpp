@@ -3,13 +3,14 @@
 #include <navmesh.hpp>
 #include <physics_engine.hpp>
 #include <render_graph.hpp>
+#include <scripting.hpp>
 
+#include <ngnphy_jolt.hpp> // IWYU pragma: keep
 #include <ngnphy_jolt_adapter.hpp>
 
-// clang-format off
-#include <type_traits> // IWYU pragma: keep
-#include <Jolt/Jolt.h> // IWYU pragma: keep
-// clang-format on
+#include <ngnscr_scripting_engine.hpp>
+
+#include <angelscript.h>
 
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Math/Quat.h>
@@ -28,14 +29,18 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cassert>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <expected>
 
 entt::entity galileo::create_sphere(entt::registry& registry,
     physics_engine_t& physics_engine,
+    ngnscr::scripting_engine_t& scripting_engine,
     glm::vec3 const position,
     float const radius)
 {
@@ -56,11 +61,21 @@ entt::entity galileo::create_sphere(entt::registry& registry,
     registry.emplace<component::physics_t>(rv, id);
     registry.emplace<component::sphere_t>(rv);
 
+    asIScriptModule const* const mod{
+        scripting_engine.engine().GetModule("MyModule")};
+    assert(mod);
+
+    if (auto scripts{
+            component::create_sphere_scripts(rv, scripting_engine, *mod)})
+    {
+        registry.emplace<component::scripts_t>(rv, std::move(*scripts));
+    }
     return rv;
 }
 
 entt::entity galileo::spawn_sphere(entt::registry& registry,
     physics_engine_t& physics_engine,
+    ngnscr::scripting_engine_t& scripting_engine,
     glm::vec3 const position)
 {
     if (entt::entity const entity{registry
@@ -91,6 +106,15 @@ entt::entity galileo::spawn_sphere(entt::registry& registry,
         registry.emplace<component::physics_t>(rv, id);
         registry.emplace<component::sphere_t>(rv);
 
+        asIScriptModule const* const mod{
+            scripting_engine.engine().GetModule("MyModule")};
+        assert(mod);
+
+        if (auto scripts{
+                component::create_sphere_scripts(rv, scripting_engine, *mod)})
+        {
+            registry.emplace<component::scripts_t>(rv, std::move(*scripts));
+        }
         return rv;
     }
 

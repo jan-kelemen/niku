@@ -23,6 +23,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/sphere.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/world.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/world_contact_listener.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/batch_renderer.cpp
@@ -45,6 +46,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/sphere.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/world.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/world_contact_listener.cpp
 )
 
 target_compile_definitions(galileo 
@@ -94,8 +96,10 @@ add_custom_target(galileo_assets
 add_custom_target(galileo_scripts
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/scripts/spawner.as
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sphere.as
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sphere.as
         ${CMAKE_CURRENT_SOURCE_DIR}/scripts/spawner.as
 )
 

@@ -7,8 +7,6 @@
 
 #include <angelscript.h>
 
-#include <Jolt/Jolt.h> // IWYU pragma: keep
-
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 

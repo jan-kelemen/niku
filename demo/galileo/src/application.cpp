@@ -19,6 +19,7 @@
 #include <scripting.hpp>
 #include <sphere.hpp>
 #include <world.hpp>
+#include <world_contact_listener.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
@@ -65,8 +66,6 @@ DISABLE_WARNING_POP
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
-
-#include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Core/Core.h>
 #include <Jolt/Geometry/IndexedTriangle.h>
@@ -226,6 +225,9 @@ galileo::application_t::application_t(bool const debug)
     , random_engine_{std::random_device{}()}
     , polymesh_params_{.walkable_slope_angle = character_t::max_slope_angle}
     , world_{physics_engine_}
+    , world_listener_{std::make_unique<world_contact_listener_t>(
+          scripting_engine_,
+          registry_)}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
@@ -253,6 +255,8 @@ galileo::application_t::application_t(bool const debug)
     , navmesh_debug_{std::make_unique<navmesh_debug_t>(*batch_renderer_)}
 {
     camera_.set_position({-25.0f, 5.0f, -25.0f});
+
+    physics_engine_.physics_system().SetContactListener(world_listener_.get());
 
     physics_debug_->set_camera(camera_);
 }
@@ -741,17 +745,29 @@ void galileo::application_t::on_startup()
 {
     mouse_.set_window_handle(window()->native_handle());
 
-    setup_world();
-
     frame_info_->disperse_lights(world_aabb_);
 
     {
-        [[maybe_unused]] auto const registered{
+        [[maybe_unused]] auto registered{
             scripting_engine_.engine().RegisterGlobalFunction(
                 "void spawn_sphere()",
                 asMETHOD(application_t, spawn_sphere),
                 asCALL_THISCALL_ASGLOBAL,
                 this)};
+        assert(registered);
+
+        registered = scripting_engine_.engine().RegisterGlobalFunction(
+            "bool is_spawner(uint32)",
+            asMETHOD(application_t, is_spawner),
+            asCALL_THISCALL_ASGLOBAL,
+            this);
+        assert(registered);
+
+        registered = scripting_engine_.engine().RegisterGlobalFunction(
+            "void stop_pathfinding(uint32)",
+            asMETHOD(application_t, stop_pathfinding),
+            asCALL_THISCALL_ASGLOBAL,
+            this);
         assert(registered);
 
         [[maybe_unused]] auto const spawner_registered{
@@ -761,9 +777,14 @@ void galileo::application_t::on_startup()
         ngnscr::script_compiler_t compiler{scripting_engine_};
         [[maybe_unused]] bool script_compiled{compiler.new_module("MyModule")};
         script_compiled &= compiler.add_section("spawner.as");
+        script_compiled &= compiler.add_section("sphere.as");
         script_compiled &= compiler.build();
         assert(script_compiled);
+    }
 
+    setup_world();
+
+    {
         auto& spawner_data{registry_.emplace<spawner_data_t>(spawner_)};
 
         asIScriptModule const* const mod{
@@ -927,6 +948,7 @@ void galileo::application_t::setup_world()
             {
                 auto sphere_entity{create_sphere(registry_,
                     physics_engine_,
+                    scripting_engine_,
                     glm::vec3{root.matrix[3]},
                     half_extents.x)};
                 registry_.emplace<component::mesh_t>(sphere_entity, root_index);
@@ -988,5 +1010,16 @@ void galileo::application_t::spawn_sphere()
     std::uniform_real_distribution dist{-25.0f, 25.0f};
     ::galileo::spawn_sphere(registry_,
         physics_engine_,
+        scripting_engine_,
         glm::vec3{dist(random_engine_), 10.0f, dist(random_engine_)});
+}
+
+bool galileo::application_t::is_spawner(uint32_t const id) const
+{
+    return spawner_ == static_cast<entt::entity>(id);
+}
+
+void galileo::application_t::stop_pathfinding(uint32_t const id)
+{
+    registry_.remove<component::sphere_path_t>(static_cast<entt::entity>(id));
 }

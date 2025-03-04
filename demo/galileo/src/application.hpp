@@ -43,6 +43,7 @@ namespace galileo
     class batch_renderer_t;
     class character_t;
     class character_contact_listener_t;
+    class world_contact_listener_t;
     class deferred_shader_t;
     class frame_info_t;
     class gbuffer_t;
@@ -97,6 +98,10 @@ namespace galileo
 
         void spawn_sphere();
 
+        [[nodiscard]] bool is_spawner(uint32_t id) const;
+
+        void stop_pathfinding(uint32_t id);
+
     private:
         vkglsl::guard_t glsl_guard_;
 
@@ -131,6 +136,7 @@ namespace galileo
         ngnscr::scripting_engine_t scripting_engine_;
 
         world_t world_;
+        std::unique_ptr<world_contact_listener_t> world_listener_;
 
         std::unique_ptr<character_t> character_;
         std::unique_ptr<character_contact_listener_t> character_listener_;

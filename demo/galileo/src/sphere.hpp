@@ -10,6 +10,11 @@
 // IWYU pragma: no_include <recastnavigation/DetourNavMeshQuery.h>
 // IWYU pragma: no_include <memory>
 
+namespace ngnscr
+{
+    class scripting_engine_t;
+} // namespace ngnscr
+
 namespace galileo
 {
     class physics_engine_t;
@@ -19,11 +24,13 @@ namespace galileo
 {
     entt::entity create_sphere(entt::registry& registry,
         physics_engine_t& physics_engine,
+        ngnscr::scripting_engine_t& scripting_engine,
         glm::vec3 position,
         float radius);
 
     entt::entity spawn_sphere(entt::registry& registry,
         physics_engine_t& physics_engine,
+        ngnscr::scripting_engine_t& scripting_engine,
         glm::vec3 position);
 
     void move_spheres(entt::registry& registry,

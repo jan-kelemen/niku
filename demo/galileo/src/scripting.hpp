@@ -5,6 +5,8 @@
 
 #include <angelscript.h>
 
+#include <entt/entt.hpp> // IWYU pragma: keep
+
 #include <chrono>
 #include <expected>
 
@@ -56,12 +58,18 @@ namespace galileo::component
     {
         asIScriptFunction* factory{nullptr};
         asIScriptFunction* on_character_hit_script{nullptr};
+        asIScriptFunction* on_hit_script{nullptr};
 
         ngnscr::script_object_ptr_t object{nullptr};
     };
 
     [[nodiscard]] std::expected<scripts_t, asEContextState>
     create_spawner_scripts(spawner_data_t& spawner,
+        ngnscr::scripting_engine_t& engine,
+        asIScriptModule const& module);
+
+    [[nodiscard]] std::expected<scripts_t, asEContextState>
+    create_sphere_scripts(entt::entity sphere,
         ngnscr::scripting_engine_t& engine,
         asIScriptModule const& module);
 

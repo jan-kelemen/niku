@@ -1,7 +1,7 @@
 #ifndef GALILEO_PHYSICS_DEBUG_INCLUDED
 #define GALILEO_PHYSICS_DEBUG_INCLUDED
 
-#include <Jolt/Jolt.h> // IWYU pragma: keep
+#include <ngnphy_jolt.hpp> // IWYU pragma: keep
 
 #include <Jolt/Core/Array.h>
 #include <Jolt/Core/Color.h>

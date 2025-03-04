@@ -14,8 +14,6 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/trigonometric.hpp>
 
-#include <Jolt/Jolt.h> // IWYU pragma: keep
-
 #include <Jolt/Core/Color.h>
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Geometry/Plane.h>

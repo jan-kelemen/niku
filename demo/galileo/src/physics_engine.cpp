@@ -2,8 +2,6 @@
 
 #include <cppext_pragma_warning.hpp>
 
-#include <Jolt/Jolt.h> // IWYU pragma: keep
-
 #include <Jolt/ConfigurationString.h>
 #include <Jolt/Core/Core.h>
 #include <Jolt/Core/Factory.h>

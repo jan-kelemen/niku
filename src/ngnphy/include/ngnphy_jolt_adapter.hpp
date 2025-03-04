@@ -1,12 +1,13 @@
 #ifndef NGNPHY_JOLT_ADAPTER_INCLUDED
 #define NGNPHY_JOLT_ADAPTER_INCLUDED
 
+#include <ngnphy_jolt.hpp> // IWYU pragma: keep
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-#include <Jolt/Jolt.h> // IWYU pragma: keep
 #include <Jolt/Math/Mat44.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Vec3.h>
