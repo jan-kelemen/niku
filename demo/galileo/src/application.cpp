@@ -753,7 +753,8 @@ void galileo::application_t::on_startup()
                 this)};
         assert(registered);
 
-        auto const spawner_registered{register_spawner_type(scripting_engine_)};
+        [[maybe_unused]] auto const spawner_registered{
+            register_spawner_type(scripting_engine_)};
         assert(spawner_registered);
 
         ngnscr::script_compiler_t compiler{scripting_engine_};

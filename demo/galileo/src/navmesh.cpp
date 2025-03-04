@@ -21,6 +21,7 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <iterator>
@@ -287,7 +288,15 @@ galileo::poly_mesh_t galileo::generate_poly_mesh(
 
     heightfield.reset();
 
+    if (!rcErodeWalkableArea(&context,
+            config.walkableRadius,
+            *compact_heightfield))
+    {
+        throw std::runtime_error{"Can't erode"};
+    }
+
     // Watershed partitioning
+    assert(parameters.partition_type == partition_type_t::watershed);
     if (!rcBuildDistanceField(&context, *compact_heightfield))
     {
         throw std::runtime_error{"Can't build distance field"};
