@@ -47,7 +47,7 @@ namespace
 } // namespace
 
 ngnscr::scripting_engine_t::scripting_engine_t()
-    : engine_{asCreateScriptEngine()}
+    : engine_{(asPrepareMultithread(), asCreateScriptEngine())}
 {
     [[maybe_unused]] int const r{
         engine_->SetMessageCallback(asFUNCTION(message_callback),
@@ -69,6 +69,7 @@ ngnscr::scripting_engine_t::~scripting_engine_t()
     if (engine_)
     {
         engine_->ShutDownAndRelease();
+        asUnprepareMultithread();
     }
 }
 

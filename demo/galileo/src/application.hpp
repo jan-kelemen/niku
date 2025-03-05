@@ -121,6 +121,8 @@ namespace galileo
 
         int light_count_{1};
 
+        ngnscr::scripting_engine_t scripting_engine_;
+
         physics_engine_t physics_engine_;
         bool draw_physics_{true};
 
@@ -132,8 +134,6 @@ namespace galileo
         bool draw_detail_polymesh_{true};
         bool draw_navigation_mesh_{true};
         bool draw_navigation_queries_{true};
-
-        ngnscr::scripting_engine_t scripting_engine_;
 
         world_t world_;
         std::unique_ptr<world_contact_listener_t> world_listener_;

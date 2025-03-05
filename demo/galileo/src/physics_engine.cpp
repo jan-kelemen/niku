@@ -2,6 +2,8 @@
 
 #include <cppext_pragma_warning.hpp>
 
+#include <angelscript.h>
+
 #include <Jolt/ConfigurationString.h>
 #include <Jolt/Core/Core.h>
 #include <Jolt/Core/Factory.h>
@@ -25,6 +27,7 @@
 #include <memory>
 #include <string_view>
 #include <thread>
+#include <utility>
 
 namespace JPH
 {
@@ -258,10 +261,13 @@ galileo::physics_engine_t::impl::impl()
         std::make_unique<JPH::TempAllocatorImpl>(10 * 1024 * 1024);
 #endif
 
-    job_system_ =
+    auto thread_pool{
         std::make_unique<JPH::JobSystemThreadPool>(JPH::cMaxPhysicsJobs,
             JPH::cMaxPhysicsBarriers,
-            std::thread::hardware_concurrency() - 1);
+            std::thread::hardware_concurrency() - 1)};
+    thread_pool->SetThreadExitFunction([](int) { asThreadCleanup(); });
+
+    job_system_ = std::move(thread_pool);
 
     physics_system_ = std ::make_unique<JPH::PhysicsSystem>();
     physics_system_->Init(max_bodies,
