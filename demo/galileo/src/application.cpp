@@ -782,6 +782,8 @@ void galileo::application_t::on_startup()
         assert(script_compiled);
     }
 
+    character_ = std::make_unique<character_t>(physics_engine_, mouse_);
+
     setup_world();
 
     {
@@ -799,9 +801,6 @@ void galileo::application_t::on_startup()
                 std::move(*scripts));
         }
     }
-
-    character_ = std::make_unique<character_t>(physics_engine_, mouse_);
-    character_->set_position({5.0f, 5.0f, 5.0f});
 
     character_listener_ =
         std::make_unique<character_contact_listener_t>(physics_engine_,
@@ -979,14 +978,13 @@ void galileo::application_t::setup_world()
                 entt::entity const entity{registry_.create()};
                 registry_.emplace<component::mesh_t>(entity, root_index);
                 registry_.emplace<component::character_t>(entity);
+                character_->set_position(glm::vec3{root.matrix[3]});
             }
         }
     }
 
     try
     {
-        polymesh_params_.walkable_radius = 2.0f;
-
         auto const now{std::chrono::system_clock::now()};
         poly_mesh_ =
             generate_poly_mesh(polymesh_params_, world_primitive_, world_aabb_);
