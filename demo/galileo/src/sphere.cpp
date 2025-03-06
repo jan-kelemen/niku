@@ -167,12 +167,6 @@ void galileo::move_spheres(entt::registry& registry,
 
         path.iterator.current_position = closest;
 
-        spdlog::info("{} {} {} {}",
-            error.x,
-            error.y,
-            error.z,
-            path.iterator.polys.front());
-
         if (glm::length(path.error) < 1.0f)
         {
             if (!increment(path.iterator))

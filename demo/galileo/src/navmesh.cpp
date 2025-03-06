@@ -585,18 +585,6 @@ bool galileo::increment(path_iterator_t& iterator)
         nvisited)};
     iterator.polys.resize(cppext::narrow<size_t>(new_size));
 
-    float h{};
-    if (dtStatus const status{
-            iterator.query->getPolyHeight(iterator.polys.front(),
-                glm::value_ptr(result),
-                &h)};
-        dtStatusFailed(status))
-    {
-        spdlog::error("Failed to get poly height");
-        return false;
-    }
-
-    result.y = h;
     iterator.current_position = result;
 
     return !(end_of_path &&
