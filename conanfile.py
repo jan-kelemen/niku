@@ -37,6 +37,7 @@ class NikuConan(ConanFile):
         self.requires("glslang/1.4.304.0", transitive_headers=False)
         self.requires("imgui/1.91.8-docking")
         self.requires("joltphysics/5.2.0")
+        self.requires("libuv/1.49.2")
         self.requires("meshoptimizer/0.22", transitive_headers=False)
         self.requires("sdl/3.2.2")
         self.requires("spdlog/1.15.1", transitive_headers=False)
