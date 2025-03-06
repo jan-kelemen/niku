@@ -458,6 +458,8 @@ void galileo::application_t::update(float const delta_time)
             {
                 spdlog::error(ex.what());
             }
+
+            registry_.clear<component::sphere_path_t>();
         }
     }
 
