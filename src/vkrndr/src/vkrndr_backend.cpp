@@ -370,6 +370,9 @@ vkrndr::backend_t::backend_t(window_t& window,
         effective_extensions.push_back(
             VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
 
+        effective_features.swapchain_maintenance_1_features
+            .swapchainMaintenance1 = VK_TRUE;
+
         effective_features.swapchain_maintenance_1_features.pNext =
             effective_features.required_device_13_features.pNext;
         effective_features.required_device_13_features.pNext =
