@@ -32,7 +32,7 @@
 
 namespace
 {
-    constexpr uint32_t max_lights{1000};
+    constexpr uint32_t max_lights{2000};
 
     struct [[nodiscard]] gpu_frame_info_t final
     {

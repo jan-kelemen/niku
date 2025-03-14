@@ -343,7 +343,7 @@ void galileo::application_t::update(float const delta_time)
     character_->update(delta_time);
 
     ImGui::Begin("Lights");
-    ImGui::SliderInt("Count", &light_count_, 0, 1000);
+    ImGui::SliderInt("Count", &light_count_, 0, 2000);
     ImGui::End();
 
     ImGui::Begin("Debug");
