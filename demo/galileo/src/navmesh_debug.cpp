@@ -179,7 +179,7 @@ namespace
                               3]};
 
                 return {.position = glm::make_vec3(position_data) +
-                        glm::vec3{0.0f, 0.0f, 0.0f},
+                        glm::vec3{0.0f, 0.01f, 0.0f},
                     .color = glm::vec4{color, color, color, 0.5f}};
             };
 
