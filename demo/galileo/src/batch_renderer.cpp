@@ -206,6 +206,24 @@ void galileo::batch_renderer_t::add_point(batch_vertex_t const& p1)
     buffer->size += 1;
 }
 
+void galileo::batch_renderer_t::begin_frame()
+{
+    frame_data_.cycle(
+        [this](frame_data_t const&, frame_data_t& next)
+        {
+            std::ranges::for_each(next.buffers,
+                [this](vertex_buffer_t& buffer) 
+                { 
+                    buffer.size = 0; 
+                    if (buffer.memory.allocation != VK_NULL_HANDLE)
+                    {
+                        vkrndr::unmap_memory(backend_->device(), &buffer.memory);
+                        buffer.memory.allocation = VK_NULL_HANDLE;
+                    }
+                });
+        });
+}
+
 VkPipelineLayout galileo::batch_renderer_t::pipeline_layout() const
 {
     return *triangle_pipeline_.layout;
@@ -255,30 +273,9 @@ void galileo::batch_renderer_t::draw(VkCommandBuffer command_buffer)
         draw_topology(frame_data_->buffers, VK_PRIMITIVE_TOPOLOGY_POINT_LIST);
     }
 
-    auto clear_cached_buffer = [this](std::optional<size_t>& cached_index)
-    {
-        if (cached_index)
-        {
-            auto& cached{frame_data_->buffers[*cached_index]};
-            if (cached.memory.allocation != VK_NULL_HANDLE)
-            {
-                vkrndr::unmap_memory(backend_->device(), &cached.memory);
-                cached.memory.allocation = VK_NULL_HANDLE;
-            }
-
-            cached_index = std::nullopt;
-        }
-    };
-    clear_cached_buffer(triangle_buffer_);
-    clear_cached_buffer(line_buffer_);
-    clear_cached_buffer(point_buffer_);
-
-    frame_data_.cycle(
-        [](frame_data_t const&, frame_data_t& next)
-        {
-            std::ranges::for_each(next.buffers,
-                [](vertex_buffer_t& buffer) { buffer.size = 0; });
-        });
+    triangle_buffer_.reset();
+    line_buffer_.reset();
+    point_buffer_.reset();
 }
 
 galileo::batch_renderer_t::vertex_buffer_t*

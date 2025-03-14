@@ -55,6 +55,8 @@ namespace galileo
         void add_point(batch_vertex_t const& p1);
 
     public:
+        void begin_frame();
+
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
         void draw(VkCommandBuffer command_buffer);

@@ -501,6 +501,7 @@ bool galileo::application_t::begin_frame()
     {
         if (acquired)
         {
+            batch_renderer_->begin_frame();
             render_graph_->begin_frame();
             imgui_->begin_frame();
         }
