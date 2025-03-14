@@ -42,6 +42,8 @@ namespace galileo
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
 
+        void begin_frame();
+
         void update(ngngfx::camera_t const& camera, uint32_t light_count);
 
         void bind_on(VkCommandBuffer command_buffer,
