@@ -198,10 +198,7 @@ VkDescriptorSetLayout galileo::frame_info_t::descriptor_set_layout() const
     return descriptor_set_layout_;
 }
 
-void galileo::frame_info_t::begin_frame() 
-{
-    frame_data_.cycle();
-}
+void galileo::frame_info_t::begin_frame() { frame_data_.cycle(); }
 
 void galileo::frame_info_t::update(ngngfx::camera_t const& camera,
     uint32_t const light_count)

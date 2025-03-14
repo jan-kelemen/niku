@@ -212,12 +212,13 @@ void galileo::batch_renderer_t::begin_frame()
         [this](frame_data_t const&, frame_data_t& next)
         {
             std::ranges::for_each(next.buffers,
-                [this](vertex_buffer_t& buffer) 
-                { 
-                    buffer.size = 0; 
+                [this](vertex_buffer_t& buffer)
+                {
+                    buffer.size = 0;
                     if (buffer.memory.allocation != VK_NULL_HANDLE)
                     {
-                        vkrndr::unmap_memory(backend_->device(), &buffer.memory);
+                        vkrndr::unmap_memory(backend_->device(),
+                            &buffer.memory);
                         buffer.memory.allocation = VK_NULL_HANDLE;
                     }
                 });
