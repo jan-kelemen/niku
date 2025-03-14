@@ -747,8 +747,6 @@ void galileo::application_t::on_startup()
 {
     mouse_.set_window_handle(window()->native_handle());
 
-    frame_info_->disperse_lights(world_aabb_);
-
     {
         [[maybe_unused]] auto registered{
             scripting_engine_.engine().RegisterGlobalFunction(
@@ -787,6 +785,8 @@ void galileo::application_t::on_startup()
     character_ = std::make_unique<character_t>(physics_engine_, mouse_);
 
     setup_world();
+
+    frame_info_->disperse_lights(world_aabb_);
 
     {
         auto& spawner_data{registry_.emplace<spawner_data_t>(spawner_)};
