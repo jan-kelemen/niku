@@ -20,9 +20,11 @@ void main() {
     vec3 lighting = albedo * 0.1;
     for(int i = 0; i < frame.lightCount; ++i)
     {
-        const vec3 lightDir = normalize(lights.v[i].position - position);
-        const vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo * lights.v[i].color.rgb;
-        const float distance = length(lights.v[i].position - position);
+        Light light = lights.v[i];
+
+        const vec3 lightDir = normalize(light.position - position);
+        const vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo * light.color.rgb;
+        const float distance = length(light.position - position);
         const float attenuation = 1 / (distance * distance);
 
         lighting += diffuse * attenuation;
