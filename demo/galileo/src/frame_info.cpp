@@ -25,10 +25,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <iterator>
 #include <random>
 #include <span>
-#include <vector>
 
 namespace
 {
@@ -103,19 +101,15 @@ namespace
             nullptr);
     }
 
-    [[nodiscard]] std::vector<gpu_light_t> generate_lights(
-        ngnast::bounding_box_t const& bb)
+    void generate_lights(ngnast::bounding_box_t const& bb,
+        std::span<gpu_light_t> buffer)
     {
-        std::vector<gpu_light_t> rv;
-        rv.reserve(max_lights);
-
         std::default_random_engine engine;
         std::uniform_real_distribution pdist{bb.min.x, bb.max.x};
         std::uniform_real_distribution cdist{0.0f, 1.0f};
         std::uniform_real_distribution hdist{bb.max.y, 5.0f};
 
-        std::ranges::generate_n(std::back_inserter(rv),
-            max_lights,
+        std::ranges::generate(buffer,
             [&]() -> gpu_light_t
             {
                 return {.color = {cdist(engine),
@@ -125,8 +119,6 @@ namespace
                     .position = {pdist(engine), hdist(engine), pdist(engine)},
                     .padding = 0};
             });
-
-        return rv;
     }
 } // namespace
 
@@ -150,14 +142,9 @@ galileo::frame_info_t::frame_info_t(vkrndr::backend_t& backend)
 
         data.light_buffer = vkrndr::create_buffer(backend_->device(),
             {.size = sizeof(gpu_light_t) * max_lights,
-                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                .allocation_flags =
-                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT});
-        data.light_map =
-            vkrndr::map_memory(backend_->device(), data.light_buffer);
+                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
         vkrndr::create_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
@@ -178,8 +165,6 @@ galileo::frame_info_t::~frame_info_t()
         vkrndr::free_descriptor_sets(backend_->device(),
             backend_->descriptor_pool(),
             cppext::as_span(data.descriptor_set));
-
-        vkrndr::unmap_memory(backend_->device(), &data.light_map);
 
         vkrndr::destroy(&backend_->device(), &data.light_buffer);
 
@@ -227,11 +212,20 @@ void galileo::frame_info_t::bind_on(VkCommandBuffer command_buffer,
 void galileo::frame_info_t::disperse_lights(
     ngnast::bounding_box_t const& bounding_box)
 {
-    auto const lights{generate_lights(bounding_box)};
+    vkrndr::buffer_t staging{vkrndr::create_staging_buffer(backend_->device(),
+        sizeof(gpu_light_t) * max_lights)};
+    {
+        vkrndr::mapped_memory_t staging_map{
+            map_memory(backend_->device(), staging)};
+        generate_lights(bounding_box,
+            std::span{staging_map.as<gpu_light_t>(), max_lights});
+        unmap_memory(backend_->device(), &staging_map);
+    }
 
     for (auto& data : cppext::as_span(frame_data_))
     {
-        auto* const light_ptr{data.light_map.as<gpu_light_t>()};
-        std::ranges::copy(lights, light_ptr);
+        backend_->transfer_buffer(staging, data.light_buffer);
     }
+
+    destroy(&backend_->device(), &staging);
 }

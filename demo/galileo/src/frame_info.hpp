@@ -64,7 +64,6 @@ namespace galileo
             vkrndr::mapped_memory_t info_map;
 
             vkrndr::buffer_t light_buffer;
-            vkrndr::mapped_memory_t light_map;
 
             VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
         };
