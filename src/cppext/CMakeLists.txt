@@ -1,4 +1,4 @@
-add_library(cppext INTERFACE)
+add_library(cppext)
 
 target_sources(cppext
     PRIVATE
@@ -9,23 +9,30 @@ target_sources(cppext
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_numeric.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_overloaded.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_pragma_warning.hpp
-        
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_thread_pool.hpp
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/cppext_thread_pool.cpp
 )
 
 target_include_directories(cppext 
-    INTERFACE
+    PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 target_link_libraries(cppext
-    INTERFACE
+    PRIVATE
         $<BUILD_INTERFACE:project-options>
 )
 
 install(TARGETS cppext
     EXPORT ${PROJECT_NAME}-config
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_runtime
+        NAMELINK_COMPONENT ${PROJECT_NAME}_dev
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT ${PROJECT_NAME}_dev
 )
 
 install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/
@@ -40,6 +47,7 @@ if (NIKU_BUILD_TESTS)
     target_sources(cppext_test
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_cycled_buffer.t.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_thread_pool.t.cpp
     )
 
     target_link_libraries(cppext_test
