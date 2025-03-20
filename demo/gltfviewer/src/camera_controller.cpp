@@ -26,8 +26,7 @@ gltfviewer::camera_controller_t::camera_controller_t(
 {
 }
 
-void gltfviewer::camera_controller_t::handle_event(SDL_Event const& event,
-    float const delta_time)
+void gltfviewer::camera_controller_t::handle_event(SDL_Event const& event)
 {
     if (event.type == SDL_EVENT_MOUSE_MOTION && mouse_->captured())
     {
@@ -35,11 +34,9 @@ void gltfviewer::camera_controller_t::handle_event(SDL_Event const& event,
         auto const& mouse_offset{mouse_->relative_offset()};
 
         auto const yaw{yaw_pitch.x +
-            glm::radians(cppext::as_fp(-mouse_offset.x) * mouse_sensitivity_ *
-                delta_time)};
+            glm::radians(cppext::as_fp(-mouse_offset.x) * mouse_sensitivity_)};
         auto const pitch{yaw_pitch.y +
-            glm::radians(cppext::as_fp(mouse_offset.y) * mouse_sensitivity_ *
-                delta_time)};
+            glm::radians(cppext::as_fp(mouse_offset.y) * mouse_sensitivity_)};
 
         camera_->set_yaw_pitch({fmodf(yaw, glm::two_pi<float>()),
             std::clamp(pitch, glm::radians(-85.0f), glm::radians(85.0f))});

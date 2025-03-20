@@ -42,8 +42,7 @@ namespace galileo
             ngnwsi::mouse_t& mouse);
 
     public:
-        [[nodiscard]] character_action_t handle_event(SDL_Event const& event,
-            float delta_time);
+        [[nodiscard]] character_action_t handle_event(SDL_Event const& event);
 
         void set_contact_listener(JPH::CharacterContactListener* listener);
 

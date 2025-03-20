@@ -31,7 +31,7 @@ namespace gltfviewer
         ~camera_controller_t() = default;
 
     public:
-        void handle_event(SDL_Event const& event, float delta_time);
+        void handle_event(SDL_Event const& event);
 
         bool update(float delta_time);
 
