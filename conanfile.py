@@ -37,6 +37,7 @@ class NikuConan(ConanFile):
         self.requires("glslang/1.4.304.0", transitive_headers=False)
         self.requires("imgui/1.91.9b-docking")
         self.requires("joltphysics/5.3.0")
+        self.requires("mikktspace/cci.20200325", transitive_headers=False)
         self.requires("meshoptimizer/0.23", transitive_headers=False)
         self.requires("sdl/3.2.8")
         self.requires("spdlog/1.15.1", transitive_headers=False)
@@ -93,10 +94,6 @@ class NikuConan(ConanFile):
         self.cpp_info.components[component].libs = [component]
         self.cpp_info.components[component].requires.extend(["stb::stb"])
 
-        component = "mikktspace_impl"
-        self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
-        self.cpp_info.components[component].libs = [component]
-
         component = "imgui_vulkan_impl"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].defines = ["IMGUI_IMPL_VULKAN_USE_VOLK", "VK_NO_PROTOTYPES"]
@@ -150,8 +147,8 @@ class NikuConan(ConanFile):
         component = "ngnast"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
-        self.cpp_info.components[component].requires.extend(["vkrndr", "glm_impl", "cppext", "mikktspace_impl", "stb_impl"])
-        self.cpp_info.components[component].requires.extend(["boost::headers", "fastgltf::fastgltf", "meshoptimizer::meshoptimizer", "spdlog::spdlog"])
+        self.cpp_info.components[component].requires.extend(["vkrndr", "glm_impl", "cppext", "stb_impl"])
+        self.cpp_info.components[component].requires.extend(["boost::headers", "fastgltf::fastgltf", "mikktspace::mikktspace", "meshoptimizer::meshoptimizer", "spdlog::spdlog"])
         
         component = "ngnscr"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")

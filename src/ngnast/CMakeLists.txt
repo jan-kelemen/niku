@@ -31,12 +31,12 @@ target_link_libraries(ngnast
         glm_impl
     PRIVATE
         cppext
-        mikktspace_impl
         stb_impl
     PRIVATE
         Boost::headers
         fastgltf::fastgltf
         fmt::fmt
+        mikktspace::mikktspace 
         meshoptimizer::meshoptimizer
         spdlog::spdlog
     PRIVATE
