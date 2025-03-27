@@ -84,7 +84,9 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     assert(init_sdl);
 
     [[maybe_unused]] bool const load_functions{
-        ImGui_ImplVulkan_LoadFunctions(load_vulkan_function, context.instance)};
+        ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
+            load_vulkan_function,
+            context.instance)};
     assert(load_functions);
 
     VkPipelineRenderingCreateInfoKHR rendering_create_info{};

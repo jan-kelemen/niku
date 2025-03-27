@@ -32,13 +32,13 @@ class NikuConan(ConanFile):
         self.requires("angelscript/2.37.0")
         self.requires("boost/1.87.0", transitive_headers=False)
         self.requires("fastgltf/0.8.0", transitive_headers=False)
-        self.requires("fmt/11.1.3")
+        self.requires("fmt/11.1.4")
         self.requires("glm/1.0.1")
         self.requires("glslang/1.4.304.0", transitive_headers=False)
-        self.requires("imgui/1.91.8-docking")
-        self.requires("joltphysics/5.2.0")
-        self.requires("meshoptimizer/0.22", transitive_headers=False)
-        self.requires("sdl/3.2.2")
+        self.requires("imgui/1.91.9b-docking")
+        self.requires("joltphysics/5.3.0")
+        self.requires("meshoptimizer/0.23", transitive_headers=False)
+        self.requires("sdl/3.2.8")
         self.requires("spdlog/1.15.1", transitive_headers=False)
         self.requires("spirv-cross/1.4.304.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
@@ -46,10 +46,10 @@ class NikuConan(ConanFile):
         self.requires("vulkan-memory-allocator/3.2.1")
 
         if self.options.develop:
-            self.requires("entt/3.14.0")
+            self.requires("entt/3.15.0")
             self.requires("freetype/2.13.3")
             self.requires("recastnavigation/1.6.0")
-            self.requires("simdjson/3.12.0")
+            self.requires("simdjson/3.12.2")
 
     def build_requirements(self):
         self.tool_requires("cmake/[^3.27]")
@@ -162,7 +162,7 @@ class NikuConan(ConanFile):
         component = "ngnphy"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
-        self.cpp_info.components[component].requires.extend(["glm_impl"])
+        self.cpp_info.components[component].requires.extend(["cppext", "glm_impl"])
         self.cpp_info.components[component].requires.extend(["joltphysics::joltphysics"])
 
         component = "ngngfx"
