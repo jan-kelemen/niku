@@ -8,7 +8,6 @@
 #include <deque>
 #include <functional>
 #include <future>
-#include <iterator>
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -60,6 +59,7 @@ namespace cppext::detail
     }
 
     template<typename ThreadContainer>
+    // cppcheck-suppress operatorEqVarError
     join_threads_t<ThreadContainer>& join_threads_t<ThreadContainer>::operator=(
         join_threads_t&& other) noexcept
     {
@@ -352,7 +352,7 @@ namespace cppext
     {
     public:
         explicit thread_pool_t(
-            unsigned const thread_count = std::thread::hardware_concurrency());
+            unsigned thread_count = std::thread::hardware_concurrency());
 
         thread_pool_t(thread_pool_t const&) = delete;
 

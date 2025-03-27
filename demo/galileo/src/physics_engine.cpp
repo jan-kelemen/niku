@@ -9,13 +9,11 @@
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/IssueReporting.h>
 #include <Jolt/Core/JobSystem.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/Memory.h>
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
-#include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
 

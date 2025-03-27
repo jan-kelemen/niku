@@ -1,5 +1,7 @@
 #include <cppext_thread_pool.hpp>
 
+#include <iterator>
+
 void cppext::detail::function_wrapper_t::operator()()
 {
     if (impl_)
