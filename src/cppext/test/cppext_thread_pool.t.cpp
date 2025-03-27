@@ -10,11 +10,16 @@
 
 TEST_CASE("thread_pool", "[cppext][mt]")
 {
-    unsigned const thread_count{std::thread::hardware_concurrency()};
+    unsigned const thread_count{10};
 
     std::atomic_uint8_t count{};
+    std::atomic_uint8_t exit_count{};
+
     {
-        cppext::thread_pool_t pool;
+        cppext::thread_pool_t pool{thread_count};
+        CHECK(pool.thread_count() == thread_count);
+
+        pool.set_thread_exit_function([&exit_count]() { ++exit_count; });
 
         std::vector<std::future<void>> results;
         for (unsigned i{0}; i != thread_count - 1; ++i)
@@ -42,4 +47,5 @@ TEST_CASE("thread_pool", "[cppext][mt]")
     }
 
     CHECK(count == 3 * thread_count - 2);
+    CHECK(exit_count == thread_count);
 }

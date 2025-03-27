@@ -1,3 +1,6 @@
+#ifndef CPPEXT_THREAD_POOL_INCLUDED
+#define CPPEXT_THREAD_POOL_INCLUDED
+
 #include <algorithm>
 #include <atomic>
 #include <concepts>
@@ -19,36 +22,51 @@ namespace cppext::detail
     class [[nodiscard]] join_threads_t final
     {
     public:
-        explicit join_threads_t(ThreadContainer& threads) : threads_{&threads}
-        {
-        }
+        explicit join_threads_t(ThreadContainer& threads);
 
         join_threads_t(join_threads_t const&) = delete;
 
-        join_threads_t(join_threads_t&& other) noexcept
-            : threads_{std::exchange(other.threads_, nullptr)}
-        {
-        }
+        join_threads_t(join_threads_t&& other) noexcept;
 
     public:
-        ~join_threads_t()
-        {
-            std::ranges::for_each(*threads_, std::mem_fn(&std::thread::join));
-        }
+        ~join_threads_t();
 
     public:
         join_threads_t& operator=(join_threads_t const&) = delete;
 
-        join_threads_t& operator=(join_threads_t&& other) noexcept
-        {
-            std::swap(threads_, other.threads_);
-
-            return *this;
-        }
+        join_threads_t& operator=(join_threads_t&& other) noexcept;
 
     private:
         ThreadContainer* threads_;
     };
+
+    template<typename ThreadContainer>
+    join_threads_t<ThreadContainer>::join_threads_t(ThreadContainer& threads)
+        : threads_{&threads}
+    {
+    }
+
+    template<typename ThreadContainer>
+    join_threads_t<ThreadContainer>::join_threads_t(
+        join_threads_t&& other) noexcept
+        : threads_{std::exchange(other.threads_, nullptr)}
+    {
+    }
+
+    template<typename ThreadContainer>
+    join_threads_t<ThreadContainer>::~join_threads_t()
+    {
+        std::ranges::for_each(*threads_, std::mem_fn(&std::thread::join));
+    }
+
+    template<typename ThreadContainer>
+    join_threads_t<ThreadContainer>& join_threads_t<ThreadContainer>::operator=(
+        join_threads_t&& other) noexcept
+    {
+        std::swap(threads_, other.threads_);
+
+        return *this;
+    }
 
     template<typename T>
     class [[nodiscard]] threadsafe_queue_t final
@@ -88,62 +106,21 @@ namespace cppext::detail
         };
 
     private:
-        [[nodiscard]] node_t* get_tail()
-        {
-            std::lock_guard const tail_lock{tail_mutex_};
-            return tail_;
-        }
+        [[nodiscard]] node_t* get_tail();
 
-        [[nodiscard]] std::unique_ptr<node_t> pop_head()
-        {
-            std::unique_ptr old_head{std::move(head_)};
-            head_ = std::move(old_head->next);
-            return old_head;
-        }
+        [[nodiscard]] std::unique_ptr<node_t> pop_head();
 
-        [[nodiscard]] std::unique_lock<std::mutex> wait_for_data()
-        {
-            std::unique_lock head_lock{head_mutex_};
-            data_cond_.wait(head_lock,
-                [&]() { return head_.get() != get_tail(); });
-            return head_lock;
-        }
+        [[nodiscard]] std::unique_lock<std::mutex> wait_for_data();
 
-        [[nodiscard]] std::unique_ptr<node_t> wait_pop_head()
-        {
-            std::unique_lock const head_lock{wait_for_data()};
-            return pop_head();
-        }
+        [[nodiscard]] std::unique_ptr<node_t> wait_pop_head();
 
-        [[nodiscard]] std::unique_ptr<node_t> wait_pop_head(T& value)
-        {
-            std::unique_lock const head_lock{wait_for_data()};
-            value = std::move(*(head_->data));
-            return pop_head();
-        }
+        [[nodiscard]] std::unique_ptr<node_t> wait_pop_head(T& value);
 
-        [[nodiscard]] std::unique_ptr<node_t> try_pop_head()
-        {
-            std::lock_guard const head_lock{head_mutex_};
-            if (head_.get() == get_tail())
-            {
-                return nullptr;
-            }
-            return pop_head();
-        }
+        [[nodiscard]] std::unique_ptr<node_t> try_pop_head();
 
-        [[nodiscard]] std::unique_ptr<node_t> try_pop_head(T& value)
-        {
-            std::lock_guard const head_lock{head_mutex_};
-            if (head_.get() == get_tail())
-            {
-                return nullptr;
-            }
-            value = std::move(*(head_->data));
-            return pop_head();
-        }
+        [[nodiscard]] std::unique_ptr<node_t> try_pop_head(T& value);
 
-    private: // Data
+    private:
         std::mutex head_mutex_;
         std::unique_ptr<node_t> head_{std::make_unique<node_t>()};
 
@@ -202,6 +179,72 @@ namespace cppext::detail
         return head_.get() == get_tail();
     }
 
+    template<typename T>
+    threadsafe_queue_t<T>::node_t* threadsafe_queue_t<T>::get_tail()
+    {
+        std::lock_guard const tail_lock{tail_mutex_};
+        return tail_;
+    }
+
+    template<typename T>
+    std::unique_ptr<typename threadsafe_queue_t<T>::node_t>
+    threadsafe_queue_t<T>::pop_head()
+    {
+        std::unique_ptr old_head{std::move(head_)};
+        head_ = std::move(old_head->next);
+        return old_head;
+    }
+
+    template<typename T>
+    std::unique_lock<std::mutex> threadsafe_queue_t<T>::wait_for_data()
+    {
+        std::unique_lock head_lock{head_mutex_};
+        data_cond_.wait(head_lock, [&]() { return head_.get() != get_tail(); });
+        return head_lock;
+    }
+
+    template<typename T>
+    std::unique_ptr<typename threadsafe_queue_t<T>::node_t>
+    threadsafe_queue_t<T>::wait_pop_head()
+    {
+        std::unique_lock const head_lock{wait_for_data()};
+        return pop_head();
+    }
+
+    template<typename T>
+    std::unique_ptr<typename threadsafe_queue_t<T>::node_t>
+    threadsafe_queue_t<T>::wait_pop_head(T& value)
+    {
+        std::unique_lock const head_lock{wait_for_data()};
+        value = std::move(*(head_->data));
+        return pop_head();
+    }
+
+    template<typename T>
+    std::unique_ptr<typename threadsafe_queue_t<T>::node_t>
+    threadsafe_queue_t<T>::try_pop_head()
+    {
+        std::lock_guard const head_lock{head_mutex_};
+        if (head_.get() == get_tail())
+        {
+            return nullptr;
+        }
+        return pop_head();
+    }
+
+    template<typename T>
+    std::unique_ptr<typename threadsafe_queue_t<T>::node_t>
+    threadsafe_queue_t<T>::try_pop_head(T& value)
+    {
+        std::lock_guard const head_lock{head_mutex_};
+        if (head_.get() == get_tail())
+        {
+            return nullptr;
+        }
+        value = std::move(*(head_->data));
+        return pop_head();
+    }
+
     class [[nodiscard]] function_wrapper_t final
     {
     public:
@@ -212,10 +255,7 @@ namespace cppext::detail
         template<typename F>
         // cppcheck-suppress noExplicitConstructor
         function_wrapper_t(F&& f)
-        requires(!std::same_as<F, function_wrapper_t>)
-            : impl_{new impl_type_t<F>(std::forward<F>(f))}
-        {
-        }
+        requires(!std::same_as<F, function_wrapper_t>);
 
         function_wrapper_t(function_wrapper_t&& other) noexcept = default;
 
@@ -223,7 +263,7 @@ namespace cppext::detail
         ~function_wrapper_t() = default;
 
     public:
-        void operator()() { impl_->call(); }
+        void operator()();
 
         function_wrapper_t& operator=(function_wrapper_t const&) = delete;
 
@@ -245,14 +285,33 @@ namespace cppext::detail
             Invocable functor_;
 
             // cppcheck-suppress noExplicitConstructor
-            impl_type_t(Invocable&& functor) : functor_{std::move(functor)} { }
+            impl_type_t(Invocable&& functor);
 
-            void call() override { std::invoke(functor_); }
+            void call() override;
         };
 
     private:
         std::unique_ptr<impl_base_t> impl_;
     };
+
+    template<typename F>
+    function_wrapper_t::function_wrapper_t(F&& f)
+    requires(!std::same_as<F, function_wrapper_t>)
+        : impl_{new impl_type_t<F>(std::forward<F>(f))}
+    {
+    }
+
+    template<std::invocable Invocable>
+    function_wrapper_t::impl_type_t<Invocable>::impl_type_t(Invocable&& functor)
+        : functor_{std::move(functor)}
+    {
+    }
+
+    template<std::invocable Invocable>
+    void function_wrapper_t::impl_type_t<Invocable>::call()
+    {
+        std::invoke(functor_);
+    }
 
     class [[nodiscard]] work_stealing_queue_t final
     {
@@ -267,42 +326,13 @@ namespace cppext::detail
         ~work_stealing_queue_t() = default;
 
     public:
-        void push(function_wrapper_t data)
-        {
-            std::lock_guard const lock{mutex_};
-            queue_.push_front(std::move(data));
-        }
+        void push(function_wrapper_t data);
 
-        [[nodiscard]] bool empty() const
-        {
-            std::lock_guard const lock{mutex_};
-            return queue_.empty();
-        }
+        [[nodiscard]] bool empty() const;
 
-        [[nodiscard]] bool try_pop(function_wrapper_t& res)
-        {
-            std::lock_guard const lock{mutex_};
-            if (queue_.empty())
-            {
-                return false;
-            }
+        [[nodiscard]] bool try_pop(function_wrapper_t& res);
 
-            res = std::move(queue_.front());
-            queue_.pop_front();
-            return true;
-        }
-
-        [[nodiscard]] bool try_steal(function_wrapper_t& res)
-        {
-            std::lock_guard const lock{mutex_};
-            if (queue_.empty())
-            {
-                return false;
-            }
-            res = std::move(queue_.back());
-            queue_.pop_back();
-            return true;
-        }
+        [[nodiscard]] bool try_steal(function_wrapper_t& res);
 
     public:
         work_stealing_queue_t& operator=(work_stealing_queue_t const&) = delete;
@@ -321,54 +351,24 @@ namespace cppext
     class [[nodiscard]] thread_pool_t final
     {
     public:
-        thread_pool_t()
-        {
-            unsigned const thread_count{std::thread::hardware_concurrency()};
-            try
-            {
-                std::generate_n(std::back_inserter(queues_),
-                    thread_count,
-                    std::make_unique<detail::work_stealing_queue_t>);
-
-                for (unsigned i{}; i != thread_count; ++i)
-                {
-                    threads_.emplace_back(&thread_pool_t::worker_thread,
-                        this,
-                        i);
-                }
-            }
-            catch (...)
-            {
-                done_ = true;
-                throw;
-            }
-        }
+        explicit thread_pool_t(
+            unsigned const thread_count = std::thread::hardware_concurrency());
 
         thread_pool_t(thread_pool_t const&) = delete;
 
         thread_pool_t(thread_pool_t&&) = delete;
 
     public:
-        ~thread_pool_t() { done_ = true; }
+        ~thread_pool_t();
 
     public:
-        template<typename FunctionType>
-        std::future<std::invoke_result_t<FunctionType>> submit(FunctionType f)
-        {
-            using result_type = std::invoke_result_t<FunctionType>;
+        [[nodiscard]] unsigned thread_count() const noexcept;
 
-            std::packaged_task<result_type()> task{f};
-            std::future<result_type> res{task.get_future()};
-            if (local_work_queue_)
-            {
-                local_work_queue_->push(std::move(task));
-            }
-            else
-            {
-                pool_work_queue_.push(std::move(task));
-            }
-            return res;
-        }
+        template<typename FunctionType>
+        std::future<std::invoke_result_t<FunctionType>> submit(FunctionType f);
+
+        template<typename FunctionType>
+        void set_thread_exit_function(FunctionType f);
 
     public:
         thread_pool_t& operator=(thread_pool_t const&) = delete;
@@ -376,65 +376,57 @@ namespace cppext
         thread_pool_t& operator=(thread_pool_t&&) = delete;
 
     private:
-        void worker_thread(unsigned index)
-        {
-            local_index_ = index;
-            local_work_queue_ = queues_[local_index_].get();
-            while (!done_)
-            {
-                run_pending_task();
-            }
-        }
+        void worker_thread(unsigned index);
 
         [[nodiscard]] bool pop_task_from_local_queue(
-            detail::function_wrapper_t& task)
-        {
-            return static_cast<bool>(local_work_queue_) &&
-                local_work_queue_->try_pop(task);
-        }
+            detail::function_wrapper_t& task);
 
         [[nodiscard]] bool pop_task_from_pool_queue(
-            detail::function_wrapper_t& task)
-        {
-            return pool_work_queue_.try_pop(task);
-        }
+            detail::function_wrapper_t& task);
 
         [[nodiscard]] bool pop_task_from_other_thread_queue(
-            detail::function_wrapper_t& task)
-        {
-            for (unsigned i{}; i != queues_.size(); ++i)
-            {
-                auto const index{(local_index_ + i + 1) % queues_.size()};
-                if (queues_[index]->try_steal(task))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+            detail::function_wrapper_t& task);
 
-        void run_pending_task()
-        {
-            detail::function_wrapper_t task;
-            if (pop_task_from_local_queue(task) ||
-                pop_task_from_pool_queue(task) ||
-                pop_task_from_other_thread_queue(task))
-            {
-                task();
-            }
-            else
-            {
-                std::this_thread::yield();
-            }
-        }
+        void run_pending_task();
 
     private:
         std::atomic_bool done_{false};
+
         detail::threadsafe_queue_t<detail::function_wrapper_t> pool_work_queue_;
         std::vector<std::unique_ptr<detail::work_stealing_queue_t>> queues_;
+
+        detail::function_wrapper_t thread_exit_function_;
+
         std::vector<std::thread> threads_;
         detail::join_threads_t<std::vector<std::thread>> joiner_{threads_};
+
         static thread_local detail::work_stealing_queue_t* local_work_queue_;
         static thread_local unsigned local_index_;
     };
+
+    template<typename FunctionType>
+    std::future<std::invoke_result_t<FunctionType>> thread_pool_t::submit(
+        FunctionType f)
+    {
+        using result_type = std::invoke_result_t<FunctionType>;
+
+        std::packaged_task<result_type()> task{f};
+        std::future<result_type> res{task.get_future()};
+        if (local_work_queue_)
+        {
+            local_work_queue_->push(std::move(task));
+        }
+        else
+        {
+            pool_work_queue_.push(std::move(task));
+        }
+        return res;
+    }
+
+    template<typename FunctionType>
+    void thread_pool_t::set_thread_exit_function(FunctionType f)
+    {
+        thread_exit_function_ = std::move(f);
+    }
 } // namespace cppext
+#endif

@@ -7,6 +7,8 @@
 #include <physics_engine.hpp>
 #include <world.hpp>
 
+#include <cppext_thread_pool.hpp>
+
 #include <ngnast_scene_model.hpp>
 
 #include <ngngfx_perspective_camera.hpp>
@@ -105,6 +107,9 @@ namespace galileo
     private:
         vkglsl::guard_t glsl_guard_;
 
+        ngnscr::scripting_engine_t scripting_engine_;
+        cppext::thread_pool_t thread_pool_;
+
         ngnwsi::mouse_t mouse_;
         ngngfx::perspective_camera_t camera_;
 
@@ -120,8 +125,6 @@ namespace galileo
         std::default_random_engine random_engine_;
 
         int light_count_{1};
-
-        ngnscr::scripting_engine_t scripting_engine_;
 
         physics_engine_t physics_engine_;
         bool draw_physics_{true};

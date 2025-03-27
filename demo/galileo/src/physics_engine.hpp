@@ -15,6 +15,11 @@ namespace JPH
     class PhysicsSystem;
 } // namespace JPH
 
+namespace cppext
+{
+    class thread_pool_t;
+} // namespace cppext
+
 namespace galileo
 {
     namespace object_layers
@@ -27,7 +32,7 @@ namespace galileo
     class [[nodiscard]] physics_engine_t final
     {
     public:
-        physics_engine_t();
+        explicit physics_engine_t(cppext::thread_pool_t& thread_pool);
 
         physics_engine_t(physics_engine_t const&) = delete;
 

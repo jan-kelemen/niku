@@ -6,8 +6,10 @@ target_sources(ngnphy
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnphy_jolt.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnphy_jolt_adapter.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnphy_jolt_geometry.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnphy_jolt_job_system.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnphy_jolt_adapter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnphy_jolt_job_system.cpp
 )
 
 target_include_directories(ngnphy
@@ -20,6 +22,7 @@ target_include_directories(ngnphy
 
 target_link_libraries(ngnphy
     PUBLIC
+        cppext
         glm_impl
     PUBLIC
         Jolt::Jolt

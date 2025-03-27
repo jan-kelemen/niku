@@ -25,6 +25,7 @@
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
+#include <cppext_thread_pool.hpp>
 
 #include <ngnast_gltf_loader.hpp>
 #include <ngnast_scene_model.hpp>
@@ -223,6 +224,7 @@ galileo::application_t::application_t(bool const debug)
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
+    , physics_engine_{thread_pool_}
     , polymesh_params_{.walkable_slope_angle = character_t::max_slope_angle}
     , world_{physics_engine_}
     , world_listener_{std::make_unique<world_contact_listener_t>(
@@ -254,6 +256,8 @@ galileo::application_t::application_t(bool const debug)
     , physics_debug_{std::make_unique<physics_debug_t>(*batch_renderer_)}
     , navmesh_debug_{std::make_unique<navmesh_debug_t>(*batch_renderer_)}
 {
+    thread_pool_.set_thread_exit_function([]() { asThreadCleanup(); });
+
     camera_.set_position({-25.0f, 5.0f, -25.0f});
 
     physics_engine_.physics_system().SetContactListener(world_listener_.get());

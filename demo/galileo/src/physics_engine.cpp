@@ -2,7 +2,7 @@
 
 #include <cppext_pragma_warning.hpp>
 
-#include <angelscript.h>
+#include <ngnphy_jolt_job_system.hpp>
 
 #include <Jolt/ConfigurationString.h>
 #include <Jolt/Core/Core.h>
@@ -26,8 +26,6 @@
 #include <cstdio>
 #include <memory>
 #include <string_view>
-#include <thread>
-#include <utility>
 
 namespace JPH
 {
@@ -211,7 +209,7 @@ class [[nodiscard]] object_vs_broad_phase_layer_filter final
 struct [[nodiscard]] galileo::physics_engine_t::impl final
 {
 public:
-    impl();
+    impl(cppext::thread_pool_t& thread_pool);
 
     impl(impl const&) = delete;
 
@@ -239,7 +237,7 @@ public:
     std::unique_ptr<JPH::PhysicsSystem> physics_system_;
 };
 
-galileo::physics_engine_t::impl::impl()
+galileo::physics_engine_t::impl::impl(cppext::thread_pool_t& thread_pool)
 {
     JPH::RegisterDefaultAllocator();
 
@@ -261,13 +259,7 @@ galileo::physics_engine_t::impl::impl()
         std::make_unique<JPH::TempAllocatorImpl>(10 * 1024 * 1024);
 #endif
 
-    auto thread_pool{
-        std::make_unique<JPH::JobSystemThreadPool>(JPH::cMaxPhysicsJobs,
-            JPH::cMaxPhysicsBarriers,
-            std::thread::hardware_concurrency() - 1)};
-    thread_pool->SetThreadExitFunction([](int) { asThreadCleanup(); });
-
-    job_system_ = std::move(thread_pool);
+    job_system_ = std::make_unique<ngnphy::job_system_t>(thread_pool);
 
     physics_system_ = std ::make_unique<JPH::PhysicsSystem>();
     physics_system_->Init(max_bodies,
@@ -298,7 +290,8 @@ void galileo::physics_engine_t::impl::fixed_update(float const delta_time)
         job_system_.get());
 }
 
-galileo::physics_engine_t::physics_engine_t() : impl_{std::make_unique<impl>()}
+galileo::physics_engine_t::physics_engine_t(cppext::thread_pool_t& thread_pool)
+    : impl_{std::make_unique<impl>(thread_pool)}
 {
 }
 
