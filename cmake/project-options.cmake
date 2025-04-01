@@ -14,3 +14,14 @@ if(NIKU_ENABLE_COMPILER_STATIC_ANALYSIS)
             compiler-analyzer)
 endif()
 
+if (NIKU_ENABLE_COLORED_COMPILER_OUTPUT)
+    if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+        set(COLORED_COMPILER_DIAGNOSTICS -fcolor-diagnostics)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(COLORED_COMPILER_DIAGNOSTICS -fdiagnostics-color=auto)
+    endif()
+
+    target_compile_options(project-options
+        INTERFACE
+            ${COLORED_COMPILER_DIAGNOSTICS})
+endif()
