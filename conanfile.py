@@ -40,7 +40,7 @@ class NikuConan(ConanFile):
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
         self.requires("meshoptimizer/0.23", transitive_headers=False)
         self.requires("sdl/3.2.8")
-        self.requires("spdlog/1.15.1", transitive_headers=False)
+        self.requires("spdlog/1.15.2", transitive_headers=False)
         self.requires("spirv-cross/1.4.304.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
         self.requires("volk/1.4.304.0")
