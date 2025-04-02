@@ -46,8 +46,8 @@ namespace galileo::component
 
     struct [[nodiscard]] sphere_path_t final
     {
-        navigation_mesh_query_ptr_t query;
-        path_iterator_t iterator;
+        navigation_mesh_query_ptr_t navmesh_query;
+        path_t navmesh_path;
 
         glm::vec3 error{};
         glm::vec3 integral{};

@@ -23,14 +23,12 @@
 #include <Jolt/Physics/EActivation.h>
 
 #include <glm/geometric.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include <recastnavigation/DetourStatus.h>
 
 #include <spdlog/spdlog.h>
 
 #include <cassert>
 #include <cstdint>
+#include <iterator>
 #include <utility>
 #include <vector>
 
@@ -138,42 +136,29 @@ void galileo::move_spheres(entt::registry& registry,
         glm::vec3 const current{
             ngnphy::to_glm(body_interface.GetPosition(physics_id))};
 
-        glm::vec3 closest{current};
-        if (dtStatus const status{path.iterator.query->closestPointOnPoly(
-                path.iterator.polys.front(),
-                glm::value_ptr(current),
-                glm::value_ptr(closest),
-                nullptr)};
-            dtStatusFailed(status))
+        std::vector<path_point_t> corners{
+            find_corners(path.navmesh_path, current, 1)};
+        if (std::empty(corners))
         {
-            spdlog::error(
-                "Can't find closest point on polygon for start position");
+            spdlog::error("Can't find next corner to steer to");
+            to_remove.push_back(entity);
+            continue;
         }
-        auto const diff{current - closest};
 
-        auto const error{path.iterator.current_position -
-            ngnphy::to_glm(body_interface.GetPosition(physics_id)) + diff};
+        auto const error{corners.front().vertex -
+            ngnphy::to_glm(body_interface.GetPosition(physics_id))};
 
         auto const proportional{error};
         auto const integral{path.integral + error * delta_time};
         auto const derivative{(error - path.error) / delta_time};
 
-        auto const force{proportional + 0.001f * integral + 0.5f * derivative};
+        auto const force{
+            normalize(proportional + 0.001f * integral + 0.5f * derivative)};
 
-        body_interface.AddImpulse(physics_id, 500.0f * ngnphy::to_jolt(force));
+        body_interface.AddImpulse(physics_id, 50.0f * ngnphy::to_jolt(force));
 
         path.integral = integral;
         path.error = error;
-
-        path.iterator.current_position = closest;
-
-        if (glm::length(path.error) < 1.0f)
-        {
-            if (!increment(path.iterator))
-            {
-                to_remove.push_back(entity);
-            }
-        }
     }
 
     registry.remove<component::sphere_path_t>(to_remove.cbegin(),

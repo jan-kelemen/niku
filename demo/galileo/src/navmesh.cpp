@@ -8,7 +8,6 @@
 
 #include <boost/scope/scope_exit.hpp>
 
-#include <glm/geometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/trigonometric.hpp>
 
@@ -23,113 +22,13 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <cstddef>
 #include <iterator>
+#include <memory>
+#include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <utility>
 #include <vector>
-
-// IWYU pragma: no_include <memory>
-
-namespace
-{
-    [[nodiscard]] bool
-    in_cylinder(float const* v1, float const* v2, float const r, float const h)
-    {
-        float const dx{v2[0] - v1[0]};
-        float const dy{v2[1] - v1[1]};
-        float const dz{v2[2] - v1[2]};
-        return (dx * dx + dz * dz) < r * r && fabsf(dy) < h;
-    }
-
-    struct [[nodiscard]] intermediate_path_point_t final
-    {
-        glm::vec3 point;
-        dtStraightPathFlags flags;
-        dtPolyRef poly;
-    };
-
-    struct [[nodiscard]] intermediate_path_t final
-    {
-        std::vector<intermediate_path_point_t> points;
-
-        intermediate_path_point_t target{};
-    };
-
-    [[nodiscard]] std::optional<intermediate_path_t> find_intermediate_path(
-        galileo::path_iterator_t const& iterator)
-    {
-        constexpr int max_intermediate_points{3};
-
-        float path[max_intermediate_points * 3]{};
-        unsigned char flags[max_intermediate_points]{};
-        dtPolyRef polys[max_intermediate_points]{};
-
-        size_t steer_path_size{};
-        {
-            int points{};
-            if (dtStatus const status{iterator.query->findStraightPath(
-                    glm::value_ptr(iterator.current_position),
-                    glm::value_ptr(iterator.target_position),
-                    iterator.polys.data(),
-                    cppext::narrow<int>(iterator.polys.size()),
-                    static_cast<float*>(path),
-                    static_cast<unsigned char*>(flags),
-                    static_cast<dtPolyRef*>(polys),
-                    &points,
-                    max_intermediate_points)};
-                dtStatusFailed(status))
-            {
-                spdlog::error("Failed to find intermediate path");
-                return std::nullopt;
-            }
-
-            steer_path_size = cppext::narrow<size_t>(points);
-        }
-
-        intermediate_path_t rv;
-        rv.points.reserve(steer_path_size);
-
-        for (size_t i{}; i != steer_path_size; ++i)
-        {
-            rv.points.emplace_back(glm::make_vec3(&path[i * 3]),
-                static_cast<dtStraightPathFlags>(flags[i]),
-                polys[i]);
-        }
-
-        // Find vertex far enough to steer to.
-        size_t ns{};
-        while (ns < steer_path_size)
-        {
-            if (!in_cylinder(&path[ns * 3],
-                    glm::value_ptr(iterator.current_position),
-                    0.01f,
-                    1000.0f))
-            {
-                break;
-            }
-
-            ns++;
-        }
-
-        // Failed to find good point to steer to.
-        if (ns >= steer_path_size)
-        {
-            spdlog::error("Failed to find intermediate path point");
-            return std::nullopt;
-        }
-
-        rv.target = {
-            .point = {path[ns * 3],
-                iterator.current_position.y,
-                path[ns * 3 + 2]},
-            .flags = static_cast<dtStraightPathFlags>(flags[ns]),
-            .poly = polys[ns],
-        };
-
-        return std::make_optional(std::move(rv));
-    }
-} // namespace
 
 galileo::poly_mesh_t galileo::generate_poly_mesh(
     polymesh_parameters_t const& parameters,
@@ -456,140 +355,168 @@ galileo::navigation_mesh_query_ptr_t galileo::create_query(
     return rv;
 }
 
-std::optional<galileo::path_iterator_t> galileo::find_path(
-    dtNavMeshQuery* const query,
-    glm::vec3 const start,
-    glm::vec3 const end,
-    glm::vec3 const bb_half_extent,
-    int const max_nodes)
+galileo::path_corridor_ptr_t galileo::create_path_corridor(int const max_nodes)
 {
+    auto rv{std::make_unique<dtPathCorridor>()};
+
+    if (!rv->init(max_nodes))
+    {
+        throw std::runtime_error{"Can't initialize Detour path corridor"};
+    }
+
+    return rv;
+}
+
+std::optional<galileo::nearest_polygon_t> galileo::find_nearest_polygon(
+    dtNavMeshQuery const& query,
+    glm::vec3 const point,
+    glm::vec3 const search_extent)
+{
+    nearest_polygon_t rv{};
+
+    dtQueryFilter const filter;
+    if (dtStatus const status{query.findNearestPoly(glm::value_ptr(point),
+            glm::value_ptr(search_extent),
+            &filter,
+            &rv.polygon,
+            glm::value_ptr(rv.point),
+            &rv.over_polygon)};
+        dtStatusFailed(status) || rv.polygon == 0)
+    {
+        spdlog::error("Can't find nearest polygon");
+        return std::nullopt;
+    }
+
+    return std::make_optional(rv);
+}
+
+std::optional<galileo::closest_point_t> galileo::find_closest_point_on_polygon(
+    dtNavMeshQuery const& query,
+    dtPolyRef const polygon,
+    glm::vec3 const point)
+{
+    closest_point_t rv{};
+
+    if (dtStatus const status{query.closestPointOnPoly(polygon,
+            glm::value_ptr(point),
+            glm::value_ptr(rv.point),
+            nullptr)};
+        dtStatusFailed(status))
+    {
+        spdlog::error("Can't find closest point on polygon");
+        return std::nullopt;
+    }
+
+    return std::make_optional(rv);
+}
+
+std::optional<galileo::path_t> galileo::find_path(dtNavMeshQuery& query,
+    glm::vec3 const starting_position,
+    glm::vec3 const target_position,
+    glm::vec3 const search_extent)
+{
+    std::optional<nearest_polygon_t> const nearest_start_polygon{
+        find_nearest_polygon(query, starting_position, search_extent)};
+    if (!nearest_start_polygon)
+    {
+        return std::nullopt;
+    }
+
+    std::optional<nearest_polygon_t> const nearest_target_polygon{
+        find_nearest_polygon(query, target_position, search_extent)};
+    if (!nearest_target_polygon)
+    {
+        return std::nullopt;
+    }
+
     dtQueryFilter const filter;
 
-    dtPolyRef start_ref{};
-    glm::vec3 start_nearest_point{};
-    if (dtStatus const status{query->findNearestPoly(glm::value_ptr(start),
-            glm::value_ptr(bb_half_extent),
-            &filter,
-            &start_ref,
-            glm::value_ptr(start_nearest_point))};
-        dtStatusFailed(status) || start_ref == 0)
-    {
-        spdlog::error("Can't find nearest polygon for start position");
-        return std::nullopt;
-    }
-
-    dtPolyRef end_ref{};
-    glm::vec3 end_nearest_point{};
-    if (dtStatus const status{query->findNearestPoly(glm::value_ptr(end),
-            glm::value_ptr(bb_half_extent),
-            &filter,
-            &end_ref,
-            glm::value_ptr(end_nearest_point))};
-        dtStatusFailed(status) || end_ref == 0)
-    {
-        spdlog::error("Can't find nearest polygon for end position");
-        return std::nullopt;
-    }
-
-    std::vector<dtPolyRef> path_nodes;
-    path_nodes.resize(cppext::narrow<size_t>(max_nodes));
+    std::vector<dtPolyRef> polygons;
+    polygons.resize(2048);
 
     int count{};
-    if (dtStatus const status{query->findPath(start_ref,
-            end_ref,
-            glm::value_ptr(start),
-            glm::value_ptr(end),
+    if (dtStatus const status{query.findPath(nearest_start_polygon->polygon,
+            nearest_target_polygon->polygon,
+            glm::value_ptr(starting_position),
+            glm::value_ptr(target_position),
             &filter,
-            path_nodes.data(),
+            polygons.data(),
             &count,
-            max_nodes)};
+            2048)};
         dtStatusFailed(status))
     {
-        spdlog::error("Can't find path between start and end positions");
+        spdlog::error("Can't find path");
         return std::nullopt;
     }
 
-    path_nodes.resize(cppext::narrow<size_t>(count));
-    path_nodes.shrink_to_fit();
-
-    path_iterator_t rv{.query = query, .polys = std::move(path_nodes)};
-
-    if (dtStatus const status{query->closestPointOnPoly(start_ref,
-            glm::value_ptr(start),
-            glm::value_ptr(rv.current_position),
-            nullptr)};
-        dtStatusFailed(status))
+    std::optional<closest_point_t> const closest_starting_point{
+        find_closest_point_on_polygon(query,
+            nearest_start_polygon->polygon,
+            starting_position)};
+    if (!closest_starting_point)
     {
-        spdlog::error("Can't find closest point on polygon for start position");
         return std::nullopt;
     }
 
-    if (dtStatus const status{query->closestPointOnPoly(end_ref,
-            glm::value_ptr(end),
-            glm::value_ptr(rv.target_position),
-            nullptr)};
-        dtStatusFailed(status))
+    path_t rv{.query = &query, .corridor = create_path_corridor()};
+    rv.corridor->reset(nearest_start_polygon->polygon,
+        glm::value_ptr(closest_starting_point->point));
+
+    std::optional<closest_point_t> const closest_target_point{
+        find_closest_point_on_polygon(query,
+            nearest_target_polygon->polygon,
+            target_position)};
+    if (!closest_target_point)
     {
-        spdlog::error("Can't find closest point on polygon for start position");
         return std::nullopt;
     }
+    rv.corridor->setCorridor(glm::value_ptr(target_position),
+        polygons.data(),
+        count);
 
     return std::make_optional(std::move(rv));
 }
 
-bool galileo::increment(path_iterator_t& iterator)
+std::vector<galileo::path_point_t> galileo::find_corners(path_t& path,
+    glm::vec3 const current_position,
+    size_t const count)
 {
-    constexpr float step_size{0.5f};
-
-    auto intermediate{find_intermediate_path(iterator)};
-    if (!intermediate)
-    {
-        return false;
-    }
-
-    bool const end_of_path{(intermediate->target.flags &
-                               dtStraightPathFlags::DT_STRAIGHTPATH_END) ==
-        dtStraightPathFlags::DT_STRAIGHTPATH_END};
-
-    glm::vec3 const delta{
-        intermediate->target.point - iterator.current_position};
-    float length{glm::length(delta)};
-    length = (end_of_path && length < step_size) ? 1 : step_size / length;
-
-    glm::vec3 const target{iterator.current_position + delta * length};
-
     dtQueryFilter const filter;
 
-    glm::vec3 result{};
-    dtPolyRef visited[16]{};
-    int nvisited{};
-    if (dtStatus const status{
-            iterator.query->moveAlongSurface(iterator.polys.front(),
-                glm::value_ptr(iterator.current_position),
-                glm::value_ptr(target),
-                &filter,
-                glm::value_ptr(result),
-                static_cast<dtPolyRef*>(visited),
-                &nvisited,
-                16)};
-        dtStatusFailed(status))
+    std::vector<path_point_t> rv;
+    if (!path.corridor->movePosition(glm::value_ptr(current_position),
+            path.query,
+            &filter))
     {
-        spdlog::error("Failed to move along surface");
-        return false;
+        spdlog::error("Can't move corridor position");
+        return rv;
     }
 
-    auto const new_size{dtMergeCorridorStartMoved(iterator.polys.data(),
-        cppext::narrow<int>(iterator.polys.size()),
-        2048,
-        static_cast<dtPolyRef*>(visited),
-        nvisited)};
-    iterator.polys.resize(cppext::narrow<size_t>(new_size));
+    std::vector<float> vertices;
+    vertices.resize((count + 1) * 3);
 
-    iterator.current_position = result;
+    std::vector<unsigned char> flags;
+    flags.resize(count + 1);
 
-    return !(end_of_path &&
-        in_cylinder(glm::value_ptr(iterator.current_position),
-            glm::value_ptr(intermediate->target.point),
-            0.01f,
-            1.0f));
+    std::vector<dtPolyRef> polygons;
+    polygons.resize(count + 1);
+
+    int const corner_count{path.corridor->findCorners(vertices.data(),
+        flags.data(),
+        polygons.data(),
+        cppext::narrow<int>(count + 1),
+        path.query,
+        &filter)};
+
+    rv.reserve(count);
+    for (size_t const i :
+        std::views::iota(size_t{}, cppext::narrow<size_t>(corner_count)))
+    {
+        // cppcheck-suppress useStlAlgorithm
+        rv.emplace_back(glm::make_vec3(&vertices[i * 3]),
+            polygons[i],
+            flags[i]);
+    }
+
+    return rv;
 }

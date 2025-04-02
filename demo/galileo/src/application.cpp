@@ -87,6 +87,7 @@ DISABLE_WARNING_POP
 #include <Jolt/Physics/PhysicsSystem.h>
 
 #include <recastnavigation/DetourNavMesh.h>
+#include <recastnavigation/DetourPathCorridor.h>
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_scancode.h>
@@ -304,18 +305,18 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
                 glm::vec3 const sphere_position{
                     ngnphy::to_glm(body_interface.GetPosition(*body))};
 
-                std::optional<path_iterator_t> iterator{find_path(query.get(),
+                std::optional<path_t> navmesh_path{find_path(*query,
                     sphere_position,
                     spawner_position,
                     (world_aabb_.max - world_aabb_.min) / 2.0f)};
 
-                if (iterator)
+                if (navmesh_path)
                 {
                     registry_.emplace<component::sphere_path_t>(
                         static_cast<entt::entity>(
                             body_interface.GetUserData(*body)),
                         std::move(query),
-                        *std::move(iterator));
+                        *std::move(navmesh_path));
                 }
             }
         }
@@ -559,8 +560,11 @@ void galileo::application_t::draw()
         for (auto const entity : registry_.view<component::sphere_path_t>())
         {
             auto const& path{registry_.get<component::sphere_path_t>(entity)};
-            navmesh_debug_->draw_nodes(*path.query);
-            std::ranges::for_each(path.iterator.polys,
+            navmesh_debug_->draw_nodes(*path.navmesh_query);
+            std::ranges::for_each(
+                std::span{path.navmesh_path.corridor->getPath(),
+                    cppext::narrow<size_t>(
+                        path.navmesh_path.corridor->getPathCount())},
                 [this, &nm = world_.get_navigation_mesh()](dtPolyRef const r)
                 { navmesh_debug_->draw_poly(nm, r); });
         }

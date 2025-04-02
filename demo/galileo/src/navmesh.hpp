@@ -8,8 +8,11 @@
 
 #include <recastnavigation/DetourNavMesh.h>
 #include <recastnavigation/DetourNavMeshQuery.h>
+#include <recastnavigation/DetourPathCorridor.h>
 #include <recastnavigation/Recast.h>
 
+#include <cstddef>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -77,24 +80,54 @@ namespace galileo
     [[nodiscard]] navigation_mesh_query_ptr_t
     create_query(dtNavMesh const* navigation_mesh, int max_nodes = 2048);
 
-    struct [[nodiscard]] path_iterator_t final
-    {
-        dtNavMeshQuery* query;
-        std::vector<dtPolyRef> polys;
-        glm::vec3 current_position;
-        glm::vec3 target_position;
-    };
+    using path_corridor_ptr_t = std::unique_ptr<dtPathCorridor>;
 
-    // Search for a path from start to end within a bounding box around start.
-    [[nodiscard]] std::optional<path_iterator_t> find_path(
-        dtNavMeshQuery* query,
-        glm::vec3 start,
-        glm::vec3 end,
-        glm::vec3 bb_half_extent,
+    [[nodiscard]] path_corridor_ptr_t create_path_corridor(
         int max_nodes = 2048);
 
-    [[nodiscard]] bool increment(path_iterator_t& iterator);
+    struct [[nodiscard]] nearest_polygon_t final
+    {
+        dtPolyRef polygon;
+        glm::vec3 point;
+        bool over_polygon;
+    };
 
+    [[nodiscard]] std::optional<nearest_polygon_t> find_nearest_polygon(
+        dtNavMeshQuery const& query,
+        glm::vec3 point,
+        glm::vec3 search_extent);
+
+    struct [[nodiscard]] closest_point_t final
+    {
+        glm::vec3 point;
+        bool over_polygon;
+    };
+
+    [[nodiscard]] std::optional<closest_point_t> find_closest_point_on_polygon(
+        dtNavMeshQuery const& query,
+        dtPolyRef polygon,
+        glm::vec3 point);
+
+    struct [[nodiscard]] path_t final
+    {
+        dtNavMeshQuery* query;
+        path_corridor_ptr_t corridor;
+    };
+
+    [[nodiscard]] std::optional<path_t> find_path(dtNavMeshQuery& query,
+        glm::vec3 starting_position,
+        glm::vec3 target_position,
+        glm::vec3 search_extent);
+
+    struct [[nodiscard]] path_point_t final
+    {
+        glm::vec3 vertex;
+        dtPolyRef polygon;
+        unsigned char flag;
+    };
+
+    [[nodiscard]] std::vector<path_point_t>
+    find_corners(path_t& path, glm::vec3 current_position, size_t count = 1);
 } // namespace galileo
 
 #endif
