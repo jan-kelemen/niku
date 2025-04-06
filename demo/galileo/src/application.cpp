@@ -226,7 +226,8 @@ galileo::application_t::application_t(bool const debug)
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
     , physics_engine_{thread_pool_}
-    , polymesh_params_{.walkable_slope_angle = character_t::max_slope_angle}
+    , polymesh_params_{.walkable_slope_angle = character_t::max_slope_angle,
+          .walkable_radius = 1.0f}
     , world_{physics_engine_}
     , world_listener_{std::make_unique<world_contact_listener_t>(
           scripting_engine_,
@@ -288,9 +289,10 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
         {
             auto& body_interface{physics_engine_.body_interface()};
 
-            if (!registry_.try_get<component::sphere_path_t>(
-                    static_cast<entt::entity>(
-                        body_interface.GetUserData(*body))))
+            auto const entity{
+                static_cast<entt::entity>(body_interface.GetUserData(*body))};
+
+            if (!registry_.try_get<component::sphere_path_t>(entity))
             {
                 spdlog::info("selected body {} ",
                     body->GetIndexAndSequenceNumber());
@@ -312,9 +314,7 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
 
                 if (navmesh_path)
                 {
-                    registry_.emplace<component::sphere_path_t>(
-                        static_cast<entt::entity>(
-                            body_interface.GetUserData(*body)),
+                    registry_.emplace<component::sphere_path_t>(entity,
                         std::move(query),
                         *std::move(navmesh_path));
                 }

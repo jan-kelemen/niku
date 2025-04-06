@@ -12,6 +12,8 @@
 
 #include <angelscript.h>
 
+#include <imgui.h>
+
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Vec3.h>
@@ -19,8 +21,10 @@
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EActivation.h>
+#include <Jolt/Physics/PhysicsSystem.h>
 
 #include <glm/geometric.hpp>
 
@@ -29,6 +33,7 @@
 #include <cassert>
 #include <cstdint>
 #include <iterator>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -44,11 +49,17 @@ entt::entity galileo::create_sphere(entt::registry& registry,
 {
     auto& body_interface{physics_engine.body_interface()};
 
-    JPH::BodyCreationSettings const settings{new JPH::SphereShape{radius},
+    auto shape{std::make_unique<JPH::SphereShape>(radius)};
+    shape->SetDensity(500.0f);
+
+    JPH::BodyCreationSettings settings{shape.get(),
         ngnphy::to_jolt(position),
         JPH::Quat::sIdentity(),
         JPH::EMotionType::Dynamic,
         object_layers::moving};
+    settings.mMaxLinearVelocity = 1.42f;
+
+    shape.release(); // NOLINT
 
     JPH::BodyID const id{
         body_interface.CreateAndAddBody(settings, JPH::EActivation::Activate)};
@@ -123,8 +134,11 @@ void galileo::move_spheres(entt::registry& registry,
     physics_engine_t& physics_engine,
     float const delta_time)
 {
-    auto& body_interface{physics_engine.body_interface()};
+    static float proportional_factor{1000.0f};
+    static float integral_factor{0.0f};
+    static float derivative_factor{0.0f};
 
+    auto& body_interface{physics_engine.body_interface()};
     std::vector<entt::entity> to_remove;
     for (auto const entity :
         registry.view<component::sphere_path_t, component::physics_t>())
@@ -133,11 +147,12 @@ void galileo::move_spheres(entt::registry& registry,
 
         auto const physics_id{registry.get<component::physics_t>(entity).id};
 
-        glm::vec3 const current{
+        glm::vec3 current{
             ngnphy::to_glm(body_interface.GetPosition(physics_id))};
+        current.y -= body_interface.GetShape(physics_id)->GetInnerRadius();
 
         std::vector<path_point_t> corners{
-            find_corners(path.navmesh_path, current, 1)};
+            find_corners(path.navmesh_path, current, 2)};
         if (std::empty(corners))
         {
             spdlog::error("Can't find next corner to steer to");
@@ -145,17 +160,29 @@ void galileo::move_spheres(entt::registry& registry,
             continue;
         }
 
-        auto const error{corners.front().vertex -
-            ngnphy::to_glm(body_interface.GetPosition(physics_id))};
+        auto const error{corners.front().vertex - current};
 
         auto const proportional{error};
         auto const integral{path.integral + error * delta_time};
         auto const derivative{(error - path.error) / delta_time};
 
-        auto const force{
-            normalize(proportional + 0.001f * integral + 0.5f * derivative)};
+        auto force{proportional_factor * proportional +
+            integral_factor * integral + derivative_factor * derivative};
 
-        body_interface.AddImpulse(physics_id, 50.0f * ngnphy::to_jolt(force));
+        ImGui::Begin("Force");
+        ImGui::SliderFloat("Proportional", &proportional_factor, 0.0f, 10.0f);
+        ImGui::Text("%f, %f, %f",
+            proportional.x,
+            proportional.y,
+            proportional.z);
+        ImGui::SliderFloat("Integral", &integral_factor, 0.0f, 0.5f);
+        ImGui::Text("%f, %f, %f", integral.x, integral.y, integral.z);
+        ImGui::SliderFloat("Derivative", &derivative_factor, 0.0f, 0.5f);
+        ImGui::Text("%f, %f, %f", derivative.x, derivative.y, derivative.z);
+        ImGui::Text("%f, %f, %f", force.x, force.y, force.z);
+        ImGui::End();
+
+        body_interface.AddForce(physics_id, ngnphy::to_jolt(force));
 
         path.integral = integral;
         path.error = error;
