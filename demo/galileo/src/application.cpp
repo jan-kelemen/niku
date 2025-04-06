@@ -938,11 +938,12 @@ void galileo::application_t::setup_world()
                     floor_shape_settings.Create()};
                 JPH::ShapeRefC const floor_shape{floor_shape_result.Get()};
 
-                JPH::BodyCreationSettings const floor_settings{floor_shape,
+                JPH::BodyCreationSettings floor_settings{floor_shape,
                     ngnphy::to_jolt(glm::vec3{root.matrix[3]}),
                     ngnphy::to_jolt(glm::quat_cast(root.matrix)),
                     JPH::EMotionType::Static,
                     galileo::object_layers::non_moving};
+                floor_settings.mEnhancedInternalEdgeRemoval = true;
 
                 JPH::Body* const floor{
                     body_interface.CreateBody(floor_settings)};
