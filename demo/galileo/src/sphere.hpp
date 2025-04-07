@@ -34,8 +34,7 @@ namespace galileo
         glm::vec3 position);
 
     void move_spheres(entt::registry& registry,
-        physics_engine_t& physics_engine,
-        float delta_time);
+        physics_engine_t& physics_engine);
 } // namespace galileo
 
 namespace galileo::component
@@ -48,9 +47,6 @@ namespace galileo::component
     {
         navigation_mesh_query_ptr_t navmesh_query;
         path_t navmesh_path;
-
-        glm::vec3 error{};
-        glm::vec3 integral{};
     };
 } // namespace galileo::component
 

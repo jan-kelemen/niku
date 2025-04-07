@@ -476,7 +476,7 @@ void galileo::application_t::update(float const delta_time)
         follow_camera_controller_.update(*character_);
     }
 
-    move_spheres(registry_, physics_engine_, delta_time);
+    move_spheres(registry_, physics_engine_);
 
     physics_engine_.update(delta_time);
 

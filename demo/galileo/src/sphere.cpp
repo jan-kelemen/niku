@@ -131,13 +131,8 @@ entt::entity galileo::spawn_sphere(entt::registry& registry,
 }
 
 void galileo::move_spheres(entt::registry& registry,
-    physics_engine_t& physics_engine,
-    float const delta_time)
+    physics_engine_t& physics_engine)
 {
-    static float proportional_factor{1000.0f};
-    static float integral_factor{0.0f};
-    static float derivative_factor{0.0f};
-
     auto& body_interface{physics_engine.body_interface()};
     std::vector<entt::entity> to_remove;
     for (auto const entity :
@@ -147,9 +142,8 @@ void galileo::move_spheres(entt::registry& registry,
 
         auto const physics_id{registry.get<component::physics_t>(entity).id};
 
-        glm::vec3 current{
+        glm::vec3 const current{
             ngnphy::to_glm(body_interface.GetPosition(physics_id))};
-        current.y -= body_interface.GetShape(physics_id)->GetInnerRadius();
 
         std::vector<path_point_t> corners{
             find_corners(path.navmesh_path, current, 2)};
@@ -162,30 +156,7 @@ void galileo::move_spheres(entt::registry& registry,
 
         auto const error{corners.front().vertex - current};
 
-        auto const proportional{error};
-        auto const integral{path.integral + error * delta_time};
-        auto const derivative{(error - path.error) / delta_time};
-
-        auto force{proportional_factor * proportional +
-            integral_factor * integral + derivative_factor * derivative};
-
-        ImGui::Begin("Force");
-        ImGui::SliderFloat("Proportional", &proportional_factor, 0.0f, 10.0f);
-        ImGui::Text("%f, %f, %f",
-            proportional.x,
-            proportional.y,
-            proportional.z);
-        ImGui::SliderFloat("Integral", &integral_factor, 0.0f, 0.5f);
-        ImGui::Text("%f, %f, %f", integral.x, integral.y, integral.z);
-        ImGui::SliderFloat("Derivative", &derivative_factor, 0.0f, 0.5f);
-        ImGui::Text("%f, %f, %f", derivative.x, derivative.y, derivative.z);
-        ImGui::Text("%f, %f, %f", force.x, force.y, force.z);
-        ImGui::End();
-
-        body_interface.AddForce(physics_id, ngnphy::to_jolt(force));
-
-        path.integral = integral;
-        path.error = error;
+        body_interface.AddForce(physics_id, 500.0f * ngnphy::to_jolt(error));
     }
 
     registry.remove<component::sphere_path_t>(to_remove.cbegin(),
