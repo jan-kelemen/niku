@@ -72,7 +72,6 @@ namespace galileo::component
     create_sphere_scripts(entt::entity sphere,
         ngnscr::scripting_engine_t& engine,
         asIScriptModule const& module);
-
 } // namespace galileo::component
 
 #endif

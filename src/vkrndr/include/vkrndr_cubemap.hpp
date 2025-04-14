@@ -62,6 +62,5 @@ namespace vkrndr
     void object_name(device_t const& device,
         cubemap_t const& cubemap,
         std::string_view name);
-
 } // namespace vkrndr
 #endif

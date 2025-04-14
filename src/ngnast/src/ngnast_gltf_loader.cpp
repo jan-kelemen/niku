@@ -287,7 +287,8 @@ namespace
 
                 return ngnast::image_t{.data = std::move(image_data),
                     .data_size = cppext::narrow<size_t>(width) *
-                        cppext::narrow<size_t>(height) * 4,
+                        cppext::narrow<size_t>(height) *
+                        4,
                     .extent = vkrndr::to_2d_extent(width, height),
                     .format = as_unorm ? VK_FORMAT_R8G8B8A8_UNORM
                                        : VK_FORMAT_R8G8B8A8_SRGB};

@@ -117,7 +117,6 @@ namespace vkrndr
         std::vector<detail::swap_frame_t> frames_;
         std::vector<vkrndr::image_t> images_;
     };
-
 } // namespace vkrndr
 
 constexpr VkExtent2D vkrndr::swap_chain_t::extent() const noexcept

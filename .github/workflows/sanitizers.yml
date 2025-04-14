@@ -15,7 +15,7 @@ jobs:
     
     env:
       GCC_VER: 14
-      CLANG_VER: 19
+      CLANG_VER: 20
 
     steps:
       - name: Checkout repository from github

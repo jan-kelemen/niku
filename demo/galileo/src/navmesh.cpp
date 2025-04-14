@@ -2,6 +2,7 @@
 
 #include <cppext_memory.hpp>
 #include <cppext_numeric.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <ngnast_mesh_transform.hpp>
 #include <ngnast_scene_model.hpp>
@@ -493,7 +494,10 @@ std::vector<galileo::path_point_t> galileo::find_corners(path_t& path,
     }
 
     std::vector<float> vertices;
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_NULL_DEREFERENCE
     vertices.resize((count + 1) * 3);
+    DISABLE_WARNING_POP
 
     std::vector<unsigned char> flags;
     flags.resize(count + 1);

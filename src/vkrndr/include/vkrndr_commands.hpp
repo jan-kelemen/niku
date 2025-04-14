@@ -57,7 +57,6 @@ namespace vkrndr
         VkExtent2D extent,
         uint32_t mip_levels,
         uint32_t layers = 1);
-
 } // namespace vkrndr
 
 #endif

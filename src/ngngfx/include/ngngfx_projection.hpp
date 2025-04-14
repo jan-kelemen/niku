@@ -2,7 +2,10 @@
 #define NGNGFX_PROJECTION_INCLUDED
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
 namespace ngngfx
 {

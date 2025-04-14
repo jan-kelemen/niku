@@ -29,7 +29,8 @@ bool galileo::follow_camera_controller_t::update(character_t const& character)
     camera_->update();
 
     glm::vec3 const position{character.position() +
-        camera_->up_direction() * 1.76f - camera_->front_direction() * 5.0f};
+        camera_->up_direction() * 1.76f -
+        camera_->front_direction() * 5.0f};
 
     camera_->set_position(position);
     camera_->update();

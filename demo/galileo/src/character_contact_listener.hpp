@@ -57,7 +57,6 @@ namespace galileo
         ngnscr::scripting_engine_t* scripting_engine_;
         entt::registry* registry_;
     };
-
 } // namespace galileo
 
 #endif

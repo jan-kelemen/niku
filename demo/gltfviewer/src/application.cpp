@@ -21,6 +21,7 @@
 #include <ngnast_gltf_loader.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
@@ -196,7 +197,8 @@ gltfviewer::application_t::application_t(bool const debug)
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
               .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                  VK_IMAGE_USAGE_STORAGE_BIT |
+                  VK_IMAGE_USAGE_TRANSFER_DST_BIT,
               .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
           },
           debug)}

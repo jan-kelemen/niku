@@ -38,7 +38,7 @@ cmake --build --preset multi-release --config Release
 
 ## Linux
 ```
-conan install . --profile=conan/clang-19-libstdcxx-amd64-linux --profile=conan/dependencies --profile=conan/opt/linux-native --build=missing --settings build_type=Release
+conan install . --profile=conan/clang-20-libstdcxx-amd64-linux --profile=conan/dependencies --profile=conan/opt/linux-native --build=missing --settings build_type=Release
 cmake --preset release
 cmake --build --preset release
 ```

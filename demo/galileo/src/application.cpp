@@ -31,6 +31,7 @@
 #include <ngnast_scene_model.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
 
 #include <ngnphy_coordinate_system.hpp>
 #include <ngnphy_jolt_adapter.hpp>
@@ -285,7 +286,8 @@ bool galileo::application_t::handle_event(SDL_Event const& event,
         assert(action == character_action_t::select_body);
 
         if (auto const body{world_.cast_ray(character_->center_of_mass(),
-                character_->rotation() * ngnphy::coordinate_system_t::front *
+                character_->rotation() *
+                    ngnphy::coordinate_system_t::front *
                     2.0f)})
         {
             auto& body_interface{physics_engine_.body_interface()};

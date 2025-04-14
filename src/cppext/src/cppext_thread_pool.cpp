@@ -118,7 +118,8 @@ bool cppext::thread_pool_t::pop_task_from_other_thread_queue(
 void cppext::thread_pool_t::run_pending_task()
 {
     detail::function_wrapper_t task;
-    if (pop_task_from_local_queue(task) || pop_task_from_pool_queue(task) ||
+    if (pop_task_from_local_queue(task) ||
+        pop_task_from_pool_queue(task) ||
         pop_task_from_other_thread_queue(task))
     {
         task();

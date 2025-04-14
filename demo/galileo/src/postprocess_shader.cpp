@@ -123,7 +123,6 @@ namespace
 
         return rv;
     }
-
 } // namespace
 
 galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)

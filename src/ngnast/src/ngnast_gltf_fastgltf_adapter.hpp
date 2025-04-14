@@ -264,7 +264,6 @@ namespace ngnast::gltf
             static_assert(false);
         }
     }
-
 } // namespace ngnast::gltf
 
 template<>

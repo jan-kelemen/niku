@@ -1,9 +1,11 @@
 #include <ngngfx_orthographic_projection.hpp>
 
 #include <ngngfx_camera.hpp>
+#include <ngngfx_projection.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ngngfx::orthographic_projection_t::orthographic_projection_t(
     camera_t const& camera,
     glm::vec2 const near_far_planes,

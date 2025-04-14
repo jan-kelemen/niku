@@ -62,7 +62,7 @@ namespace
             dtPoly const& poly{tile.polys[i]};
             dtPolyDetail const& poly_detail{tile.detailMeshes[i]};
 
-            for (int j{}; j != poly.vertCount; ++j)
+            for (unsigned char j{}; j != poly.vertCount; ++j)
             {
                 glm::vec4 color{base_color};
                 if (inner)
@@ -115,7 +115,8 @@ namespace
                                           poly.verts[tv]) *
                               3]
                         : &tile.detailVerts[cppext::narrow<ptrdiff_t>(
-                                                poly_detail.vertBase + tv -
+                                                poly_detail.vertBase +
+                                                tv -
                                                 poly.vertCount) *
                               3];
                 };
@@ -173,10 +174,10 @@ namespace
                         ? &tile
                               .verts[cppext::narrow<ptrdiff_t>(poly.verts[tv]) *
                                   3]
-                        : &tile.detailVerts[cppext::narrow<ptrdiff_t>(
-                                                poly_detail.vertBase + tv -
-                                                poly.vertCount) *
-                              3]};
+                        : &tile.detailVerts
+                              [cppext::narrow<ptrdiff_t>(
+                                   poly_detail.vertBase + tv - poly.vertCount) *
+                                  3]};
 
                 return {.position = glm::make_vec3(position_data) +
                         glm::vec3{0.0f, 0.01f, 0.0f},
@@ -518,10 +519,10 @@ void galileo::navmesh_debug_t::draw_poly(dtNavMesh const& navigation_mesh,
     {
         float const* const position_data{tv < poly->vertCount
                 ? &tile->verts[cppext::narrow<ptrdiff_t>(poly->verts[tv]) * 3]
-                : &tile->detailVerts[cppext::narrow<ptrdiff_t>(
-                                         poly_detail->vertBase + tv -
-                                         poly->vertCount) *
-                      3]};
+                : &tile->detailVerts
+                      [cppext::narrow<ptrdiff_t>(
+                           poly_detail->vertBase + tv - poly->vertCount) *
+                          3]};
 
         return {.position = glm::make_vec3(position_data) +
                 glm::vec3{0.0f, 0.01f, 0.0f},

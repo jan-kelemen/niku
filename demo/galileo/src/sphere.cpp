@@ -12,8 +12,6 @@
 
 #include <angelscript.h>
 
-#include <imgui.h>
-
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Vec3.h>
@@ -21,12 +19,8 @@
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/MotionType.h>
-#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/EActivation.h>
-#include <Jolt/Physics/PhysicsSystem.h>
-
-#include <glm/geometric.hpp>
 
 #include <spdlog/spdlog.h>
 

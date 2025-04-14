@@ -18,6 +18,7 @@ AllowShortCompoundRequirementOnASingleLine: 'true'
 AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: 'false'
 AllowShortLoopsOnASingleLine: 'false'
+AllowShortNamespacesOnASingleLine: 'false'
 AlwaysBreakBeforeMultilineStrings: 'true'
 BinPackArguments: 'false'
 BinPackParameters: 'false'
@@ -29,6 +30,7 @@ BreakBeforeBraces: Allman
 BreakBeforeConceptDeclarations: 'true'
 BreakBeforeInheritanceComma: 'true'
 BreakBeforeTernaryOperators: 'true'
+BreakBinaryOperations: RespectPrecedence
 BreakConstructorInitializers: BeforeComma
 BreakInheritanceList: BeforeComma
 BreakStringLiterals: 'false'
@@ -47,6 +49,7 @@ IncludeBlocks: Preserve
 IncludeIsMainRegex: '"(.t)?$"'
 IndentAccessModifiers: 'false'
 IndentCaseLabels: 'false'
+IndentExportBlock: 'true'
 IndentPPDirectives: None
 IndentRequires: 'false'
 IndentWidth: '4'
@@ -57,6 +60,7 @@ KeepEmptyLines:
   AtEndOfFile: 'false'
   AtStartOfBlock: 'false'
   AtStartOfFile: 'false'
+KeepFormFeed: 'false'
 Language: Cpp
 LambdaBodyIndentation: Signature
 MaxEmptyLinesToKeep: '1'
@@ -66,7 +70,8 @@ PenaltyBreakBeforeFirstCallParameter: '0'
 PPIndentWidth: '-1'
 PointerAlignment: Left
 QualifierAlignment: Right
-ReflowComments: 'true'
+ReflowComments: Always
+RemoveEmptyLinesInUnwrappedLines: 'true'
 RemoveParentheses: 'ReturnStatement'
 RemoveSemicolon: 'true'
 SeparateDefinitionBlocks: Always
@@ -93,4 +98,5 @@ SpacesInSquareBrackets: 'false'
 Standard: c++20
 TabWidth: '4'
 UseTab: Never
+WrapNamespaceBodyWithEmptyLines: Never
 ...

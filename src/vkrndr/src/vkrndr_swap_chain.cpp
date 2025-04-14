@@ -84,7 +84,6 @@ namespace
         return {std::cbegin(results),
             std::cbegin(results) + compatibility.presentModeCount};
     }
-
 } // namespace
 
 void vkrndr::detail::destroy(device_t const* const device,

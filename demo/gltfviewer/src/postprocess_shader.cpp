@@ -80,7 +80,6 @@ namespace
             0,
             nullptr);
     }
-
 } // namespace
 
 gltfviewer::postprocess_shader_t::postprocess_shader_t(

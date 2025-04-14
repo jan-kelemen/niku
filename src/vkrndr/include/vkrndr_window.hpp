@@ -29,7 +29,6 @@ namespace vkrndr
 
         [[nodiscard]] virtual bool is_minimized() const = 0;
     };
-
 } // namespace vkrndr
 
 #endif // !VKRNDR_VULKAN_WINDOW_INCLUDED

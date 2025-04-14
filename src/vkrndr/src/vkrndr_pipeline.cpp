@@ -226,7 +226,8 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::add_color_attachment(
     static constexpr VkPipelineColorBlendAttachmentState const
         default_color_blending{.blendEnable = VK_FALSE,
             .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                VK_COLOR_COMPONENT_G_BIT |
+                VK_COLOR_COMPONENT_B_BIT |
                 VK_COLOR_COMPONENT_A_BIT};
 
     color_attachments_.push_back(format);

@@ -347,7 +347,8 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
     VkPipelineColorBlendAttachmentState accumulation_color_blending{};
     accumulation_color_blending.blendEnable = VK_TRUE;
     accumulation_color_blending.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-        VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
     accumulation_color_blending.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
     accumulation_color_blending.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -433,7 +434,8 @@ void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
     VkPipelineColorBlendAttachmentState composition_color_blending{};
     composition_color_blending.blendEnable = VK_TRUE;
     composition_color_blending.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-        VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
     composition_color_blending.srcColorBlendFactor =
         VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

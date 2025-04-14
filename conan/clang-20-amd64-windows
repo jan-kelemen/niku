@@ -2,7 +2,7 @@
 os=Windows
 arch=x86_64
 compiler=clang
-compiler.version=19
+compiler.version=20
 compiler.cppstd=23
 compiler.runtime=dynamic
 compiler.runtime_version=v144

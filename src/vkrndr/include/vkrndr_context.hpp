@@ -28,7 +28,6 @@ namespace vkrndr
     };
 
     context_t create_context(context_create_info_t const& create_info);
-
 } // namespace vkrndr
 
 #endif

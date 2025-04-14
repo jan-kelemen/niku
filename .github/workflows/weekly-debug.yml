@@ -11,7 +11,7 @@ jobs:
     
     env:
       GCC_VER: 14
-      CLANG_VER: 19
+      CLANG_VER: 20
       
     strategy:
       fail-fast: false
@@ -97,7 +97,7 @@ jobs:
     runs-on: windows-2025
     
     env:
-      CLANG_VER: 19
+      CLANG_VER: 20
       
     strategy:
       fail-fast: false

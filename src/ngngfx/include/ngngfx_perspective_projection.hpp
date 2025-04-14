@@ -17,7 +17,7 @@ namespace ngngfx
     class [[nodiscard]] perspective_projection_t : public projection_t
     {
     public:
-        perspective_projection_t(camera_t const& camera,
+        explicit perspective_projection_t(camera_t const& camera,
             glm::vec2 near_far_planes = {0.1f, 1000.0f},
             float aspect_ratio = 16.0f / 9.0f,
             float fov = 45.0f);

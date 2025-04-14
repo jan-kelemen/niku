@@ -343,7 +343,6 @@ namespace cppext::detail
         mutable std::mutex mutex_;
         std::deque<function_wrapper_t> queue_;
     };
-
 } // namespace cppext::detail
 
 namespace cppext

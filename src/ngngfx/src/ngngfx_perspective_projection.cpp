@@ -1,8 +1,10 @@
 #include <ngngfx_perspective_projection.hpp>
 
 #include <ngngfx_camera.hpp>
+#include <ngngfx_projection.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/trigonometric.hpp>
 
 ngngfx::perspective_projection_t::perspective_projection_t(
     camera_t const& camera,
