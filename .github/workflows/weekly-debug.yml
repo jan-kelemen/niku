@@ -115,9 +115,10 @@ jobs:
       - name: Install Vulkan SDK
         uses: ./.github/actions/install-vulkan-sdk
         
-      - name: Install Ninja
+      - name: Install Clang and Ninja
         run: |
           choco install ninja
+          choco install llvm --version 20.1.2 -y
           
       - name: Setup Conan
         id: setup-conan
