@@ -20,7 +20,7 @@
 
 #include <ngnast_gltf_loader.hpp>
 
-#include <ngngfx_perspective_camera.hpp>
+#include <ngngfx_aircraft_camera.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
@@ -191,6 +191,7 @@ gltfviewer::application_t::application_t(bool const debug)
           .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           .width = 512,
           .height = 512}}
+    , projection_{camera_}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
@@ -359,7 +360,7 @@ void gltfviewer::application_t::update(float delta_time)
 
     camera_controller_.update(delta_time);
 
-    environment_->update(camera_);
+    environment_->update(projection_);
 }
 
 bool gltfviewer::application_t::begin_frame()
@@ -763,5 +764,5 @@ void gltfviewer::application_t::on_resize(uint32_t const width,
 
     pyramid_blur_->resize(width, height);
 
-    camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
+    projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 }

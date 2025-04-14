@@ -17,7 +17,7 @@ namespace ngnast
 
 namespace ngngfx
 {
-    class camera_t;
+    class projection_t;
 } // namespace ngngfx
 
 namespace vkrndr
@@ -44,7 +44,8 @@ namespace galileo
 
         void begin_frame();
 
-        void update(ngngfx::camera_t const& camera, uint32_t light_count);
+        void update(ngngfx::projection_t const& projection,
+            uint32_t light_count);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,

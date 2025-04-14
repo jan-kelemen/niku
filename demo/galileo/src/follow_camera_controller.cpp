@@ -2,7 +2,7 @@
 
 #include <character.hpp>
 
-#include <ngngfx_perspective_camera.hpp>
+#include <ngngfx_aircraft_camera.hpp>
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
@@ -12,7 +12,7 @@
 // IWYU pragma: no_include <glm/mat3x3.hpp>
 
 galileo::follow_camera_controller_t::follow_camera_controller_t(
-    ngngfx::perspective_camera_t& camera)
+    ngngfx::aircraft_camera_t& camera)
     : camera_{&camera}
 {
 }

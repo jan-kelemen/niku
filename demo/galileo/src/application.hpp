@@ -11,7 +11,8 @@
 
 #include <ngnast_scene_model.hpp>
 
-#include <ngngfx_perspective_camera.hpp>
+#include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
 
 #include <ngnscr_scripting_engine.hpp>
 
@@ -111,7 +112,8 @@ namespace galileo
         cppext::thread_pool_t thread_pool_;
 
         ngnwsi::mouse_t mouse_;
-        ngngfx::perspective_camera_t camera_;
+        ngngfx::aircraft_camera_t camera_;
+        ngngfx::perspective_projection_t projection_;
 
         entt::registry registry_;
 

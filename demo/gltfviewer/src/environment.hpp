@@ -17,7 +17,7 @@
 
 namespace ngngfx
 {
-    class camera_t;
+    class projection_t;
 } // namespace ngngfx
 
 namespace vkrndr
@@ -47,7 +47,7 @@ namespace gltfviewer
 
         void draw_skybox(VkCommandBuffer command_buffer);
 
-        void update(ngngfx::camera_t const& camera);
+        void update(ngngfx::projection_t const& projection);
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,

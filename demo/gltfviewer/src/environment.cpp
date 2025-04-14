@@ -6,7 +6,7 @@
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
-#include <ngngfx_camera.hpp>
+#include <ngngfx_projection.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
@@ -239,7 +239,7 @@ void gltfviewer::environment_t::draw_skybox(VkCommandBuffer command_buffer)
     skybox_.draw(command_buffer);
 }
 
-void gltfviewer::environment_t::update(ngngfx::camera_t const& camera)
+void gltfviewer::environment_t::update(ngngfx::projection_t const& projection)
 {
     frame_data_.cycle();
 
@@ -261,9 +261,9 @@ void gltfviewer::environment_t::update(ngngfx::camera_t const& camera)
     ImGui::End();
 
     auto* const header{frame_data_->uniform_map.as<environment_uniform_t>()};
-    header->view = camera.view_matrix();
-    header->projection = camera.projection_matrix();
-    header->camera_position = camera.position();
+    header->view = projection.view_matrix();
+    header->projection = projection.projection_matrix();
+    header->camera_position = projection.position();
     header->prefiltered_mip_levels = skybox_.prefiltered_mip_levels();
 
     auto* const light_array{

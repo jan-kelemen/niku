@@ -2,13 +2,19 @@ add_library(ngngfx)
 
 target_sources(ngngfx
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngngfx_aircraft_camera.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngngfx_camera.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngngfx_gbuffer.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngngfx_perspective_camera.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngngfx_orthographic_projection.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngngfx_projection.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngngfx_perspective_projection.hpp
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngngfx_aircraft_camera.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngngfx_camera.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngngfx_gbuffer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngngfx_perspective_camera.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngngfx_orthographic_projection.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngngfx_projection.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngngfx_perspective_projection.cpp
 )
 
 target_include_directories(ngngfx

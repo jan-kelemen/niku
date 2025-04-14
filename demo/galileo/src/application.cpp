@@ -30,7 +30,7 @@
 #include <ngnast_gltf_loader.hpp>
 #include <ngnast_scene_model.hpp>
 
-#include <ngngfx_perspective_camera.hpp>
+#include <ngngfx_aircraft_camera.hpp>
 
 #include <ngnphy_coordinate_system.hpp>
 #include <ngnphy_jolt_adapter.hpp>
@@ -222,6 +222,7 @@ galileo::application_t::application_t(bool const debug)
           .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           .width = 512,
           .height = 512}}
+    , projection_{camera_}
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
@@ -496,7 +497,7 @@ void galileo::application_t::update(float const delta_time)
             character_->world_transform());
     }
 
-    frame_info_->update(camera_, static_cast<uint32_t>(light_count_));
+    frame_info_->update(projection_, static_cast<uint32_t>(light_count_));
 }
 
 bool galileo::application_t::begin_frame()
@@ -865,7 +866,7 @@ void galileo::application_t::on_shutdown()
 void galileo::application_t::on_resize(uint32_t const width,
     uint32_t const height)
 {
-    camera_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
+    projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 
     destroy(&backend_->device(), &depth_buffer_);
     depth_buffer_ = create_depth_buffer(*backend_);

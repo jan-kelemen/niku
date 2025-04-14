@@ -7,7 +7,7 @@ union SDL_Event;
 
 namespace ngngfx
 {
-    class perspective_camera_t;
+    class aircraft_camera_t;
 } // namespace ngngfx
 
 namespace ngnwsi
@@ -20,7 +20,7 @@ namespace galileo
     class [[nodiscard]] camera_controller_t final
     {
     public:
-        camera_controller_t(ngngfx::perspective_camera_t& camera,
+        camera_controller_t(ngngfx::aircraft_camera_t& camera,
             ngnwsi::mouse_t& mouse);
 
         camera_controller_t(camera_controller_t const&) = delete;
@@ -43,7 +43,7 @@ namespace galileo
         camera_controller_t& operator=(camera_controller_t&&) noexcept = delete;
 
     private:
-        ngngfx::perspective_camera_t* camera_;
+        ngngfx::aircraft_camera_t* camera_;
         ngnwsi::mouse_t* mouse_;
 
         glm::vec3 velocity_{};

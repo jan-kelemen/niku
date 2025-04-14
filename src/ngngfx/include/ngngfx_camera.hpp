@@ -11,7 +11,7 @@ namespace ngngfx
     public:
         camera_t();
 
-        camera_t(glm::vec3 const& position, float aspect_ratio);
+        camera_t(glm::vec3 const& position);
 
         camera_t(camera_t const&) = default;
 
@@ -25,16 +25,7 @@ namespace ngngfx
 
         [[nodiscard]] virtual glm::mat4 const& view_matrix() const = 0;
 
-        [[nodiscard]] virtual glm::mat4 const& projection_matrix() const = 0;
-
-        [[nodiscard]] virtual glm::mat4 const&
-        view_projection_matrix() const = 0;
-
     public:
-        virtual void set_aspect_ratio(float aspect_ratio);
-
-        [[nodiscard]] virtual float aspect_ratio() const;
-
         virtual void set_position(glm::vec3 const& position);
 
         [[nodiscard]] virtual glm::vec3 const& position() const;
@@ -46,7 +37,6 @@ namespace ngngfx
 
     protected:
         glm::vec3 position_;
-        float aspect_ratio_;
     };
 } // namespace ngngfx
 #endif

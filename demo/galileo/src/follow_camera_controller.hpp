@@ -3,7 +3,7 @@
 
 namespace ngngfx
 {
-    class perspective_camera_t;
+    class aircraft_camera_t;
 } // namespace ngngfx
 
 namespace galileo
@@ -16,8 +16,7 @@ namespace galileo
     class [[nodiscard]] follow_camera_controller_t final
     {
     public:
-        explicit follow_camera_controller_t(
-            ngngfx::perspective_camera_t& camera);
+        explicit follow_camera_controller_t(ngngfx::aircraft_camera_t& camera);
 
         follow_camera_controller_t(follow_camera_controller_t const&) = delete;
 
@@ -38,7 +37,7 @@ namespace galileo
             follow_camera_controller_t&&) noexcept = delete;
 
     private:
-        ngngfx::perspective_camera_t* camera_;
+        ngngfx::aircraft_camera_t* camera_;
     };
 } // namespace galileo
 

@@ -6,7 +6,8 @@
 
 #include <ngnast_gltf_loader.hpp>
 
-#include <ngngfx_perspective_camera.hpp>
+#include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
@@ -86,7 +87,8 @@ namespace gltfviewer
         vkglsl::guard_t glsl_guard_;
 
         ngnwsi::mouse_t mouse_;
-        ngngfx::perspective_camera_t camera_;
+        ngngfx::aircraft_camera_t camera_;
+        ngngfx::perspective_projection_t projection_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;

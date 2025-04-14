@@ -2,7 +2,7 @@
 
 #include <cppext_numeric.hpp>
 
-#include <ngngfx_perspective_camera.hpp>
+#include <ngngfx_aircraft_camera.hpp>
 
 #include <ngnwsi_mouse.hpp>
 
@@ -19,7 +19,7 @@
 #include <cmath>
 
 gltfviewer::camera_controller_t::camera_controller_t(
-    ngngfx::perspective_camera_t& camera,
+    ngngfx::aircraft_camera_t& camera,
     ngnwsi::mouse_t& mouse)
     : camera_{&camera}
     , mouse_{&mouse}
