@@ -50,6 +50,7 @@ vkrndr::shader_module_t vkrndr::create_shader_module(device_t& device,
     std::vector<char> const code{read_file(path)};
 
     return create_shader_module(device,
+        // NOLINTNEXTLINE(bugprone-bitwise-pointer-cast)
         std::span{std::bit_cast<uint32_t const*>(code.data()),
             code.size() / sizeof(uint32_t)},
         stage,

@@ -501,6 +501,7 @@ vkglsl::add_shader_binary_from_path(shader_set_t& shader_set,
 
     return shader_set
         .add_shader_binary(stage,
+            // NOLINTNEXTLINE(bugprone-bitwise-pointer-cast)
             std::span{std::bit_cast<uint32_t*>(binary.data()),
                 binary.size() / 4},
             entry_point)

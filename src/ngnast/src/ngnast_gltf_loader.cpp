@@ -280,10 +280,12 @@ namespace
             {
                 // Temporary variable to ensure data is released in case of
                 // exception
+                // NOLINTBEGIN(bugprone-bitwise-pointer-cast)
                 std::unique_ptr<std::byte[], void (*)(std::byte*)> image_data{
                     std::bit_cast<std::byte*>(data),
                     [](std::byte* p)
                     { stbi_image_free(std::bit_cast<stbi_uc*>(p)); }};
+                // NOLINTEND(bugprone-bitwise-pointer-cast)
 
                 return ngnast::image_t{.data = std::move(image_data),
                     .data_size = cppext::narrow<size_t>(width) *
@@ -305,6 +307,7 @@ namespace
             int height; // NOLINT
             int channels; // NOLINT
             auto* const data{stbi_load_from_memory(
+                // NOLINTNEXTLINE(bugprone-bitwise-pointer-cast)
                 std::bit_cast<stbi_uc const*>(container.bytes.data()),
                 cppext::narrow<int>(container.bytes.size()),
                 &width,

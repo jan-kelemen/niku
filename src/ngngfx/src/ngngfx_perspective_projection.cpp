@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ngngfx::perspective_projection_t::perspective_projection_t(
     camera_t const& camera,
     glm::vec2 const near_far_planes,
