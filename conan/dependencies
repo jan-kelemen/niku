@@ -13,6 +13,7 @@ joltphysics*:debug_renderer=True
 joltphysics*:profiler=False
 sdl*:directx=False
 sdl*:alsa=False
+sdl*:iconv=False
 sdl*:jack=False
 sdl*:pulse=False
 sdl*:sndio=False

@@ -1,5 +1,8 @@
 include(../../conan/msvc-2022-amd64-windows)
 include(../../conan/opt/msvc-amd64-windows-hardening)
+include(../../conan/opt/msvc-arch-amd64-v3)
+include(../../conan/opt/msvc-amd64-windows-optimization)
+include(../../conan/opt/msvc-amd64-windows-lto)
 include(../../conan/dependencies)
 
 [settings]

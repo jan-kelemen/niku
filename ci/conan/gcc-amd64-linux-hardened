@@ -1,7 +1,12 @@
 include(../../conan/gcc-{{ os.getenv("GCC_VER") }}-amd64-linux)
 include(../../conan/opt/gcc-amd64-linux-hardening)
 include(../../conan/opt/arch-amd64-v3)
+include(../../conan/opt/gnulike-lto)
 include(../../conan/dependencies)
+
+[conf]
+tools.build:cflags+=["-Wno-odr", "-Wno-alloc-size-larger-than"]
+tools.build:cxxflags+=["-Wno-odr", "-Wno-alloc-size-larger-than"]
 
 [settings]
 build_type=Release
