@@ -7,6 +7,7 @@
 #include <cppext_numeric.hpp>
 
 #include <ngngfx_camera.hpp>
+#include <ngngfx_orthographic_projection.hpp>
 #include <ngngfx_projection.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -17,8 +18,10 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
@@ -28,12 +31,15 @@
 
 #include <volk.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
 
+// IWYU pragma: no_include <glm/detail/func_exponential.inl>
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <glm/geometric.hpp>
 // IWYU pragma: no_include <string_view>
 
 namespace

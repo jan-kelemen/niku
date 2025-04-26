@@ -3,6 +3,8 @@
 #include <config.hpp>
 #include <scene_graph.hpp>
 
+#include <cppext_container.hpp>
+
 #include <ngnast_scene_model.hpp>
 
 #include <vkglsl_shader_set.hpp>
@@ -12,23 +14,31 @@
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
+#include <vkrndr_synchronization.hpp>
+#include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <volk.h>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <exception>
 #include <filesystem>
 #include <functional>
+#include <iterator>
+#include <vector>
 
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <chrono>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_include <span>
 // IWYU pragma: no_include <string_view>
 // IWYU pragma: no_include <system_error>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
@@ -159,7 +169,7 @@ gltfviewer::shadow_map_t::shadow_map_t(vkrndr::backend_t& backend)
         cppext::as_span(descriptor_));
 
     {
-        vkrndr::transient_operation_t transient{
+        vkrndr::transient_operation_t const transient{
             backend_->request_transient_operation(false)};
 
         auto const barrier{vkrndr::to_layout(
@@ -316,6 +326,8 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
                           .with_depth_test(depth_buffer_format)
                           .add_vertex_input(graph.binding_description(),
                               graph.attribute_description())
+                          .with_culling(VK_CULL_MODE_FRONT_BIT,
+                              VK_FRONT_FACE_COUNTER_CLOCKWISE)
                           .build();
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_pipeline_, "Depth Pipeline"));

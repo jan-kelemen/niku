@@ -8,11 +8,6 @@
 
 namespace ngngfx
 {
-    class camera_t;
-} // namespace ngngfx
-
-namespace ngngfx
-{
     class [[nodiscard]] perspective_projection_t : public projection_t
     {
     public:

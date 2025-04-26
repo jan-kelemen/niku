@@ -15,9 +15,11 @@
 
 #include <volk.h>
 
+#include <array>
 #include <cassert>
 #include <filesystem>
 #include <functional>
+#include <span>
 
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <chrono>

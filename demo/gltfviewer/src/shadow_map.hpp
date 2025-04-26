@@ -1,5 +1,5 @@
 #ifndef GLTFVIEWER_SHADOW_MAP_INCLUDED
-#define GLTFVIEWER_SHADOW_MAP_SHADER_INCLUDED
+#define GLTFVIEWER_SHADOW_MAP_INCLUDED
 
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -65,7 +65,7 @@ namespace gltfviewer
 
         VkSampler shadow_sampler_;
         VkDescriptorSetLayout descriptor_layout_;
-        VkDescriptorSet descriptor_;
+        VkDescriptorSet descriptor_{VK_NULL_HANDLE};
 
         vkrndr::pipeline_t depth_pipeline_;
     };
