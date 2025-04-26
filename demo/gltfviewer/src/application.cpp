@@ -10,6 +10,7 @@
 #include <pyramid_blur.hpp>
 #include <resolve_shader.hpp>
 #include <scene_graph.hpp>
+#include <shadow_map_shader.hpp>
 #include <weighted_blend_shader.hpp>
 #include <weighted_oit_shader.hpp>
 
@@ -209,6 +210,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , materials_{std::make_unique<materials_t>(*backend_)}
     , scene_graph_{std::make_unique<scene_graph_t>(*backend_)}
     , depth_pass_shader_{std::make_unique<depth_pass_shader_t>(*backend_)}
+    , shadow_map_shader_{std::make_unique<shadow_map_shader_t>(*backend_)}
     , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
     , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
     , resolve_shader_{std::make_unique<resolve_shader_t>(*backend_)}
@@ -262,6 +264,10 @@ void gltfviewer::application_t::update(float delta_time)
         materials_->load(*model);
         scene_graph_->load(std::move(model).value());
         depth_pass_shader_->load(*scene_graph_,
+            environment_->descriptor_layout(),
+            materials_->descriptor_layout(),
+            depth_buffer_.format);
+        shadow_map_shader_->load(*scene_graph_,
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             depth_buffer_.format);
@@ -470,6 +476,32 @@ void gltfviewer::application_t::draw()
                 VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT)};
 
             vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+        }
+
+        if (environment_->has_directional_lights())
+        {
+            VkPipelineLayout const layout{
+                shadow_map_shader_->pipeline_layout()};
+            environment_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            materials_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            scene_graph_->bind_on(command_buffer,
+                layout,
+                VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+            vkCmdPushConstants(command_buffer,
+                layout,
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                8,
+                &pc);
+
+            shadow_map_shader_->draw(*scene_graph_, command_buffer);
         }
 
         {
@@ -724,6 +756,8 @@ void gltfviewer::application_t::on_shutdown()
     weighted_oit_shader_.reset();
 
     pbr_shader_.reset();
+
+    shadow_map_shader_.reset();
 
     depth_pass_shader_.reset();
 

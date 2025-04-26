@@ -217,6 +217,11 @@ VkDescriptorSetLayout gltfviewer::environment_t::descriptor_layout() const
     return descriptor_layout_;
 }
 
+bool gltfviewer::environment_t::has_directional_lights() const
+{
+    return std::ranges::any_of(lights_, &light_t::directional);
+}
+
 void gltfviewer::environment_t::load_skybox(
     std::filesystem::path const& hdr_image,
     VkFormat const depth_buffer_format)

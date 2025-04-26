@@ -1,4 +1,4 @@
-#include <depth_pass_shader.hpp>
+#include <shadow_map_shader.hpp>
 
 #include <config.hpp>
 #include <scene_graph.hpp>
@@ -10,11 +10,15 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_formats.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <volk.h>
 
+#include <algorithm>
 #include <cassert>
 #include <filesystem>
 #include <functional>
@@ -28,18 +32,68 @@
 // IWYU pragma: no_include <system_error>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
-gltfviewer::depth_pass_shader_t::depth_pass_shader_t(vkrndr::backend_t& backend)
+namespace
+{
+    [[nodiscard]] vkrndr::image_t create_depth_buffer(
+        vkrndr::backend_t const& backend)
+    {
+        auto const& formats{vkrndr::find_supported_depth_stencil_formats(
+            backend.device().physical,
+            true,
+            false)};
+        vkrndr::image_2d_create_info_t create_info{.extent = {1024, 1024},
+            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT};
+
+        auto const opt_it{std::ranges::find_if(formats,
+            [](auto const& f)
+            {
+                return f.properties.optimalTilingFeatures &
+                    VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            })};
+        if (opt_it != std::cend(formats))
+        {
+            create_info.format = opt_it->format;
+            create_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+            return create_image_and_view(backend.device(),
+                create_info,
+                VK_IMAGE_ASPECT_DEPTH_BIT);
+        }
+
+        auto const lin_it{std::ranges::find_if(formats,
+            [](auto const& f)
+            {
+                return f.properties.linearTilingFeatures &
+                    VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            })};
+        if (lin_it != std::cend(formats))
+        {
+            create_info.format = lin_it->format;
+            create_info.tiling = VK_IMAGE_TILING_LINEAR;
+            return create_image_and_view(backend.device(),
+                create_info,
+                VK_IMAGE_ASPECT_DEPTH_BIT);
+        }
+
+        std::terminate();
+    }
+} // namespace
+
+gltfviewer::shadow_map_shader_t::shadow_map_shader_t(vkrndr::backend_t& backend)
     : backend_{&backend}
+    , shadow_map_{create_depth_buffer(*backend_)}
 {
 }
 
-gltfviewer::depth_pass_shader_t::~depth_pass_shader_t()
+gltfviewer::shadow_map_shader_t::~shadow_map_shader_t()
 {
     destroy(&backend_->device(), &depth_pipeline_);
+    destroy(&backend_->device(), &shadow_map_);
     destroy(&backend_->device(), &vertex_shader_);
 }
 
-VkPipelineLayout gltfviewer::depth_pass_shader_t::pipeline_layout() const
+VkPipelineLayout gltfviewer::shadow_map_shader_t::pipeline_layout() const
 {
     if (depth_pipeline_.pipeline)
     {
@@ -49,13 +103,22 @@ VkPipelineLayout gltfviewer::depth_pass_shader_t::pipeline_layout() const
     return VK_NULL_HANDLE;
 }
 
-void gltfviewer::depth_pass_shader_t::draw(scene_graph_t const& graph,
+void gltfviewer::shadow_map_shader_t::draw(scene_graph_t const& graph,
     VkCommandBuffer command_buffer) const
 {
+    vkrndr::render_pass_t shadow_map_pass;
+    shadow_map_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+        VK_ATTACHMENT_STORE_OP_STORE,
+        shadow_map_.view,
+        VkClearValue{.depthStencil = {1.0f, 0}});
+
+    [[maybe_unused]] auto guard{shadow_map_pass.begin(command_buffer,
+        {{0, 0}, vkrndr::to_2d_extent(shadow_map_.extent)})};
+
     VKRNDR_IF_DEBUG_UTILS(
         [[maybe_unused]] vkrndr::command_buffer_scope_t const depth_pass_scope{
             command_buffer,
-            "Depth"});
+            "Shadow Map"});
 
     vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
 
@@ -64,9 +127,19 @@ void gltfviewer::depth_pass_shader_t::draw(scene_graph_t const& graph,
         *depth_pipeline_.layout,
         []([[maybe_unused]] ngnast::alpha_mode_t const mode,
             [[maybe_unused]] bool const double_sided) { });
+
+    auto const barrier{vkrndr::with_access(
+        vkrndr::on_stage(
+            vkrndr::image_barrier(shadow_map_, VK_IMAGE_ASPECT_DEPTH_BIT),
+            VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT),
+        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT)};
+
+    vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
 }
 
-void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
+void gltfviewer::shadow_map_shader_t::load(scene_graph_t const& graph,
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)
@@ -88,7 +161,7 @@ void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
             backend_->device(),
             VK_SHADER_STAGE_VERTEX_BIT,
             vertex_path,
-            std::array{"DEPTH_PASS"sv})};
+            std::array{"DEPTH_PASS"sv, "SHADOW_PASS"sv})};
         assert(vertex_shader);
 
         vertex_shader_ = *vertex_shader;
@@ -115,13 +188,9 @@ void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
                     .size = 16})
             .build()}
                           .add_shader(as_pipeline_shader(vertex_shader_))
-                          .with_rasterization_samples(
-                              backend_->device().max_msaa_samples)
                           .with_depth_test(depth_buffer_format)
                           .add_vertex_input(graph.binding_description(),
                               graph.attribute_description())
-                          .with_culling(VK_CULL_MODE_BACK_BIT,
-                              VK_FRONT_FACE_COUNTER_CLOCKWISE)
                           .build();
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_pipeline_, "Depth Pipeline"));

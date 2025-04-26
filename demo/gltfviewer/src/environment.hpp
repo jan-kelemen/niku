@@ -45,6 +45,8 @@ namespace gltfviewer
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
 
+        [[nodiscard]] bool has_directional_lights() const;
+
         void load_skybox(std::filesystem::path const& hdr_image,
             VkFormat depth_buffer_format);
 
