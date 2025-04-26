@@ -23,6 +23,7 @@
 // IWYU pragma: no_include <iterator>
 // IWYU pragma: no_include <new>
 // IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <ratio>
 // IWYU pragma: no_include <system_error>
 
 galileo::physics_debug_t::physics_debug_t(batch_renderer_t& batch_renderer)

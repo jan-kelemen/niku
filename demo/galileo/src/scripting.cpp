@@ -15,6 +15,7 @@
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <compare>
 // IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <ratio>
 
 bool galileo::register_spawner_type(
     ngnscr::scripting_engine_t& scripting_engine)

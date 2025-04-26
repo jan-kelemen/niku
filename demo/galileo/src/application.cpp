@@ -122,6 +122,7 @@ DISABLE_WARNING_POP
 // IWYU pragma: no_include <recastnavigation/DetourNavMeshQuery.h>
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <optional>
+// IWYU pragma: no_include <ratio>
 // IWYU pragma: no_include <string_view>
 // IWYU pragma: no_include <system_error>
 
