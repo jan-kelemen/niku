@@ -49,7 +49,7 @@ namespace gltfviewer
         glm::vec3 velocity_{};
         bool update_needed_{false};
 
-        float mouse_sensitivity_{5.0f};
+        float mouse_sensitivity_{0.2f};
         float velocity_factor_{5.0f};
     };
 } // namespace gltfviewer

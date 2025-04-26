@@ -43,5 +43,5 @@ void ngngfx::perspective_projection_t::calculate_view_projection_matrices()
 
     projection_matrix_[1][1] *= -1;
 
-    view_projection_matrix_ = camera_->view_matrix() * projection_matrix_;
+    view_projection_matrix_ = projection_matrix_ * camera_->view_matrix();
 }
