@@ -39,15 +39,15 @@ layout(location = 4) out vec2 outUV;
 
 void main()
 {
-    vec4 worldPosition =
-        transforms.v[pc.modelIndex].model * vec4(inPosition, 1.0);
+    Transform transform = transforms.v[pc.modelIndex];
+
+    vec4 worldPosition = transform.model * vec4(inPosition, 1.0);
 
     gl_Position = env.projection * env.view * worldPosition;
 
     outPosition = worldPosition.xyz;
-    outNormal = mat3(transforms.v[pc.modelIndex].normal) * normalize(inNormal);
-    outTangent = vec4(mat3(transforms.v[pc.modelIndex].normal) * inTangent.xyz,
-        inTangent.w);
+    outNormal = mat3(transform.normal) * normalize(inNormal);
+    outTangent = vec4(mat3(transform.normal) * inTangent.xyz, inTangent.w);
     outColor = inColor;
     outUV = inUV;
 }
