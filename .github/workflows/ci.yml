@@ -48,7 +48,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset release
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset release
 
       - name: Build
         run: |
@@ -89,7 +89,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset default
+          cmake -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON --preset default
           
       - name: Build
         run: |
@@ -138,7 +138,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -G=Ninja -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset release
+          cmake -G=Ninja -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset release
           
       - name: Build
         run: |
