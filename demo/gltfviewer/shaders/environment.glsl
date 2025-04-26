@@ -3,8 +3,10 @@
 
 struct Light
 {
-    vec4 position;
+    vec3 position;
+    uint type;
     vec4 color;
+    mat4 lightSpace;
 };
 
 layout(std430, set = 0, binding = 0) readonly buffer Environment

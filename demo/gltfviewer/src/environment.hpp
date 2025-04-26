@@ -5,6 +5,8 @@
 
 #include <cppext_cycled_buffer.hpp>
 
+#include <ngngfx_orthographic_projection.hpp>
+
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
 
@@ -74,6 +76,7 @@ namespace gltfviewer
             glm::vec3 position{0.0f, 2.0f, 0.0f};
             glm::vec3 color{5.0f, 5.0f, 5.0f};
             bool enabled{false};
+            bool directional{false};
         };
 
     private:
@@ -81,6 +84,7 @@ namespace gltfviewer
 
         skybox_t skybox_;
 
+        ngngfx::orthographic_projection_t light_projection_;
         std::vector<light_t> lights_;
 
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};

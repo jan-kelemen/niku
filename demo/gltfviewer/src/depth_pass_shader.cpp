@@ -71,6 +71,8 @@ void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)
 {
+    using namespace std::string_view_literals;
+
     vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
         enable_shader_optimization};
 
@@ -85,7 +87,8 @@ void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
         auto vertex_shader{add_shader_module_from_path(shader_set,
             backend_->device(),
             VK_SHADER_STAGE_VERTEX_BIT,
-            vertex_path)};
+            vertex_path,
+            std::array{"DEPTH_PASS"sv})};
         assert(vertex_shader);
 
         vertex_shader_ = *vertex_shader;

@@ -95,6 +95,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_downsample.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_upsample.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/resolve.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/scene_graph.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/weighted_blend.comp
@@ -117,6 +118,7 @@ add_custom_target(gltfviewer_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_downsample.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_upsample.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/resolve.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/scene_graph.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/weighted_blend.comp

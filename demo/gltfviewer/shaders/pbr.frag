@@ -238,14 +238,25 @@ void main()
     vec3 color = vec3(0.0);
     for (uint i = 0; i != env.lightCount; ++i)
     {
-        Light light = env.lights[i];
+        const Light light = env.lights[i];
 
-        const vec3 L = normalize(light.position.xyz - inPosition);
+        vec3 L;
+        vec3 radiance = env.lights[i].color.xyz;
+
+        if (light.type == 0)
+        {
+            L = normalize(env.lights[i].position.xyz - inPosition);
+
+            const float distance = length(env.lights[i].position.xyz - inPosition);
+            const float attenuation = 1.0 / (distance * distance);
+            radiance *= attenuation;
+        }
+        else if (light.type == 1)
+        {
+            L = normalize(env.lights[i].position.xyz);
+        }
+
         const vec3 H = normalize(L + V);
-
-        const float distance = length(light.position.xyz - inPosition);
-        const float attenuation = 1.0 / (distance * distance);
-        const vec3 radiance = light.color.xyz * attenuation;
 
         const float VdotH = clamp(dot(V, H), 0.0, 1.0);
         const float NdotL = clamp(dot(N, L), 0.001, 1.0);

@@ -18,24 +18,15 @@ layout(push_constant) uniform PushConsts
 
 #include "environment.glsl" // (set = 0)
 
-struct Transform
-{
-    mat4 model;
-    mat4 normal;
-};
+#include "scene_graph.glsl" // (set = 0)
 
-layout(std140, set = 2, binding = 0) readonly buffer TransformBuffer
-{
-    Transform v[];
-}
-
-transforms;
-
+#ifndef DEPTH_PASS
 layout(location = 0) out vec3 outPosition;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec4 outTangent;
 layout(location = 3) out vec4 outColor;
 layout(location = 4) out vec2 outUV;
+#endif
 
 void main()
 {
@@ -45,9 +36,11 @@ void main()
 
     gl_Position = env.projection * env.view * worldPosition;
 
+#ifndef DEPTH_PASS
     outPosition = worldPosition.xyz;
     outNormal = mat3(transform.normal) * normalize(inNormal);
     outTangent = vec4(mat3(transform.normal) * inTangent.xyz, inTangent.w);
     outColor = inColor;
     outUV = inUV;
+#endif
 }

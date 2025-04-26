@@ -52,8 +52,10 @@ namespace
 
     struct [[nodiscard]] light_t final
     {
-        glm::vec4 position;
+        glm::vec3 position;
+        uint32_t type;
         glm::vec4 color;
+        glm::mat4 light_space;
     };
 
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
@@ -250,6 +252,7 @@ void gltfviewer::environment_t::update(ngngfx::camera_t const& camera,
     {
         ImGui::PushID(cppext::narrow<int>(i));
         ImGui::Checkbox("Enabled", &lights_[i].enabled);
+        ImGui::Checkbox("Directional", &lights_[i].directional);
         ImGui::SliderFloat3("Position",
             glm::value_ptr(lights_[i].position),
             -500.0f,
@@ -277,9 +280,20 @@ void gltfviewer::environment_t::update(ngngfx::camera_t const& camera,
         if (light.enabled)
         {
             light_array[enabled_lights] = {
-                .position = glm::vec4{light.position, 0.0f},
+                .position = light.position,
+                .type = static_cast<uint32_t>(light.directional),
                 .color = glm::vec4{light.color, 0.0f},
             };
+
+            if (light.directional)
+            {
+                light_projection_.update(glm::lookAtRH(light.position,
+                    {0.0f, 0.0f, 0.0f},
+                    {0.0f, 1.0f, 0.0f}));
+
+                light_array[enabled_lights].light_space =
+                    light_projection_.view_projection_matrix();
+            }
 
             ++enabled_lights;
         }
