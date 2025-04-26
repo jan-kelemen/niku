@@ -25,6 +25,15 @@ namespace ngngfx
     public:
         ~orthographic_projection_t() override = default;
 
+    public:
+        void set_left_right(glm::vec2 left_right);
+
+        [[nodiscard]] glm::vec2 left_right() const;
+
+        void set_bottom_top(glm::vec2 bottom_top);
+
+        [[nodiscard]] glm::vec2 bottom_top() const;
+
     public: // projection_t overrides
         void update(glm::mat4 const& view_matrix) override;
 

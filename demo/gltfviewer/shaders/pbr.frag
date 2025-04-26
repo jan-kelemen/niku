@@ -209,19 +209,20 @@ vec3 IBLContribution(vec3 N,
 
 float directionalShadow(vec4 position, float NdotL)
 {
-    vec3 projectedPosition = position.xyz / position.w;
-    if (projectedPosition.z > -1.0 && projectedPosition.z < 1.0)
+    const vec3 projectedPosition = position.xyz / position.w;
+
+    const float lightPerspectiveDepth = texture(shadowMap, projectedPosition.xy).r;
+    const float currentDepth = projectedPosition.z;
+
+    if (position.z > -1.0 && position.z < 1.0) 
     {
-        float bias = 0.005*tan(acos(NdotL));
-        bias = clamp(bias, 0,0.01);
-        float dist = texture(shadowMap, projectedPosition.xy).r;
-        if (position.w > 0.0 && dist < projectedPosition.z - bias)
+        if (position.w > 0.0 && lightPerspectiveDepth < currentDepth - 0.005)
         {
-            return 0.9;
+            return 0.5;
         }
     }
 
-    return 0.0;
+    return 0.0f;
 }
 
 void main()

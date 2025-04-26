@@ -34,6 +34,10 @@ namespace ngngfx
 
         [[nodiscard]] virtual float aspect_ratio() const;
 
+        virtual void set_near_far_planes(glm::vec2 near_far_planes);
+
+        [[nodiscard]] virtual glm::vec2 near_far_planes() const;
+
     public:
         projection_t& operator=(projection_t const&) = default;
 

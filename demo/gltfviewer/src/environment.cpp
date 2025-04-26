@@ -157,6 +157,7 @@ namespace
 gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
     : backend_{&backend}
     , skybox_{backend}
+    , light_projection_{{-20.0f, 20.0f}, 1.0f, {-10.0f, 10.0f}, {-10.0f, 10.0f}}
     , lights_{11}
     , descriptor_layout_{create_descriptor_set_layout(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
@@ -252,6 +253,9 @@ void gltfviewer::environment_t::update(ngngfx::camera_t const& camera,
 {
     frame_data_.cycle();
 
+    glm::vec2 near_far{light_projection_.near_far_planes()};
+    float view_volume{light_projection_.left_right().y};
+
     ImGui::Begin("Lights");
     for (size_t i{}; i != lights_.size(); ++i)
     {
@@ -260,13 +264,25 @@ void gltfviewer::environment_t::update(ngngfx::camera_t const& camera,
         ImGui::Checkbox("Directional", &lights_[i].directional);
         ImGui::SliderFloat3("Position",
             glm::value_ptr(lights_[i].position),
-            -500.0f,
-            500.0f);
+            -100.0f,
+            100.0f);
         ImGui::SliderFloat3("Color",
             glm::value_ptr(lights_[i].color),
             0.0f,
             10.0f);
         ImGui::PopID();
+    }
+    if (ImGui::SliderFloat2("Near / Far",
+            glm::value_ptr(near_far),
+            -100.0f,
+            100.0f))
+    {
+        light_projection_.set_near_far_planes(near_far);
+    }
+    if (ImGui::SliderFloat("View volume", &view_volume, 1.0f, 35.0f, "%.1f"))
+    {
+        light_projection_.set_left_right(glm::vec2{-1.0f, 1.0f} * view_volume);
+        light_projection_.set_bottom_top(glm::vec2{-1.0f, 1.0f} * view_volume);
     }
     ImGui::End();
 

@@ -16,6 +16,28 @@ ngngfx::orthographic_projection_t::orthographic_projection_t(
 {
 }
 
+void ngngfx::orthographic_projection_t::set_left_right(
+    glm::vec2 const left_right)
+{
+    left_right_ = left_right;
+}
+
+glm::vec2 ngngfx::orthographic_projection_t::left_right() const
+{
+    return left_right_;
+}
+
+void ngngfx::orthographic_projection_t::set_bottom_top(
+    glm::vec2 const bottom_top)
+{
+    bottom_top_ = bottom_top;
+}
+
+glm::vec2 ngngfx::orthographic_projection_t::bottom_top() const
+{
+    return bottom_top_;
+}
+
 void ngngfx::orthographic_projection_t::update(glm::mat4 const& view_matrix)
 {
     calculate_view_projection_matrices(view_matrix);
