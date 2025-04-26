@@ -1,4 +1,4 @@
-#include <shadow_map_shader.hpp>
+#include <shadow_map.hpp>
 
 #include <config.hpp>
 #include <scene_graph.hpp>
@@ -9,6 +9,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -78,22 +79,125 @@ namespace
 
         std::terminate();
     }
+
+    [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
+        vkrndr::device_t const& device)
+    {
+        VkDescriptorSetLayoutBinding sampler_binding{};
+        sampler_binding.binding = 0;
+        sampler_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        sampler_binding.descriptorCount = 1;
+        sampler_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        return vkrndr::create_descriptor_set_layout(device,
+            cppext::as_span(sampler_binding));
+    }
+
+    void update_descriptor_set(vkrndr::device_t const& device,
+        VkDescriptorSet const descriptor_set,
+        VkDescriptorImageInfo const shadow_map_info)
+    {
+        VkWriteDescriptorSet shadow_map_write{};
+        shadow_map_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        shadow_map_write.dstSet = descriptor_set;
+        shadow_map_write.dstBinding = 0;
+        shadow_map_write.dstArrayElement = 0;
+        shadow_map_write.descriptorType =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        shadow_map_write.descriptorCount = 1;
+        shadow_map_write.pImageInfo = &shadow_map_info;
+
+        vkUpdateDescriptorSets(device.logical,
+            1,
+            &shadow_map_write,
+            0,
+            nullptr);
+    }
+
+    [[nodiscard]] VkSampler create_shadow_map_sampler(
+        vkrndr::device_t const& device)
+    {
+        VkPhysicalDeviceProperties properties; // NOLINT
+        vkGetPhysicalDeviceProperties(device.physical, &properties);
+
+        VkSamplerCreateInfo sampler_info{};
+        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_info.magFilter = VK_FILTER_LINEAR;
+        sampler_info.minFilter = VK_FILTER_LINEAR;
+        sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler_info.anisotropyEnable = VK_TRUE;
+        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+        sampler_info.unnormalizedCoordinates = VK_FALSE;
+        sampler_info.compareEnable = VK_FALSE;
+        sampler_info.compareOp = VK_COMPARE_OP_NEVER;
+        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        sampler_info.mipLodBias = 0.0f;
+        sampler_info.minLod = 0.0f;
+        sampler_info.maxLod = 1.0f;
+
+        VkSampler rv; // NOLINT
+        vkrndr::check_result(
+            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+
+        return rv;
+    }
 } // namespace
 
-gltfviewer::shadow_map_shader_t::shadow_map_shader_t(vkrndr::backend_t& backend)
+gltfviewer::shadow_map_t::shadow_map_t(vkrndr::backend_t& backend)
     : backend_{&backend}
     , shadow_map_{create_depth_buffer(*backend_)}
+    , shadow_sampler_{create_shadow_map_sampler(backend_->device())}
+    , descriptor_layout_{create_descriptor_set_layout(backend_->device())}
 {
+    vkrndr::create_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        cppext::as_span(descriptor_layout_),
+        cppext::as_span(descriptor_));
+
+    {
+        vkrndr::transient_operation_t transient{
+            backend_->request_transient_operation(false)};
+
+        auto const barrier{vkrndr::to_layout(
+            vkrndr::image_barrier(shadow_map_, VK_IMAGE_ASPECT_DEPTH_BIT),
+            VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL)};
+
+        vkrndr::wait_for(transient.command_buffer(),
+            {},
+            {},
+            cppext::as_span(barrier));
+    }
+
+    ::update_descriptor_set(backend_->device(),
+        descriptor_,
+        vkrndr::combined_sampler_descriptor(shadow_sampler_,
+            shadow_map_,
+            VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL));
 }
 
-gltfviewer::shadow_map_shader_t::~shadow_map_shader_t()
+gltfviewer::shadow_map_t::~shadow_map_t()
 {
     destroy(&backend_->device(), &depth_pipeline_);
+
+    vkrndr::free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        cppext::as_span(descriptor_));
+
+    vkDestroyDescriptorSetLayout(backend_->device().logical,
+        descriptor_layout_,
+        nullptr);
+
+    vkDestroySampler(backend_->device().logical, shadow_sampler_, nullptr);
+
     destroy(&backend_->device(), &shadow_map_);
     destroy(&backend_->device(), &vertex_shader_);
 }
 
-VkPipelineLayout gltfviewer::shadow_map_shader_t::pipeline_layout() const
+VkPipelineLayout gltfviewer::shadow_map_t::pipeline_layout() const
 {
     if (depth_pipeline_.pipeline)
     {
@@ -103,7 +207,12 @@ VkPipelineLayout gltfviewer::shadow_map_shader_t::pipeline_layout() const
     return VK_NULL_HANDLE;
 }
 
-void gltfviewer::shadow_map_shader_t::draw(scene_graph_t const& graph,
+VkDescriptorSetLayout gltfviewer::shadow_map_t::descriptor_layout() const
+{
+    return descriptor_layout_;
+}
+
+void gltfviewer::shadow_map_t::draw(scene_graph_t const& graph,
     VkCommandBuffer command_buffer) const
 {
     vkrndr::render_pass_t shadow_map_pass;
@@ -128,18 +237,34 @@ void gltfviewer::shadow_map_shader_t::draw(scene_graph_t const& graph,
         []([[maybe_unused]] ngnast::alpha_mode_t const mode,
             [[maybe_unused]] bool const double_sided) { });
 
-    auto const barrier{vkrndr::with_access(
-        vkrndr::on_stage(
-            vkrndr::image_barrier(shadow_map_, VK_IMAGE_ASPECT_DEPTH_BIT),
-            VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT),
-        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT)};
+    auto const barrier{vkrndr::with_layout(
+        vkrndr::with_access(vkrndr::on_stage(vkrndr::image_barrier(shadow_map_,
+                                                 VK_IMAGE_ASPECT_DEPTH_BIT),
+                                VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
+            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+        VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL)};
 
     vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
 }
 
-void gltfviewer::shadow_map_shader_t::load(scene_graph_t const& graph,
+void gltfviewer::shadow_map_t::bind_on(VkCommandBuffer command_buffer,
+    VkPipelineLayout layout,
+    VkPipelineBindPoint bind_point)
+{
+    vkCmdBindDescriptorSets(command_buffer,
+        bind_point,
+        layout,
+        3,
+        1,
+        &descriptor_,
+        0,
+        nullptr);
+}
+
+void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)

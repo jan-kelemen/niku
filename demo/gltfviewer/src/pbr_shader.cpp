@@ -85,6 +85,7 @@ void gltfviewer::pbr_shader_t::draw(scene_graph_t const& graph,
 void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
+    VkDescriptorSetLayout shadow_layout,
     VkFormat depth_buffer_format)
 {
     vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
@@ -143,6 +144,7 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(materials_layout)
                 .add_descriptor_set_layout(graph.descriptor_layout())
+                .add_descriptor_set_layout(shadow_layout)
                 .add_push_constants(VkPushConstantRange{
                     .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                         VK_SHADER_STAGE_FRAGMENT_BIT,

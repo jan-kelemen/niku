@@ -41,7 +41,7 @@ namespace gltfviewer
     class pyramid_blur_t;
     class scene_graph_t;
     class resolve_shader_t;
-    class shadow_map_shader_t;
+    class shadow_map_t;
     class weighted_oit_shader_t;
     class weighted_blend_shader_t;
 } // namespace gltfviewer
@@ -100,7 +100,7 @@ namespace gltfviewer
         std::unique_ptr<materials_t> materials_;
         std::unique_ptr<scene_graph_t> scene_graph_;
         std::unique_ptr<depth_pass_shader_t> depth_pass_shader_;
-        std::unique_ptr<shadow_map_shader_t> shadow_map_shader_;
+        std::unique_ptr<shadow_map_t> shadow_map_;
         std::unique_ptr<pbr_shader_t> pbr_shader_;
         std::unique_ptr<weighted_oit_shader_t> weighted_oit_shader_;
         std::unique_ptr<resolve_shader_t> resolve_shader_;

@@ -11,6 +11,7 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec4 inTangent;
 layout(location = 3) in vec4 inColor;
 layout(location = 4) in vec2 inUV;
+layout(location = 5) in vec4 inShadowPosition;
 
 layout(push_constant) uniform PushConsts
 {
@@ -52,6 +53,8 @@ layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer
 {
     Material v[];
 } materials;
+
+layout(set = 3, binding = 0) uniform sampler2D shadowMap;
 
 #ifndef OIT
 layout(location = 0) out vec4 outColor;
@@ -204,6 +207,23 @@ vec3 IBLContribution(vec3 N,
     return (diffuse + specular) * pc.ibl_factor;
 }
 
+float directionalShadow(vec4 position, float NdotL)
+{
+    vec3 projectedPosition = position.xyz / position.w;
+    if (projectedPosition.z > -1.0 && projectedPosition.z < 1.0)
+    {
+        float bias = 0.005*tan(acos(NdotL));
+        bias = clamp(bias, 0,0.01);
+        float dist = texture(shadowMap, projectedPosition.xy).r;
+        if (position.w > 0.0 && dist < projectedPosition.z - bias)
+        {
+            return 0.9;
+        }
+    }
+
+    return 0.0;
+}
+
 void main()
 {
     Material m = materials.v[pc.materialIndex];
@@ -242,6 +262,7 @@ void main()
 
         vec3 L;
         vec3 radiance = env.lights[i].color.xyz;
+        float shadow = 0.0;
 
         if (light.type == 0)
         {
@@ -271,8 +292,13 @@ void main()
         const vec3 diffuseContribution = (1.0 - F) * diffuse(diffuseColor);
         const vec3 specularContribution = F * G * D / (4.0 * NdotL * NdotV);
 
+        if (light.type == 1)
+        {
+            shadow = directionalShadow(inShadowPosition, NdotL);
+        }
+
         color +=
-            NdotL * radiance * (diffuseContribution + specularContribution);
+            NdotL * radiance * (1.0 - shadow) * (diffuseContribution + specularContribution);
     }
 
     vec3 ambient = IBLContribution(N,

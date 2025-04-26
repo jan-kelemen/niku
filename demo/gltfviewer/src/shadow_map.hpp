@@ -1,4 +1,4 @@
-#ifndef GLTFVIEWER_SHADOW_MAP_SHADER_INCLUDED
+#ifndef GLTFVIEWER_SHADOW_MAP_INCLUDED
 #define GLTFVIEWER_SHADOW_MAP_SHADER_INCLUDED
 
 #include <vkrndr_image.hpp>
@@ -21,20 +21,22 @@ namespace gltfviewer
 
 namespace gltfviewer
 {
-    class [[nodiscard]] shadow_map_shader_t final
+    class [[nodiscard]] shadow_map_t final
     {
     public:
-        explicit shadow_map_shader_t(vkrndr::backend_t& backend);
+        explicit shadow_map_t(vkrndr::backend_t& backend);
 
-        shadow_map_shader_t(shadow_map_shader_t const&) = delete;
+        shadow_map_t(shadow_map_t const&) = delete;
 
-        shadow_map_shader_t(shadow_map_shader_t&&) noexcept = delete;
+        shadow_map_t(shadow_map_t&&) noexcept = delete;
 
     public:
-        ~shadow_map_shader_t();
+        ~shadow_map_t();
 
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
+
+        [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
 
         void load(scene_graph_t const& graph,
             VkDescriptorSetLayout environment_layout,
@@ -44,10 +46,14 @@ namespace gltfviewer
         void draw(scene_graph_t const& graph,
             VkCommandBuffer command_buffer) const;
 
-    public:
-        shadow_map_shader_t& operator=(shadow_map_shader_t const&) = delete;
+        void bind_on(VkCommandBuffer command_buffer,
+            VkPipelineLayout layout,
+            VkPipelineBindPoint bind_point);
 
-        shadow_map_shader_t& operator=(shadow_map_shader_t&&) noexcept = delete;
+    public:
+        shadow_map_t& operator=(shadow_map_t const&) = delete;
+
+        shadow_map_t& operator=(shadow_map_t&&) noexcept = delete;
 
     private:
         vkrndr::backend_t* backend_;
@@ -56,6 +62,10 @@ namespace gltfviewer
         vkrndr::shader_module_t vertex_shader_;
 
         vkrndr::image_t shadow_map_;
+
+        VkSampler shadow_sampler_;
+        VkDescriptorSetLayout descriptor_layout_;
+        VkDescriptorSet descriptor_;
 
         vkrndr::pipeline_t depth_pipeline_;
     };

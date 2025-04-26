@@ -15,7 +15,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scene_graph.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/shadow_map_shader.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/shadow_map.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_blend_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_oit_shader.hpp
     PRIVATE
@@ -31,7 +31,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pyramid_blur.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scene_graph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_shader.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/shadow_map_shader.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/shadow_map.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_blend_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_oit_shader.cpp

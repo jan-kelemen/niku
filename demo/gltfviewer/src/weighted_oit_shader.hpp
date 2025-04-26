@@ -38,6 +38,7 @@ namespace gltfviewer
         void load(scene_graph_t const& graph,
             VkDescriptorSetLayout environment_layout,
             VkDescriptorSetLayout materials_layout,
+            VkDescriptorSetLayout shadow_layout,
             VkFormat depth_buffer_format);
 
         void draw(scene_graph_t const& graph,
