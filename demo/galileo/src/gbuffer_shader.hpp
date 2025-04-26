@@ -12,7 +12,7 @@ namespace vkrndr
 
 namespace galileo
 {
-    class render_graph_t;
+    class scene_graph_t;
 } // namespace galileo
 
 namespace galileo
@@ -36,7 +36,7 @@ namespace galileo
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
-        void draw(render_graph_t& graph, VkCommandBuffer command_buffer) const;
+        void draw(scene_graph_t& graph, VkCommandBuffer command_buffer) const;
 
     public:
         gbuffer_shader_t& operator=(gbuffer_shader_t const&) = delete;

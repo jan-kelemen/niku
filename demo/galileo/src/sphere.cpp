@@ -2,7 +2,7 @@
 
 #include <navmesh.hpp>
 #include <physics_engine.hpp>
-#include <render_graph.hpp>
+#include <scene_graph.hpp>
 #include <scripting.hpp>
 
 #include <ngnphy_jolt.hpp> // IWYU pragma: keep

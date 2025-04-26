@@ -19,7 +19,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/scene_graph.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/sphere.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/world.hpp
@@ -42,7 +42,7 @@ target_sources(galileo
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_debug.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/physics_engine.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/scene_graph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/scripting.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/sphere.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/world.cpp
@@ -118,7 +118,7 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/scene_graph.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tone_mapping.comp
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
@@ -135,7 +135,7 @@ add_custom_target(galileo_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/render_graph.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/scene_graph.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tone_mapping.comp
 )
 

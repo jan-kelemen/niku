@@ -1,4 +1,4 @@
-#include <render_graph.hpp>
+#include <scene_graph.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
@@ -111,7 +111,7 @@ namespace
 } // namespace
 
 std::span<VkVertexInputBindingDescription const>
-galileo::render_graph_t::binding_description()
+galileo::scene_graph_t::binding_description()
 {
     static constexpr std::array descriptions{
         VkVertexInputBindingDescription{.binding = 0,
@@ -126,7 +126,7 @@ galileo::render_graph_t::binding_description()
 }
 
 std::span<VkVertexInputAttributeDescription const>
-galileo::render_graph_t::attribute_description()
+galileo::scene_graph_t::attribute_description()
 {
     static constexpr std::array descriptions{
         VkVertexInputAttributeDescription{.location = 0,
@@ -154,7 +154,7 @@ galileo::render_graph_t::attribute_description()
     return descriptions;
 }
 
-galileo::render_graph_t::render_graph_t(vkrndr::backend_t& backend)
+galileo::scene_graph_t::scene_graph_t(vkrndr::backend_t& backend)
     : backend_{&backend}
     , descriptor_set_layout_{create_descriptor_set_layout(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
@@ -195,7 +195,7 @@ galileo::render_graph_t::render_graph_t(vkrndr::backend_t& backend)
     }
 }
 
-galileo::render_graph_t::~render_graph_t()
+galileo::scene_graph_t::~scene_graph_t()
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
@@ -221,12 +221,12 @@ galileo::render_graph_t::~render_graph_t()
         nullptr);
 }
 
-VkDescriptorSetLayout galileo::render_graph_t::descriptor_set_layout() const
+VkDescriptorSetLayout galileo::scene_graph_t::descriptor_set_layout() const
 {
     return descriptor_set_layout_;
 }
 
-void galileo::render_graph_t::consume(ngnast::scene_model_t& model)
+void galileo::scene_graph_t::consume(ngnast::scene_model_t& model)
 {
     nodes_.clear();
     meshes_.clear();
@@ -302,7 +302,7 @@ void galileo::render_graph_t::consume(ngnast::scene_model_t& model)
     backend_->transfer_buffer(transfer_result.index_buffer, index_buffer_);
 }
 
-void galileo::render_graph_t::begin_frame()
+void galileo::scene_graph_t::begin_frame()
 {
     frame_data_.cycle(
         [](frame_data_t const&, frame_data_t& next) { next.current_draw = 0; });
@@ -311,7 +311,7 @@ void galileo::render_graph_t::begin_frame()
         [](render_primitive_t& p) { p.instance_count = 0; });
 }
 
-void galileo::render_graph_t::update(size_t const index,
+void galileo::scene_graph_t::update(size_t const index,
     glm::mat4 const& position)
 {
     auto* const gpu_instance{
@@ -350,7 +350,7 @@ void galileo::render_graph_t::update(size_t const index,
     }
 }
 
-void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,
+void galileo::scene_graph_t::bind_on(VkCommandBuffer command_buffer,
     VkPipelineLayout layout,
     VkPipelineBindPoint const bind_point)
 {
@@ -379,7 +379,7 @@ void galileo::render_graph_t::bind_on(VkCommandBuffer command_buffer,
         VK_INDEX_TYPE_UINT32);
 }
 
-void galileo::render_graph_t::draw(VkCommandBuffer command_buffer)
+void galileo::scene_graph_t::draw(VkCommandBuffer command_buffer)
 {
     auto* const instances{
         frame_data_->instance_map.as<graph_instance_vertex_t>()};

@@ -1,4 +1,4 @@
-#include <render_graph.hpp>
+#include <scene_graph.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
@@ -156,23 +156,23 @@ namespace
     }
 } // namespace
 
-gltfviewer::render_graph_t::render_graph_t(vkrndr::backend_t& backend)
+gltfviewer::scene_graph_t::scene_graph_t(vkrndr::backend_t& backend)
     : backend_{&backend}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
 }
 
-gltfviewer::render_graph_t::~render_graph_t() { clear(); }
+gltfviewer::scene_graph_t::~scene_graph_t() { clear(); }
 
-bool gltfviewer::render_graph_t::empty() const { return primitives_.empty(); }
+bool gltfviewer::scene_graph_t::empty() const { return primitives_.empty(); }
 
-VkDescriptorSetLayout gltfviewer::render_graph_t::descriptor_layout() const
+VkDescriptorSetLayout gltfviewer::scene_graph_t::descriptor_layout() const
 {
     return descriptor_layout_;
 }
 
 std::span<VkVertexInputBindingDescription const>
-gltfviewer::render_graph_t::binding_description() const
+gltfviewer::scene_graph_t::binding_description() const
 {
     static constexpr std::array descriptions{
         VkVertexInputBindingDescription{.binding = 0,
@@ -184,7 +184,7 @@ gltfviewer::render_graph_t::binding_description() const
 }
 
 std::span<VkVertexInputAttributeDescription const>
-gltfviewer::render_graph_t::attribute_description() const
+gltfviewer::scene_graph_t::attribute_description() const
 {
     static constexpr std::array descriptions{
         VkVertexInputAttributeDescription{.location = 0,
@@ -212,7 +212,7 @@ gltfviewer::render_graph_t::attribute_description() const
     return descriptions;
 }
 
-void gltfviewer::render_graph_t::load(ngnast::scene_model_t&& model)
+void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
 {
     clear();
 
@@ -276,7 +276,7 @@ void gltfviewer::render_graph_t::load(ngnast::scene_model_t&& model)
     model_.images.clear();
 }
 
-void gltfviewer::render_graph_t::bind_on(VkCommandBuffer command_buffer,
+void gltfviewer::scene_graph_t::bind_on(VkCommandBuffer command_buffer,
     VkPipelineLayout layout,
     VkPipelineBindPoint const bind_point)
 {
@@ -310,7 +310,7 @@ void gltfviewer::render_graph_t::bind_on(VkCommandBuffer command_buffer,
     }
 }
 
-void gltfviewer::render_graph_t::traverse(ngnast::alpha_mode_t alpha_mode,
+void gltfviewer::scene_graph_t::traverse(ngnast::alpha_mode_t alpha_mode,
     VkCommandBuffer command_buffer,
     VkPipelineLayout layout,
     std::function<void(ngnast::alpha_mode_t, bool)> const& switch_pipeline)
@@ -333,7 +333,7 @@ void gltfviewer::render_graph_t::traverse(ngnast::alpha_mode_t alpha_mode,
     }
 }
 
-void gltfviewer::render_graph_t::calculate_transforms(
+void gltfviewer::scene_graph_t::calculate_transforms(
     ngnast::scene_model_t const& model,
     std::span<frame_data_t> frames)
 {
@@ -356,7 +356,7 @@ void gltfviewer::render_graph_t::calculate_transforms(
     }
 }
 
-uint32_t gltfviewer::render_graph_t::draw_node(VkCommandBuffer command_buffer,
+uint32_t gltfviewer::scene_graph_t::draw_node(VkCommandBuffer command_buffer,
     VkPipelineLayout layout,
     ngnast::node_t const& node,
     ngnast::alpha_mode_t const& alpha_mode,
@@ -434,7 +434,7 @@ uint32_t gltfviewer::render_graph_t::draw_node(VkCommandBuffer command_buffer,
     return drawn;
 }
 
-void gltfviewer::render_graph_t::clear()
+void gltfviewer::scene_graph_t::clear()
 {
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {

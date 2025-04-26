@@ -39,7 +39,7 @@ namespace gltfviewer
     class pbr_shader_t;
     class postprocess_shader_t;
     class pyramid_blur_t;
-    class render_graph_t;
+    class scene_graph_t;
     class resolve_shader_t;
     class weighted_oit_shader_t;
     class weighted_blend_shader_t;
@@ -97,7 +97,7 @@ namespace gltfviewer
         vkrndr::image_t resolve_image_;
         std::unique_ptr<environment_t> environment_;
         std::unique_ptr<materials_t> materials_;
-        std::unique_ptr<render_graph_t> render_graph_;
+        std::unique_ptr<scene_graph_t> scene_graph_;
         std::unique_ptr<depth_pass_shader_t> depth_pass_shader_;
         std::unique_ptr<pbr_shader_t> pbr_shader_;
         std::unique_ptr<weighted_oit_shader_t> weighted_oit_shader_;

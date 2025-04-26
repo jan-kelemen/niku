@@ -1,5 +1,5 @@
-#ifndef GLTFVIEWER_RENDER_GRAPH_INCLUDED
-#define GLTFVIEWER_RENDER_GRAPH_INCLUDED
+#ifndef GLTFVIEWER_SCENE_GRAPH_INCLUDED
+#define GLTFVIEWER_SCENE_GRAPH_INCLUDED
 
 #include <cppext_cycled_buffer.hpp>
 
@@ -23,17 +23,17 @@ namespace vkrndr
 
 namespace gltfviewer
 {
-    class [[nodiscard]] render_graph_t final
+    class [[nodiscard]] scene_graph_t final
     {
     public:
-        explicit render_graph_t(vkrndr::backend_t& backend);
+        explicit scene_graph_t(vkrndr::backend_t& backend);
 
-        render_graph_t(render_graph_t const&) = delete;
+        scene_graph_t(scene_graph_t const&) = delete;
 
-        render_graph_t(render_graph_t&&) noexcept = delete;
+        scene_graph_t(scene_graph_t&&) noexcept = delete;
 
     public:
-        ~render_graph_t();
+        ~scene_graph_t();
 
     public:
         [[nodiscard]] bool empty() const;
@@ -59,9 +59,9 @@ namespace gltfviewer
                 switch_pipeline) const;
 
     public:
-        render_graph_t& operator=(render_graph_t const&) = delete;
+        scene_graph_t& operator=(scene_graph_t const&) = delete;
 
-        render_graph_t& operator=(render_graph_t&&) noexcept = delete;
+        scene_graph_t& operator=(scene_graph_t&&) noexcept = delete;
 
     private:
         struct [[nodiscard]] frame_data_t final

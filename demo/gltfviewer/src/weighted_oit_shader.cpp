@@ -1,7 +1,7 @@
 #include <weighted_oit_shader.hpp>
 
 #include <config.hpp>
-#include <render_graph.hpp>
+#include <scene_graph.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
@@ -180,7 +180,7 @@ VkPipelineLayout gltfviewer::weighted_oit_shader_t::pipeline_layout() const
     return VK_NULL_HANDLE;
 }
 
-void gltfviewer::weighted_oit_shader_t::draw(render_graph_t const& graph,
+void gltfviewer::weighted_oit_shader_t::draw(scene_graph_t const& graph,
     VkCommandBuffer command_buffer,
     vkrndr::image_t const& color_image,
     vkrndr::image_t const& depth_buffer)
@@ -310,7 +310,7 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
         vkrndr::combined_sampler_descriptor(reveal_sampler_, reveal_image_));
 }
 
-void gltfviewer::weighted_oit_shader_t::load(render_graph_t const& graph,
+void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)

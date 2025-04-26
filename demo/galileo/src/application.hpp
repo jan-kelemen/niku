@@ -55,7 +55,7 @@ namespace galileo
     class navmesh_debug_t;
     class physics_debug_t;
     class postprocess_shader_t;
-    class render_graph_t;
+    class scene_graph_t;
 } // namespace galileo
 
 namespace galileo
@@ -155,7 +155,7 @@ namespace galileo
 
         std::unique_ptr<frame_info_t> frame_info_;
         std::unique_ptr<materials_t> materials_;
-        std::unique_ptr<render_graph_t> render_graph_;
+        std::unique_ptr<scene_graph_t> scene_graph_;
         std::unique_ptr<gbuffer_shader_t> gbuffer_shader_;
         std::unique_ptr<deferred_shader_t> deferred_shader_;
         std::unique_ptr<postprocess_shader_t> postprocess_shader_;

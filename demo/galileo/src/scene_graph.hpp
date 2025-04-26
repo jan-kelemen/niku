@@ -1,5 +1,5 @@
-#ifndef GALILEO_RENDER_GRAPH_INCLUDED
-#define GALILEO_RENDER_GRAPH_INCLUDED
+#ifndef GALILEO_SCENE_GRAPH_INCLUDED
+#define GALILEO_SCENE_GRAPH_INCLUDED
 
 #include <cppext_cycled_buffer.hpp>
 
@@ -56,7 +56,7 @@ namespace galileo
         std::vector<size_t> child_indices;
     };
 
-    class [[nodiscard]] render_graph_t final
+    class [[nodiscard]] scene_graph_t final
     {
     public:
         [[nodiscard]] static std::span<VkVertexInputBindingDescription const>
@@ -66,14 +66,14 @@ namespace galileo
         attribute_description();
 
     public:
-        explicit render_graph_t(vkrndr::backend_t& backend);
+        explicit scene_graph_t(vkrndr::backend_t& backend);
 
-        render_graph_t(render_graph_t const&) = delete;
+        scene_graph_t(scene_graph_t const&) = delete;
 
-        render_graph_t(render_graph_t&&) noexcept = delete;
+        scene_graph_t(scene_graph_t&&) noexcept = delete;
 
     public:
-        ~render_graph_t();
+        ~scene_graph_t();
 
     public:
         [[nodiscard]] VkDescriptorSetLayout descriptor_set_layout() const;
@@ -91,9 +91,9 @@ namespace galileo
         void draw(VkCommandBuffer command_buffer);
 
     public:
-        render_graph_t& operator=(render_graph_t const&) = delete;
+        scene_graph_t& operator=(scene_graph_t const&) = delete;
 
-        render_graph_t& operator=(render_graph_t&&) noexcept = delete;
+        scene_graph_t& operator=(scene_graph_t&&) noexcept = delete;
 
     private:
         struct [[nodiscard]] frame_data_t final

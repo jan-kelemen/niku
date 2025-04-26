@@ -15,7 +15,7 @@ namespace vkrndr
 
 namespace gltfviewer
 {
-    class render_graph_t;
+    class scene_graph_t;
 } // namespace gltfviewer
 
 namespace gltfviewer
@@ -35,12 +35,12 @@ namespace gltfviewer
     public:
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
-        void load(render_graph_t const& graph,
+        void load(scene_graph_t const& graph,
             VkDescriptorSetLayout environment_layout,
             VkDescriptorSetLayout materials_layout,
             VkFormat depth_buffer_format);
 
-        void draw(render_graph_t const& graph,
+        void draw(scene_graph_t const& graph,
             VkCommandBuffer command_buffer) const;
 
     public:

@@ -12,7 +12,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pyramid_blur.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/scene_graph.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_shader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_blend_shader.hpp
@@ -28,7 +28,7 @@ target_sources(gltfviewer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pbr_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/postprocess_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pyramid_blur.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/render_graph.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/scene_graph.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_shader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/skybox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/weighted_blend_shader.cpp

@@ -6,7 +6,7 @@
 #include "frame_info.glsl"
 #include "materials.glsl"
 #include "math_constants.glsl"
-#include "render_graph.glsl"
+#include "scene_graph.glsl"
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;

@@ -15,7 +15,7 @@
 #include <physics_debug.hpp>
 #include <physics_engine.hpp>
 #include <postprocess_shader.hpp>
-#include <render_graph.hpp>
+#include <scene_graph.hpp>
 #include <scripting.hpp>
 #include <sphere.hpp>
 #include <world.hpp>
@@ -250,7 +250,7 @@ galileo::application_t::application_t(bool const debug)
     , color_image_{create_color_image(*backend_)}
     , frame_info_{std::make_unique<frame_info_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
-    , render_graph_{std::make_unique<render_graph_t>(*backend_)}
+    , scene_graph_{std::make_unique<scene_graph_t>(*backend_)}
     , deferred_shader_{std::make_unique<deferred_shader_t>(*backend_,
           frame_info_->descriptor_set_layout())}
     , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
@@ -487,7 +487,7 @@ void galileo::application_t::update(float const delta_time)
     for (auto const entity :
         registry_.view<component::mesh_t, component::physics_t>())
     {
-        render_graph_->update(registry_.get<component::mesh_t>(entity).index,
+        scene_graph_->update(registry_.get<component::mesh_t>(entity).index,
             ngnphy::to_glm(body_interface.GetWorldTransform(
                 registry_.get<component::physics_t>(entity).id)));
     }
@@ -495,7 +495,7 @@ void galileo::application_t::update(float const delta_time)
     for (auto const entity :
         registry_.view<component::mesh_t, component::character_t>())
     {
-        render_graph_->update(registry_.get<component::mesh_t>(entity).index,
+        scene_graph_->update(registry_.get<component::mesh_t>(entity).index,
             character_->world_transform());
     }
 
@@ -510,7 +510,7 @@ bool galileo::application_t::begin_frame()
         {
             frame_info_->begin_frame();
             batch_renderer_->begin_frame();
-            render_graph_->begin_frame();
+            scene_graph_->begin_frame();
             imgui_->begin_frame();
         }
         return acquired;
@@ -628,11 +628,11 @@ void galileo::application_t::draw()
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            render_graph_->bind_on(command_buffer,
+            scene_graph_->bind_on(command_buffer,
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            gbuffer_shader_->draw(*render_graph_, command_buffer);
+            gbuffer_shader_->draw(*scene_graph_, command_buffer);
         }
     }
 
@@ -825,7 +825,7 @@ void galileo::application_t::on_startup()
     gbuffer_shader_ = std::make_unique<gbuffer_shader_t>(*backend_,
         frame_info_->descriptor_set_layout(),
         materials_->descriptor_set_layout(),
-        render_graph_->descriptor_set_layout(),
+        scene_graph_->descriptor_set_layout(),
         depth_buffer_.format);
 
     auto const extent{backend_->extent()};
@@ -848,7 +848,7 @@ void galileo::application_t::on_shutdown()
 
     gbuffer_shader_.reset();
 
-    render_graph_.reset();
+    scene_graph_.reset();
 
     materials_.reset();
 
@@ -900,7 +900,7 @@ void galileo::application_t::setup_world()
         model->nodes.size(),
         model->meshes.size());
     materials_->consume(*model);
-    render_graph_->consume(*model);
+    scene_graph_->consume(*model);
 
     make_node_matrices_absolute(*model);
 

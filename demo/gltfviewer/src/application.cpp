@@ -8,8 +8,8 @@
 #include <pbr_shader.hpp>
 #include <postprocess_shader.hpp>
 #include <pyramid_blur.hpp>
-#include <render_graph.hpp>
 #include <resolve_shader.hpp>
+#include <scene_graph.hpp>
 #include <weighted_blend_shader.hpp>
 #include <weighted_oit_shader.hpp>
 
@@ -208,7 +208,7 @@ gltfviewer::application_t::application_t(bool const debug)
           backend_->swap_chain())}
     , environment_{std::make_unique<environment_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
-    , render_graph_{std::make_unique<render_graph_t>(*backend_)}
+    , scene_graph_{std::make_unique<scene_graph_t>(*backend_)}
     , depth_pass_shader_{std::make_unique<depth_pass_shader_t>(*backend_)}
     , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
     , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
@@ -261,16 +261,16 @@ void gltfviewer::application_t::update(float delta_time)
         vkDeviceWaitIdle(backend_->device().logical);
 
         materials_->load(*model);
-        render_graph_->load(std::move(model).value());
-        depth_pass_shader_->load(*render_graph_,
+        scene_graph_->load(std::move(model).value());
+        depth_pass_shader_->load(*scene_graph_,
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             depth_buffer_.format);
-        pbr_shader_->load(*render_graph_,
+        pbr_shader_->load(*scene_graph_,
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             depth_buffer_.format);
-        weighted_oit_shader_->load(*render_graph_,
+        weighted_oit_shader_->load(*scene_graph_,
             environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             depth_buffer_.format);
@@ -423,7 +423,7 @@ void gltfviewer::application_t::draw()
 
     push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
 
-    if (!render_graph_->empty())
+    if (!scene_graph_->empty())
     {
         {
             vkrndr::render_pass_t depth_render_pass;
@@ -442,7 +442,7 @@ void gltfviewer::application_t::draw()
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            render_graph_->bind_on(command_buffer,
+            scene_graph_->bind_on(command_buffer,
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
@@ -458,7 +458,7 @@ void gltfviewer::application_t::draw()
                     depth_render_pass.begin(command_buffer,
                         {{0, 0}, vkrndr::to_2d_extent(depth_buffer_.extent)})};
 
-                depth_pass_shader_->draw(*render_graph_, command_buffer);
+                depth_pass_shader_->draw(*scene_graph_, command_buffer);
             }
 
             auto const barrier{vkrndr::with_access(
@@ -491,7 +491,7 @@ void gltfviewer::application_t::draw()
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            render_graph_->bind_on(command_buffer,
+            scene_graph_->bind_on(command_buffer,
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
@@ -507,7 +507,7 @@ void gltfviewer::application_t::draw()
                     color_render_pass.begin(command_buffer,
                         {{0, 0}, vkrndr::to_2d_extent(color_image_.extent)})};
 
-                pbr_shader_->draw(*render_graph_, command_buffer);
+                pbr_shader_->draw(*scene_graph_, command_buffer);
 
                 environment_->draw_skybox(command_buffer);
             }
@@ -552,7 +552,7 @@ void gltfviewer::application_t::draw()
         vkrndr::wait_for(command_buffer, {}, {}, barriers);
     }
 
-    if (transparent_ && !render_graph_->empty())
+    if (transparent_ && !scene_graph_->empty())
     {
         VkPipelineLayout const oit_layout{
             weighted_oit_shader_->pipeline_layout()};
@@ -564,7 +564,7 @@ void gltfviewer::application_t::draw()
             oit_layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        render_graph_->bind_on(command_buffer,
+        scene_graph_->bind_on(command_buffer,
             oit_layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
@@ -575,7 +575,7 @@ void gltfviewer::application_t::draw()
             8,
             &pc);
 
-        weighted_oit_shader_->draw(*render_graph_,
+        weighted_oit_shader_->draw(*scene_graph_,
             command_buffer,
             color_image_,
             depth_buffer_);
@@ -727,7 +727,7 @@ void gltfviewer::application_t::on_shutdown()
 
     depth_pass_shader_.reset();
 
-    render_graph_.reset();
+    scene_graph_.reset();
 
     materials_.reset();
 

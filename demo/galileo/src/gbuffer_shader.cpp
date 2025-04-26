@@ -2,7 +2,7 @@
 
 #include <config.hpp>
 #include <gbuffer.hpp>
-#include <render_graph.hpp>
+#include <scene_graph.hpp>
 
 #include <vkglsl_shader_set.hpp>
 
@@ -61,8 +61,8 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
                     .add_color_attachment(gbuffer_t::normal_format)
                     .add_color_attachment(gbuffer_t::albedo_format)
                     .with_depth_test(depth_buffer_format)
-                    .add_vertex_input(render_graph_t::binding_description(),
-                        render_graph_t::attribute_description())
+                    .add_vertex_input(scene_graph_t::binding_description(),
+                        scene_graph_t::attribute_description())
                     .with_culling(VK_CULL_MODE_BACK_BIT,
                         VK_FRONT_FACE_COUNTER_CLOCKWISE)
                     .build();
@@ -78,7 +78,7 @@ VkPipelineLayout galileo::gbuffer_shader_t::pipeline_layout() const
     return *pipeline_.layout;
 }
 
-void galileo::gbuffer_shader_t::draw(render_graph_t& graph,
+void galileo::gbuffer_shader_t::draw(scene_graph_t& graph,
     VkCommandBuffer command_buffer) const
 {
     vkrndr::bind_pipeline(command_buffer, pipeline_);
