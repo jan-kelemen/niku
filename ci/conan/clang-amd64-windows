@@ -1,5 +1,5 @@
 include(../../conan/clang-{{ os.getenv("CLANG_VER") }}-amd64-windows)
-include(../../conan/opt/arch-amd64-v3)
+include(../../conan/opt/gnulike-arch-amd64-v3)
 include(../../conan/dependencies)
 
 [settings]

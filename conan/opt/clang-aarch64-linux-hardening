@@ -1,6 +1,5 @@
-include(aarch64-linux-hardening)
+include(gnulike-aarch64-linux-hardening)
 
 [conf]
 tools.build:cflags+=["--start-no-unused-arguments", "-Wl,-z,relro,-z,now,-z,noexecstack", "--end-no-unused-arguments"]
 tools.build:cxxflags+=["--start-no-unused-arguments", "-Wl,-z,relro,-z,now,-z,noexecstack", "--end-no-unused-arguments"]
-

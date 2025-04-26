@@ -89,7 +89,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON --preset default
+          cmake -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset default
           
       - name: Build
         run: |

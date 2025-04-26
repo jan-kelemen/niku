@@ -6,4 +6,3 @@ include(../../conan/dependencies)
 
 [settings]
 build_type=RelWithDebInfo
-

@@ -1,6 +1,5 @@
-include(linux-hardening)
+include(gnulike-hardening)
 
 [conf]
 tools.build:cflags+=["-fcf-protection", "-fstack-clash-protection"]
 tools.build:cxxflags+=["-fcf-protection", "-fstack-clash-protection"]
-

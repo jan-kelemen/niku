@@ -1,0 +1,3 @@
+[conf]
+tools.build:cflags+=["-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST"]
+tools.build:cxxflags+=["-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST"]

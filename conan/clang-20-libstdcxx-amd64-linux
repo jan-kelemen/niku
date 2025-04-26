@@ -3,4 +3,3 @@ include(base/clang-libstdcxx)
 
 [settings]
 arch=x86_64
-

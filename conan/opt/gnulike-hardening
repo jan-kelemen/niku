@@ -1,0 +1,3 @@
+[conf]
+tools.build:cflags+=["-fPIC", "-fstack-protector-strong"]
+tools.build:cxxflags+=["-fPIC", "-fstack-protector-strong"]
