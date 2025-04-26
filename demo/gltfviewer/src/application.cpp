@@ -192,7 +192,6 @@ gltfviewer::application_t::application_t(bool const debug)
           .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           .width = 512,
           .height = 512}}
-    , projection_{camera_}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
@@ -361,8 +360,9 @@ void gltfviewer::application_t::update(float delta_time)
     ImGui::End();
 
     camera_controller_.update(delta_time);
+    projection_.update(camera_.view_matrix());
 
-    environment_->update(projection_);
+    environment_->update(camera_, projection_);
 }
 
 bool gltfviewer::application_t::begin_frame()

@@ -223,7 +223,6 @@ galileo::application_t::application_t(bool const debug)
           .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           .width = 512,
           .height = 512}}
-    , projection_{camera_}
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
@@ -478,6 +477,7 @@ void galileo::application_t::update(float const delta_time)
     {
         follow_camera_controller_.update(*character_);
     }
+    projection_.update(camera_.view_matrix());
 
     move_spheres(registry_, physics_engine_);
 
@@ -499,7 +499,9 @@ void galileo::application_t::update(float const delta_time)
             character_->world_transform());
     }
 
-    frame_info_->update(projection_, static_cast<uint32_t>(light_count_));
+    frame_info_->update(camera_,
+        projection_,
+        static_cast<uint32_t>(light_count_));
 }
 
 bool galileo::application_t::begin_frame()

@@ -9,17 +9,10 @@
 
 namespace ngngfx
 {
-    class camera_t;
-} // namespace ngngfx
-
-namespace ngngfx
-{
     class [[nodiscard]] projection_t
     {
     public:
-        projection_t(camera_t const& camera,
-            glm::vec2 near_far_planes,
-            float aspect_ratio);
+        projection_t(glm::vec2 near_far_planes, float aspect_ratio);
 
         projection_t(projection_t const&) = default;
 
@@ -29,9 +22,7 @@ namespace ngngfx
         virtual ~projection_t() = default;
 
     public:
-        [[nodiscard]] glm::mat4 const& view_matrix() const;
-
-        virtual void update() = 0;
+        virtual void update(glm::mat4 const& view_matrix) = 0;
 
         [[nodiscard]] virtual glm::mat4 const& projection_matrix() const = 0;
 
@@ -39,8 +30,6 @@ namespace ngngfx
         view_projection_matrix() const = 0;
 
     public:
-        [[nodiscard]] glm::vec3 const& position() const;
-
         virtual void set_aspect_ratio(float aspect_ratio);
 
         [[nodiscard]] virtual float aspect_ratio() const;
@@ -51,7 +40,6 @@ namespace ngngfx
         projection_t& operator=(projection_t&&) noexcept = default;
 
     protected:
-        camera_t const* camera_;
         glm::vec2 near_far_planes_;
         float aspect_ratio_;
     };

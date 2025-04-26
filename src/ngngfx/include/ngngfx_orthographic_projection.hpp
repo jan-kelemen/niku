@@ -8,15 +8,10 @@
 
 namespace ngngfx
 {
-    class camera_t;
-} // namespace ngngfx
-
-namespace ngngfx
-{
     class [[nodiscard]] orthographic_projection_t : public projection_t
     {
     public:
-        explicit orthographic_projection_t(camera_t const& camera,
+        explicit orthographic_projection_t(
             glm::vec2 near_far_planes = {0.1f, 1000.0f},
             float aspect_ratio = 16.0f / 9.0f,
             glm::vec2 left_right = {-1.0f, 1.0f},
@@ -31,7 +26,7 @@ namespace ngngfx
         ~orthographic_projection_t() override = default;
 
     public: // projection_t overrides
-        void update() override;
+        void update(glm::mat4 const& view_matrix) override;
 
         [[nodiscard]] glm::mat4 const& projection_matrix() const override;
 
@@ -45,7 +40,7 @@ namespace ngngfx
             orthographic_projection_t&&) noexcept = default;
 
     private:
-        void calculate_view_projection_matrices();
+        void calculate_view_projection_matrices(glm::mat4 const& view_matrix);
 
     protected:
         glm::vec2 left_right_;

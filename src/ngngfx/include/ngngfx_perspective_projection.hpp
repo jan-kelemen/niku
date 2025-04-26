@@ -16,7 +16,7 @@ namespace ngngfx
     class [[nodiscard]] perspective_projection_t : public projection_t
     {
     public:
-        explicit perspective_projection_t(camera_t const& camera,
+        explicit perspective_projection_t(
             glm::vec2 near_far_planes = {0.1f, 1000.0f},
             float aspect_ratio = 16.0f / 9.0f,
             float fov = 45.0f);
@@ -29,7 +29,7 @@ namespace ngngfx
         ~perspective_projection_t() override = default;
 
     public: // projection_t overrides
-        void update() override;
+        void update(glm::mat4 const& view_matrix) override;
 
         [[nodiscard]] glm::mat4 const& projection_matrix() const override;
 
@@ -43,7 +43,7 @@ namespace ngngfx
             perspective_projection_t&&) noexcept = default;
 
     private:
-        void calculate_view_projection_matrices();
+        void calculate_view_projection_matrices(glm::mat4 const& view_matrix);
 
     protected:
         float fov_;

@@ -5,6 +5,7 @@
 
 #include <ngnast_scene_model.hpp>
 
+#include <ngngfx_camera.hpp>
 #include <ngngfx_projection.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -185,13 +186,14 @@ VkDescriptorSetLayout galileo::frame_info_t::descriptor_set_layout() const
 
 void galileo::frame_info_t::begin_frame() { frame_data_.cycle(); }
 
-void galileo::frame_info_t::update(ngngfx::projection_t const& projection,
+void galileo::frame_info_t::update(ngngfx::camera_t const& camera,
+    ngngfx::projection_t const& projection,
     uint32_t const light_count)
 {
     auto* const gpu{frame_data_->info_map.as<gpu_frame_info_t>()};
-    gpu->view = projection.view_matrix();
+    gpu->view = camera.view_matrix();
     gpu->projection = projection.projection_matrix();
-    gpu->position = projection.position();
+    gpu->position = camera.position();
     gpu->light_count = light_count;
 }
 
