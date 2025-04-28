@@ -7,3 +7,7 @@ compiler.version=20
 [buildenv]
 CC=clang-20
 CXX=clang++-20
+CPP=clang-cpp-20
+AR=llvm-ar-20
+NM=llvm-nm-20
+RANLIB=llvm-ranlib-20

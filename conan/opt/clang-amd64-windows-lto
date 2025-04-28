@@ -1,0 +1,5 @@
+[conf]
+tools.build:cflags+=["-flto=auto"]
+tools.build:cxxflags+=["-flto=auto"]
+tools.build:sharedlinkflags+=["-Xlinker", "/LTCG", "-Xlinker", "/INCREMENTAL:NO", "-Xlinker", "/OPT:REF", "-Xlinker", "/OPT:ICF"]
+tools.build:sharedlinkflags+=["-Xlinker", "/LTCG", "-Xlinker", "/INCREMENTAL:NO", "-Xlinker", "/OPT:REF", "-Xlinker", "/OPT:ICF"]

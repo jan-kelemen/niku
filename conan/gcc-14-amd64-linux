@@ -2,7 +2,3 @@ include(base/gcc-14-linux)
 
 [settings]
 arch=x86_64
-
-[buildenv]
-CC=gcc-14
-CXX=g++-14
