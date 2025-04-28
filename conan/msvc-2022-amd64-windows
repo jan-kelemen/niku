@@ -5,3 +5,7 @@ compiler.cppstd=23
 compiler.runtime=dynamic
 compiler.version=194
 os=Windows
+
+[conf]
+tools.build:cflags+=["/permissive-", "/Zc:enumTypes", "/Zc:inline", "/Zc:preprocessor"]
+tools.build:cxxflags+=["/permissive-", "/Zc:enumTypes", "/Zc:inline", "/Zc:preprocessor", "/Zc:__cplusplus", "/Zc:externConstexpr", "/Zc:templateScope"]
