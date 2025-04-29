@@ -3,6 +3,7 @@
 
 namespace galileo
 {
+// NOLINTBEGIN(misc-redundant-expression)
 #ifndef GALILEO_SHADER_DEBUG_SYMBOLS
 #define GALILEO_SHADER_DEBUG_SYMBOLS 0
 #endif
@@ -18,6 +19,7 @@ namespace galileo
 #define GALILEO_VALIDATION_LAYERS 0
 #endif
     constexpr bool enable_validation_layers{GALILEO_VALIDATION_LAYERS != 0};
+    // NOLINTEND(misc-redundant-expression)
 } // namespace galileo
 
 #endif

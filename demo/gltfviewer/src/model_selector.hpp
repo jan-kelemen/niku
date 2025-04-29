@@ -58,7 +58,7 @@ namespace gltfviewer
         model_selector_t& operator=(model_selector_t&&) noexcept = default;
 
     private:
-        std::array<char, 256> index_path_buffer_;
+        std::array<char, 256> index_path_buffer_{};
 
         int selected_sample_{};
         int selected_variant_{};

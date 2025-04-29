@@ -3,6 +3,7 @@
 
 namespace gltfviewer
 {
+// NOLINTBEGIN(misc-redundant-expression)
 #ifndef GLTFVIEWER_SHADER_DEBUG_SYMBOLS
 #define GLTFVIEWER_SHADER_DEBUG_SYMBOLS 0
 #endif
@@ -19,6 +20,7 @@ namespace gltfviewer
 #define GLTFVIEWER_VALIDATION_LAYERS 0
 #endif
     constexpr bool enable_validation_layers{GLTFVIEWER_VALIDATION_LAYERS != 0};
+    // NOLINTEND(misc-redundant-expression)
 } // namespace gltfviewer
 
 #endif

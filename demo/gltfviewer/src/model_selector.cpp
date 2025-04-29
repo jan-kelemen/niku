@@ -27,7 +27,7 @@ DISABLE_WARNING_POP
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 
-gltfviewer::model_selector_t::model_selector_t() : index_path_buffer_{}
+gltfviewer::model_selector_t::model_selector_t()
 {
     auto const wd{std::filesystem::current_path()};
     auto const str{wd.generic_string()};

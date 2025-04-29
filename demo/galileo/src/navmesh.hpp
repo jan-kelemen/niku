@@ -110,7 +110,7 @@ namespace galileo
 
     struct [[nodiscard]] path_t final
     {
-        dtNavMeshQuery* query;
+        dtNavMeshQuery* query{};
         path_corridor_ptr_t corridor;
     };
 

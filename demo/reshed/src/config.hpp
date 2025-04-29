@@ -3,6 +3,7 @@
 
 namespace reshed
 {
+// NOLINTBEGIN(misc-redundant-expression)
 #ifndef RESHED_SHADER_DEBUG_SYMBOLS
 #define RESHED_SHADER_DEBUG_SYMBOLS 0
 #endif
@@ -18,6 +19,7 @@ namespace reshed
 #define RESHED_VALIDATION_LAYERS 0
 #endif
     constexpr bool enable_validation_layers{RESHED_VALIDATION_LAYERS != 0};
+    // NOLINTEND(misc-redundant-expression)
 } // namespace reshed
 
 #endif

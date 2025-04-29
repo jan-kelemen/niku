@@ -69,11 +69,11 @@ namespace galileo
     private:
         struct [[nodiscard]] vertex_buffer_t final
         {
-            VkPrimitiveTopology topology;
+            VkPrimitiveTopology topology{VK_PRIMITIVE_TOPOLOGY_LINE_LIST};
             vkrndr::buffer_t buffer;
             vkrndr::mapped_memory_t memory;
-            uint32_t size;
-            uint32_t capacity;
+            uint32_t size{};
+            uint32_t capacity{};
         };
 
         struct [[nodiscard]] frame_data_t final
