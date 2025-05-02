@@ -41,7 +41,7 @@ class NikuConan(ConanFile):
         self.requires("joltphysics/5.3.0")
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
         self.requires("meshoptimizer/0.23", transitive_headers=False)
-        self.requires("sdl/3.2.8")
+        self.requires("sdl/3.2.10")
         self.requires("spdlog/1.15.2", transitive_headers=False)
         self.requires("spirv-cross/1.4.304.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
@@ -51,13 +51,13 @@ class NikuConan(ConanFile):
         if self.options.develop:
             self.requires("entt/3.15.0")
             self.requires("recastnavigation/1.6.0")
-            self.requires("simdjson/3.12.2")
+            self.requires("simdjson/3.12.3")
             self.requires("tree-sitter/0.25.3")
             self.requires("tree-sitter-glsl/0.2.0")
 
     def build_requirements(self):
         self.tool_requires("cmake/[^3.27]")
-        self.test_requires("catch2/3.8.0")
+        self.test_requires("catch2/3.8.1")
 
     def layout(self):
         cmake_layout(self)

@@ -6,6 +6,7 @@ Override packages from public Conan2 package index with updated ones from [jan-k
 git clone git@github.com:jan-kelemen/conan-recipes.git
 conan export conan-recipes/recipes/angelscript/all --version 2.37.0
 conan export conan-recipes/recipes/boost/all --version 1.87.0
+conan export conan-recipes/recipes/catch2/3.x.x --version 3.8.1
 conan export conan-recipes/recipes/entt/3.x.x --version 3.15.0
 conan export conan-recipes/recipes/fastgltf/all --version 0.8.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3
@@ -16,8 +17,8 @@ conan export conan-recipes/recipes/joltphysics/all --version 5.3.0
 conan export conan-recipes/recipes/mikktspace/all --version cci.20200325
 conan export conan-recipes/recipes/meshoptimizer/all --version 0.23
 conan export conan-recipes/recipes/recastnavigation/all --version 1.6.0
-conan export conan-recipes/recipes/sdl/3.x --version 3.2.8
-conan export conan-recipes/recipes/simdjson/all --version 3.12.2
+conan export conan-recipes/recipes/sdl/3.x --version 3.2.10
+conan export conan-recipes/recipes/simdjson/all --version 3.12.3
 conan export conan-recipes/recipes/spdlog/all --version 1.15.2
 conan export conan-recipes/recipes/spirv-headers/all --version 1.4.304.0
 conan export conan-recipes/recipes/spirv-cross/all --version 1.4.304.0
