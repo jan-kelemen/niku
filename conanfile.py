@@ -33,8 +33,10 @@ class NikuConan(ConanFile):
         self.requires("boost/1.87.0", transitive_headers=False)
         self.requires("fastgltf/0.8.0", transitive_headers=False)
         self.requires("fmt/11.1.4")
+        self.requires("freetype/2.13.3")
         self.requires("glm/1.0.1")
         self.requires("glslang/1.4.304.0", transitive_headers=False)
+        self.requires("harfbuzz/11.2.0")
         self.requires("imgui/1.91.9b-docking")
         self.requires("joltphysics/5.3.0")
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
@@ -48,9 +50,10 @@ class NikuConan(ConanFile):
 
         if self.options.develop:
             self.requires("entt/3.15.0")
-            self.requires("freetype/2.13.3")
             self.requires("recastnavigation/1.6.0")
             self.requires("simdjson/3.12.2")
+            self.requires("tree-sitter/0.25.3")
+            self.requires("tree-sitter-glsl/0.2.0")
 
     def build_requirements(self):
         self.tool_requires("cmake/[^3.27]")
@@ -155,6 +158,12 @@ class NikuConan(ConanFile):
         self.cpp_info.components[component].libs = [component]
         self.cpp_info.components[component].requires.extend(["cppext", "as_scriptbuilder", "as_scriptarray", "as_scriptstdstring"])
         self.cpp_info.components[component].requires.extend(["angelscript::angelscript", "spdlog::spdlog"])
+
+        component = "ngntxt"
+        self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
+        self.cpp_info.components[component].libs = [component]
+        self.cpp_info.components[component].requires.extend(["vkrndr", "cppext"])
+        self.cpp_info.components[component].requires.extend(["Freetype::Freetype", "harfbuzz::harfbuzz", "spdlog::spdlog"])
 
         component = "ngnphy"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")

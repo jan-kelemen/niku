@@ -106,6 +106,7 @@ Following third party libraries are used:
 * [AngelScript](https://www.angelcode.com/angelscript/) published under [Zlib](https://spdx.org/licenses/Zlib.html)
 * [Boost](https://www.boost.org) published under [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)
 * [Catch2](https://github.com/catchorg/Catch2) published under [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)
+* [Dear ImGui](https://github.com/ocornut/imgui) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [EnTT](https://github.com/skypjack/entt/wiki) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [fastgltf](https://github.com/spnda/fastgltf) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [\{fmt}](https://fmt.dev) published under [MIT](https://spdx.org/licenses/MIT.html)
@@ -113,7 +114,7 @@ Following third party libraries are used:
 * [Jolt Physics](https://github.com/jrouwe/JoltPhysics) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [GLM](https://glm.g-truc.net/) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [glslang](https://github.com/KhronosGroup/glslang) published under [LICENSE](https://github.com/KhronosGroup/glslang/blob/main/LICENSE.txt)
-* [Dear ImGui](https://github.com/ocornut/imgui) published under [MIT](https://spdx.org/licenses/MIT.html)
+* [HarfBuzz](https://harfbuzz.github.io) published under [LICENSE](https://github.com/harfbuzz/harfbuzz/blob/main/COPYING)
 * [meshoptimizer](https://meshoptimizer.org) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [MikkTSpace](http://www.mikktspace.com) published under [Zlib](https://spdx.org/licenses/Zlib.html)
 * [Recast Navigation](https://recastnav.com) published under [Zlib](https://spdx.org/licenses/Zlib.html)
@@ -125,3 +126,7 @@ Following third party libraries are used:
 * [volk](https://github.com/zeux/volk) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [Vulkan](https://www.vulkan.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and [MIT](https://spdx.org/licenses/MIT.html)
 * [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) published under [MIT](https://spdx.org/licenses/MIT.html)
+
+Following third party libraries are used by the engine demos exclusively:
+* [tree-sitter](https://tree-sitter.github.io/tree-sitter/) published under [MIT](https://spdx.org/licenses/MIT.html)
+* [tree-sitter-glsl](https://github.com/tree-sitter-grammars/tree-sitter-glsl/) published under [MIT](https://spdx.org/licenses/MIT.html)

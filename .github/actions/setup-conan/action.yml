@@ -70,6 +70,7 @@ runs:
         conan export recipes/recipes/freetype/meson --version 2.13.3
         conan export recipes/recipes/fastgltf/all --version 0.8.0
         conan export recipes/recipes/glslang/all --version 1.4.304.0
+        conan export recipes/recipes/harfbuzz/all --version 11.2.0
         conan export recipes/recipes/imgui/all --version 1.91.9b-docking
         conan export recipes/recipes/joltphysics/all --version 5.3.0
         conan export recipes/recipes/mikktspace/all --version cci.20200325
@@ -84,6 +85,8 @@ runs:
         conan export recipes/recipes/volk/all --version 1.4.304.0
         conan export recipes/recipes/vulkan-headers/all --version 1.4.304.0
         conan export recipes/recipes/vulkan-memory-allocator/all --version 3.2.1
+        conan export recipes/recipes/tree-sitter/all --version 0.25.3
+        conan export recipes/recipes/tree-sitter-glsl/all --version 0.2.0
 
     - name: Build all dependencies
       shell: ${{ inputs.shell }}
