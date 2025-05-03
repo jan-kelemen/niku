@@ -145,14 +145,25 @@ class NikuConan(ConanFile):
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
         self.cpp_info.components[component].requires.extend(["vkrndr"])
-        self.cpp_info.components[component].requires.extend([ "glslang::glslang", "glslang::glslang-default-resource-limits", "glslang::spirv",  "spirv-cross::spirv-cross"])
+        self.cpp_info.components[component].requires.extend(["glslang::glslang", "glslang::glslang-default-resource-limits", "glslang::spirv",  "spirv-cross::spirv-cross"])
 
         component = "ngnast"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
-        self.cpp_info.components[component].requires.extend(["vkrndr", "glm_impl", "cppext", "stb_impl"])
+        self.cpp_info.components[component].requires.extend(["cppext", "vkrndr", "glm_impl", "stb_impl"])
         self.cpp_info.components[component].requires.extend(["boost::headers", "fastgltf::fastgltf", "mikktspace::mikktspace", "meshoptimizer::meshoptimizer", "spdlog::spdlog"])
+
+        component = "ngngfx"
+        self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
+        self.cpp_info.components[component].libs = [component]
+        self.cpp_info.components[component].requires.extend(["glm_impl", "vkrndr"])
         
+        component = "ngnphy"
+        self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
+        self.cpp_info.components[component].libs = [component]
+        self.cpp_info.components[component].requires.extend(["cppext", "glm_impl"])
+        self.cpp_info.components[component].requires.extend(["joltphysics::joltphysics"])
+
         component = "ngnscr"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
@@ -162,16 +173,6 @@ class NikuConan(ConanFile):
         component = "ngntxt"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
-        self.cpp_info.components[component].requires.extend(["vkrndr", "cppext"])
-        self.cpp_info.components[component].requires.extend(["Freetype::Freetype", "harfbuzz::harfbuzz", "spdlog::spdlog"])
+        self.cpp_info.components[component].requires.extend(["cppext", "vkrndr", "glm_impl"])
+        self.cpp_info.components[component].requires.extend(["boost::headers", "Freetype::Freetype", "harfbuzz::harfbuzz", "spdlog::spdlog"])
 
-        component = "ngnphy"
-        self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
-        self.cpp_info.components[component].libs = [component]
-        self.cpp_info.components[component].requires.extend(["cppext", "glm_impl"])
-        self.cpp_info.components[component].requires.extend(["joltphysics::joltphysics"])
-
-        component = "ngngfx"
-        self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
-        self.cpp_info.components[component].libs = [component]
-        self.cpp_info.components[component].requires.extend(["glm_impl", "vkrndr"])
