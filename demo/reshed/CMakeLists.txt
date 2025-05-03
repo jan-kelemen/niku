@@ -23,12 +23,26 @@ target_include_directories(reshed
 
 target_link_libraries(reshed
     PRIVATE
+        ngntxt
         ngnwsi
         vkrndr
     PRIVATE
         imgui::imgui
+        spdlog::spdlog
+        tree-sitter::tree-sitter
+        tree-sitter-glsl::tree-sitter-glsl
     PRIVATE
         project-options
+)
+
+add_dependencies(reshed reshed_assets)
+
+add_custom_target(reshed_assets
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/SpaceMono-Regular.ttf
+        ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/SpaceMono-Regular.ttf
 )
 
 set_property(TARGET reshed
@@ -37,3 +51,4 @@ set_property(TARGET reshed
 )
 
 set_target_properties(reshed PROPERTIES FOLDER "demo/reshed")
+set_target_properties(reshed_assets PROPERTIES FOLDER "demo/reshed")

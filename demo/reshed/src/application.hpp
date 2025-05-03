@@ -1,6 +1,8 @@
 #ifndef RESHED_APPLICATION_INCLUDED
 #define RESHED_APPLICATION_INCLUDED
 
+#include <ngntxt_font_bitmap.hpp>
+
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
 
@@ -57,6 +59,8 @@ namespace reshed
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
+
+        ngntxt::font_bitmap_t font_bitmap_;
     };
 } // namespace reshed
 #endif

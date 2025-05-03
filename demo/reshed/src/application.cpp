@@ -9,6 +9,9 @@
 #include <ngnwsi_mouse.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
+#include <ngntxt_font_bitmap.hpp>
+#include <ngntxt_font_face.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_device.hpp>
@@ -26,6 +29,9 @@
 #include <SDL3/SDL_scancode.h>
 #include <SDL3/SDL_video.h>
 
+#include <spdlog/spdlog.h>
+
+#include <exception>
 #include <memory>
 #include <optional>
 #include <span>
@@ -153,6 +159,50 @@ void reshed::application_t::end_frame()
 void reshed::application_t::on_startup()
 {
     mouse_.set_window_handle(window()->native_handle());
+
+    auto scale{SDL_GetWindowPixelDensity(window()->native_handle())};
+    if (scale == 0.0f)
+    {
+        scale = 1.0f;
+    }
+
+    glm::uvec2 actual_extent{};
+
+    {
+        int width{};
+        int height{};
+        if (SDL_GetWindowSize(window()->native_handle(), &width, &height))
+        {
+            actual_extent.x = cppext::narrow<unsigned>(width);
+            actual_extent.y = cppext::narrow<unsigned>(height);
+        }
+        else
+        {
+            auto const extent{backend_->extent()};
+            actual_extent.x = extent.width;
+            actual_extent.y = extent.height;
+        }
+
+        actual_extent.x =
+            static_cast<unsigned>(roundf(cppext::as_fp(width) * scale));
+        actual_extent.y =
+            static_cast<unsigned>(roundf(cppext::as_fp(height) * scale));
+    }
+
+    auto context{ngntxt::freetype_context_t::create()};
+    if (std::expected<ngntxt::font_face_t, std::error_code> font_face{
+            load_font_face(context,
+                "SpaceMono-Regular.ttf",
+                {0, 16},
+                actual_extent)})
+    {
+        spdlog::info("Font loaded");
+        font_bitmap_ = create_bitmap(*backend_, *font_face, 0, 256);
+    }
+    else
+    {
+        std::terminate();
+    }
 }
 
 void reshed::application_t::on_shutdown()
