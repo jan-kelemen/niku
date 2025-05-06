@@ -3,6 +3,9 @@
 
 #include <vkrndr_image.hpp>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H // IWYU pragma: keep
+
 #include <glm/vec2.hpp>
 
 #include <cstdint>
@@ -12,11 +15,6 @@ namespace vkrndr
 {
     class backend_t;
 } // namespace vkrndr
-
-namespace ngntxt
-{
-    class font_face_t;
-} // namespace ngntxt
 
 namespace ngntxt
 {
@@ -34,7 +32,7 @@ namespace ngntxt
     };
 
     font_bitmap_t create_bitmap(vkrndr::backend_t& backend,
-        font_face_t& font_face,
+        FT_Face font_face,
         char32_t first_codepoint,
         char32_t last_codepoint);
 } // namespace ngntxt

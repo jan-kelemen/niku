@@ -1,7 +1,5 @@
 #include <ngntxt_font_bitmap.hpp>
 
-#include <ngntxt_font_face.hpp>
-
 #include <cppext_numeric.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -31,7 +29,7 @@
 // IWYU pragma: no_include <fmt/format.h>
 
 ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
-    font_face_t& font_face,
+    FT_Face font_face,
     char32_t const first_codepoint,
     char32_t const last_codepoint)
 {
@@ -45,7 +43,7 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
         ++codepoint)
     {
         if (FT_Error const error{
-                FT_Load_Char(font_face.handle(), codepoint, FT_LOAD_DEFAULT)})
+                FT_Load_Char(font_face, codepoint, FT_LOAD_DEFAULT)})
         {
             spdlog::error("Character with codepoint {} not loaded. Error = {}",
                 static_cast<uint32_t>(codepoint),
@@ -53,7 +51,7 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
             continue;
         }
 
-        FT_GlyphSlot const slot{font_face.handle()->glyph};
+        FT_GlyphSlot const slot{font_face->glyph};
         ++glyph_count;
 
         rv.glyphs.emplace(std::piecewise_construct,
@@ -96,12 +94,12 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
     for (char32_t codepoint{first_codepoint}; codepoint != last_codepoint;
         ++codepoint)
     {
-        if (FT_Load_Char(font_face.handle(), codepoint, FT_LOAD_RENDER))
+        if (FT_Load_Char(font_face, codepoint, FT_LOAD_RENDER))
         {
             continue;
         }
 
-        FT_GlyphSlot const slot{font_face.handle()->glyph};
+        FT_GlyphSlot const slot{font_face->glyph};
 
         auto const pitch{cppext::narrow<unsigned int>(slot->bitmap.pitch)};
         auto const horizontal_glyph_start{

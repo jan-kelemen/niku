@@ -11,6 +11,7 @@
 
 #include <ngntxt_font_bitmap.hpp>
 #include <ngntxt_font_face.hpp>
+#include <ngntxt_shaping.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -190,14 +191,55 @@ void reshed::application_t::on_startup()
     }
 
     auto context{ngntxt::freetype_context_t::create()};
-    if (std::expected<ngntxt::font_face_t, std::error_code> font_face{
+    if (std::expected<ngntxt::font_face_ptr_t, std::error_code> font_face{
             load_font_face(context,
                 "SpaceMono-Regular.ttf",
                 {0, 16},
                 actual_extent)})
     {
         spdlog::info("Font loaded");
-        font_bitmap_ = create_bitmap(*backend_, *font_face, 0, 256);
+        font_bitmap_ = ngntxt::create_bitmap(*backend_, **font_face, 0, 256);
+
+        ngntxt::shaping_font_face_ptr_t shaping_face{
+            ngntxt::create_shaping_font_face(*font_face)};
+
+        ngntxt::shaping_buffer_ptr_t shaping_buffer{
+            ngntxt::create_shaping_buffer()};
+
+        hb_buffer_add_utf8(shaping_buffer.get(), "Font loaded", -1, 0, -1);
+        hb_buffer_guess_segment_properties(shaping_buffer.get());
+
+        hb_shape(shaping_face.get(), shaping_buffer.get(), NULL, 0);
+
+        unsigned int const len{hb_buffer_get_length(shaping_buffer.get())};
+        hb_glyph_info_t const* const info{
+            hb_buffer_get_glyph_infos(shaping_buffer.get(), NULL)};
+        hb_glyph_position_t const* const pos{
+            hb_buffer_get_glyph_positions(shaping_buffer.get(), NULL)};
+
+        for (unsigned int i{}; i != len; i++)
+        {
+            hb_codepoint_t const gid{info[i].codepoint};
+            unsigned int const cluster{info[i].cluster};
+            double const x_advance{pos[i].x_advance / 64.};
+            double const y_advance{pos[i].y_advance / 64.};
+            double const x_offset{pos[i].x_offset / 64.};
+            double const y_offset{pos[i].y_offset / 64.};
+
+            char glyphname[32];
+            hb_font_get_glyph_name(shaping_face.get(),
+                gid,
+                glyphname,
+                sizeof(glyphname));
+
+            spdlog::info("glyph='{}' cluster={} advance=({},{}) offset=({},{})",
+                glyphname,
+                cluster,
+                x_advance,
+                y_advance,
+                x_offset,
+                y_offset);
+        }
     }
     else
     {

@@ -4,9 +4,11 @@ target_sources(ngntxt
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngntxt_font_face.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngntxt_font_bitmap.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngntxt_shaping.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngntxt_font_face.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngntxt_font_bitmap.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngntxt_shaping.cpp
 )
 
 target_include_directories(ngntxt

@@ -1,6 +1,8 @@
 #ifndef NGNTXT_FONT_FACE_INCLUDED
 #define NGNTXT_FONT_FACE_INCLUDED
 
+#include <boost/smart_ptr/intrusive_ptr.hpp>
+
 #include <ft2build.h>
 #include FT_FREETYPE_H // IWYU pragma: keep
 
@@ -49,36 +51,16 @@ namespace ngntxt
         FT_Library library_;
     };
 
-    class [[nodiscard]] font_face_t final
-    {
-    public:
-        font_face_t(std::shared_ptr<freetype_context_t> context,
-            FT_Face font_face);
+    using font_face_ptr_t = boost::intrusive_ptr<FT_Face>;
 
-        font_face_t(font_face_t const&) = delete;
-
-        font_face_t(font_face_t&& other) noexcept;
-
-    public:
-        ~font_face_t();
-
-    public:
-        [[nodiscard]] FT_Face handle() const;
-
-    public:
-        font_face_t& operator=(font_face_t const&) = delete;
-
-        font_face_t& operator=(font_face_t&& other) noexcept;
-
-    private:
-        std::shared_ptr<freetype_context_t> context_;
-        FT_Face font_face_;
-    };
-
-    std::expected<font_face_t, std::error_code> load_font_face(
+    std::expected<font_face_ptr_t, std::error_code> load_font_face(
         std::shared_ptr<freetype_context_t> context,
         std::filesystem::path const& path,
         glm::uvec2 char_size,
         glm::uvec2 screen_dpi);
 } // namespace ngntxt
+
+void intrusive_ptr_add_ref(FT_Face const* p);
+
+void intrusive_ptr_release(FT_Face const* p);
 #endif

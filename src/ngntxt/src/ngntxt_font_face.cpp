@@ -55,35 +55,7 @@ ngntxt::freetype_context_t::instance()
 
 FT_Library ngntxt::freetype_context_t::handle() const { return library_; }
 
-ngntxt::font_face_t::font_face_t(std::shared_ptr<freetype_context_t> context,
-    FT_Face font_face)
-    : context_{std::move(context)}
-    , font_face_{font_face}
-{
-    assert(context_);
-}
-
-ngntxt::font_face_t::font_face_t(font_face_t&& other) noexcept
-    : context_{std::move(other.context_)}
-    , font_face_{std::exchange(other.font_face_, {})}
-{
-}
-
-ngntxt::font_face_t::~font_face_t() { FT_Done_Face(font_face_); }
-
-FT_Face ngntxt::font_face_t::handle() const { return font_face_; }
-
-ngntxt::font_face_t& ngntxt::font_face_t::operator=(
-    font_face_t&& other) noexcept
-{
-    using std::swap;
-    swap(context_, other.context_);
-    swap(font_face_, other.font_face_);
-
-    return *this;
-}
-
-std::expected<ngntxt::font_face_t, std::error_code> ngntxt::load_font_face(
+std::expected<ngntxt::font_face_ptr_t, std::error_code> ngntxt::load_font_face(
     std::shared_ptr<freetype_context_t> context,
     std::filesystem::path const& path,
     glm::uvec2 const char_size,
@@ -96,25 +68,21 @@ std::expected<ngntxt::font_face_t, std::error_code> ngntxt::load_font_face(
             std::make_error_code(std::errc::invalid_argument)};
     }
 
-    FT_Face font_face{};
-    if (FT_Error const error{FT_New_Face(context->handle(),
-            path.string().c_str(),
-            0,
-            &font_face)})
+    auto* const temp{new FT_Face};
+    boost::scope::scope_exit destroy_font{[temp] { FT_Done_Face(*temp); }};
+
+    if (FT_Error const error{
+            FT_New_Face(context->handle(), path.string().c_str(), 0, temp)})
     {
         spdlog::error("Unable to load font {}. Error = {}", path, error);
         return std::unexpected{
             std::make_error_code(std::errc::invalid_argument)};
     };
 
-    boost::scope::scope_exit destroy_font{
-        [&font_face] { FT_Done_Face(font_face); }};
-
-    font_face_t rv{std::move(context), font_face};
-
+    font_face_ptr_t rv{temp, false};
     destroy_font.set_active(false);
 
-    if (FT_Error const error{FT_Set_Char_Size(rv.handle(),
+    if (FT_Error const error{FT_Set_Char_Size(*rv,
             cppext::narrow<FT_F26Dot6>(char_size.x) * 64,
             cppext::narrow<FT_F26Dot6>(char_size.y) * 64,
             screen_dpi.x,
@@ -127,3 +95,7 @@ std::expected<ngntxt::font_face_t, std::error_code> ngntxt::load_font_face(
 
     return rv;
 }
+
+void intrusive_ptr_add_ref(FT_Face const* const p) { FT_Reference_Face(*p); }
+
+void intrusive_ptr_release(FT_Face const* const p) { FT_Done_Face(*p); }
