@@ -131,3 +131,11 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
 
     return rv;
 }
+
+void ngntxt::destroy(vkrndr::device_t const* device, font_bitmap_t* bitmap)
+{
+    if (bitmap)
+    {
+        destroy(device, &bitmap->bitmap);
+    }
+}

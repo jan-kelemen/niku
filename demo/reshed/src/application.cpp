@@ -1,5 +1,7 @@
 #include <application.hpp>
 
+#include <text_editor.hpp>
+
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
@@ -46,6 +48,7 @@ reshed::application_t::application_t(bool const debug)
           .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           .width = 512,
           .height = 512}}
+    , freetype_context_{ngntxt::freetype_context_t::create()}
     , backend_{std::make_unique<vkrndr::backend_t>(*window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
@@ -59,6 +62,7 @@ reshed::application_t::application_t(bool const debug)
           backend_->context(),
           backend_->device(),
           backend_->swap_chain())}
+    , editor_{std::make_unique<text_editor_t>(*backend_)}
 {
 }
 
@@ -130,6 +134,7 @@ void reshed::application_t::draw()
     {
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
             {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
+        editor_->draw(command_buffer);
     }
 
     {
@@ -190,56 +195,14 @@ void reshed::application_t::on_startup()
             static_cast<unsigned>(roundf(cppext::as_fp(height) * scale));
     }
 
-    auto context{ngntxt::freetype_context_t::create()};
     if (std::expected<ngntxt::font_face_ptr_t, std::error_code> font_face{
-            load_font_face(context,
+            load_font_face(freetype_context_,
                 "SpaceMono-Regular.ttf",
                 {0, 16},
                 actual_extent)})
     {
         spdlog::info("Font loaded");
-        font_bitmap_ = ngntxt::create_bitmap(*backend_, **font_face, 0, 256);
-
-        ngntxt::shaping_font_face_ptr_t shaping_face{
-            ngntxt::create_shaping_font_face(*font_face)};
-
-        ngntxt::shaping_buffer_ptr_t shaping_buffer{
-            ngntxt::create_shaping_buffer()};
-
-        hb_buffer_add_utf8(shaping_buffer.get(), "Font loaded", -1, 0, -1);
-        hb_buffer_guess_segment_properties(shaping_buffer.get());
-
-        hb_shape(shaping_face.get(), shaping_buffer.get(), NULL, 0);
-
-        unsigned int const len{hb_buffer_get_length(shaping_buffer.get())};
-        hb_glyph_info_t const* const info{
-            hb_buffer_get_glyph_infos(shaping_buffer.get(), NULL)};
-        hb_glyph_position_t const* const pos{
-            hb_buffer_get_glyph_positions(shaping_buffer.get(), NULL)};
-
-        for (unsigned int i{}; i != len; i++)
-        {
-            hb_codepoint_t const gid{info[i].codepoint};
-            unsigned int const cluster{info[i].cluster};
-            double const x_advance{pos[i].x_advance / 64.};
-            double const y_advance{pos[i].y_advance / 64.};
-            double const x_offset{pos[i].x_offset / 64.};
-            double const y_offset{pos[i].y_offset / 64.};
-
-            char glyphname[32];
-            hb_font_get_glyph_name(shaping_face.get(),
-                gid,
-                glyphname,
-                sizeof(glyphname));
-
-            spdlog::info("glyph='{}' cluster={} advance=({},{}) offset=({},{})",
-                glyphname,
-                cluster,
-                x_advance,
-                y_advance,
-                x_offset,
-                y_offset);
-        }
+        editor_->change_font(std::move(font_face).value());
     }
     else
     {
@@ -250,6 +213,8 @@ void reshed::application_t::on_startup()
 void reshed::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device().logical);
+
+    editor_.reset();
 
     imgui_.reset();
 

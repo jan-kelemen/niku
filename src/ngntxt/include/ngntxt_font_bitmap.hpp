@@ -14,6 +14,7 @@
 namespace vkrndr
 {
     class backend_t;
+    struct device_t;
 } // namespace vkrndr
 
 namespace ngntxt
@@ -35,6 +36,8 @@ namespace ngntxt
         FT_Face font_face,
         char32_t first_codepoint,
         char32_t last_codepoint);
+
+    void destroy(vkrndr::device_t const* device, font_bitmap_t* bitmap);
 } // namespace ngntxt
 
 #endif

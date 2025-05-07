@@ -1,14 +1,17 @@
 #ifndef RESHED_APPLICATION_INCLUDED
 #define RESHED_APPLICATION_INCLUDED
 
-#include <ngntxt_font_bitmap.hpp>
-
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
 
 #include <SDL3/SDL_events.h>
 
 #include <memory>
+
+namespace ngntxt
+{
+    class freetype_context_t;
+} // namespace ngntxt
 
 namespace ngnwsi
 {
@@ -19,6 +22,11 @@ namespace vkrndr
 {
     class backend_t;
 } // namespace vkrndr
+
+namespace reshed
+{
+    class text_editor_t;
+} // namespace reshed
 
 namespace reshed
 {
@@ -57,10 +65,12 @@ namespace reshed
     private:
         ngnwsi::mouse_t mouse_;
 
+        std::shared_ptr<ngntxt::freetype_context_t> freetype_context_;
+
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
 
-        ngntxt::font_bitmap_t font_bitmap_;
+        std::unique_ptr<text_editor_t> editor_;
     };
 } // namespace reshed
 #endif
