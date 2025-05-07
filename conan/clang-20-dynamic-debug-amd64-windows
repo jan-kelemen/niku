@@ -1,0 +1,11 @@
+include(base/clang-20-windows)
+
+[settings]
+arch=x86_64
+compiler.runtime=dynamic
+
+[conf]
+tools.build:cflags+=["-fms-runtime-lib=dll_dbg"]
+tools.build:cxxflags+=["-fms-runtime-lib=dll_dbg"]
+tools.build:sharedlinkflags+=["-Xlinker", "/NODEFAULTLIB:libcmt"]
+tools.build:exelinkflags+=["-Xlinker", "/NODEFAULTLIB:libcmt"]
