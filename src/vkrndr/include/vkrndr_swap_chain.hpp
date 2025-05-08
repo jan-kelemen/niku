@@ -26,7 +26,6 @@ namespace vkrndr
         struct [[nodiscard]] swap_frame_t final
         {
             VkSemaphore image_available{VK_NULL_HANDLE};
-            VkSemaphore render_finished{VK_NULL_HANDLE};
             VkFence in_flight{VK_NULL_HANDLE};
         };
 
@@ -115,6 +114,7 @@ namespace vkrndr
         std::vector<VkPresentModeKHR> available_present_modes_;
         std::vector<VkPresentModeKHR> compatible_present_modes_;
         std::vector<detail::swap_frame_t> frames_;
+        std::vector<VkSemaphore> submit_finished_semaphore_;
         std::vector<vkrndr::image_t> images_;
     };
 } // namespace vkrndr

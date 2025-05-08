@@ -90,7 +90,6 @@ void vkrndr::detail::destroy(device_t const* const device,
     swap_frame_t* const frame)
 {
     vkDestroySemaphore(device->logical, frame->image_available, nullptr);
-    vkDestroySemaphore(device->logical, frame->render_finished, nullptr);
     vkDestroyFence(device->logical, frame->in_flight, nullptr);
 }
 
@@ -187,7 +186,8 @@ void vkrndr::swap_chain_t::submit_command_buffers(
     auto const* const wait_semaphores{&frame.image_available};
     std::array<VkPipelineStageFlags, 1> const wait_stages{
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    auto const* const signal_semaphores{&frame.render_finished};
+    auto const* const signal_semaphores{
+        &submit_finished_semaphore_[image_index]};
 
     VkSubmitInfo submit_info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .waitSemaphoreCount = 1,
@@ -341,6 +341,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
         &used_image_count,
         swapchain_images.data()));
     images_.reserve(swapchain_images.size());
+    submit_finished_semaphore_.reserve(swapchain_images.size());
     // cppcheck-suppress-begin useStlAlgorithm
     for (VkImage swapchain_image : swapchain_images)
     {
@@ -355,6 +356,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
             VK_SAMPLE_COUNT_1_BIT,
             1,
             to_3d_extent(extent_));
+        submit_finished_semaphore_.emplace_back(create_semaphore(*device_));
     }
     // cppcheck-suppress-end useStlAlgorithm
 
@@ -362,7 +364,6 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
     for (detail::swap_frame_t& frame : frames_)
     {
         frame.image_available = create_semaphore(*device_);
-        frame.render_finished = create_semaphore(*device_);
         frame.in_flight = create_fence(*device_, true);
     }
 }
@@ -380,6 +381,12 @@ void vkrndr::swap_chain_t::cleanup()
         vkDestroyImageView(device_->logical, swapchain_image.view, nullptr);
     }
     images_.clear();
+
+    for (VkSemaphore const semaphore : submit_finished_semaphore_)
+    {
+        vkDestroySemaphore(device_->logical, semaphore, nullptr);
+    }
+    submit_finished_semaphore_.clear();
 
     compatible_present_modes_.clear();
     available_present_modes_.clear();
