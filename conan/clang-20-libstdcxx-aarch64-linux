@@ -1,8 +1,8 @@
 include(base/clang-20-linux)
-include(base/clang-libstdcxx)
 
 [settings]
 arch=armv8
+compiler.libcxx=libstdc++11
 
 [conf]
 tools.build:cflags+=["--target=aarch64-linux-gnu", "-mcpu=cortex-a76", "-march=armv8-a"]
