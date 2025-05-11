@@ -19,7 +19,7 @@ conan export conan-recipes/recipes/meshoptimizer/all --version 0.23
 conan export conan-recipes/recipes/recastnavigation/all --version 1.6.0
 conan export conan-recipes/recipes/sdl/3.x --version 3.2.10
 conan export conan-recipes/recipes/simdjson/all --version 3.12.3
-conan export conan-recipes/recipes/spdlog/all --version 1.15.2
+conan export conan-recipes/recipes/spdlog/all --version 1.15.3
 conan export conan-recipes/recipes/spirv-headers/all --version 1.4.304.0
 conan export conan-recipes/recipes/spirv-cross/all --version 1.4.304.0
 conan export conan-recipes/recipes/spirv-tools/all --version 1.4.304.0
