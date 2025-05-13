@@ -2,20 +2,51 @@
 
 #include <config.hpp>
 
+#include <cppext_container.hpp>
+#include <cppext_cycled_buffer.hpp>
+#include <cppext_numeric.hpp>
+
+#include <ngngfx_orthographic_projection.hpp>
+
+#include <ngntxt_font_bitmap.hpp>
+#include <ngntxt_font_face.hpp>
+#include <ngntxt_shaping.hpp>
+
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
+#include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
 
+#include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
+
+#include <hb.h>
 
 #include <spdlog/spdlog.h>
 
+#include <vma_impl.hpp>
+
+#include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstddef>
+#include <utility>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <expected>
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <system_error>
+// IWYU pragma: no_include <span>
 
 namespace
 {
@@ -102,15 +133,6 @@ namespace
 
         return rv;
     }
-
-    constexpr std::array rectangle_vertices{
-        vertex_t{{-0.5f, -0.5f}, {0.0f, 0.0f}},
-        vertex_t{{0.5f, -0.5f}, {1.0f, 0.0f}},
-        vertex_t{{0.5f, 0.5f}, {1.0f, 1.0f}},
-        vertex_t{{-0.5f, -0.5f}, {0.0f, 0.0f}},
-        vertex_t{{0.5f, 0.5f}, {1.0f, 1.0f}},
-        vertex_t{{-0.5f, 0.5f}, {0.0f, 1.0f}},
-    };
 } // namespace
 
 reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
@@ -165,7 +187,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     for (auto& data : cppext::as_span(frame_data_))
     {
         data.vertex_buffer = vkrndr::create_buffer(backend_->device(),
-            {.size = 1000 * 6 * sizeof(vertex_t),
+            {.size = 4000 * sizeof(vertex_t),
                 .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 .allocation_flags =
                     VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
@@ -176,10 +198,21 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
         data.vertex_map =
             vkrndr::map_memory(backend_->device(), data.vertex_buffer);
 
-        // TODO-JK: Temporary
-        std::ranges::copy(rectangle_vertices, data.vertex_map.as<vertex_t>());
+        data.index_buffer = vkrndr::create_buffer(backend_->device(),
+            {.size = 6000 * sizeof(uint32_t),
+                .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
+
+        data.index_map =
+            vkrndr::map_memory(backend_->device(), data.index_buffer);
     }
 
+    projection_.set_left_right({0, backend_->extent().width});
+    projection_.set_bottom_top({0, backend_->extent().height});
     projection_.update(glm::mat4{});
 }
 
@@ -187,6 +220,10 @@ reshed::text_editor_t::~text_editor_t()
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
+        vkrndr::unmap_memory(backend_->device(), &data.index_map);
+
+        vkrndr::destroy(&backend_->device(), &data.index_buffer);
+
         vkrndr::unmap_memory(backend_->device(), &data.vertex_map);
 
         vkrndr::destroy(&backend_->device(), &data.vertex_buffer);
@@ -212,7 +249,11 @@ void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
     font_face_ = std::move(font_face);
 
     destroy(&backend_->device(), &font_bitmap_);
-    font_bitmap_ = ngntxt::create_bitmap(*backend_, *font_face_, 0, 256);
+    font_bitmap_ = ngntxt::create_bitmap(*backend_,
+        *font_face_,
+        0,
+        256,
+        ngntxt::font_bitmap_indexing_t::glyph);
 
     shaping_font_face_ = ngntxt::create_shaping_font_face(font_face_);
 
@@ -231,45 +272,73 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 {
     if (content_changed_)
     {
+        hb_buffer_clear_contents(shaping_buffer_.get());
         hb_buffer_add_utf8(shaping_buffer_.get(), "Font loaded", -1, 0, -1);
         hb_buffer_guess_segment_properties(shaping_buffer_.get());
 
-        hb_shape(shaping_font_face_.get(), shaping_buffer_.get(), NULL, 0);
+        hb_shape(shaping_font_face_.get(), shaping_buffer_.get(), nullptr, 0);
 
         unsigned int const len{hb_buffer_get_length(shaping_buffer_.get())};
         hb_glyph_info_t const* const info{
-            hb_buffer_get_glyph_infos(shaping_buffer_.get(), NULL)};
+            hb_buffer_get_glyph_infos(shaping_buffer_.get(), nullptr)};
         hb_glyph_position_t const* const pos{
-            hb_buffer_get_glyph_positions(shaping_buffer_.get(), NULL)};
+            hb_buffer_get_glyph_positions(shaping_buffer_.get(), nullptr)};
 
+        vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
+        uint32_t* const indices{frame_data_->index_map.as<uint32_t>()};
+
+        glm::vec2 const inverse_bitmap_dims{glm::vec2{1.0f, 1.0f} /
+            glm::vec2{font_bitmap_.bitmap.extent.width,
+                font_bitmap_.bitmap.extent.height}};
+
+        glm::ivec2 cursor{0, 0};
         for (unsigned int i{}; i != len; i++)
         {
-            hb_codepoint_t const gid{info[i].codepoint};
-            unsigned int const cluster{info[i].cluster};
-            double const x_advance{pos[i].x_advance / 64.};
-            double const y_advance{pos[i].y_advance / 64.};
-            double const x_offset{pos[i].x_offset / 64.};
-            double const y_offset{pos[i].y_offset / 64.};
+            ngntxt::glyph_info_t const& bitmap_glyph{
+                font_bitmap_.glyphs.at(info[i].codepoint)};
 
-            char glyphname[32];
-            hb_font_get_glyph_name(shaping_font_face_.get(),
-                gid,
-                glyphname,
-                sizeof(glyphname));
+            auto const& tl{bitmap_glyph.top_left};
+            auto const& s{bitmap_glyph.size};
 
-            spdlog::info("glyph='{}' cluster={} advance=({},{}) offset=({},{})",
-                glyphname,
-                cluster,
-                x_advance,
-                y_advance,
-                x_offset,
-                y_offset);
+            float const x_offset{cppext::as_fp(pos[i].x_offset >> 6)};
+            float const y_offset{cppext::as_fp(pos[i].y_offset >> 6)};
+
+            uint32_t const vert_idx{frame_data_->vertices};
+            vertices[vert_idx + 0] = {glm::vec2{cursor.x, cursor.y},
+                glm::vec2{tl.x, tl.y + s.y} * inverse_bitmap_dims};
+            vertices[vert_idx + 1] = {
+                glm::vec2{cursor.x + s.x + x_offset, cursor.y},
+                glm::vec2{tl.x + s.x, tl.y + s.y} * inverse_bitmap_dims};
+            vertices[vert_idx + 2] = {
+                glm::vec2{cursor.x + s.x + x_offset, cursor.y + s.y + y_offset},
+                glm::vec2{tl.x + s.x, tl.y} * inverse_bitmap_dims};
+            vertices[vert_idx + 3] = {
+                glm::vec2{cursor.x, cursor.y + s.y + y_offset},
+                glm::vec2{tl.x, tl.y} * inverse_bitmap_dims};
+
+            for (size_t j{}; j != 4; ++j)
+            {
+                vertices[vert_idx + j].position.y -= 16.0f;
+            }
+
+            uint32_t const index_idx{frame_data_->indices};
+            indices[index_idx + 0] = vert_idx + 0;
+            indices[index_idx + 1] = vert_idx + 1;
+            indices[index_idx + 2] = vert_idx + 2;
+            indices[index_idx + 3] = vert_idx + 2;
+            indices[index_idx + 4] = vert_idx + 3;
+            indices[index_idx + 5] = vert_idx + 0;
+
+            frame_data_->indices += 6;
+            frame_data_->vertices += 4;
+
+            cursor += glm::ivec2{pos[i].x_advance >> 6, pos[i].y_advance >> 6};
         }
 
-        content_changed_ = false;
+        content_changed_ = true;
     }
 
-    vkrndr::bind_pipeline(command_buffer,
+    bind_pipeline(command_buffer,
         text_pipeline_,
         0,
         cppext::as_span(text_descriptor_));
@@ -281,6 +350,11 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
         &frame_data_->vertex_buffer.buffer,
         &zero_offset);
 
+    vkCmdBindIndexBuffer(command_buffer,
+        frame_data_->index_buffer.buffer,
+        0,
+        VK_INDEX_TYPE_UINT32);
+
     vkCmdPushConstants(command_buffer,
         pipeline_layout(),
         VK_SHADER_STAGE_VERTEX_BIT,
@@ -288,7 +362,12 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
         sizeof(glm::mat4),
         &projection_.projection_matrix());
 
-    vkCmdDraw(command_buffer, 6, 1, 0, 0);
+    vkCmdDrawIndexed(command_buffer, frame_data_->indices, 1, 0, 0, 0);
 
-    frame_data_.cycle();
+    frame_data_.cycle(
+        []([[maybe_unused]] auto const& prev, auto& next)
+        {
+            next.vertices = 0;
+            next.indices = 0;
+        });
 }

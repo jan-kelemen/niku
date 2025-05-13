@@ -31,31 +31,38 @@
 ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
     FT_Face font_face,
     char32_t const first_codepoint,
-    char32_t const last_codepoint)
+    char32_t const last_codepoint,
+    font_bitmap_indexing_t const indexing)
 {
     assert(first_codepoint < last_codepoint);
 
     font_bitmap_t rv;
 
-    uint32_t glyph_count{};
     glm::uvec2 max_glyph_extents{};
     for (char32_t codepoint{first_codepoint}; codepoint != last_codepoint;
         ++codepoint)
     {
-        if (FT_Error const error{
-                FT_Load_Char(font_face, codepoint, FT_LOAD_DEFAULT)})
+        FT_UInt const index{FT_Get_Char_Index(font_face, codepoint)};
+        if (indexing == font_bitmap_indexing_t::glyph &&
+            rv.glyphs.contains(index))
         {
-            spdlog::error("Character with codepoint {} not loaded. Error = {}",
+            continue;
+        }
+
+        if (FT_Error const error{
+                FT_Load_Glyph(font_face, index, FT_LOAD_DEFAULT)})
+        {
+            spdlog::error("Glyph for codepoint {} not loaded. Error = {}",
                 static_cast<uint32_t>(codepoint),
                 error);
             continue;
         }
 
         FT_GlyphSlot const slot{font_face->glyph};
-        ++glyph_count;
 
         rv.glyphs.emplace(std::piecewise_construct,
-            std::forward_as_tuple(codepoint),
+            std::forward_as_tuple(
+                indexing == font_bitmap_indexing_t::glyph ? index : codepoint),
             std::forward_as_tuple(
                 glm::ivec2{slot->bitmap.width, slot->bitmap.rows},
                 glm::ivec2{slot->bitmap_left, slot->bitmap_top},
@@ -64,8 +71,8 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
         max_glyph_extents = glm::max(max_glyph_extents,
             glm::uvec2{slot->bitmap.width, slot->bitmap.rows});
     }
-    assert(glyph_count);
 
+    size_t glyph_count{rv.glyphs.size()};
     // Approximate a square size
     auto const vertical_glyphs{static_cast<uint32_t>(
         glm::max(std::sqrtf(cppext::as_fp(glyph_count)), 1.0f))};
@@ -91,12 +98,22 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
 
     glyph_count = 0;
 
-    for (char32_t codepoint{first_codepoint}; codepoint != last_codepoint;
-        ++codepoint)
+    for (auto& [value, rect] : rv.glyphs)
     {
-        if (FT_Load_Char(font_face, codepoint, FT_LOAD_RENDER))
+        auto const load_flags{FT_LOAD_RENDER};
+        if (indexing == font_bitmap_indexing_t::glyph)
         {
-            continue;
+            if (FT_Load_Glyph(font_face, value, load_flags))
+            {
+                continue;
+            }
+        }
+        else
+        {
+            if (FT_Load_Char(font_face, value, load_flags))
+            {
+                continue;
+            }
         }
 
         FT_GlyphSlot const slot{font_face->glyph};
@@ -117,6 +134,8 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
                     static_cast<std::byte>(slot->bitmap.buffer[y * pitch + x]);
             }
         }
+
+        rect.top_left = {horizontal_glyph_start, vertical_glyph_start};
 
         ++glyph_count;
     }

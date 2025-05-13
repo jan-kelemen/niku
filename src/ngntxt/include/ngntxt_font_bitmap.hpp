@@ -24,6 +24,7 @@ namespace ngntxt
         glm::ivec2 size;
         glm::ivec2 bearing;
         uint32_t advance;
+        glm::uvec2 top_left;
     };
 
     struct [[nodiscard]] font_bitmap_t final
@@ -32,10 +33,17 @@ namespace ngntxt
         vkrndr::image_t bitmap;
     };
 
+    enum class [[nodiscard]] font_bitmap_indexing_t
+    {
+        codepoint,
+        glyph
+    };
+
     font_bitmap_t create_bitmap(vkrndr::backend_t& backend,
         FT_Face font_face,
         char32_t first_codepoint,
-        char32_t last_codepoint);
+        char32_t last_codepoint,
+        font_bitmap_indexing_t indexing);
 
     void destroy(vkrndr::device_t const* device, font_bitmap_t* bitmap);
 } // namespace ngntxt

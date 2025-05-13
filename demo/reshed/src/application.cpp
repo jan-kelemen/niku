@@ -11,9 +11,7 @@
 #include <ngnwsi_mouse.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
-#include <ngntxt_font_bitmap.hpp>
 #include <ngntxt_font_face.hpp>
-#include <ngntxt_shaping.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -24,6 +22,7 @@
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <glm/vec2.hpp>
 #include <imgui.h>
 
 #include <volk.h>
@@ -34,12 +33,18 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cmath>
 #include <exception>
+#include <expected>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string>
+#include <system_error>
+#include <utility>
 #include <variant>
+
+// IWYU pragma: no_include  <filesystem>
 
 reshed::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{

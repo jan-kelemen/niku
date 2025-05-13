@@ -25,7 +25,7 @@ namespace reshed
     class [[nodiscard]] text_editor_t final
     {
     public:
-        text_editor_t(vkrndr::backend_t& backend);
+        explicit text_editor_t(vkrndr::backend_t& backend);
 
         text_editor_t(text_editor_t const&) = delete;
 
@@ -51,6 +51,11 @@ namespace reshed
         {
             vkrndr::buffer_t vertex_buffer;
             vkrndr::mapped_memory_t vertex_map;
+            uint32_t vertices{};
+
+            vkrndr::buffer_t index_buffer;
+            vkrndr::mapped_memory_t index_map;
+            uint32_t indices{};
         };
 
     private:
@@ -69,7 +74,7 @@ namespace reshed
         VkSampler bitmap_sampler_;
 
         VkDescriptorSetLayout text_descriptor_layout_;
-        VkDescriptorSet text_descriptor_;
+        VkDescriptorSet text_descriptor_{VK_NULL_HANDLE};
 
         vkrndr::pipeline_t text_pipeline_;
 
