@@ -72,18 +72,21 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
             glm::uvec2{slot->bitmap.width, slot->bitmap.rows});
     }
 
-    size_t glyph_count{rv.glyphs.size()};
+    size_t const glyph_count{rv.glyphs.size()};
+
     // Approximate a square size
-    auto const vertical_glyphs{static_cast<uint32_t>(
-        glm::max(std::sqrtf(cppext::as_fp(glyph_count)), 1.0f))};
-    auto const horizontal_glyphs{static_cast<uint32_t>(std::ceil(
-        cppext::as_fp(glyph_count) / cppext::as_fp(vertical_glyphs)))};
+    auto const horizontal_glyphs{
+        std::max(static_cast<uint32_t>(
+                     std::ceil(std::sqrtf(cppext::as_fp(glyph_count)))),
+            uint32_t{1})};
+    auto const vertical_glyphs{cppext::narrow<uint32_t>(
+        (glyph_count + horizontal_glyphs - 1) / horizontal_glyphs)};
 
     vkrndr::buffer_t staging_buffer{
         vkrndr::create_staging_buffer(backend.device(),
-            VkDeviceSize{vertical_glyphs} *
-                horizontal_glyphs *
+            (horizontal_glyphs + 1) *
                 max_glyph_extents.x *
+                (vertical_glyphs + 1) *
                 max_glyph_extents.y)};
     boost::scope::defer_guard const rollback{
         [&backend, staging_buffer]() mutable
@@ -96,8 +99,7 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
         staging_buffer.size};
     auto const staging_block_pitch{horizontal_glyphs * max_glyph_extents.x};
 
-    glyph_count = 0;
-
+    glm::uvec2 top_left{};
     for (auto& [value, rect] : rv.glyphs)
     {
         auto const load_flags{FT_LOAD_RENDER};
@@ -118,26 +120,28 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
 
         FT_GlyphSlot const slot{font_face->glyph};
 
-        auto const pitch{cppext::narrow<unsigned int>(slot->bitmap.pitch)};
-        auto const horizontal_glyph_start{
-            (glyph_count % horizontal_glyphs) * max_glyph_extents.x};
-        auto const vertical_glyph_start{
-            (glyph_count / vertical_glyphs) * max_glyph_extents.y};
+        if (top_left.x + slot->bitmap.width >= staging_block_pitch)
+        {
+            top_left.x = 0;
+            top_left.y += staging_block_pitch * max_glyph_extents.y;
+        }
 
+        auto const bitmap_pitch{
+            cppext::narrow<unsigned int>(slot->bitmap.pitch)};
         for (unsigned int y{}; y != slot->bitmap.rows; ++y)
         {
             for (unsigned int x{}; x != slot->bitmap.width; ++x)
             {
-                staging_block[(vertical_glyph_start + y) * staging_block_pitch +
-                    horizontal_glyph_start +
-                    x] =
-                    static_cast<std::byte>(slot->bitmap.buffer[y * pitch + x]);
+                staging_block
+                    [top_left.y + y * staging_block_pitch + top_left.x + x] =
+                        static_cast<std::byte>(
+                            slot->bitmap.buffer[y * bitmap_pitch + x]);
             }
         }
 
-        rect.top_left = {horizontal_glyph_start, vertical_glyph_start};
+        rect.top_left = {top_left.x, top_left.y / staging_block_pitch};
 
-        ++glyph_count;
+        top_left.x += slot->bitmap.rows;
     }
 
     unmap_memory(backend.device(), &staging_map);
