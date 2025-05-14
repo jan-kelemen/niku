@@ -211,8 +211,8 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
             vkrndr::map_memory(backend_->device(), data.index_buffer);
     }
 
-    projection_.set_left_right({0, backend_->extent().width});
-    projection_.set_bottom_top({0, backend_->extent().height});
+    projection_.set_left_right({0, 1000});
+    projection_.set_bottom_top({0, 1000});
     projection_.update(glm::mat4{});
 }
 
@@ -273,7 +273,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
     if (content_changed_)
     {
         hb_buffer_clear_contents(shaping_buffer_.get());
-        hb_buffer_add_utf8(shaping_buffer_.get(), "Font loaded", -1, 0, -1);
+        hb_buffer_add_utf8(shaping_buffer_.get(), "gFont loaded", -1, 0, -1);
         hb_buffer_guess_segment_properties(shaping_buffer_.get());
 
         hb_shape(shaping_font_face_.get(), shaping_buffer_.get(), nullptr, 0);
@@ -291,7 +291,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             glm::vec2{font_bitmap_.bitmap.extent.width,
                 font_bitmap_.bitmap.extent.height}};
 
-        glm::ivec2 cursor{0, 0};
+        glm::ivec2 cursor{0, -(*font_face_)->size->metrics.height >> 6};
         for (unsigned int i{}; i != len; i++)
         {
             ngntxt::glyph_info_t const& bitmap_glyph{
@@ -299,27 +299,25 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
             auto const& tl{bitmap_glyph.top_left};
             auto const& s{bitmap_glyph.size};
+            glm::vec2 const b{cppext::as_fp(bitmap_glyph.bearing.x),
+                cppext::as_fp(bitmap_glyph.bearing.y - bitmap_glyph.size.y)};
 
             float const x_offset{cppext::as_fp(pos[i].x_offset >> 6)};
             float const y_offset{cppext::as_fp(pos[i].y_offset >> 6)};
 
             uint32_t const vert_idx{frame_data_->vertices};
-            vertices[vert_idx + 0] = {glm::vec2{cursor.x, cursor.y},
+            vertices[vert_idx + 0] = {glm::vec2{cursor.x, cursor.y} + b,
                 glm::vec2{tl.x, tl.y + s.y} * inverse_bitmap_dims};
             vertices[vert_idx + 1] = {
-                glm::vec2{cursor.x + s.x + x_offset, cursor.y},
+                glm::vec2{cursor.x + s.x + x_offset, cursor.y} + b,
                 glm::vec2{tl.x + s.x, tl.y + s.y} * inverse_bitmap_dims};
-            vertices[vert_idx + 2] = {
-                glm::vec2{cursor.x + s.x + x_offset, cursor.y + s.y + y_offset},
+            vertices[vert_idx + 2] = {glm::vec2{cursor.x + s.x + x_offset,
+                                          cursor.y + s.y + y_offset} +
+                    b,
                 glm::vec2{tl.x + s.x, tl.y} * inverse_bitmap_dims};
             vertices[vert_idx + 3] = {
-                glm::vec2{cursor.x, cursor.y + s.y + y_offset},
+                glm::vec2{cursor.x, cursor.y + s.y + y_offset} + b,
                 glm::vec2{tl.x, tl.y} * inverse_bitmap_dims};
-
-            for (size_t j{}; j != 4; ++j)
-            {
-                vertices[vert_idx + j].position.y -= 16.0f;
-            }
 
             uint32_t const index_idx{frame_data_->indices};
             indices[index_idx + 0] = vert_idx + 0;
