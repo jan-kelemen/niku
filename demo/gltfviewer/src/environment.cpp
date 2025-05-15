@@ -163,7 +163,7 @@ namespace
 gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
     : backend_{&backend}
     , skybox_{backend}
-    , light_projection_{{-20.0f, 20.0f}, 1.0f, {-10.0f, 10.0f}, {-10.0f, 10.0f}}
+    , light_projection_{{-20.0f, 20.0f}, {-10.0f, 10.0f}, {-10.0f, 10.0f}}
     , lights_{11}
     , descriptor_layout_{create_descriptor_set_layout(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}

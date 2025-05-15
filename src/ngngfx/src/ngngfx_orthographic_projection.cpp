@@ -7,10 +7,10 @@
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 ngngfx::orthographic_projection_t::orthographic_projection_t(
     glm::vec2 const near_far_planes,
-    float const aspect_ratio,
     glm::vec2 const left_right,
-    glm::vec2 const bottom_top)
-    : projection_t{near_far_planes, aspect_ratio}
+    glm::vec2 const bottom_top,
+    bool const invert_y)
+    : projection_t{near_far_planes, invert_y}
     , left_right_{left_right}
     , bottom_top_{bottom_top}
 {
@@ -64,7 +64,10 @@ void ngngfx::orthographic_projection_t::calculate_view_projection_matrices(
         near_far_planes_.x,
         near_far_planes_.y);
 
-    projection_matrix_[1][1] *= -1;
+    if (invert_y_)
+    {
+        projection_matrix_[1][1] *= -1;
+    }
 
     view_projection_matrix_ = projection_matrix_ * view_matrix;
 }

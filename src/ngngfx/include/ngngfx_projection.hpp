@@ -11,7 +11,7 @@ namespace ngngfx
     class [[nodiscard]] projection_t
     {
     public:
-        projection_t(glm::vec2 near_far_planes, float aspect_ratio);
+        projection_t(glm::vec2 near_far_planes, bool invert_y);
 
         projection_t(projection_t const&) = default;
 
@@ -29,9 +29,9 @@ namespace ngngfx
         view_projection_matrix() const = 0;
 
     public:
-        virtual void set_aspect_ratio(float aspect_ratio);
+        virtual void set_invert_y(bool value);
 
-        [[nodiscard]] virtual float aspect_ratio() const;
+        [[nodiscard]] virtual bool invert_y() const;
 
         virtual void set_near_far_planes(glm::vec2 near_far_planes);
 
@@ -44,7 +44,7 @@ namespace ngngfx
 
     protected:
         glm::vec2 near_far_planes_;
-        float aspect_ratio_;
+        bool invert_y_;
     };
 } // namespace ngngfx
 

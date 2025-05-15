@@ -1,18 +1,15 @@
 #include <ngngfx_projection.hpp>
 
-ngngfx::projection_t::projection_t(glm::vec2 near_far_planes,
-    float aspect_ratio)
+ngngfx::projection_t::projection_t(glm::vec2 const near_far_planes,
+    bool const invert_y)
     : near_far_planes_{near_far_planes}
-    , aspect_ratio_{aspect_ratio}
+    , invert_y_{invert_y}
 {
 }
 
-void ngngfx::projection_t::set_aspect_ratio(float aspect_ratio)
-{
-    aspect_ratio_ = aspect_ratio;
-}
+void ngngfx::projection_t::set_invert_y(bool const value) { invert_y_ = value; }
 
-float ngngfx::projection_t::aspect_ratio() const { return aspect_ratio_; }
+bool ngngfx::projection_t::invert_y() const { return invert_y_; }
 
 void ngngfx::projection_t::set_near_far_planes(glm::vec2 const near_far_planes)
 {

@@ -13,9 +13,9 @@ namespace ngngfx
     public:
         explicit orthographic_projection_t(
             glm::vec2 near_far_planes = {0.1f, 1000.0f},
-            float aspect_ratio = 16.0f / 9.0f,
             glm::vec2 left_right = {-1.0f, 1.0f},
-            glm::vec2 bottom_top = {-1.0f, 1.0f});
+            glm::vec2 bottom_top = {-1.0f, 1.0f},
+            bool invert_y = true);
 
         orthographic_projection_t(orthographic_projection_t const&) = default;
 

@@ -211,8 +211,9 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
             vkrndr::map_memory(backend_->device(), data.index_buffer);
     }
 
+    projection_.set_invert_y(false);
     projection_.set_left_right({0, 1000});
-    projection_.set_bottom_top({0, 1000});
+    projection_.set_bottom_top({1000, 0});
     projection_.update(glm::mat4{});
 }
 
@@ -291,7 +292,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             glm::vec2{font_bitmap_.bitmap.extent.width,
                 font_bitmap_.bitmap.extent.height}};
 
-        glm::ivec2 cursor{0, -(*font_face_)->size->metrics.height >> 6};
+        glm::ivec2 cursor{0, 0};
         for (unsigned int i{}; i != len; i++)
         {
             ngntxt::glyph_info_t const& bitmap_glyph{

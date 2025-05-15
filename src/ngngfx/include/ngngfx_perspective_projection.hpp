@@ -14,7 +14,8 @@ namespace ngngfx
         explicit perspective_projection_t(
             glm::vec2 near_far_planes = {0.1f, 1000.0f},
             float aspect_ratio = 16.0f / 9.0f,
-            float fov = 45.0f);
+            float fov = 45.0f,
+            bool invert_y = true);
 
         perspective_projection_t(perspective_projection_t const&) = default;
 
@@ -22,6 +23,11 @@ namespace ngngfx
 
     public:
         ~perspective_projection_t() override = default;
+
+    public:
+        void set_aspect_ratio(float aspect_ratio);
+
+        [[nodiscard]] float aspect_ratio() const;
 
     public: // projection_t overrides
         void update(glm::mat4 const& view_matrix) override;
@@ -42,6 +48,7 @@ namespace ngngfx
 
     protected:
         float fov_;
+        float aspect_ratio_;
 
         glm::mat4 projection_matrix_;
         glm::mat4 view_projection_matrix_;
