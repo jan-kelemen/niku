@@ -108,12 +108,17 @@ namespace
         storage_buffer_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         storage_buffer_pool_size.descriptorCount = 1000;
 
+        VkDescriptorPoolSize storage_image_pool_size{};
+        storage_image_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        storage_image_pool_size.descriptorCount = 1000;
+
         VkDescriptorPoolSize sampler_pool_size{};
         sampler_pool_size.type = VK_DESCRIPTOR_TYPE_SAMPLER;
         sampler_pool_size.descriptorCount = 1000;
 
         VkDescriptorPoolSize combined_sampler_pool_size{};
-        combined_sampler_pool_size.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+        combined_sampler_pool_size.type =
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         combined_sampler_pool_size.descriptorCount = 1000;
 
         VkDescriptorPoolSize sampled_image_pool_size{};
@@ -122,6 +127,7 @@ namespace
 
         std::array pool_sizes{uniform_buffer_pool_size,
             storage_buffer_pool_size,
+            storage_image_pool_size,
             sampler_pool_size,
             combined_sampler_pool_size,
             sampled_image_pool_size};
