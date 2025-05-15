@@ -15,6 +15,8 @@
 
 #include <volk.h>
 
+#include <cstdint>
+
 namespace vkrndr
 {
     class backend_t;
@@ -40,6 +42,8 @@ namespace reshed
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
         void draw(VkCommandBuffer command_buffer);
+
+        void resize(uint32_t width, uint32_t height);
 
     public:
         text_editor_t& operator=(text_editor_t const&) = delete;

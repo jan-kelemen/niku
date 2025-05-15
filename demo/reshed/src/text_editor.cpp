@@ -18,6 +18,7 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
@@ -30,14 +31,12 @@
 
 #include <hb.h>
 
-#include <spdlog/spdlog.h>
-
 #include <vma_impl.hpp>
 
-#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <map>
 #include <utility>
 
 // IWYU pragma: no_include <fmt/base.h>
@@ -212,9 +211,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     }
 
     projection_.set_invert_y(false);
-    projection_.set_left_right({0, 1000});
-    projection_.set_bottom_top({1000, 0});
-    projection_.update(glm::mat4{});
+    resize(backend_->extent().width, backend_->extent().height);
 }
 
 reshed::text_editor_t::~text_editor_t()
@@ -369,4 +366,11 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             next.vertices = 0;
             next.indices = 0;
         });
+}
+
+void reshed::text_editor_t::resize(uint32_t const width, uint32_t const height)
+{
+    projection_.set_left_right({0, width});
+    projection_.set_bottom_top({height, 0});
+    projection_.update(glm::mat4{});
 }

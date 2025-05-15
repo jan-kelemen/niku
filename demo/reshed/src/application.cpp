@@ -101,8 +101,11 @@ bool reshed::application_t::begin_frame()
         return acquired;
     };
 
-    auto const on_swapchain_resized =
-        []([[maybe_unused]] VkExtent2D const extent) { return false; };
+    auto const on_swapchain_resized = [this](VkExtent2D const extent)
+    {
+        editor_->resize(extent.width, extent.height);
+        return false;
+    };
 
     return std::visit(
         cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
