@@ -86,6 +86,10 @@ bool reshed::application_t::handle_event(SDL_Event const& event,
             imgui_->set_enabled(!imgui_->enabled());
         }
     }
+    else if (event.type == SDL_EVENT_TEXT_INPUT)
+    {
+        editor_->handle_event(event);
+    }
 
     return true;
 }
@@ -216,10 +220,15 @@ void reshed::application_t::on_startup()
     {
         std::terminate();
     }
+
+    text_input_guard_ =
+        std::make_unique<ngnwsi::sdl_text_input_guard_t>(*window());
 }
 
 void reshed::application_t::on_shutdown()
 {
+    text_input_guard_.reset();
+
     vkDeviceWaitIdle(backend_->device().logical);
 
     editor_.reset();

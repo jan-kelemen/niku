@@ -72,6 +72,29 @@ namespace ngnwsi
         SDL_Window* window_;
         VkSurfaceKHR surface_{VK_NULL_HANDLE};
     };
+
+    class [[nodiscard]] sdl_text_input_guard_t final
+    {
+    public:
+        explicit sdl_text_input_guard_t(sdl_window_t const& window);
+
+        sdl_text_input_guard_t(sdl_text_input_guard_t const&) = delete;
+
+        sdl_text_input_guard_t(sdl_text_input_guard_t&&) noexcept = delete;
+
+    public:
+        ~sdl_text_input_guard_t();
+
+    public:
+        sdl_text_input_guard_t& operator=(
+            sdl_text_input_guard_t const&) = delete;
+
+        sdl_text_input_guard_t& operator=(
+            sdl_text_input_guard_t&&) noexcept = delete;
+
+    private:
+        sdl_window_t const* window_;
+    };
 } // namespace ngnwsi
 
 [[nodiscard]]

@@ -31,6 +31,8 @@
 
 #include <hb.h>
 
+#include <SDL3/SDL_events.h>
+
 #include <vma_impl.hpp>
 
 #include <array>
@@ -136,6 +138,7 @@ namespace
 
 reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     : backend_{&backend}
+    , buffer_{"gFont loaded"}
     , shaping_buffer_{ngntxt::create_shaping_buffer()}
     , bitmap_sampler_{create_bitmap_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
@@ -242,6 +245,13 @@ reshed::text_editor_t::~text_editor_t()
     destroy(&backend_->device(), &font_bitmap_);
 }
 
+void reshed::text_editor_t::handle_event(SDL_Event const& event)
+{
+    assert(event.type == SDL_EVENT_TEXT_INPUT);
+    SDL_TextInputEvent const& text_event{event.text};
+    buffer_ += text_event.text;
+}
+
 void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
 {
     font_face_ = std::move(font_face);
@@ -268,10 +278,9 @@ VkPipelineLayout reshed::text_editor_t::pipeline_layout() const
 
 void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 {
-    if (content_changed_)
     {
         hb_buffer_clear_contents(shaping_buffer_.get());
-        hb_buffer_add_utf8(shaping_buffer_.get(), "gFont loaded", -1, 0, -1);
+        hb_buffer_add_utf8(shaping_buffer_.get(), buffer_.c_str(), -1, 0, -1);
         hb_buffer_guess_segment_properties(shaping_buffer_.get());
 
         hb_shape(shaping_font_face_.get(), shaping_buffer_.get(), nullptr, 0);
@@ -330,8 +339,6 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
             cursor += glm::ivec2{pos[i].x_advance >> 6, pos[i].y_advance >> 6};
         }
-
-        content_changed_ = true;
     }
 
     bind_pipeline(command_buffer,

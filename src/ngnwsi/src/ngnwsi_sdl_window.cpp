@@ -102,3 +102,18 @@ bool ngnwsi::sdl_window_t::is_minimized() const
 {
     return (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED) != 0;
 }
+
+ngnwsi::sdl_text_input_guard_t::sdl_text_input_guard_t(
+    sdl_window_t const& window)
+    : window_{&window}
+{
+    if (!SDL_StartTextInput(window_->native_handle()))
+    {
+        throw std::runtime_error{SDL_GetError()};
+    }
+}
+
+ngnwsi::sdl_text_input_guard_t::~sdl_text_input_guard_t()
+{
+    SDL_StopTextInput(window_->native_handle());
+}

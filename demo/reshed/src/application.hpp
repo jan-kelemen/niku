@@ -16,6 +16,7 @@ namespace ngntxt
 namespace ngnwsi
 {
     class imgui_layer_t;
+    class sdl_text_input_guard_t;
 } // namespace ngnwsi
 
 namespace vkrndr
@@ -71,6 +72,8 @@ namespace reshed
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
 
         std::unique_ptr<text_editor_t> editor_;
+
+        std::unique_ptr<ngnwsi::sdl_text_input_guard_t> text_input_guard_;
     };
 } // namespace reshed
 #endif

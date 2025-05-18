@@ -16,6 +16,9 @@
 #include <volk.h>
 
 #include <cstdint>
+#include <string>
+
+union SDL_Event;
 
 namespace vkrndr
 {
@@ -37,6 +40,8 @@ namespace reshed
         ~text_editor_t();
 
     public:
+        void handle_event(SDL_Event const& event);
+
         void change_font(ngntxt::font_face_ptr_t font_face);
 
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
@@ -67,7 +72,7 @@ namespace reshed
 
         ngngfx::orthographic_projection_t projection_;
 
-        bool content_changed_{true};
+        std::string buffer_;
 
         ngntxt::font_face_ptr_t font_face_;
         ngntxt::font_bitmap_t font_bitmap_;
