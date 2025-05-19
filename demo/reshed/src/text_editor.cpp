@@ -26,6 +26,7 @@
 
 #include <boost/scope/defer.hpp>
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 
@@ -138,7 +139,7 @@ namespace
 
 reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     : backend_{&backend}
-    , buffer_{"gFont loaded"}
+    , buffer_{"Font w loadedg"}
     , shaping_buffer_{ngntxt::create_shaping_buffer()}
     , bitmap_sampler_{create_bitmap_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
@@ -298,7 +299,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             glm::vec2{font_bitmap_.bitmap.extent.width,
                 font_bitmap_.bitmap.extent.height}};
 
-        glm::ivec2 cursor{0, 0};
+        glm::ivec2 cursor{0, (*font_face_)->size->metrics.height >> 6};
         for (unsigned int i{}; i != len; i++)
         {
             ngntxt::glyph_info_t const& bitmap_glyph{
@@ -307,24 +308,29 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             auto const& tl{bitmap_glyph.top_left};
             auto const& s{bitmap_glyph.size};
             glm::vec2 const b{cppext::as_fp(bitmap_glyph.bearing.x),
-                cppext::as_fp(bitmap_glyph.bearing.y - bitmap_glyph.size.y)};
+                cppext::as_fp(bitmap_glyph.size.y - bitmap_glyph.bearing.y)};
 
             float const x_offset{cppext::as_fp(pos[i].x_offset >> 6)};
             float const y_offset{cppext::as_fp(pos[i].y_offset >> 6)};
 
             uint32_t const vert_idx{frame_data_->vertices};
-            vertices[vert_idx + 0] = {glm::vec2{cursor.x, cursor.y} + b,
-                glm::vec2{tl.x, tl.y + s.y} * inverse_bitmap_dims};
+            vertices[vert_idx + 0] = {glm::vec2{cursor.x, cursor.y},
+                glm::vec2{tl.x, tl.y + s.y}};
             vertices[vert_idx + 1] = {
-                glm::vec2{cursor.x + s.x + x_offset, cursor.y} + b,
-                glm::vec2{tl.x + s.x, tl.y + s.y} * inverse_bitmap_dims};
-            vertices[vert_idx + 2] = {glm::vec2{cursor.x + s.x + x_offset,
-                                          cursor.y + s.y + y_offset} +
-                    b,
-                glm::vec2{tl.x + s.x, tl.y} * inverse_bitmap_dims};
+                glm::vec2{cursor.x + s.x + x_offset, cursor.y},
+                glm::vec2{tl.x + s.x, tl.y + s.y}};
+            vertices[vert_idx + 2] = {
+                glm::vec2{cursor.x + s.x + x_offset, cursor.y - s.y - y_offset},
+                glm::vec2{tl.x + s.x, tl.y}};
             vertices[vert_idx + 3] = {
-                glm::vec2{cursor.x, cursor.y + s.y + y_offset} + b,
-                glm::vec2{tl.x, tl.y} * inverse_bitmap_dims};
+                glm::vec2{cursor.x, cursor.y - s.y - y_offset},
+                glm::vec2{tl.x, tl.y}};
+
+            for (uint32_t i{vert_idx}; i != vert_idx + 4; ++i)
+            {
+                vertices[i].position += b;
+                vertices[i].uv *= inverse_bitmap_dims;
+            }
 
             uint32_t const index_idx{frame_data_->indices};
             indices[index_idx + 0] = vert_idx + 0;
@@ -337,7 +343,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             frame_data_->indices += 6;
             frame_data_->vertices += 4;
 
-            cursor += glm::ivec2{pos[i].x_advance >> 6, pos[i].y_advance >> 6};
+            cursor += glm::ivec2{pos[i].x_advance, pos[i].y_advance} / 64;
         }
     }
 
@@ -377,7 +383,15 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
 void reshed::text_editor_t::resize(uint32_t const width, uint32_t const height)
 {
-    projection_.set_left_right({0, width});
-    projection_.set_bottom_top({height, 0});
-    projection_.update(glm::mat4{});
+    auto const fwidth{cppext::as_fp(width)};
+    auto const fheight{cppext::as_fp(height)};
+
+    projection_.set_left_right({0, fwidth});
+    projection_.set_bottom_top({fheight, 0.0f});
+    projection_.set_near_far_planes({-1.0f, 1.0f});
+
+    projection_.update(
+        glm::lookAtRH(glm::vec3{fwidth / 2.0f, fheight / 2.0f, 0.0f},
+            glm::vec3{fwidth / 2.0f, fheight / 2.0f, -1.0f},
+            glm::vec3{0.0f, 1.0f, 0.0f}));
 }

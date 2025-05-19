@@ -127,9 +127,9 @@ void reshed::application_t::draw()
     vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
 
     VkViewport const viewport{.x = 0.0f,
-        .y = 0.0f,
+        .y = cppext::as_fp(target_image.extent.height),
         .width = cppext::as_fp(target_image.extent.width),
-        .height = cppext::as_fp(target_image.extent.height),
+        .height = -cppext::as_fp(target_image.extent.height),
         .minDepth = 0.0f,
         .maxDepth = 1.0f};
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
