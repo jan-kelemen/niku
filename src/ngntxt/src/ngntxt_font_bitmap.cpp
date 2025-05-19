@@ -4,10 +4,14 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_commands.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_transient_operation.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
+#include <boost/scope/scope_fail.hpp>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H // IWYU pragma: keep
@@ -27,6 +31,14 @@
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+namespace
+{
+    static constexpr VkImageSubresourceLayers bitmap_subresource{
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .mipLevel = 0,
+        .baseArrayLayer = 0,
+        .layerCount = 1};
+} // namespace
 
 ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
     FT_Face font_face,
@@ -38,6 +50,7 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
 
     font_bitmap_t rv;
 
+    size_t all_bitmaps_size{};
     glm::uvec2 max_glyph_extents{};
     for (char32_t codepoint{first_codepoint}; codepoint != last_codepoint;
         ++codepoint)
@@ -68,6 +81,8 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
                 glm::ivec2{slot->bitmap_left, slot->bitmap_top},
                 cppext::narrow<uint32_t>(slot->advance.x)));
 
+        all_bitmaps_size += slot->bitmap.width * slot->bitmap.rows;
+
         max_glyph_extents = glm::max(max_glyph_extents,
             glm::uvec2{slot->bitmap.width, slot->bitmap.rows});
     }
@@ -83,74 +98,111 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
         (glyph_count + horizontal_glyphs - 1) / horizontal_glyphs)};
 
     vkrndr::buffer_t staging_buffer{
-        vkrndr::create_staging_buffer(backend.device(),
-            (horizontal_glyphs + 1) *
-                max_glyph_extents.x *
-                (vertical_glyphs + 1) *
-                max_glyph_extents.y)};
+        vkrndr::create_staging_buffer(backend.device(), all_bitmaps_size)};
     boost::scope::defer_guard const rollback{
         [&backend, staging_buffer]() mutable
         { destroy(&backend.device(), &staging_buffer); }};
-
     vkrndr::mapped_memory_t staging_map{
         vkrndr::map_memory(backend.device(), staging_buffer)};
 
-    std::span const staging_block{staging_map.as<std::byte>(),
-        staging_buffer.size};
-    auto const staging_block_pitch{horizontal_glyphs * max_glyph_extents.x};
+    std::byte* staging_values{staging_map.as<std::byte>()};
 
-    glm::uvec2 top_left{};
-    for (auto& [value, rect] : rv.glyphs)
+    rv.bitmap = vkrndr::create_image_and_view(backend.device(),
+        vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R8_UNORM,
+            .extent = {(horizontal_glyphs + 1) * max_glyph_extents.x,
+                (vertical_glyphs + 1) * max_glyph_extents.y},
+            .mip_levels = 1,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+        VK_IMAGE_ASPECT_COLOR_BIT);
+    boost::scope::scope_fail const rollback_bitmap{
+        [&backend, b = &rv.bitmap]() mutable
+        { destroy(&backend.device(), b); }};
+
     {
-        auto const load_flags{FT_LOAD_RENDER};
-        if (indexing == font_bitmap_indexing_t::glyph)
+        auto transient{backend.request_transient_operation(true)};
+        VkCommandBuffer cb{transient.command_buffer()};
+        vkrndr::wait_for_transfer_write(rv.bitmap.image, cb, 1);
+
+        std::vector<VkBufferImageCopy> regions;
+        regions.reserve(glyph_count);
+
+        VkDeviceSize buffer_offset{};
+
+        glm::uvec2 top_left{};
+        for (auto& [value, rect] : rv.glyphs)
         {
-            if (FT_Load_Glyph(font_face, value, load_flags))
+            auto const load_flags{FT_LOAD_RENDER};
+            if (indexing == font_bitmap_indexing_t::glyph)
             {
-                continue;
+                if (FT_Load_Glyph(font_face, value, load_flags))
+                {
+                    continue;
+                }
             }
-        }
-        else
-        {
-            if (FT_Load_Char(font_face, value, load_flags))
+            else
             {
-                continue;
+                if (FT_Load_Char(font_face, value, load_flags))
+                {
+                    continue;
+                }
             }
-        }
 
-        FT_GlyphSlot const slot{font_face->glyph};
+            FT_GlyphSlot const slot{font_face->glyph};
 
-        if (top_left.x + slot->bitmap.width >= staging_block_pitch)
-        {
-            top_left.x = 0;
-            top_left.y += staging_block_pitch * max_glyph_extents.y;
-        }
-
-        auto const bitmap_pitch{
-            cppext::narrow<unsigned int>(slot->bitmap.pitch)};
-        for (unsigned int y{}; y != slot->bitmap.rows; ++y)
-        {
-            for (unsigned int x{}; x != slot->bitmap.width; ++x)
+            if (top_left.x + slot->bitmap.width >=
+                horizontal_glyphs * max_glyph_extents.x)
             {
-                staging_block
-                    [top_left.y + y * staging_block_pitch + top_left.x + x] =
-                        static_cast<std::byte>(
-                            slot->bitmap.buffer[y * bitmap_pitch + x]);
+                top_left.x = 0;
+                top_left.y += max_glyph_extents.y;
             }
+
+            if (auto const bitmap_pitch{
+                    cppext::narrow<unsigned int>(slot->bitmap.pitch)})
+            {
+                for (unsigned int y{}; y != slot->bitmap.rows; ++y)
+                {
+                    for (unsigned int x{}; x != slot->bitmap.width; ++x)
+                    {
+                        staging_values[buffer_offset +
+                            y * slot->bitmap.width +
+                            x] =
+                            static_cast<std::byte>(
+                                slot->bitmap.buffer[y * bitmap_pitch + x]);
+                    }
+                }
+
+                regions.push_back(VkBufferImageCopy{
+                    .bufferOffset = buffer_offset,
+                    .bufferRowLength = slot->bitmap.width,
+                    .bufferImageHeight = slot->bitmap.rows,
+                    .imageSubresource = bitmap_subresource,
+                    .imageOffset = {cppext::narrow<int>(top_left.x),
+                        cppext::narrow<int>(top_left.y),
+                        0},
+                    .imageExtent = {slot->bitmap.width, slot->bitmap.rows, 1}});
+
+                buffer_offset += slot->bitmap.width * slot->bitmap.rows;
+            }
+
+            rect.top_left = {top_left.x, top_left.y};
+            top_left.x += slot->bitmap.width;
         }
 
-        rect.top_left = {top_left.x, top_left.y / staging_block_pitch};
+        unmap_memory(backend.device(), &staging_map);
 
-        top_left.x += slot->bitmap.rows;
+        vkCmdCopyBufferToImage(cb,
+            staging_buffer.buffer,
+            rv.bitmap.image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            vkrndr::count_cast(regions.size()),
+            regions.data());
+
+        vkrndr::wait_for_transfer_write_completed(rv.bitmap.image, cb, 1);
     }
-
-    unmap_memory(backend.device(), &staging_map);
-
-    rv.bitmap = backend.transfer_buffer_to_image(staging_buffer,
-        {horizontal_glyphs * max_glyph_extents.x,
-            vertical_glyphs * max_glyph_extents.y},
-        VK_FORMAT_R8_UNORM,
-        1);
 
     return rv;
 }
