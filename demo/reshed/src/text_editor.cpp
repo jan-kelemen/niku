@@ -175,6 +175,20 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
         cppext::as_span(text_descriptor_layout_),
         cppext::as_span(text_descriptor_));
 
+    VkPipelineColorBlendAttachmentState const alpha_blend{
+        .blendEnable = VK_TRUE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+            VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT |
+            VK_COLOR_COMPONENT_A_BIT,
+    };
+
     text_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
@@ -183,7 +197,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
                 .build()}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
-            .add_color_attachment(backend_->image_format())
+            .add_color_attachment(backend_->image_format(), alpha_blend)
             .add_vertex_input(binding_description(), attribute_description())
             .build();
 
