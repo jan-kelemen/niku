@@ -7,7 +7,7 @@ layout(binding = 0) uniform sampler2D texSampler;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    outColor = vec4(1.0, 1.0, 1.0, texture(texSampler, inTexCoord).r);
+    outColor = vec4(1.0, 1.0, 1.0, texelFetch(texSampler, ivec2(inTexCoord.x, inTexCoord.y), 0).r);
 
     if (outColor.w < 0.6) {
         discard;

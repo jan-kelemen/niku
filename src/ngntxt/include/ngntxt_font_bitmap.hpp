@@ -21,10 +21,10 @@ namespace ngntxt
 {
     struct [[nodiscard]] glyph_info_t final
     {
-        glm::ivec2 size;
+        glm::uvec2 top_left;
+        glm::uvec2 size;
         glm::ivec2 bearing;
         uint32_t advance;
-        glm::uvec2 top_left;
     };
 
     struct [[nodiscard]] font_bitmap_t final

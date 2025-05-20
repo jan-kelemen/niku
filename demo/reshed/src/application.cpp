@@ -178,40 +178,10 @@ void reshed::application_t::on_startup()
 {
     mouse_.set_window_handle(window()->native_handle());
 
-    auto scale{SDL_GetWindowPixelDensity(window()->native_handle())};
-    if (scale == 0.0f)
-    {
-        scale = 1.0f;
-    }
-
-    glm::uvec2 actual_extent{};
-
-    {
-        int width{};
-        int height{};
-        if (SDL_GetWindowSize(window()->native_handle(), &width, &height))
-        {
-            actual_extent.x = cppext::narrow<unsigned>(width);
-            actual_extent.y = cppext::narrow<unsigned>(height);
-        }
-        else
-        {
-            auto const extent{backend_->extent()};
-            actual_extent.x = extent.width;
-            actual_extent.y = extent.height;
-        }
-
-        actual_extent.x =
-            static_cast<unsigned>(roundf(cppext::as_fp(width) * scale));
-        actual_extent.y =
-            static_cast<unsigned>(roundf(cppext::as_fp(height) * scale));
-    }
-
     if (std::expected<ngntxt::font_face_ptr_t, std::error_code> font_face{
             load_font_face(freetype_context_,
                 "SpaceMono-Regular.ttf",
-                {0, 16},
-                actual_extent)})
+                {0, 16})})
     {
         spdlog::info("Font loaded");
         editor_->change_font(std::move(font_face).value());

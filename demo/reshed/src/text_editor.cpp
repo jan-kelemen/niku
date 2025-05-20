@@ -295,18 +295,14 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
         vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
         uint32_t* const indices{frame_data_->index_map.as<uint32_t>()};
 
-        glm::vec2 const inverse_bitmap_dims{glm::vec2{1.0f, 1.0f} /
-            glm::vec2{font_bitmap_.bitmap.extent.width,
-                font_bitmap_.bitmap.extent.height}};
-
         glm::ivec2 cursor{0, (*font_face_)->size->metrics.height >> 6};
         for (unsigned int i{}; i != len; i++)
         {
             ngntxt::glyph_info_t const& bitmap_glyph{
                 font_bitmap_.glyphs.at(info[i].codepoint)};
 
-            auto const& tl{bitmap_glyph.top_left};
-            auto const& s{bitmap_glyph.size};
+            auto const& top_left{bitmap_glyph.top_left};
+            auto const& size{bitmap_glyph.size};
             glm::vec2 const b{cppext::as_fp(bitmap_glyph.bearing.x),
                 cppext::as_fp(bitmap_glyph.size.y - bitmap_glyph.bearing.y)};
 
@@ -315,21 +311,20 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
             uint32_t const vert_idx{frame_data_->vertices};
             vertices[vert_idx + 0] = {glm::vec2{cursor.x, cursor.y},
-                glm::vec2{tl.x, tl.y + s.y}};
+                glm::vec2{top_left.x, top_left.y + size.y}};
             vertices[vert_idx + 1] = {
-                glm::vec2{cursor.x + s.x + x_offset, cursor.y},
-                glm::vec2{tl.x + s.x, tl.y + s.y}};
-            vertices[vert_idx + 2] = {
-                glm::vec2{cursor.x + s.x + x_offset, cursor.y - s.y - y_offset},
-                glm::vec2{tl.x + s.x, tl.y}};
+                glm::vec2{cursor.x + size.x + x_offset, cursor.y},
+                glm::vec2{top_left.x + size.x, top_left.y + size.y}};
+            vertices[vert_idx + 2] = {glm::vec2{cursor.x + size.x + x_offset,
+                                          cursor.y - size.y - y_offset},
+                glm::vec2{top_left.x + size.x, top_left.y}};
             vertices[vert_idx + 3] = {
-                glm::vec2{cursor.x, cursor.y - s.y - y_offset},
-                glm::vec2{tl.x, tl.y}};
+                glm::vec2{cursor.x, cursor.y - size.y - y_offset},
+                glm::vec2{top_left.x, top_left.y}};
 
-            for (uint32_t i{vert_idx}; i != vert_idx + 4; ++i)
+            for (uint32_t j{vert_idx}; j != vert_idx + 4; ++j)
             {
-                vertices[i].position += b;
-                vertices[i].uv *= inverse_bitmap_dims;
+                vertices[j].position += b;
             }
 
             uint32_t const index_idx{frame_data_->indices};
@@ -343,7 +338,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             frame_data_->indices += 6;
             frame_data_->vertices += 4;
 
-            cursor += glm::ivec2{pos[i].x_advance, pos[i].y_advance} / 64;
+            cursor += glm::ivec2{pos[i].x_advance, pos[i].y_advance} >> 6;
         }
     }
 
@@ -383,15 +378,9 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
 void reshed::text_editor_t::resize(uint32_t const width, uint32_t const height)
 {
-    auto const fwidth{cppext::as_fp(width)};
-    auto const fheight{cppext::as_fp(height)};
-
-    projection_.set_left_right({0, fwidth});
-    projection_.set_bottom_top({fheight, 0.0f});
+    projection_.set_left_right({0.0f, cppext::as_fp(width)});
+    projection_.set_bottom_top({cppext::as_fp(height), 0.0f});
     projection_.set_near_far_planes({-1.0f, 1.0f});
 
-    projection_.update(
-        glm::lookAtRH(glm::vec3{fwidth / 2.0f, fheight / 2.0f, 0.0f},
-            glm::vec3{fwidth / 2.0f, fheight / 2.0f, -1.0f},
-            glm::vec3{0.0f, 1.0f, 0.0f}));
+    projection_.update(glm::mat4{});
 }

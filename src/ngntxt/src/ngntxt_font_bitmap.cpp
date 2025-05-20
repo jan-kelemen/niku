@@ -31,6 +31,7 @@
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+
 namespace
 {
     static constexpr VkImageSubresourceLayers bitmap_subresource{
@@ -50,6 +51,8 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
 
     font_bitmap_t rv;
 
+    // Calculate required memory for tightly packing all bitmaps into a staging
+    // buffer
     size_t all_bitmaps_size{};
     glm::uvec2 max_glyph_extents{};
     for (char32_t codepoint{first_codepoint}; codepoint != last_codepoint;
@@ -73,18 +76,18 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
 
         FT_GlyphSlot const slot{font_face->glyph};
 
-        rv.glyphs.emplace(std::piecewise_construct,
+        auto const& [it, inserted] = rv.glyphs.emplace(std::piecewise_construct,
             std::forward_as_tuple(
                 indexing == font_bitmap_indexing_t::glyph ? index : codepoint),
-            std::forward_as_tuple(
-                glm::ivec2{slot->bitmap.width, slot->bitmap.rows},
+            std::forward_as_tuple(glm::uvec2{},
+                glm::uvec2{slot->bitmap.width, slot->bitmap.rows},
                 glm::ivec2{slot->bitmap_left, slot->bitmap_top},
                 cppext::narrow<uint32_t>(slot->advance.x)));
+        auto const& glyph_size{it->second.size};
 
-        all_bitmaps_size += slot->bitmap.width * slot->bitmap.rows;
+        all_bitmaps_size += glyph_size.x * glyph_size.y;
 
-        max_glyph_extents = glm::max(max_glyph_extents,
-            glm::uvec2{slot->bitmap.width, slot->bitmap.rows});
+        max_glyph_extents = glm::max(max_glyph_extents, glyph_size);
     }
 
     size_t const glyph_count{rv.glyphs.size()};
@@ -97,6 +100,7 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
     auto const vertical_glyphs{cppext::narrow<uint32_t>(
         (glyph_count + horizontal_glyphs - 1) / horizontal_glyphs)};
 
+    // Prepare staging buffer and the target bitmap image
     vkrndr::buffer_t staging_buffer{
         vkrndr::create_staging_buffer(backend.device(), all_bitmaps_size)};
     boost::scope::defer_guard const rollback{
@@ -105,37 +109,29 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
     vkrndr::mapped_memory_t staging_map{
         vkrndr::map_memory(backend.device(), staging_buffer)};
 
-    std::byte* staging_values{staging_map.as<std::byte>()};
-
     rv.bitmap = vkrndr::create_image_and_view(backend.device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R8_UNORM,
             .extent = {(horizontal_glyphs + 1) * max_glyph_extents.x,
                 (vertical_glyphs + 1) * max_glyph_extents.y},
-            .mip_levels = 1,
             .tiling = VK_IMAGE_TILING_OPTIMAL,
-            .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                VK_IMAGE_USAGE_SAMPLED_BIT,
+            .usage =
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
     boost::scope::scope_fail const rollback_bitmap{
-        [&backend, b = &rv.bitmap]() mutable
-        { destroy(&backend.device(), b); }};
+        [&backend, b = &rv.bitmap]() { destroy(&backend.device(), b); }};
 
+    std::vector<VkBufferImageCopy> regions;
+    regions.reserve(glyph_count);
+
+    // Pack bitmaps into the staging buffer
     {
-        auto transient{backend.request_transient_operation(true)};
-        VkCommandBuffer cb{transient.command_buffer()};
-        vkrndr::wait_for_transfer_write(rv.bitmap.image, cb, 1);
-
-        std::vector<VkBufferImageCopy> regions;
-        regions.reserve(glyph_count);
-
+        std::byte* const staging_values{staging_map.as<std::byte>()};
         VkDeviceSize buffer_offset{};
-
         glm::uvec2 top_left{};
-        for (auto& [value, rect] : rv.glyphs)
+        for (auto& [value, glyph_info] : rv.glyphs)
         {
-            auto const load_flags{FT_LOAD_RENDER};
+            constexpr auto const load_flags{FT_LOAD_RENDER};
             if (indexing == font_bitmap_indexing_t::glyph)
             {
                 if (FT_Load_Glyph(font_face, value, load_flags))
@@ -153,8 +149,7 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
 
             FT_GlyphSlot const slot{font_face->glyph};
 
-            if (top_left.x + slot->bitmap.width >=
-                horizontal_glyphs * max_glyph_extents.x)
+            if (top_left.x + slot->bitmap.width >= rv.bitmap.extent.width)
             {
                 top_left.x = 0;
                 top_left.y += max_glyph_extents.y;
@@ -188,11 +183,18 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
                 buffer_offset += slot->bitmap.width * slot->bitmap.rows;
             }
 
-            rect.top_left = {top_left.x, top_left.y};
+            glyph_info.top_left = top_left;
             top_left.x += slot->bitmap.width;
         }
 
         unmap_memory(backend.device(), &staging_map);
+    }
+
+    // Transfer staging buffer to the target bitmap
+    {
+        auto transient{backend.request_transient_operation(true)};
+        VkCommandBuffer cb{transient.command_buffer()};
+        vkrndr::wait_for_transfer_write(rv.bitmap.image, cb, 1);
 
         vkCmdCopyBufferToImage(cb,
             staging_buffer.buffer,

@@ -56,8 +56,7 @@ namespace ngntxt
     std::expected<font_face_ptr_t, std::error_code> load_font_face(
         std::shared_ptr<freetype_context_t> context,
         std::filesystem::path const& path,
-        glm::uvec2 char_size,
-        glm::uvec2 screen_dpi);
+        glm::uvec2 char_size);
 } // namespace ngntxt
 
 void intrusive_ptr_add_ref(FT_Face const* p);

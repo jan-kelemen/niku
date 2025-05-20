@@ -58,8 +58,7 @@ FT_Library ngntxt::freetype_context_t::handle() const { return library_; }
 std::expected<ngntxt::font_face_ptr_t, std::error_code> ngntxt::load_font_face(
     std::shared_ptr<freetype_context_t> context,
     std::filesystem::path const& path,
-    glm::uvec2 const char_size,
-    glm::uvec2 const screen_dpi)
+    glm::uvec2 const char_size)
 {
     std::error_code ec;
     if (!is_regular_file(path, ec) || ec)
@@ -82,11 +81,7 @@ std::expected<ngntxt::font_face_ptr_t, std::error_code> ngntxt::load_font_face(
     font_face_ptr_t rv{temp, false};
     destroy_font.set_active(false);
 
-    if (FT_Error const error{FT_Set_Char_Size(*rv,
-            cppext::narrow<FT_F26Dot6>(char_size.x) * 64,
-            cppext::narrow<FT_F26Dot6>(char_size.y) * 64,
-            screen_dpi.x,
-            screen_dpi.y)})
+    if (FT_Error const error{FT_Set_Pixel_Sizes(*rv, char_size.x, char_size.y)})
     {
         spdlog::error("Unable to set font size. Error = {}", error);
         return std::unexpected{
