@@ -78,15 +78,14 @@ bool reshed::application_t::handle_event(SDL_Event const& event,
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
-    if (event.type == SDL_EVENT_KEY_DOWN)
+    if (event.type == SDL_EVENT_KEY_DOWN &&
+        event.key.scancode == SDL_SCANCODE_F4)
     {
-        auto const& keyboard{event.key};
-        if (keyboard.scancode == SDL_SCANCODE_F4)
-        {
-            imgui_->set_enabled(!imgui_->enabled());
-        }
+        imgui_->set_enabled(!imgui_->enabled());
     }
-    else if (event.type == SDL_EVENT_TEXT_INPUT)
+    else if (event.type == SDL_EVENT_TEXT_INPUT ||
+        event.type == SDL_EVENT_KEY_UP ||
+        event.type == SDL_EVENT_KEY_DOWN)
     {
         editor_->handle_event(event);
     }
@@ -141,7 +140,7 @@ void reshed::application_t::draw()
     color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
         VK_ATTACHMENT_STORE_OP_STORE,
         target_image.view,
-        VkClearValue{.color = {{1.0f, 0.0f, 0.0f, 1.0f}}});
+        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
 
     {
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,

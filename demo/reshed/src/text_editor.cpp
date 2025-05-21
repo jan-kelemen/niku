@@ -40,6 +40,7 @@
 #include <cassert>
 #include <cstddef>
 #include <map>
+#include <ranges>
 #include <utility>
 
 // IWYU pragma: no_include <fmt/base.h>
@@ -204,7 +205,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     for (auto& data : cppext::as_span(frame_data_))
     {
         data.vertex_buffer = vkrndr::create_buffer(backend_->device(),
-            {.size = 4000 * sizeof(vertex_t),
+            {.size = 40000 * sizeof(vertex_t),
                 .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 .allocation_flags =
                     VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
@@ -216,7 +217,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
             vkrndr::map_memory(backend_->device(), data.vertex_buffer);
 
         data.index_buffer = vkrndr::create_buffer(backend_->device(),
-            {.size = 6000 * sizeof(uint32_t),
+            {.size = 60000 * sizeof(uint32_t),
                 .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 .allocation_flags =
                     VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
@@ -262,9 +263,25 @@ reshed::text_editor_t::~text_editor_t()
 
 void reshed::text_editor_t::handle_event(SDL_Event const& event)
 {
-    assert(event.type == SDL_EVENT_TEXT_INPUT);
-    SDL_TextInputEvent const& text_event{event.text};
-    buffer_ += text_event.text;
+    if (event.type == SDL_EVENT_TEXT_INPUT)
+    {
+        SDL_TextInputEvent const& text_event{event.text};
+        buffer_ += text_event.text;
+    }
+    else if (event.type == SDL_EVENT_KEY_DOWN)
+    {
+        SDL_KeyboardEvent const& keyboard_event{event.key};
+        if (keyboard_event.scancode == SDL_SCANCODE_RETURN ||
+            keyboard_event.scancode == SDL_SCANCODE_RETURN2 ||
+            keyboard_event.scancode == SDL_SCANCODE_KP_ENTER)
+        {
+            buffer_ += '\n';
+        }
+        else if (keyboard_event.scancode == SDL_SCANCODE_BACKSPACE)
+        {
+            buffer_.pop_back();
+        }
+    }
 }
 
 void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
@@ -293,9 +310,19 @@ VkPipelineLayout reshed::text_editor_t::pipeline_layout() const
 
 void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 {
+    vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
+    uint32_t* const indices{frame_data_->index_map.as<uint32_t>()};
+
+    glm::ivec2 cursor{0, (*font_face_)->size->metrics.height >> 6};
+    for (auto const& line : std::views::split(buffer_, '\n'))
     {
         hb_buffer_clear_contents(shaping_buffer_.get());
-        hb_buffer_add_utf8(shaping_buffer_.get(), buffer_.c_str(), -1, 0, -1);
+
+        hb_buffer_add_utf8(shaping_buffer_.get(),
+            line.data(),
+            cppext::narrow<int>(line.size()),
+            0,
+            cppext::narrow<int>(line.size()));
         hb_buffer_guess_segment_properties(shaping_buffer_.get());
 
         hb_shape(shaping_font_face_.get(), shaping_buffer_.get(), nullptr, 0);
@@ -306,10 +333,6 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
         hb_glyph_position_t const* const pos{
             hb_buffer_get_glyph_positions(shaping_buffer_.get(), nullptr)};
 
-        vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
-        uint32_t* const indices{frame_data_->index_map.as<uint32_t>()};
-
-        glm::ivec2 cursor{0, (*font_face_)->size->metrics.height >> 6};
         for (unsigned int i{}; i != len; i++)
         {
             ngntxt::glyph_info_t const& bitmap_glyph{
@@ -318,7 +341,8 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             auto const& top_left{bitmap_glyph.top_left};
             auto const& size{bitmap_glyph.size};
             glm::vec2 const b{cppext::as_fp(bitmap_glyph.bearing.x),
-                cppext::as_fp(bitmap_glyph.size.y - bitmap_glyph.bearing.y)};
+                cppext::as_fp(bitmap_glyph.size.y) -
+                    cppext::as_fp(bitmap_glyph.bearing.y)};
 
             float const x_offset{cppext::as_fp(pos[i].x_offset >> 6)};
             float const y_offset{cppext::as_fp(pos[i].y_offset >> 6)};
@@ -354,6 +378,9 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
             cursor += glm::ivec2{pos[i].x_advance, pos[i].y_advance} >> 6;
         }
+
+        cursor.x = 0;
+        cursor.y += (*font_face_)->size->metrics.height >> 6;
     }
 
     bind_pipeline(command_buffer,
