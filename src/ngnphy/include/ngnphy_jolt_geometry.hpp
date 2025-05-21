@@ -1,7 +1,7 @@
 #ifndef NGNPHY_JOLT_GEOMETRY_INCLUDED
 #define NGNPHY_JOLT_GEOMETRY_INCLUDED
 
-#include <ngnphy_jolt.hpp>
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Geometry/IndexedTriangle.h>
 #include <Jolt/Geometry/Triangle.h>

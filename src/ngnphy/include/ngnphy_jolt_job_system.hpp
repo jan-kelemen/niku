@@ -1,7 +1,7 @@
 #ifndef NGNPHY_JOLT_JOB_SYSTEM_INCLUDED
 #define NGNPHY_JOLT_JOB_SYSTEM_INCLUDED
 
-#include <ngnphy_jolt.hpp> // IWYU pragma: keep
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Core/Color.h>
 #include <Jolt/Core/Core.h>

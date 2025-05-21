@@ -1,9 +1,9 @@
 #ifndef GALILEO_WORLD_CONTACT_LISTENER_INCLUDED
 #define GALILEO_WORLD_CONTACT_LISTENER_INCLUDED
 
-#include <ngnphy_jolt.hpp> // IWYU pragma: keep
-
 #include <entt/entt.hpp>
+
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Physics/Collision/ContactListener.h>
 

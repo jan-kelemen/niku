@@ -3,7 +3,7 @@
 
 #include <navmesh.hpp>
 
-#include <ngnphy_jolt.hpp> // IWYU pragma: keep
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Physics/Body/BodyID.h>
 

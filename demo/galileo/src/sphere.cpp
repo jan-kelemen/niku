@@ -5,12 +5,13 @@
 #include <scene_graph.hpp>
 #include <scripting.hpp>
 
-#include <ngnphy_jolt.hpp> // IWYU pragma: keep
 #include <ngnphy_jolt_adapter.hpp>
 
 #include <ngnscr_scripting_engine.hpp>
 
 #include <angelscript.h>
+
+#include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Core/Reference.h>
 #include <Jolt/Math/Quat.h>
