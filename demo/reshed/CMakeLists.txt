@@ -33,7 +33,6 @@ target_link_libraries(reshed
     PRIVATE
         imgui::imgui
         spdlog::spdlog
-        tree-sitter::tree-sitter
         tree-sitter-glsl::tree-sitter-glsl
     PRIVATE
         project-options

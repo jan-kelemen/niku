@@ -2,8 +2,10 @@
 
 layout (location=0) in vec2 inPos;
 layout (location=1) in vec2 inTexCoords;
+layout (location=2) in vec4 inColor;
 
 layout (location=0) out vec2 outTexCoords;
+layout (location=1) out vec4 outColor;
 
 layout (push_constant) uniform PushConst{
     mat4 projection;
@@ -12,4 +14,5 @@ layout (push_constant) uniform PushConst{
 void main() {
     gl_Position = projection * vec4(inPos, 0.0, 1.0);
     outTexCoords = inTexCoords;
+    outColor = inColor;
 }

@@ -8,6 +8,7 @@
 #include <ngntxt_font_bitmap.hpp>
 #include <ngntxt_font_face.hpp>
 #include <ngntxt_shaping.hpp>
+#include <ngntxt_syntax.hpp>
 
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_memory.hpp>
@@ -34,7 +35,8 @@ namespace reshed
 
         void remove(size_t line, size_t column, size_t count);
 
-        [[nodiscard]] std::string_view line(size_t line) const;
+        [[nodiscard]] std::string_view line(size_t line,
+            bool include_newline) const;
 
         [[nodiscard]] size_t lines() const;
 
@@ -84,6 +86,11 @@ namespace reshed
 
     private:
         vkrndr::backend_t* backend_;
+
+        ngntxt::parser_handle_t parser_;
+        ngntxt::language_handle_t language_;
+        ngntxt::tree_handle_t tree_;
+        ngntxt::query_handle_t highlight_query_;
 
         ngngfx::orthographic_projection_t projection_;
 

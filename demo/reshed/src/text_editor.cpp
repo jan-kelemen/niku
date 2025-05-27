@@ -34,6 +34,10 @@
 
 #include <SDL3/SDL_events.h>
 
+#include <spdlog/spdlog.h>
+
+#include <tree_sitter/tree-sitter-glsl.h>
+
 #include <vma_impl.hpp>
 
 #include <array>
@@ -57,6 +61,7 @@ namespace
     {
         glm::vec2 position;
         glm::vec2 uv;
+        glm::vec4 color;
     };
 
     constexpr auto binding_description()
@@ -80,7 +85,11 @@ namespace
             VkVertexInputAttributeDescription{.location = 1,
                 .binding = 0,
                 .format = VK_FORMAT_R32G32_SFLOAT,
-                .offset = offsetof(vertex_t, uv)}};
+                .offset = offsetof(vertex_t, uv)},
+            VkVertexInputAttributeDescription{.location = 2,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                .offset = offsetof(vertex_t, color)}};
 
         return descriptions;
     }
@@ -140,10 +149,17 @@ namespace
 
 reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     : backend_{&backend}
+    , parser_{ngntxt::create_parser()}
+    , language_{tree_sitter_glsl()}
+    , highlight_query_{ngntxt::create_query(language_,
+          "(type_identifier) @types")}
     , shaping_buffer_{ngntxt::create_shaping_buffer()}
     , bitmap_sampler_{create_bitmap_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
+    bool const language_set{ngntxt::set_language(parser_, language_)};
+    assert(language_set);
+
     vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
         enable_shader_optimization};
 
@@ -231,7 +247,21 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     projection_.set_invert_y(false);
     resize(backend_->extent().width, backend_->extent().height);
 
-    buffer_.add(0, 0, "Font w loadedg");
+    buffer_.add(0,
+        0,
+        "vec2 Hammersley(uint i, uint N);\nvec2 Hammersley(uint i, uint N);");
+
+    tree_ = ngntxt::parse(parser_,
+        tree_,
+        [this]([[maybe_unused]] size_t byte,
+            size_t row,
+            size_t column) -> std::string_view
+        { return buffer_.line(row, true).substr(column); });
+
+    TSNode root_node = ts_tree_root_node(tree_.get());
+
+    char* string = ts_node_string(root_node);
+    spdlog::info("tree: {}", string);
 }
 
 reshed::text_editor_t::~text_editor_t()
@@ -345,10 +375,14 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
     vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
     uint32_t* const indices{frame_data_->index_map.as<uint32_t>()};
 
+    std::vector<vertex_t*> vertices_by_line;
+
     glm::ivec2 cursor{0, (*font_face_)->size->metrics.height >> 6};
     for (size_t i{}; i != buffer_.lines(); ++i)
     {
-        std::string_view const line{buffer_.line(i)};
+        vertices_by_line.push_back(vertices + frame_data_->vertices);
+
+        std::string_view const line{buffer_.line(i, false)};
 
         hb_buffer_clear_contents(shaping_buffer_.get());
 
@@ -397,6 +431,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             for (uint32_t j{vert_idx}; j != vert_idx + 4; ++j)
             {
                 vertices[j].position += b;
+                vertices[j].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
             }
 
             uint32_t const index_idx{frame_data_->indices};
@@ -415,6 +450,27 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
         cursor.x = 0;
         cursor.y += (*font_face_)->size->metrics.height >> 6;
+    }
+
+    ngntxt::query_cursor_handle_t cursor_handle{
+        ngntxt::execute_query(highlight_query_,
+            ts_tree_root_node(tree_.get()))};
+    while (std::optional<ngntxt::query_match_t> const match{
+        ngntxt::next_match(cursor_handle)})
+    {
+        for (auto const& capture : match->captures)
+        {
+            TSPoint const start{ts_node_start_point(capture.node)};
+            TSPoint const end{ts_node_end_point(capture.node)};
+            assert(start.row == end.row);
+
+            for (vertex_t& vertex :
+                std::span{vertices_by_line[start.row] + start.column * 4,
+                    (end.column - start.column) * 4})
+            {
+                vertex.color = glm::vec4{0.5f, 1.0f, 1.0f, 1.0f};
+            }
+        }
     }
 
     bind_pipeline(command_buffer,
@@ -484,11 +540,18 @@ void reshed::text_buffer_t::remove(size_t line, size_t column, size_t count)
     buffer_.erase(end_it - count, end_it);
 }
 
-std::string_view reshed::text_buffer_t::line(size_t line) const
+std::string_view reshed::text_buffer_t::line(size_t line,
+    bool include_newline) const
 {
     auto line_range{std::views::split(buffer_, '\n') | std::views::drop(line)};
 
-    return {line_range.front().begin(), line_range.front().end()};
+    auto end_it{line_range.front().end()};
+    if (include_newline && end_it != buffer_.end())
+    {
+        std::advance(end_it, 1);
+    }
+
+    return {line_range.front().begin(), end_it};
 }
 
 size_t reshed::text_buffer_t::lines() const
