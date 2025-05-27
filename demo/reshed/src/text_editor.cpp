@@ -140,7 +140,6 @@ namespace
 
 reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     : backend_{&backend}
-    , buffer_{"Font w loadedg"}
     , shaping_buffer_{ngntxt::create_shaping_buffer()}
     , bitmap_sampler_{create_bitmap_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
@@ -231,6 +230,8 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
 
     projection_.set_invert_y(false);
     resize(backend_->extent().width, backend_->extent().height);
+
+    buffer_.add(0, 0, "Font w loadedg");
 }
 
 reshed::text_editor_t::~text_editor_t()
@@ -266,7 +267,10 @@ void reshed::text_editor_t::handle_event(SDL_Event const& event)
     if (event.type == SDL_EVENT_TEXT_INPUT)
     {
         SDL_TextInputEvent const& text_event{event.text};
-        buffer_ += text_event.text;
+        std::string_view content{text_event.text};
+
+        buffer_.add(cursor_line, cursor_column, content);
+        cursor_column += content.length();
     }
     else if (event.type == SDL_EVENT_KEY_DOWN)
     {
@@ -275,11 +279,39 @@ void reshed::text_editor_t::handle_event(SDL_Event const& event)
             keyboard_event.scancode == SDL_SCANCODE_RETURN2 ||
             keyboard_event.scancode == SDL_SCANCODE_KP_ENTER)
         {
-            buffer_ += '\n';
+            buffer_.add(cursor_line, cursor_column, "\n");
+            ++cursor_line;
+            cursor_column = 0;
         }
         else if (keyboard_event.scancode == SDL_SCANCODE_BACKSPACE)
         {
-            buffer_.pop_back();
+            buffer_.remove(cursor_line, cursor_column, 1);
+            --cursor_column;
+        }
+        else if (keyboard_event.scancode == SDL_SCANCODE_UP)
+        {
+            if (cursor_line > 0)
+            {
+                --cursor_line;
+            }
+        }
+        else if (keyboard_event.scancode == SDL_SCANCODE_DOWN)
+        {
+            if (cursor_line < buffer_.lines())
+            {
+                ++cursor_line;
+            }
+        }
+        else if (keyboard_event.scancode == SDL_SCANCODE_LEFT)
+        {
+            if (cursor_column > 0)
+            {
+                --cursor_column;
+            }
+        }
+        else if (keyboard_event.scancode == SDL_SCANCODE_RIGHT)
+        {
+            ++cursor_column;
         }
     }
 }
@@ -314,8 +346,10 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
     uint32_t* const indices{frame_data_->index_map.as<uint32_t>()};
 
     glm::ivec2 cursor{0, (*font_face_)->size->metrics.height >> 6};
-    for (auto const& line : std::views::split(buffer_, '\n'))
+    for (size_t i{}; i != buffer_.lines(); ++i)
     {
+        std::string_view const line{buffer_.line(i)};
+
         hb_buffer_clear_contents(shaping_buffer_.get());
 
         hb_buffer_add_utf8(shaping_buffer_.get(),
@@ -424,4 +458,40 @@ void reshed::text_editor_t::resize(uint32_t const width, uint32_t const height)
     projection_.set_near_far_planes({-1.0f, 1.0f});
 
     projection_.update(glm::mat4{});
+}
+
+void
+reshed::text_buffer_t::add(size_t line, size_t column, std::string_view content)
+{
+    auto line_range{std::views::split(buffer_, '\n') | std::views::drop(line)};
+
+    if (line_range.empty())
+    {
+        buffer_ += content;
+    }
+    else
+    {
+        buffer_.insert(std::next(line_range.front().begin(), column),
+            content.cbegin(),
+            content.cend());
+    }
+}
+
+void reshed::text_buffer_t::remove(size_t line, size_t column, size_t count)
+{
+    auto line_range{std::views::split(buffer_, '\n') | std::views::drop(line)};
+    auto end_it{std::next(line_range.front().begin(), column)};
+    buffer_.erase(end_it - count, end_it);
+}
+
+std::string_view reshed::text_buffer_t::line(size_t line) const
+{
+    auto line_range{std::views::split(buffer_, '\n') | std::views::drop(line)};
+
+    return {line_range.front().begin(), line_range.front().end()};
+}
+
+size_t reshed::text_buffer_t::lines() const
+{
+    return std::ranges::count(buffer_, '\n') + 1;
 }

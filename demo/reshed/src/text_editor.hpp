@@ -27,6 +27,21 @@ namespace vkrndr
 
 namespace reshed
 {
+    class [[nodiscard]] text_buffer_t final
+    {
+    public:
+        void add(size_t line, size_t column, std::string_view content);
+
+        void remove(size_t line, size_t column, size_t count);
+
+        [[nodiscard]] std::string_view line(size_t line) const;
+
+        [[nodiscard]] size_t lines() const;
+
+    private:
+        std::string buffer_;
+    };
+
     class [[nodiscard]] text_editor_t final
     {
     public:
@@ -72,7 +87,9 @@ namespace reshed
 
         ngngfx::orthographic_projection_t projection_;
 
-        std::string buffer_;
+        text_buffer_t buffer_;
+        size_t cursor_line{};
+        size_t cursor_column{};
 
         ngntxt::font_face_ptr_t font_face_;
         ngntxt::font_bitmap_t font_bitmap_;
