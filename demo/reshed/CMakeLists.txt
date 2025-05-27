@@ -53,9 +53,11 @@ add_custom_target(reshed_shaders
 add_custom_target(reshed_assets
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/SpaceMono-Regular.ttf
+        ${tree-sitter-glsl_INCLUDE_DIR}/../queries/highlights.scm
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/SpaceMono-Regular.ttf
+        ${tree-sitter-glsl_INCLUDE_DIR}/../queries/highlights.scm
 )
 
 set_property(TARGET reshed

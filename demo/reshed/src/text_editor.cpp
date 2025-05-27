@@ -36,13 +36,14 @@
 
 #include <spdlog/spdlog.h>
 
-#include <tree_sitter/tree-sitter-glsl.h>
+#include <tree-sitter-glsl.h>
 
 #include <vma_impl.hpp>
 
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <fstream>
 #include <map>
 #include <ranges>
 #include <utility>
@@ -145,14 +146,61 @@ namespace
 
         return rv;
     }
+
+    [[nodiscard]] std::string read_highlights(std::filesystem::path const& file)
+    {
+        std::ifstream stream{file, std::ios::ate | std::ios::binary};
+
+        if (!stream.is_open())
+        {
+            throw std::runtime_error{"failed to open file!"};
+        }
+
+        auto const eof{stream.tellg()};
+
+        std::string buffer;
+        buffer.resize(static_cast<size_t>(eof));
+
+        stream.seekg(0);
+
+        stream.read(buffer.data(), eof);
+
+        return buffer;
+    }
+
+    ngntxt::query_handle_t create_highlight_query(
+        ngntxt::language_handle_t const& language)
+    {
+        std::string const queries{read_highlights("highlights.scm")};
+        return ngntxt::create_query(language, queries);
+    }
+
+    static constexpr std::array capture_colors{
+        glm::vec4{0.5f, 1.0f, 1.0f, 1.0f},
+        glm::vec4{1.0f, 0.5f, 1.0f, 1.0f},
+        glm::vec4{1.0f, 1.0f, 0.5f, 1.0f},
+        glm::vec4{0.5f, 0.5f, 1.0f, 1.0f},
+        glm::vec4{1.0f, 0.5f, 0.5f, 1.0f},
+        glm::vec4{0.5f, 1.0f, 0.5f, 1.0f},
+        glm::vec4{0.5f, 0.5f, 0.5f, 1.0f},
+        glm::vec4{0.0f, 1.0f, 1.0f, 1.0f},
+        glm::vec4{1.0f, 0.0f, 1.0f, 1.0f},
+        glm::vec4{1.0f, 1.0f, 0.0f, 1.0f},
+        glm::vec4{0.0f, 0.0f, 1.0f, 1.0f},
+        glm::vec4{1.0f, 0.0f, 0.0f, 1.0f},
+        glm::vec4{0.0f, 1.0f, 0.0f, 1.0f},
+        glm::vec4{0.3f, 1.0f, 1.0f, 1.0f},
+        glm::vec4{1.0f, 0.3f, 1.0f, 1.0f},
+        glm::vec4{1.0f, 1.0f, 0.3f, 1.0f},
+        glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
+    };
 } // namespace
 
 reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     : backend_{&backend}
     , parser_{ngntxt::create_parser()}
     , language_{tree_sitter_glsl()}
-    , highlight_query_{ngntxt::create_query(language_,
-          "[(type_identifier) (primitive_type)] @types")}
+    , highlight_query_{create_highlight_query(language_)}
     , shaping_buffer_{ngntxt::create_shaping_buffer()}
     , bitmap_sampler_{create_bitmap_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
@@ -434,11 +482,11 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
     std::vector<vertex_t*> vertices_by_line;
 
     glm::ivec2 cursor{0, (*font_face_)->size->metrics.height >> 6};
-    for (size_t i{}; i != buffer_.lines(); ++i)
+    for (size_t line_index{}; line_index != buffer_.lines(); ++line_index)
     {
         vertices_by_line.push_back(vertices + frame_data_->vertices);
 
-        std::string_view const line{buffer_.line(i, false)};
+        std::string_view const line{buffer_.line(line_index, false)};
 
         hb_buffer_clear_contents(shaping_buffer_.get());
 
@@ -524,7 +572,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
                 std::span{vertices_by_line[start.row] + start.column * 4,
                     (end.column - start.column) * 4})
             {
-                vertex.color = glm::vec4{0.5f, 1.0f, 1.0f, 1.0f};
+                vertex.color = capture_colors[capture.index];
             }
         }
     }
