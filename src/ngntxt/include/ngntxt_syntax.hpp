@@ -29,13 +29,6 @@ namespace ngntxt
         cppext::unique_ptr_with_static_deleter_t<TSQueryCursor,
             ts_query_cursor_delete>;
 
-    struct [[nodiscard]] query_match_t final
-    {
-        uint32_t id;
-        uint16_t pattern_index;
-        std::span<TSQueryCapture const> captures;
-    };
-
     [[nodiscard]] parser_handle_t create_parser();
 
     [[nodiscard]] query_handle_t create_query(language_handle_t const& language,
@@ -43,6 +36,13 @@ namespace ngntxt
 
     [[nodiscard]] query_cursor_handle_t
     execute_query(query_handle_t const& query, TSNode node);
+
+    struct [[nodiscard]] query_match_t final
+    {
+        uint32_t id;
+        uint16_t pattern_index;
+        std::span<TSQueryCapture const> captures;
+    };
 
     [[nodiscard]] std::optional<query_match_t> next_match(
         query_cursor_handle_t& handle);
@@ -52,6 +52,25 @@ namespace ngntxt
 
     [[nodiscard]] tree_handle_t parse(parser_handle_t& parser,
         tree_handle_t const& old_tree,
+        std::function<std::string_view(size_t, size_t, size_t)> read);
+
+    struct [[nodiscard]] edit_point_t final
+    {
+        size_t byte;
+        size_t row;
+        size_t column;
+    };
+
+    struct [[nodiscard]] input_edit_t final
+    {
+        edit_point_t start;
+        edit_point_t old_end;
+        edit_point_t new_end;
+    };
+
+    [[nodiscard]] tree_handle_t edit(parser_handle_t& parser,
+        tree_handle_t& tree,
+        input_edit_t const& input_edit,
         std::function<std::string_view(size_t, size_t, size_t)> read);
 } // namespace ngntxt
 #endif

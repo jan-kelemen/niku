@@ -4,6 +4,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <utility>
+
 ngntxt::parser_handle_t ngntxt::create_parser()
 {
     ngntxt::parser_handle_t rv{ts_parser_new()};
@@ -88,4 +90,25 @@ ngntxt::tree_handle_t ngntxt::parse(parser_handle_t& parser,
             .encoding = TSInputEncodingUTF8,
             .decode = nullptr,
         })};
+}
+
+ngntxt::tree_handle_t ngntxt::edit(parser_handle_t& parser,
+    tree_handle_t& tree,
+    input_edit_t const& input_edit,
+    std::function<std::string_view(size_t, size_t, size_t)> read)
+{
+    TSInputEdit const info{
+        .start_byte = cppext::narrow<uint32_t>(input_edit.start.byte),
+        .old_end_byte = cppext::narrow<uint32_t>(input_edit.old_end.byte),
+        .new_end_byte = cppext::narrow<uint32_t>(input_edit.new_end.byte),
+        .start_point = {cppext::narrow<uint32_t>(input_edit.start.row),
+            cppext::narrow<uint32_t>(input_edit.start.column)},
+        .old_end_point = {cppext::narrow<uint32_t>(input_edit.start.row),
+            cppext::narrow<uint32_t>(input_edit.start.column)},
+        .new_end_point = {cppext::narrow<uint32_t>(input_edit.start.row),
+            cppext::narrow<uint32_t>(input_edit.start.column)}};
+
+    ts_tree_edit(tree.get(), &info);
+
+    return parse(parser, tree, std::move(read));
 }

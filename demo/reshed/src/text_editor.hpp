@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 
 union SDL_Event;
 
@@ -28,12 +29,21 @@ namespace vkrndr
 
 namespace reshed
 {
+    struct [[nodiscard]] edit_point_t final
+    {
+        size_t byte;
+        size_t line;
+        size_t column;
+    };
+
     class [[nodiscard]] text_buffer_t final
     {
     public:
-        void add(size_t line, size_t column, std::string_view content);
+        [[nodiscard]] std::pair<size_t, edit_point_t>
+        add(size_t line, size_t column, std::string_view content);
 
-        void remove(size_t line, size_t column, size_t count);
+        [[nodiscard]] std::pair<size_t, edit_point_t>
+        remove(size_t line, size_t column, size_t count);
 
         [[nodiscard]] std::string_view line(size_t line,
             bool include_newline) const;
