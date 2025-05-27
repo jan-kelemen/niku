@@ -123,10 +123,10 @@ Following third party libraries are used:
 * [spdlog](https://github.com/gabime/spdlog) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [SPIRV-Cross](https://simdjson.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * [stb](https://github.com/nothings/stb) published under [MIT](https://spdx.org/licenses/MIT.html)
+* [tree-sitter](https://tree-sitter.github.io/tree-sitter/) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [volk](https://github.com/zeux/volk) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [Vulkan](https://www.vulkan.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and [MIT](https://spdx.org/licenses/MIT.html)
 * [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) published under [MIT](https://spdx.org/licenses/MIT.html)
 
 Following third party libraries are used by the engine demos exclusively:
-* [tree-sitter](https://tree-sitter.github.io/tree-sitter/) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [tree-sitter-glsl](https://github.com/tree-sitter-grammars/tree-sitter-glsl/) published under [MIT](https://spdx.org/licenses/MIT.html)

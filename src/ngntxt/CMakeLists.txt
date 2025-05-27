@@ -5,10 +5,12 @@ target_sources(ngntxt
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngntxt_font_face.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngntxt_font_bitmap.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngntxt_shaping.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngntxt_syntax.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngntxt_font_face.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngntxt_font_bitmap.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngntxt_shaping.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngntxt_syntax.cpp
 )
 
 target_include_directories(ngntxt
@@ -28,6 +30,7 @@ target_link_libraries(ngntxt
         Boost::headers
         Freetype::Freetype
         harfbuzz::harfbuzz
+        tree-sitter::tree-sitter
     PRIVATE
         spdlog::spdlog
     PRIVATE

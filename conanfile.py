@@ -45,6 +45,7 @@ class NikuConan(ConanFile):
         self.requires("spdlog/1.15.3", transitive_headers=False)
         self.requires("spirv-cross/1.4.304.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
+        self.requires("tree-sitter/0.25.3")
         self.requires("volk/1.4.304.0")
         self.requires("vulkan-memory-allocator/3.2.1")
 
@@ -52,7 +53,6 @@ class NikuConan(ConanFile):
             self.requires("entt/3.15.0")
             self.requires("recastnavigation/1.6.0")
             self.requires("simdjson/3.12.3")
-            self.requires("tree-sitter/0.25.3")
             self.requires("tree-sitter-glsl/0.2.0")
 
     def build_requirements(self):
@@ -174,5 +174,5 @@ class NikuConan(ConanFile):
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
         self.cpp_info.components[component].requires.extend(["cppext", "vkrndr", "glm_impl"])
-        self.cpp_info.components[component].requires.extend(["boost::headers", "Freetype::Freetype", "harfbuzz::harfbuzz", "spdlog::spdlog"])
+        self.cpp_info.components[component].requires.extend(["boost::headers", "Freetype::Freetype", "harfbuzz::harfbuzz", "spdlog::spdlog", "tree-sitter::tree-sitter"])
 
