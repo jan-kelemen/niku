@@ -27,10 +27,13 @@
 #include <boost/scope/defer.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 
 #include <hb.h>
+
+#include <imgui.h>
 
 #include <SDL3/SDL_events.h>
 
@@ -45,6 +48,7 @@
 #include <cstddef>
 #include <fstream>
 #include <map>
+#include <random>
 #include <ranges>
 #include <utility>
 
@@ -179,26 +183,6 @@ namespace
         std::string const queries{read_highlights("highlights.scm")};
         return ngntxt::create_query(language, queries);
     }
-
-    static constexpr std::array capture_colors{
-        glm::vec4{0.5f, 1.0f, 1.0f, 1.0f},
-        glm::vec4{1.0f, 0.5f, 1.0f, 1.0f},
-        glm::vec4{1.0f, 1.0f, 0.5f, 1.0f},
-        glm::vec4{0.5f, 0.5f, 1.0f, 1.0f},
-        glm::vec4{1.0f, 0.5f, 0.5f, 1.0f},
-        glm::vec4{0.5f, 1.0f, 0.5f, 1.0f},
-        glm::vec4{0.5f, 0.5f, 0.5f, 1.0f},
-        glm::vec4{0.0f, 1.0f, 1.0f, 1.0f},
-        glm::vec4{1.0f, 0.0f, 1.0f, 1.0f},
-        glm::vec4{1.0f, 1.0f, 0.0f, 1.0f},
-        glm::vec4{0.0f, 0.0f, 1.0f, 1.0f},
-        glm::vec4{1.0f, 0.0f, 0.0f, 1.0f},
-        glm::vec4{0.0f, 1.0f, 0.0f, 1.0f},
-        glm::vec4{0.3f, 1.0f, 1.0f, 1.0f},
-        glm::vec4{1.0f, 0.3f, 1.0f, 1.0f},
-        glm::vec4{1.0f, 1.0f, 0.3f, 1.0f},
-        glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
-    };
 } // namespace
 
 reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
@@ -210,7 +194,8 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     , bitmap_sampler_{create_bitmap_sampler(backend_->device())}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
-    bool const language_set{ngntxt::set_language(parser_, language_)};
+    [[maybe_unused]] bool const language_set{
+        ngntxt::set_language(parser_, language_)};
     assert(language_set);
 
     vkglsl::shader_set_t shader_set{enable_shader_debug_symbols,
@@ -322,10 +307,16 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
             size_t column) -> std::string_view
         { return buffer_.line(row, true).substr(column); });
 
-    TSNode root_node = ts_tree_root_node(tree_.get());
+    std::default_random_engine eng{std::random_device{}()};
+    std::uniform_real_distribution dist{0.5f};
 
-    char* string = ts_node_string(root_node);
-    spdlog::info("tree: {}", string);
+    std::ranges::transform(ngntxt::capture_names(highlight_query_),
+        std::back_inserter(syntax_color_table_),
+        [&eng, &dist](std::string_view name) -> syntax_color_entry_t
+        {
+            return {.name = std::string{name},
+                .color = {dist(eng), dist(eng), dist(eng), 1.0f}};
+        });
 }
 
 reshed::text_editor_t::~text_editor_t()
@@ -488,6 +479,16 @@ VkPipelineLayout reshed::text_editor_t::pipeline_layout() const
 
 void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 {
+    ImGui::Begin("Syntax colors");
+    for (syntax_color_entry_t& entry : syntax_color_table_)
+    {
+        ImGui::SliderFloat3(entry.name.data(),
+            glm::value_ptr(entry.color),
+            0.0f,
+            1.0f);
+    }
+    ImGui::End();
+
     vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
 
     std::vector<vertex_t*> vertices_by_line;
@@ -559,7 +560,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
                 std::span{vertices_by_line[start.row] + start.column,
                     (end.column - start.column)})
             {
-                vertex.color = capture_colors[capture.index];
+                vertex.color = syntax_color_table_[capture.index].color;
             }
         }
     }

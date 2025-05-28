@@ -90,6 +90,12 @@ namespace reshed
             uint32_t vertices{};
         };
 
+        struct [[nodiscard]] syntax_color_entry_t final
+        {
+            std::string name;
+            glm::vec4 color;
+        };
+
     private:
         vkrndr::backend_t* backend_;
 
@@ -97,6 +103,8 @@ namespace reshed
         ngntxt::language_handle_t language_;
         ngntxt::tree_handle_t tree_;
         ngntxt::query_handle_t highlight_query_;
+
+        std::vector<syntax_color_entry_t> syntax_color_table_;
 
         ngngfx::orthographic_projection_t projection_;
 

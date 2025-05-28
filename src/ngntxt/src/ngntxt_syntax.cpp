@@ -112,3 +112,21 @@ ngntxt::tree_handle_t ngntxt::edit(parser_handle_t& parser,
 
     return parse(parser, tree, std::move(read));
 }
+
+std::vector<std::string_view> ngntxt::capture_names(query_handle_t& query)
+{
+    uint32_t const count{ts_query_capture_count(query.get())};
+
+    std::vector<std::string_view> rv;
+    rv.reserve(count);
+
+    for (uint32_t i{}; i != count; ++i)
+    {
+        uint32_t length;
+        char const* const name{
+            ts_query_capture_name_for_id(query.get(), i, &length)};
+        rv.emplace_back(name, length);
+    }
+
+    return rv;
+}

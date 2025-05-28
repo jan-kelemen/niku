@@ -72,5 +72,8 @@ namespace ngntxt
         tree_handle_t& tree,
         input_edit_t const& input_edit,
         std::function<std::string_view(size_t, size_t, size_t)> read);
+
+    [[nodiscard]] std::vector<std::string_view> capture_names(
+        query_handle_t& query);
 } // namespace ngntxt
 #endif
