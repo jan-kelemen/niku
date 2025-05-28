@@ -133,6 +133,8 @@ namespace vkrndr
             VkStencilOpState front,
             VkStencilOpState back);
 
+        pipeline_builder_t& with_tesselation_patch_points(uint32_t points);
+
         pipeline_builder_t& with_dynamic_state(VkDynamicState state);
 
     public: // Operators
@@ -158,6 +160,7 @@ namespace vkrndr
         VkFrontFace front_face_{VK_FRONT_FACE_COUNTER_CLOCKWISE};
         VkFormat depth_format_{VK_FORMAT_UNDEFINED};
         std::optional<VkPipelineDepthStencilStateCreateInfo> depth_stencil_;
+        std::optional<VkPipelineTessellationStateCreateInfo> tesselation_;
         std::vector<VkDynamicState> dynamic_states_;
     };
 

@@ -182,6 +182,10 @@ vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
     create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     create_info.pVertexInputState = &vertex_input_info;
     create_info.pInputAssemblyState = &input_assembly;
+    if (tesselation_)
+    {
+        create_info.pTessellationState = &tesselation_.value();
+    }
     create_info.pRasterizationState = &rasterizer;
     create_info.pColorBlendState = &color_blending;
     create_info.pMultisampleState = &multisampling;
@@ -344,6 +348,16 @@ vkrndr::pipeline_builder_t& vkrndr::pipeline_builder_t::with_stencil_test(
     depth_stencil.back = back;
 
     depth_stencil_ = depth_stencil;
+
+    return *this;
+}
+
+vkrndr::pipeline_builder_t&
+vkrndr::pipeline_builder_t::with_tesselation_patch_points(uint32_t points)
+{
+    tesselation_ = VkPipelineTessellationStateCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+        .patchControlPoints = points};
 
     return *this;
 }

@@ -89,6 +89,7 @@ namespace
         chain.required_device_features.features.sampleRateShading = VK_TRUE;
         chain.required_device_features.features.wideLines = VK_TRUE;
         chain.required_device_features.features.samplerAnisotropy = VK_TRUE;
+        chain.required_device_features.features.tessellationShader = VK_TRUE;
 
         chain.required_device_12_features
             .shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
@@ -165,7 +166,8 @@ namespace
             rv.required_device_features.features.independentBlend,
             rv.required_device_features.features.sampleRateShading,
             rv.required_device_features.features.wideLines,
-            rv.required_device_features.features.samplerAnisotropy};
+            rv.required_device_features.features.samplerAnisotropy,
+            rv.required_device_features.features.tessellationShader};
         if (!all_true(f10))
         {
             return {};
