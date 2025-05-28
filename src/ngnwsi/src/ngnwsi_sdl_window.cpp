@@ -3,7 +3,7 @@
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_hints.h>
 #include <SDL3/SDL_init.h>
-#include <SDL3/SDL_Keyboard.h>
+#include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
 
