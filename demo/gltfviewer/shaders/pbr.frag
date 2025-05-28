@@ -16,7 +16,7 @@ layout(location = 5) in vec4 inShadowPosition;
 layout(push_constant) uniform PushConsts
 {
     uint debug;
-    float ibl_factor;
+    float iblFactor;
     uint modelIndex;
     uint materialIndex;
 } pc;
@@ -176,7 +176,10 @@ float geometricOcclusion(float roughness, float NdotL, float NdotV)
     return attenuationL * attenuationV;
 }
 
-float microfacetDistribution(const float roughness, const float NdotH, const vec3 N, const vec3 H)
+float microfacetDistribution(const float roughness,
+    const float NdotH,
+    const vec3 N,
+    const vec3 H)
 {
     const vec3 NxH = cross(N, H);
     const float a = NdotH * roughness;
@@ -204,17 +207,18 @@ vec3 IBLContribution(vec3 N,
     vec3 diffuse = diffuseLight * diffuseColor;
     vec3 specular = specularLight * (specularColor * brdf.x + brdf.y);
 
-    return (diffuse + specular) * pc.ibl_factor;
+    return (diffuse + specular) * pc.iblFactor;
 }
 
 float directionalShadow(vec4 position, float NdotL)
 {
     const vec3 projectedPosition = position.xyz / position.w;
 
-    const float lightPerspectiveDepth = texture(shadowMap, projectedPosition.xy).r;
+    const float lightPerspectiveDepth =
+        texture(shadowMap, projectedPosition.xy).r;
     const float currentDepth = projectedPosition.z;
 
-    if (position.z > -1.0 && position.z < 1.0) 
+    if (position.z > -1.0 && position.z < 1.0)
     {
         if (position.w > 0.0 && lightPerspectiveDepth < currentDepth - 0.005)
         {
@@ -269,7 +273,8 @@ void main()
         {
             L = normalize(env.lights[i].position.xyz - inPosition);
 
-            const float distance = length(env.lights[i].position.xyz - inPosition);
+            const float distance =
+                length(env.lights[i].position.xyz - inPosition);
             const float attenuation = 1.0 / (distance * distance);
             radiance *= attenuation;
         }
@@ -298,8 +303,10 @@ void main()
             shadow = directionalShadow(inShadowPosition, NdotL);
         }
 
-        color +=
-            NdotL * radiance * (1.0 - shadow) * (diffuseContribution + specularContribution);
+        color += NdotL *
+            radiance *
+            (1.0 - shadow) *
+            (diffuseContribution + specularContribution);
     }
 
     vec3 ambient = IBLContribution(N,
@@ -349,7 +356,8 @@ void main()
 #else
     const float alpha = albedo.a;
 
-    const float weight = clamp(pow(min(1.0, alpha * 10.0) + 0.01, 3.0) * 1e8 *
+    const float weight = clamp(pow(min(1.0, alpha * 10.0) + 0.01, 3.0) *
+            1e8 *
             pow(1.0 - gl_FragCoord.z * 0.9, 3.0),
         1e-2,
         3e3);

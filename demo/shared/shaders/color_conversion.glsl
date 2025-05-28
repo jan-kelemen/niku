@@ -9,14 +9,13 @@
 vec3 fromLinear(vec3 linearRGB)
 {
     bvec3 cutoff = lessThan(linearRGB, vec3(0.0031308));
-    vec3 higher =
-        vec3(1.055) * pow(linearRGB, vec3(1.0 / 2.4)) - vec3(0.055);
+    vec3 higher = vec3(1.055) * pow(linearRGB, vec3(1.0 / 2.4)) - vec3(0.055);
     vec3 lower = linearRGB * vec3(12.92);
 
     return mix(higher, lower, cutoff);
 }
 
-vec4 fromLinear(vec4 linearRGB) 
+vec4 fromLinear(vec4 linearRGB)
 {
     return vec4(fromLinear(linearRGB.rgb), linearRGB.a);
 }
@@ -30,7 +29,7 @@ vec3 toLinear(vec3 sRGB)
     return mix(higher, lower, cutoff);
 }
 
-vec4 toLinear(vec4 linearRGB) 
+vec4 toLinear(vec4 linearRGB)
 {
     return vec4(toLinear(linearRGB.rgb), linearRGB.a);
 }
@@ -62,10 +61,7 @@ float luminance(vec3 linearRGB)
 
 float luminance(vec4 linearRGB) { return luminance(linearRGB.rgb); }
 
-float luma(vec3 linearRGB)
-{
-    return dot(linearRGB, vec3(0.299, 0.587, 0.114));
-}
+float luma(vec3 linearRGB) { return dot(linearRGB, vec3(0.299, 0.587, 0.114)); }
 
 float luma(vec4 linearRGB) { return luma(linearRGB.rgb); }
 

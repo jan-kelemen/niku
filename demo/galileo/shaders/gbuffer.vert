@@ -18,7 +18,8 @@ layout(location = 2) out vec4 outColor;
 layout(location = 3) out vec2 outUV;
 layout(location = 4) out uint outInstance;
 
-void main() {
+void main()
+{
     const mat4 model = graph.nodes[inInstance].model;
     const vec4 worldPosition = model * vec4(inPosition, 1.0);
 
@@ -30,4 +31,3 @@ void main() {
     outUV = inUV;
     outInstance = inInstance;
 }
-

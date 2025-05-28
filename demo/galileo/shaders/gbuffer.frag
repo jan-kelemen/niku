@@ -32,7 +32,8 @@ vec4 baseColor(Material m)
     return m.baseColorFactor * color;
 }
 
-void main() {
+void main()
+{
     const uint material_idx = graph.nodes[inInstance].material;
     const Material m = materials.v[material_idx];
 

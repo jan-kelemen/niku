@@ -7,6 +7,8 @@ layout(binding = 0) uniform sampler2D texSampler;
 
 layout(location = 0) out vec4 outColor;
 
-void main() {
-    outColor = vec4(inTexColor.rgb, texelFetch(texSampler, ivec2(inTexCoord.x, inTexCoord.y), 0).r);
+void main()
+{
+    outColor = vec4(inTexColor.rgb,
+        texelFetch(texSampler, ivec2(inTexCoord.x, inTexCoord.y), 0).r);
 }

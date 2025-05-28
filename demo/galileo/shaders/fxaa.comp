@@ -13,11 +13,11 @@ layout(set = 0, binding = 0) uniform sampler2D backbuffer;
 
 layout(set = 0, binding = 1) uniform writeonly image2D image;
 
-vec4 frameOpt(float left, float right, vec2 resolution) {
-    return vec4(
-        left / resolution.x,
-        left / resolution.y, 
-        right / resolution.x, 
+vec4 frameOpt(float left, float right, vec2 resolution)
+{
+    return vec4(left / resolution.x,
+        left / resolution.y,
+        right / resolution.x,
         right / resolution.y);
 }
 
@@ -25,13 +25,15 @@ void main()
 {
     const vec2 resolution = vec2(imageSize(image).x, imageSize(image).y);
 
-    const vec2 sampleCoord = vec2(
-        float(gl_GlobalInvocationID.x + 0.5) / resolution.x,
-        float(gl_GlobalInvocationID.y + 0.5) / resolution.y);
+    const vec2 sampleCoord =
+        vec2(float(gl_GlobalInvocationID.x + 0.5) / resolution.x,
+            float(gl_GlobalInvocationID.y + 0.5) / resolution.y);
 
-    const vec4 fxaaOut = FxaaPixelShader(
-        sampleCoord, // pos
-        vec4(sampleCoord.x - 0.5, sampleCoord.y - 0.5, sampleCoord.x + 0.5, sampleCoord.y + 0.5), // fxaaConsolePosPos
+    const vec4 fxaaOut = FxaaPixelShader(sampleCoord, // pos
+        vec4(sampleCoord.x - 0.5,
+            sampleCoord.y - 0.5,
+            sampleCoord.x + 0.5,
+            sampleCoord.y + 0.5), // fxaaConsolePosPos
         backbuffer, // tex
         backbuffer, // fxaaConsole360TexExpBiasNegOne
         backbuffer, // fxaaConsole360TexExpBiasNegTwo

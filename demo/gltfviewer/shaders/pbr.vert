@@ -11,7 +11,7 @@ layout(location = 4) in vec2 inUV;
 layout(push_constant) uniform PushConsts
 {
     uint debug;
-    float ibl_factor;
+    float iblFactor;
     uint modelIndex;
     uint materialIndex;
 } pc;
@@ -58,11 +58,13 @@ void main()
     outColor = inColor;
     outUV = inUV;
 
+    // clang-format off
     const mat4 bias = mat4(
         0.5, 0.0, 0.0, 0.0,
         0.0, 0.5, 0.0, 0.0,
         0.0, 0.0, 1.0, 0.0,
         0.5, 0.5, 0.0, 1.0);
+    // clang-format on
 
     for (uint i = 0; i != env.lightCount; ++i)
     {

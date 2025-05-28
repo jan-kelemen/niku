@@ -29,10 +29,12 @@ void main()
         {
             vec3 tangentSample =
                 vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-            vec3 sampleVec = tangentSample.x * right + tangentSample.y * up +
+            vec3 sampleVec = tangentSample.x * right +
+                tangentSample.y * up +
                 tangentSample.z * N;
 
-            irradiance += texture(environmentMap, sampleVec).rgb * cos(theta) *
+            irradiance += texture(environmentMap, sampleVec).rgb *
+                cos(theta) *
                 sin(theta);
             nrSamples++;
         }
