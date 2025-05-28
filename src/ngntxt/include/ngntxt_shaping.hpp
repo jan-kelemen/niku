@@ -18,7 +18,7 @@ namespace ngntxt
             hb_buffer_destroy>;
 
     [[nodiscard]] shaping_font_face_ptr_t create_shaping_font_face(
-        ngntxt::font_face_ptr_t face);
+        ngntxt::font_face_ptr_t& face);
 
     [[nodiscard]] shaping_buffer_ptr_t create_shaping_buffer();
 } // namespace ngntxt

@@ -1,9 +1,11 @@
 #include <ngntxt_shaping.hpp>
 
+#include <ngntxt_font_face.hpp>
+
 #include <hb-ft.h>
 
 ngntxt::shaping_font_face_ptr_t ngntxt::create_shaping_font_face(
-    font_face_ptr_t face)
+    font_face_ptr_t& face)
 {
     return hb_ft_font_create_referenced(*face);
 }

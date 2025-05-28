@@ -18,7 +18,6 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
@@ -26,7 +25,6 @@
 
 #include <boost/scope/defer.hpp>
 
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -45,7 +43,6 @@
 
 #include <array>
 #include <cassert>
-#include <cstddef>
 #include <fstream>
 #include <map>
 #include <random>
@@ -348,7 +345,7 @@ void reshed::text_editor_t::handle_event(SDL_Event const& event)
     if (event.type == SDL_EVENT_TEXT_INPUT)
     {
         SDL_TextInputEvent const& text_event{event.text};
-        std::string_view content{text_event.text};
+        std::string_view const content{text_event.text};
 
         auto const& [start_byte, point] =
             buffer_.add(cursor_line, cursor_column, content);
@@ -493,7 +490,10 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
     std::vector<vertex_t*> vertices_by_line;
 
-    glm::ivec2 cursor{0, (*font_face_)->size->metrics.height >> 6};
+    float const line_height{
+        cppext::as_fp((*font_face_)->size->metrics.height >> 6)};
+
+    glm::vec2 cursor{0.0f, line_height};
     for (size_t line_index{}; line_index != buffer_.lines(); ++line_index)
     {
         vertices_by_line.push_back(vertices + frame_data_->vertices);
@@ -502,11 +502,13 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
         hb_buffer_clear_contents(shaping_buffer_.get());
 
+        // NOLINTBEGIN(bugprone-suspicious-stringview-data-usage)
         hb_buffer_add_utf8(shaping_buffer_.get(),
             line.data(),
             cppext::narrow<int>(line.size()),
             0,
             cppext::narrow<int>(line.size()));
+        // NOLINTEND(bugprone-suspicious-stringview-data-usage)
         hb_buffer_guess_segment_properties(shaping_buffer_.get());
 
         hb_shape(shaping_font_face_.get(), shaping_buffer_.get(), nullptr, 0);
@@ -524,15 +526,15 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
             auto const& top_left{bitmap_glyph.top_left};
             auto const& size{bitmap_glyph.size};
-            glm::vec2 const b{cppext::as_fp(bitmap_glyph.bearing.x),
+
+            glm::vec2 const bearing{cppext::as_fp(bitmap_glyph.bearing.x),
                 cppext::as_fp(bitmap_glyph.size.y) -
                     cppext::as_fp(bitmap_glyph.bearing.y)};
 
-            float const x_offset{cppext::as_fp(pos[i].x_offset >> 6)};
-            float const y_offset{cppext::as_fp(pos[i].y_offset >> 6)};
+            glm::vec2 const offset{cppext::as_fp(pos[i].x_offset >> 6),
+                cppext::as_fp(pos[i].y_offset >> 6)};
 
-            vertices[frame_data_->vertices++] = {
-                glm::vec2{cursor.x + x_offset, cursor.y + y_offset} + b,
+            vertices[frame_data_->vertices++] = {cursor + offset + bearing,
                 glm::vec2{size},
                 glm::vec2{top_left},
                 glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}};
@@ -541,7 +543,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
         }
 
         cursor.x = 0;
-        cursor.y += (*font_face_)->size->metrics.height >> 6;
+        cursor.y += line_height;
     }
 
     ngntxt::query_cursor_handle_t cursor_handle{

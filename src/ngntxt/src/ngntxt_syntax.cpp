@@ -6,6 +6,9 @@
 
 #include <utility>
 
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+
 ngntxt::parser_handle_t ngntxt::create_parser()
 {
     ngntxt::parser_handle_t rv{ts_parser_new()};
@@ -16,6 +19,8 @@ ngntxt::parser_handle_t ngntxt::create_parser()
 ngntxt::query_handle_t ngntxt::create_query(language_handle_t const& language,
     std::string_view pattern)
 {
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,
+    // bugprone-suspicious-stringview-data-usage)
     uint32_t error_offset;
     TSQueryError error_type;
     ngntxt::query_handle_t rv{ts_query_new(language.get(),
@@ -23,6 +28,8 @@ ngntxt::query_handle_t ngntxt::create_query(language_handle_t const& language,
         cppext::narrow<uint32_t>(pattern.size()),
         &error_offset,
         &error_type)};
+    // NOLINTEND(cppcoreguidelines-init-variables,
+    // bugprone-suspicious-stringview-data-usage)
     if (!rv)
     {
         spdlog::error("Query error of type {} on offset {}",

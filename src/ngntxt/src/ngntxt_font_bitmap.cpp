@@ -22,19 +22,22 @@
 
 #include <volk.h>
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <span>
 #include <tuple>
 #include <utility>
+#include <vector>
 
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 
 namespace
 {
-    static constexpr VkImageSubresourceLayers bitmap_subresource{
+    constexpr VkImageSubresourceLayers bitmap_subresource{
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .mipLevel = 0,
         .baseArrayLayer = 0,
@@ -85,7 +88,7 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
                 cppext::narrow<uint32_t>(slot->advance.x)));
         auto const& glyph_size{it->second.size};
 
-        all_bitmaps_size += glyph_size.x * glyph_size.y;
+        all_bitmaps_size += size_t{glyph_size.x} * glyph_size.y;
 
         max_glyph_extents = glm::max(max_glyph_extents, glyph_size);
     }
@@ -163,7 +166,7 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
                     for (unsigned int x{}; x != slot->bitmap.width; ++x)
                     {
                         staging_values[buffer_offset +
-                            y * slot->bitmap.width +
+                            VkDeviceSize{y} * slot->bitmap.width +
                             x] =
                             static_cast<std::byte>(
                                 slot->bitmap.buffer[y * bitmap_pitch + x]);
@@ -180,7 +183,8 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
                         0},
                     .imageExtent = {slot->bitmap.width, slot->bitmap.rows, 1}});
 
-                buffer_offset += slot->bitmap.width * slot->bitmap.rows;
+                buffer_offset +=
+                    VkDeviceSize{slot->bitmap.width} * slot->bitmap.rows;
             }
 
             glyph_info.top_left = top_left;

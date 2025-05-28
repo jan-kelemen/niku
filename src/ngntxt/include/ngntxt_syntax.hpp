@@ -5,6 +5,8 @@
 
 #include <tree_sitter/api.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <span>

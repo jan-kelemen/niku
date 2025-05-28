@@ -54,7 +54,7 @@ namespace ngntxt
     using font_face_ptr_t = boost::intrusive_ptr<FT_Face>;
 
     std::expected<font_face_ptr_t, std::error_code> load_font_face(
-        std::shared_ptr<freetype_context_t> context,
+        std::shared_ptr<freetype_context_t> const& context,
         std::filesystem::path const& path,
         glm::uvec2 char_size);
 } // namespace ngntxt

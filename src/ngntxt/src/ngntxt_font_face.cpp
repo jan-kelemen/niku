@@ -1,7 +1,5 @@
 #include <ngntxt_font_face.hpp>
 
-#include <cppext_numeric.hpp>
-
 #include <boost/scope/scope_exit.hpp>
 
 #include <fmt/format.h>
@@ -9,12 +7,10 @@
 
 #include <spdlog/spdlog.h>
 
-#include <cassert>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <system_error>
-#include <utility>
 
 // IWYU pragma: no_include <fmt/base.h>
 
@@ -56,7 +52,7 @@ ngntxt::freetype_context_t::instance()
 FT_Library ngntxt::freetype_context_t::handle() const { return library_; }
 
 std::expected<ngntxt::font_face_ptr_t, std::error_code> ngntxt::load_font_face(
-    std::shared_ptr<freetype_context_t> context,
+    std::shared_ptr<freetype_context_t> const& context,
     std::filesystem::path const& path,
     glm::uvec2 const char_size)
 {

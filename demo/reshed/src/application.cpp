@@ -22,7 +22,6 @@
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <glm/vec2.hpp>
 #include <imgui.h>
 
 #include <volk.h>
@@ -33,7 +32,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include <cmath>
 #include <exception>
 #include <expected>
 #include <memory>
