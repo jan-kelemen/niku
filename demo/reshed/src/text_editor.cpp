@@ -61,6 +61,7 @@ namespace
     struct [[nodiscard]] vertex_t final
     {
         glm::vec2 position;
+        glm::vec2 size;
         glm::vec2 uv;
         glm::vec4 color;
     };
@@ -86,8 +87,12 @@ namespace
             VkVertexInputAttributeDescription{.location = 1,
                 .binding = 0,
                 .format = VK_FORMAT_R32G32_SFLOAT,
-                .offset = offsetof(vertex_t, uv)},
+                .offset = offsetof(vertex_t, size)},
             VkVertexInputAttributeDescription{.location = 2,
+                .binding = 0,
+                .format = VK_FORMAT_R32G32_SFLOAT,
+                .offset = offsetof(vertex_t, uv)},
+            VkVertexInputAttributeDescription{.location = 3,
                 .binding = 0,
                 .format = VK_FORMAT_R32G32B32A32_SFLOAT,
                 .offset = offsetof(vertex_t, color)}};
@@ -220,6 +225,24 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
         [this, shd = &vertex_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
+    auto tesselation_control_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+        "text.tesc")};
+    assert(tesselation_control_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_tesc{
+        [this, shd = &tesselation_control_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
+    auto tesselation_evaluation_shader{add_shader_module_from_path(shader_set,
+        backend_->device(),
+        VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+        "text.tese")};
+    assert(tesselation_evaluation_shader);
+    [[maybe_unused]] boost::scope::defer_guard const destroy_tese{
+        [this, shd = &tesselation_evaluation_shader.value()]()
+        { destroy(&backend_->device(), shd); }};
+
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
         VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -257,12 +280,17 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
         vkrndr::pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(*descriptor_layout)
-                .add_push_constants<glm::mat4>(VK_SHADER_STAGE_VERTEX_BIT)
+                .add_push_constants<glm::mat4>(
+                    VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
                 .build()}
             .add_shader(as_pipeline_shader(*vertex_shader))
+            .add_shader(as_pipeline_shader(*tesselation_control_shader))
+            .add_shader(as_pipeline_shader(*tesselation_evaluation_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(backend_->image_format(), alpha_blend)
             .add_vertex_input(binding_description(), attribute_description())
+            .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST)
+            .with_tesselation_patch_points(1)
             .build();
 
     for (auto& data : cppext::as_span(frame_data_))
@@ -278,18 +306,6 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
 
         data.vertex_map =
             vkrndr::map_memory(backend_->device(), data.vertex_buffer);
-
-        data.index_buffer = vkrndr::create_buffer(backend_->device(),
-            {.size = 60000 * sizeof(uint32_t),
-                .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                .allocation_flags =
-                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
-
-        data.index_map =
-            vkrndr::map_memory(backend_->device(), data.index_buffer);
     }
 
     projection_.set_invert_y(false);
@@ -316,10 +332,6 @@ reshed::text_editor_t::~text_editor_t()
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
-        vkrndr::unmap_memory(backend_->device(), &data.index_map);
-
-        vkrndr::destroy(&backend_->device(), &data.index_buffer);
-
         vkrndr::unmap_memory(backend_->device(), &data.vertex_map);
 
         vkrndr::destroy(&backend_->device(), &data.vertex_buffer);
@@ -477,7 +489,6 @@ VkPipelineLayout reshed::text_editor_t::pipeline_layout() const
 void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 {
     vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
-    uint32_t* const indices{frame_data_->index_map.as<uint32_t>()};
 
     std::vector<vertex_t*> vertices_by_line;
 
@@ -519,35 +530,11 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             float const x_offset{cppext::as_fp(pos[i].x_offset >> 6)};
             float const y_offset{cppext::as_fp(pos[i].y_offset >> 6)};
 
-            uint32_t const vert_idx{frame_data_->vertices};
-            vertices[vert_idx + 0] = {glm::vec2{cursor.x, cursor.y},
-                glm::vec2{top_left.x, top_left.y + size.y}};
-            vertices[vert_idx + 1] = {
-                glm::vec2{cursor.x + size.x + x_offset, cursor.y},
-                glm::vec2{top_left.x + size.x, top_left.y + size.y}};
-            vertices[vert_idx + 2] = {glm::vec2{cursor.x + size.x + x_offset,
-                                          cursor.y - size.y - y_offset},
-                glm::vec2{top_left.x + size.x, top_left.y}};
-            vertices[vert_idx + 3] = {
-                glm::vec2{cursor.x, cursor.y - size.y - y_offset},
-                glm::vec2{top_left.x, top_left.y}};
-
-            for (uint32_t j{vert_idx}; j != vert_idx + 4; ++j)
-            {
-                vertices[j].position += b;
-                vertices[j].color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
-            }
-
-            uint32_t const index_idx{frame_data_->indices};
-            indices[index_idx + 0] = vert_idx + 0;
-            indices[index_idx + 1] = vert_idx + 1;
-            indices[index_idx + 2] = vert_idx + 2;
-            indices[index_idx + 3] = vert_idx + 2;
-            indices[index_idx + 4] = vert_idx + 3;
-            indices[index_idx + 5] = vert_idx + 0;
-
-            frame_data_->indices += 6;
-            frame_data_->vertices += 4;
+            vertices[frame_data_->vertices++] = {
+                glm::vec2{cursor.x + x_offset, cursor.y + y_offset} + b,
+                glm::vec2{size},
+                glm::vec2{top_left},
+                glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}};
 
             cursor += glm::ivec2{pos[i].x_advance, pos[i].y_advance} >> 6;
         }
@@ -569,8 +556,8 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             assert(start.row == end.row);
 
             for (vertex_t& vertex :
-                std::span{vertices_by_line[start.row] + start.column * 4,
-                    (end.column - start.column) * 4})
+                std::span{vertices_by_line[start.row] + start.column,
+                    (end.column - start.column)})
             {
                 vertex.color = capture_colors[capture.index];
             }
@@ -589,26 +576,17 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
         &frame_data_->vertex_buffer.buffer,
         &zero_offset);
 
-    vkCmdBindIndexBuffer(command_buffer,
-        frame_data_->index_buffer.buffer,
-        0,
-        VK_INDEX_TYPE_UINT32);
-
     vkCmdPushConstants(command_buffer,
         pipeline_layout(),
-        VK_SHADER_STAGE_VERTEX_BIT,
+        VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
         0,
         sizeof(glm::mat4),
         &projection_.projection_matrix());
 
-    vkCmdDrawIndexed(command_buffer, frame_data_->indices, 1, 0, 0, 0);
+    vkCmdDraw(command_buffer, frame_data_->vertices, 1, 0, 0);
 
-    frame_data_.cycle(
-        []([[maybe_unused]] auto const& prev, auto& next)
-        {
-            next.vertices = 0;
-            next.indices = 0;
-        });
+    frame_data_.cycle([]([[maybe_unused]] auto const& prev, auto& next)
+        { next.vertices = 0; });
 }
 
 void reshed::text_editor_t::resize(uint32_t const width, uint32_t const height)

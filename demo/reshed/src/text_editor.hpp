@@ -88,10 +88,6 @@ namespace reshed
             vkrndr::buffer_t vertex_buffer;
             vkrndr::mapped_memory_t vertex_map;
             uint32_t vertices{};
-
-            vkrndr::buffer_t index_buffer;
-            vkrndr::mapped_memory_t index_map;
-            uint32_t indices{};
         };
 
     private:

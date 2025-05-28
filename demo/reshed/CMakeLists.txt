@@ -43,10 +43,14 @@ add_dependencies(reshed reshed_assets reshed_shaders)
 add_custom_target(reshed_shaders
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.tesc
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.tese
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.vert
         ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.tesc
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.tese
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.vert
 )
 
