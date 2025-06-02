@@ -180,6 +180,12 @@ namespace
         std::string const queries{read_highlights("highlights.scm")};
         return ngntxt::create_query(language, queries);
     }
+
+    struct [[nodiscard]] shaped_line_t final
+    {
+        std::span<vertex_t> vertices;
+        std::vector<hb_glyph_info_t> glyph_infos;
+    };
 } // namespace
 
 reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
@@ -488,7 +494,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
     vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
 
-    std::vector<vertex_t*> vertices_by_line;
+    std::vector<shaped_line_t> shaped_lines;
 
     float const line_height{
         cppext::as_fp((*font_face_)->size->metrics.height >> 6)};
@@ -496,8 +502,6 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
     glm::vec2 cursor{0.0f, line_height};
     for (size_t line_index{}; line_index != buffer_.lines(); ++line_index)
     {
-        vertices_by_line.push_back(vertices + frame_data_->vertices);
-
         std::string_view const line{buffer_.line(line_index, false)};
 
         hb_buffer_clear_contents(shaping_buffer_.get());
@@ -514,15 +518,21 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
         hb_shape(shaping_font_face_.get(), shaping_buffer_.get(), nullptr, 0);
 
         unsigned int const len{hb_buffer_get_length(shaping_buffer_.get())};
-        hb_glyph_info_t const* const info{
-            hb_buffer_get_glyph_infos(shaping_buffer_.get(), nullptr)};
-        hb_glyph_position_t const* const pos{
-            hb_buffer_get_glyph_positions(shaping_buffer_.get(), nullptr)};
+        shaped_line_t& shaped_line{shaped_lines.emplace_back(
+            std::span{vertices + frame_data_->vertices, len})};
+        std::ranges::copy_n(
+            hb_buffer_get_glyph_infos(shaping_buffer_.get(), nullptr),
+            len,
+            std::back_inserter(shaped_line.glyph_infos));
+
+        std::span<hb_glyph_position_t const> const positions{
+            hb_buffer_get_glyph_positions(shaping_buffer_.get(), nullptr),
+            len};
 
         for (unsigned int i{}; i != len; i++)
         {
             ngntxt::glyph_info_t const& bitmap_glyph{
-                font_bitmap_.glyphs.at(info[i].codepoint)};
+                font_bitmap_.glyphs.at(shaped_line.glyph_infos[i].codepoint)};
 
             auto const& top_left{bitmap_glyph.top_left};
             auto const& size{bitmap_glyph.size};
@@ -531,15 +541,16 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
                 cppext::as_fp(bitmap_glyph.size.y) -
                     cppext::as_fp(bitmap_glyph.bearing.y)};
 
-            glm::vec2 const offset{cppext::as_fp(pos[i].x_offset >> 6),
-                cppext::as_fp(pos[i].y_offset >> 6)};
+            glm::vec2 const offset{cppext::as_fp(positions[i].x_offset >> 6),
+                cppext::as_fp(positions[i].y_offset >> 6)};
 
             vertices[frame_data_->vertices++] = {cursor + offset + bearing,
                 glm::vec2{size},
                 glm::vec2{top_left},
                 glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}};
 
-            cursor += glm::ivec2{pos[i].x_advance, pos[i].y_advance} >> 6;
+            cursor +=
+                glm::ivec2{positions[i].x_advance, positions[i].y_advance} >> 6;
         }
 
         cursor.x = 0;
@@ -558,11 +569,16 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             TSPoint const end{ts_node_end_point(capture.node)};
             assert(start.row == end.row);
 
-            for (vertex_t& vertex :
-                std::span{vertices_by_line[start.row] + start.column,
-                    (end.column - start.column)})
+            auto& row{shaped_lines[start.row]};
+            for (size_t i{}; i != row.vertices.size() &&
+                row.glyph_infos[i].cluster < end.column;
+                ++i)
             {
-                vertex.color = syntax_color_table_[capture.index].color;
+                if (row.glyph_infos[i].cluster >= start.column)
+                {
+                    row.vertices[i].color =
+                        syntax_color_table_[capture.index].color;
+                }
             }
         }
     }
