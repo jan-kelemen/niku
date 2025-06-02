@@ -12,6 +12,7 @@ Cross platform game engine implemented in C++23 with support for Windows and Lin
 ## Demo applications
 * [galileo](demo/galileo) - Deferred 3D renderer with physics and scripting
 * [gltfviewer](demo/gltfviewer) - Forward 3D renderer for glTF files implementing a Physically Based Rendering workflow
+* [reshed](demo/reshed) - Text editor with bitmap font rendering and GLSL syntax highlighting
 
 ## Building
 
