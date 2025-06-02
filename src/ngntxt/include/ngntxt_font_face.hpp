@@ -51,7 +51,7 @@ namespace ngntxt
         FT_Library library_;
     };
 
-    using font_face_ptr_t = boost::intrusive_ptr<FT_Face>;
+    using font_face_ptr_t = boost::intrusive_ptr<FT_FaceRec_>;
 
     std::expected<font_face_ptr_t, std::error_code> load_font_face(
         std::shared_ptr<freetype_context_t> const& context,
@@ -59,7 +59,7 @@ namespace ngntxt
         glm::uvec2 char_size);
 } // namespace ngntxt
 
-void intrusive_ptr_add_ref(FT_Face const* p);
+void intrusive_ptr_add_ref(FT_FaceRec_* p);
 
-void intrusive_ptr_release(FT_Face const* p);
+void intrusive_ptr_release(FT_FaceRec_* p);
 #endif

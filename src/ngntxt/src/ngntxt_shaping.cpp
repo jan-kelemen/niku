@@ -7,7 +7,7 @@
 ngntxt::shaping_font_face_ptr_t ngntxt::create_shaping_font_face(
     font_face_ptr_t& face)
 {
-    return {hb_ft_font_create_referenced(*face), false};
+    return {hb_ft_font_create_referenced(face.get()), false};
 }
 
 ngntxt::shaping_buffer_ptr_t ngntxt::create_shaping_buffer()

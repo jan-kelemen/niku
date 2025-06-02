@@ -472,7 +472,7 @@ void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
 
     destroy(&backend_->device(), &font_bitmap_);
     font_bitmap_ = ngntxt::create_bitmap(*backend_,
-        *font_face_,
+        font_face_.get(),
         0,
         256,
         ngntxt::font_bitmap_indexing_t::glyph);
@@ -507,7 +507,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
     std::vector<shaped_line_t> shaped_lines;
 
     float const line_height{
-        cppext::as_fp((*font_face_)->size->metrics.height >> 6)};
+        cppext::as_fp(font_face_->size->metrics.height >> 6)};
 
     glm::vec2 cursor{0.0f, line_height};
     for (size_t line_index{}; line_index != buffer_.lines(); ++line_index)
