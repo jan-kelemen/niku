@@ -1,6 +1,8 @@
-# Building niku
+# niku - Development guide 
 
-## Initial setup
+## Building 
+
+### Initial setup
 Override packages from public Conan2 package index with updated ones from [jan-kelemen/conan-recipes](https://github.com/jan-kelemen/conan-recipes):
 ```
 git clone git@github.com:jan-kelemen/conan-recipes.git
@@ -33,21 +35,28 @@ conan export conan-recipes/recipes/vulkan-memory-allocator/all --version 3.3.0
 Install Conan2 dependencies. See folder [conan](../conan) for available profiles. 
 Folder [ci/conan](../ci/conan) contains preconfigured profile combinations for CI builds.
 
-## Windows
+### Windows
 ```
 conan install . --profile=conan/msvc-2022-amd64-windows --profile=conan/dependencies --build=missing -s build_type=Release 
 cmake --preset release
 cmake --build --preset multi-release --config Release
 ```
 
-## Linux
+### Linux
 ```
 conan install . --profile=conan/clang-20-libstdcxx-amd64-linux --profile=conan/dependencies --profile=conan/opt/linux-native --build=missing --settings build_type=Release
 cmake --preset release
 cmake --build --preset release
 ```
 
-## CMake configuration options
+### CMake configuration options
 * `NIKU_BUILD_DEMOS` - build engine demo examples, ON by default
 * `NIKU_VKRNDR_ENABLE_DEBUG_UTILS` - debug utilities for Vulkan, ON by default in `Debug` and `RelWitDebInfo` configurations
 
+## Working with sanitized builds
+There are known leaks in X11 third party libraries [SDL/10322](https://github.com/libsdl-org/SDL/issues/10322).
+
+If you need to work with a leak sanitizer enabled build use the suppressions file from the root of the repository:
+```
+LSAN_OPTIONS=suppressions=suppression.lsan ./gltfviewer
+```

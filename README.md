@@ -26,7 +26,7 @@ Necessary build tools are:
   * Visual Studio 2022 (MSVC v194)
 * Ninja (if using Clang on Windows)
 
-See [doc/BUILD.md](doc/BUILD.md) for details.
+See [doc/DEVELOPMENT.md](doc/DEVELOPMENT.md) for details.
 
 ## License
 Licensed under [BSD-3-Clause](LICENSE). See [COPYRIGHT.md](COPYRIGHT.md) for additional licensing info
