@@ -531,8 +531,12 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
         for (unsigned int i{}; i != len; i++)
         {
+            auto const glyph_it{
+                font_bitmap_.glyphs.find(shaped_line.glyph_infos[i].codepoint)};
             ngntxt::glyph_info_t const& bitmap_glyph{
-                font_bitmap_.glyphs.at(shaped_line.glyph_infos[i].codepoint)};
+                glyph_it != font_bitmap_.glyphs.cend()
+                    ? glyph_it->second
+                    : font_bitmap_.glyphs.at(0)};
 
             auto const& top_left{bitmap_glyph.top_left};
             auto const& size{bitmap_glyph.size};
