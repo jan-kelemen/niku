@@ -19,17 +19,15 @@ ngntxt::parser_handle_t ngntxt::create_parser()
 ngntxt::query_handle_t ngntxt::create_query(language_handle_t const& language,
     std::string_view pattern)
 {
-    // NOLINTBEGIN(cppcoreguidelines-init-variables,
-    // bugprone-suspicious-stringview-data-usage)
-    uint32_t error_offset;
-    TSQueryError error_type;
+    // NOLINTBEGIN(bugprone-suspicious-stringview-data-usage)
+    uint32_t error_offset{};
+    TSQueryError error_type{TSQueryErrorNone};
     ngntxt::query_handle_t rv{ts_query_new(language.get(),
         pattern.data(),
         cppext::narrow<uint32_t>(pattern.size()),
         &error_offset,
         &error_type)};
-    // NOLINTEND(cppcoreguidelines-init-variables,
-    // bugprone-suspicious-stringview-data-usage)
+    // NOLINTEND(bugprone-suspicious-stringview-data-usage)
     if (!rv)
     {
         spdlog::error("Query error of type {} on offset {}",
@@ -129,7 +127,7 @@ std::vector<std::string_view> ngntxt::capture_names(query_handle_t& query)
 
     for (uint32_t i{}; i != count; ++i)
     {
-        uint32_t length;
+        uint32_t length{};
         char const* const name{
             ts_query_capture_name_for_id(query.get(), i, &length)};
         rv.emplace_back(name, length);

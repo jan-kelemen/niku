@@ -11,6 +11,7 @@
 #include <ngntxt_font_bitmap.hpp>
 #include <ngntxt_font_face.hpp>
 #include <ngntxt_shaping.hpp>
+#include <ngntxt_syntax.hpp>
 
 #include <vkglsl_shader_set.hpp>
 
@@ -29,30 +30,39 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H // IWYU pragma: keep
+
 #include <hb.h>
 
 #include <imgui.h>
 
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_scancode.h>
 
-#include <spdlog/spdlog.h>
+#include <tree_sitter/api.h>
 
 #include <tree-sitter-glsl.h>
 
 #include <vma_impl.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <fstream>
+#include <iterator>
 #include <map>
+#include <optional>
 #include <random>
 #include <ranges>
+#include <stdexcept>
 #include <utility>
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <system_error>
 // IWYU pragma: no_include <span>
@@ -520,10 +530,12 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
         unsigned int const len{hb_buffer_get_length(shaping_buffer_.get())};
         shaped_line_t& shaped_line{shaped_lines.emplace_back(
             std::span{vertices + frame_data_->vertices, len})};
+        // cppcheck-suppress-begin invalidContainerReference
         std::ranges::copy_n(
             hb_buffer_get_glyph_infos(shaping_buffer_.get(), nullptr),
             len,
             std::back_inserter(shaped_line.glyph_infos));
+        // cppcheck-suppress-end invalidContainerReference
 
         std::span<hb_glyph_position_t const> const positions{
             hb_buffer_get_glyph_positions(shaping_buffer_.get(), nullptr),
@@ -626,6 +638,8 @@ reshed::text_buffer_t::add(size_t line, size_t column, std::string_view content)
 {
     auto line_range{std::views::split(buffer_, '\n') | std::views::drop(line)};
 
+    using diff_t = std::iter_difference_t<decltype(line_range.front().begin())>;
+
     size_t edit_start{};
 
     if (line_range.empty())
@@ -635,13 +649,15 @@ reshed::text_buffer_t::add(size_t line, size_t column, std::string_view content)
     }
     else
     {
-        auto const it{std::next(line_range.front().begin(), column)};
-        edit_start = std::distance(buffer_.begin(), it);
+        auto const it{std::next(line_range.front().begin(),
+            cppext::narrow<diff_t>(column))};
+        edit_start = cppext::narrow<size_t>(std::distance(buffer_.begin(), it));
 
         buffer_.insert(it, content.cbegin(), content.cend());
     }
 
-    auto const newlines_in_content{std::ranges::count(content, '\n')};
+    auto const newlines_in_content{
+        static_cast<size_t>(std::ranges::count(content, '\n'))};
     auto edit_end_column{column + content.size()};
     if (newlines_in_content != 0)
     {
@@ -658,16 +674,21 @@ std::pair<size_t, reshed::edit_point_t>
 reshed::text_buffer_t::remove(size_t line, size_t column, size_t count)
 {
     auto line_range{std::views::split(buffer_, '\n') | std::views::drop(line)};
-    auto end_it{std::next(line_range.front().begin(), column)};
+    using diff_t = std::iter_difference_t<decltype(line_range.front().begin())>;
+
+    auto end_it{
+        std::next(line_range.front().begin(), cppext::narrow<diff_t>(column))};
 
     auto const edit_start{
         cppext::narrow<size_t>(std::distance(buffer_.begin(), end_it))};
 
-    std::string_view const erased{end_it - count, end_it};
-    auto const newlines_in_content{std::ranges::count(erased, '\n')};
+    std::string_view const erased{end_it - cppext::narrow<diff_t>(count),
+        end_it};
+    auto const newlines_in_content{
+        static_cast<size_t>(std::ranges::count(erased, '\n'))};
     assert(!newlines_in_content);
 
-    buffer_.erase(end_it - count, end_it);
+    buffer_.erase(end_it - cppext::narrow<diff_t>(count), end_it);
 
     return std::make_pair(edit_start,
         reshed::edit_point_t{.byte = edit_start - count,
@@ -691,5 +712,5 @@ std::string_view reshed::text_buffer_t::line(size_t line,
 
 size_t reshed::text_buffer_t::lines() const
 {
-    return std::ranges::count(buffer_, '\n') + 1;
+    return static_cast<size_t>(std::ranges::count(buffer_, '\n')) + 1;
 }

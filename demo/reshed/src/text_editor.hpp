@@ -14,6 +14,8 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 
+#include <glm/vec4.hpp>
+
 #include <volk.h>
 
 #include <cstddef>
@@ -21,6 +23,9 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
+
+// IWYU pragma: no_include <glm/detail/qualifier.hpp>
 
 union SDL_Event;
 
