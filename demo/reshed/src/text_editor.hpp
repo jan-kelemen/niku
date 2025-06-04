@@ -14,6 +14,7 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 
+#include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 
 #include <volk.h>
@@ -118,6 +119,8 @@ namespace reshed
         text_buffer_t buffer_;
         size_t cursor_line{};
         size_t cursor_column{};
+
+        glm::uvec2 extent_{};
 
         ngntxt::font_face_ptr_t font_face_;
         ngntxt::font_bitmap_t font_bitmap_;

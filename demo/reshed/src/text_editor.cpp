@@ -509,6 +509,11 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
     float const line_height{
         cppext::as_fp(font_face_->size->metrics.height >> 6)};
 
+    projection_.set_bottom_top(
+        {cppext::as_fp(cursor_line) * line_height + cppext::as_fp(extent_.y),
+            cppext::as_fp(cursor_line) * line_height});
+    projection_.update(glm::mat4{});
+
     glm::vec2 cursor{0.0f, line_height};
     for (size_t line_index{}; line_index != buffer_.lines(); ++line_index)
     {
@@ -626,6 +631,8 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
 void reshed::text_editor_t::resize(uint32_t const width, uint32_t const height)
 {
+    extent_ = {width, height};
+
     projection_.set_left_right({0.0f, cppext::as_fp(width)});
     projection_.set_bottom_top({cppext::as_fp(height), 0.0f});
     projection_.set_near_far_planes({-1.0f, 1.0f});
