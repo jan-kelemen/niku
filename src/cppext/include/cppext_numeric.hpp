@@ -29,11 +29,7 @@ namespace cppext
         template<typename T, typename U>
         constexpr bool size_align_sign_matches_v{(sizeof(T) == sizeof(U)) &&
             (alignof(T) == alignof(U)) &&
-            (std::is_signed_v<T> == std::is_signed_v<T>) };
-
-        template<typename T, typename... Candidates>
-        constexpr bool is_any_of_v =
-            std::disjunction_v<std::is_same<T, Candidates>...>;
+            (std::is_signed_v<T> == std::is_signed_v<U>) };
     } // namespace detail
 
     template<std::integral To, std::integral From>
@@ -61,7 +57,7 @@ namespace cppext
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
         if constexpr (std::is_signed_v<char>)
         {
-            static_assert(size_align_sign_matches_v<char, signed char>);
+            static_assert(detail::size_align_sign_matches_v<char, signed char>);
             return _add_overflow_i8(0,
                        lhs,
                        rhs,
@@ -69,7 +65,8 @@ namespace cppext
         }
         else
         {
-            static_assert(size_align_sign_matches_v<char, unsigned char>);
+            static_assert(
+                detail::size_align_sign_matches_v<char, unsigned char>);
             return _addcarry_u8(0,
                        lhs,
                        rhs,
@@ -114,7 +111,8 @@ namespace cppext
 #if __has_builtin(__builtin_add_overflow)
         return !__builtin_add_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<char8_t, unsigned char>);
+        static_assert(
+            detail::size_align_sign_matches_v<char8_t, unsigned char>);
         return _addcarry_u8(0,
                    lhs,
                    rhs,
@@ -131,7 +129,8 @@ namespace cppext
 #if __has_builtin(__builtin_add_overflow)
         return !__builtin_add_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<char16_t, unsigned short>);
+        static_assert(
+            detail::size_align_sign_matches_v<char16_t, unsigned short>);
         return _addcarry_u16(0,
                    lhs,
                    rhs,
@@ -148,7 +147,8 @@ namespace cppext
 #if __has_builtin(__builtin_add_overflow)
         return !__builtin_add_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<char32_t, unsigned int>);
+        static_assert(
+            detail::size_align_sign_matches_v<char32_t, unsigned int>);
         return _addcarry_u32(0,
                    lhs,
                    rhs,
@@ -165,7 +165,8 @@ namespace cppext
 #if __has_builtin(__builtin_add_overflow)
         return !__builtin_add_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<wchar_t, unsigned short>);
+        static_assert(
+            detail::size_align_sign_matches_v<wchar_t, unsigned short>);
         return _addcarry_u16(0,
                    lhs,
                    rhs,
@@ -236,7 +237,7 @@ namespace cppext
 #if __has_builtin(__builtin_add_overflow)
         return !__builtin_add_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<long, int>);
+        static_assert(detail::size_align_sign_matches_v<long, int>);
         return _add_overflow_i32(0, lhs, rhs, reinterpret_cast<int*>(&out)) ==
             0;
 #else
@@ -252,7 +253,8 @@ namespace cppext
 #if __has_builtin(__builtin_add_overflow)
         return !__builtin_add_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<unsigned long, unsigned int>);
+        static_assert(
+            detail::size_align_sign_matches_v<unsigned long, unsigned int>);
         return _addcarry_u32(0,
                    lhs,
                    rhs,
@@ -301,7 +303,7 @@ namespace cppext
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
         if constexpr (std::is_signed_v<char>)
         {
-            static_assert(size_align_sign_matches_v<char, signed char>);
+            static_assert(detail::size_align_sign_matches_v<char, signed char>);
             return _sub_overflow_i8(0,
                        lhs,
                        rhs,
@@ -309,7 +311,8 @@ namespace cppext
         }
         else
         {
-            static_assert(size_align_sign_matches_v<char, unsigned char>);
+            static_assert(
+                detail::size_align_sign_matches_v<char, unsigned char>);
             return _subborrow_u8(0,
                        lhs,
                        rhs,
@@ -354,7 +357,8 @@ namespace cppext
 #if __has_builtin(__builtin_sub_overflow)
         return !__builtin_sub_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<char8_t, unsigned char>);
+        static_assert(
+            detail::size_align_sign_matches_v<char8_t, unsigned char>);
         return _subborrow_u8(0,
                    lhs,
                    rhs,
@@ -371,7 +375,8 @@ namespace cppext
 #if __has_builtin(__builtin_sub_overflow)
         return !__builtin_sub_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<char16_t, unsigned short>);
+        static_assert(
+            detail::size_align_sign_matches_v<char16_t, unsigned short>);
         return _subborrow_u16(0,
                    lhs,
                    rhs,
@@ -388,7 +393,8 @@ namespace cppext
 #if __has_builtin(__builtin_sub_overflow)
         return !__builtin_sub_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<char32_t, unsigned int>);
+        static_assert(
+            detail::size_align_sign_matches_v<char32_t, unsigned int>);
         return _subborrow_u32(0,
                    lhs,
                    rhs,
@@ -405,7 +411,8 @@ namespace cppext
 #if __has_builtin(__builtin_sub_overflow)
         return !__builtin_sub_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<wchar_t, unsigned short>);
+        static_assert(
+            detail::size_align_sign_matches_v<wchar_t, unsigned short>);
         return _subborrow_u16(0,
                    lhs,
                    rhs,
@@ -476,7 +483,7 @@ namespace cppext
 #if __has_builtin(__builtin_sub_overflow)
         return !__builtin_sub_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<long, int>);
+        static_assert(detail::size_align_sign_matches_v<long, int>);
         return _sub_overflow_i32(0, lhs, rhs, reinterpret_cast<int*>(&out)) ==
             0;
 #else
@@ -492,7 +499,8 @@ namespace cppext
 #if __has_builtin(__builtin_sub_overflow)
         return !__builtin_sub_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<unsigned long, unsigned int>);
+        static_assert(
+            detail::size_align_sign_matches_v<unsigned long, unsigned int>);
         return _subborrow_u32(0,
                    lhs,
                    rhs,
@@ -509,7 +517,7 @@ namespace cppext
 #if __has_builtin(__builtin_sub_overflow)
         return !__builtin_sub_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<long long, __int64>);
+        static_assert(detail::size_align_sign_matches_v<long long, __int64>);
         return _sub_overflow_i64(0, lhs, rhs, &out) == 0;
 #else
 #error "Unsupported compiler"
@@ -633,7 +641,8 @@ namespace cppext
 #if __has_builtin(__builtin_mul_overflow)
         return !__builtin_mul_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<char16_t, unsigned short>);
+        static_assert(
+            detail::size_align_sign_matches_v<char16_t, unsigned short>);
 
         unsigned short upper; // NOLINT
         return _mul_full_overflow_u16(lhs,
@@ -653,7 +662,8 @@ namespace cppext
 #if __has_builtin(__builtin_mul_overflow)
         return !__builtin_mul_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<char32_t, unsigned int>);
+        static_assert(
+            detail::size_align_sign_matches_v<char32_t, unsigned int>);
 
         unsigned int upper; // NOLINT
         return _mul_full_overflow_u32(lhs,
@@ -673,7 +683,8 @@ namespace cppext
 #if __has_builtin(__builtin_mul_overflow)
         return !__builtin_mul_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<wchar_t, unsigned short>);
+        static_assert(
+            detail::size_align_sign_matches_v<wchar_t, unsigned short>);
 
         unsigned short upper; // NOLINT
         return _mul_full_overflow_u16(lhs,
@@ -751,7 +762,7 @@ namespace cppext
 #if __has_builtin(__builtin_mul_overflow)
         return !__builtin_mul_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<long, int>);
+        static_assert(detail::size_align_sign_matches_v<long, int>);
 
         return _mul_overflow_i32(lhs, rhs, reinterpret_cast<int*>(&out)) == 0;
 #else
@@ -767,7 +778,8 @@ namespace cppext
 #if __has_builtin(__builtin_mul_overflow)
         return !__builtin_mul_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<unsigned long, unsigned int>);
+        static_assert(
+            detail::size_align_sign_matches_v<unsigned long, unsigned int>);
 
         unsigned int upper; // NOLINT
         return _mul_full_overflow_u32(lhs,
@@ -787,7 +799,7 @@ namespace cppext
 #if __has_builtin(__builtin_mul_overflow)
         return !__builtin_mul_overflow(lhs, rhs, &out);
 #elif defined(CPPEXT_NUMERIC_IS_MSVC)
-        static_assert(size_align_sign_matches_v<long long, __int64>);
+        static_assert(detail::size_align_sign_matches_v<long long, __int64>);
         return _mul_overflow_i64(lhs, rhs, &out) == 0;
 #else
 #error "Unsupported compiler"
