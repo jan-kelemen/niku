@@ -1,6 +1,8 @@
 #ifndef RESHED_TEXT_EDITOR_INCLUDED
 #define RESHED_TEXT_EDITOR_INCLUDED
 
+#include <text_buffer.hpp>
+
 #include <cppext_cycled_buffer.hpp>
 
 #include <ngngfx_orthographic_projection.hpp>
@@ -22,8 +24,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <string_view>
-#include <utility>
 #include <vector>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
@@ -37,31 +37,6 @@ namespace vkrndr
 
 namespace reshed
 {
-    struct [[nodiscard]] edit_point_t final
-    {
-        size_t byte;
-        size_t line;
-        size_t column;
-    };
-
-    class [[nodiscard]] text_buffer_t final
-    {
-    public:
-        [[nodiscard]] std::pair<size_t, edit_point_t>
-        add(size_t line, size_t column, std::string_view content);
-
-        [[nodiscard]] std::pair<size_t, edit_point_t>
-        remove(size_t line, size_t column, size_t count);
-
-        [[nodiscard]] std::string_view line(size_t line,
-            bool include_newline) const;
-
-        [[nodiscard]] size_t lines() const;
-
-    private:
-        std::string buffer_;
-    };
-
     class [[nodiscard]] text_editor_t final
     {
     public:
