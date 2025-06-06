@@ -17,7 +17,7 @@
 #include <type_traits>
 #include <utility>
 
-#if CPPEXT_NUMERIC_IS_MSVC
+#ifdef CPPEXT_NUMERIC_IS_MSVC
 #include <intrin.h>
 #include <softintrin.h>
 #endif
