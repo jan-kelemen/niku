@@ -47,6 +47,7 @@ if (NIKU_BUILD_TESTS)
     target_sources(cppext_test
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_cycled_buffer.t.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_numeric.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_thread_pool.t.cpp
     )
 
