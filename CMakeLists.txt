@@ -34,6 +34,7 @@ find_package(stb REQUIRED)
 find_package(tree-sitter REQUIRED)
 find_package(volk REQUIRED)
 find_package(vulkan-memory-allocator REQUIRED)
+find_package(VulkanUtilityLibraries REQUIRED)
 
 if (NIKU_BUILD_DEMOS)
     find_package(recastnavigation REQUIRED)

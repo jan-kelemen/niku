@@ -127,6 +127,7 @@ Following third party libraries are used:
 * [volk](https://github.com/zeux/volk) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [Vulkan](https://www.vulkan.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and [MIT](https://spdx.org/licenses/MIT.html)
 * [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) published under [MIT](https://spdx.org/licenses/MIT.html)
+* [Vulkan::UtilityHeaders](https://github.com/KhronosGroup/Vulkan-Utility-Libraries) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 
 Following third party libraries are used by the engine demos exclusively:
 * [tree-sitter-glsl](https://github.com/tree-sitter-grammars/tree-sitter-glsl/) published under [MIT](https://spdx.org/licenses/MIT.html)

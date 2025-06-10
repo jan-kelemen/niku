@@ -65,6 +65,7 @@ target_link_libraries(vkrndr
         vma_impl
     PUBLIC
         volk::volk
+        vulkan-utility-libraries::vulkan-utility-libraries
     PRIVATE
         Boost::headers
         fmt::fmt

@@ -88,6 +88,7 @@ runs:
         conan export recipes/recipes/volk/all --version 1.4.304.0
         conan export recipes/recipes/vulkan-headers/all --version 1.4.304.0
         conan export recipes/recipes/vulkan-memory-allocator/all --version 3.3.0
+        conan export recipes/recipes/vulkan-utility-libraries/all --version 1.4.304.0
 
     - name: Build all dependencies
       shell: ${{ inputs.shell }}

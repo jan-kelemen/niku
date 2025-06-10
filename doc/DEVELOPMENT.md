@@ -30,6 +30,7 @@ conan export conan-recipes/recipes/tree-sitter-glsl/all --version 0.2.0
 conan export conan-recipes/recipes/volk/all --version 1.4.304.0
 conan export conan-recipes/recipes/vulkan-headers/all --version 1.4.304.0
 conan export conan-recipes/recipes/vulkan-memory-allocator/all --version 3.3.0
+conan export conan-recipes/recipes/vulkan-utility-headers/all --version 1.4.304.0
 ```
 
 Install Conan2 dependencies. See folder [conan](../conan) for available profiles. 

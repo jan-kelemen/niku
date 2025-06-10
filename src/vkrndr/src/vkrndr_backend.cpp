@@ -24,6 +24,8 @@
 
 #include <spdlog/spdlog.h>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -51,17 +53,17 @@ namespace
     {
         VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT
             swapchain_maintenance_1_features{
-                .sType =
-                    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT};
+                .sType = vku::GetSType<
+                    VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT>()};
 
         VkPhysicalDeviceVulkan13Features required_device_13_features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+            .sType = vku::GetSType<VkPhysicalDeviceVulkan13Features>()};
 
         VkPhysicalDeviceVulkan12Features required_device_12_features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+            .sType = vku::GetSType<VkPhysicalDeviceVulkan12Features>()};
 
         VkPhysicalDeviceFeatures2 required_device_features{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+            .sType = vku::GetSType<VkPhysicalDeviceFeatures2>()};
     };
 
     void link_all(feature_chain_t& chain)

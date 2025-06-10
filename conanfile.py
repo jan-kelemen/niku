@@ -48,6 +48,7 @@ class NikuConan(ConanFile):
         self.requires("tree-sitter/0.25.5")
         self.requires("volk/1.4.304.0")
         self.requires("vulkan-memory-allocator/3.3.0")
+        self.requires("vulkan-utility-libraries/1.4.304.0")
 
         if self.options.develop:
             self.requires("entt/3.15.0")
@@ -139,7 +140,7 @@ class NikuConan(ConanFile):
 
         self.cpp_info.components[component].libs = [component]
         self.cpp_info.components[component].requires.extend(["cppext", "vma_impl"])
-        self.cpp_info.components[component].requires.extend(["volk::volk", "boost::headers", "fmt::fmt", "spdlog::spdlog"])
+        self.cpp_info.components[component].requires.extend(["boost::headers", "fmt::fmt", "spdlog::spdlog", "volk::volk", "vulkan-utility-libraries::vulkan-utility-libraries"])
 
         component = "vkglsl"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
