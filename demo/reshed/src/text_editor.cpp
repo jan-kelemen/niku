@@ -56,8 +56,8 @@
 #include <optional>
 #include <random>
 #include <stdexcept>
-#include <utility>
 #include <string_view>
+#include <utility>
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>

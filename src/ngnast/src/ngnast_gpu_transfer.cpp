@@ -86,10 +86,15 @@ namespace
                     gp.first = cppext::narrow<uint32_t>(running_vertex_count);
                 }
 
-                running_index_count +=
-                    cppext::narrow<uint32_t>(p.indices.size());
-                running_vertex_count +=
-                    cppext::narrow<int32_t>(p.vertices.size());
+                [[maybe_unused]] bool overflow{cppext::add(running_index_count,
+                    cppext::narrow<uint32_t>(p.indices.size()),
+                    running_index_count)};
+                assert(overflow);
+
+                overflow = cppext::add(running_vertex_count,
+                    cppext::narrow<int32_t>(p.vertices.size()),
+                    running_vertex_count);
+                assert(overflow);
 
                 return gp;
             });
@@ -123,8 +128,15 @@ ngnast::gpu::geometry_transfer_result_t ngnast::gpu::transfer_geometry(
                 {
                     auto const& primitive{model.primitives[index]};
 
-                    vc += cppext::narrow<uint32_t>(primitive.vertices.size());
-                    ic += cppext::narrow<uint32_t>(primitive.indices.size());
+                    [[maybe_unused]] bool overflow{cppext::add(vc,
+                        cppext::narrow<uint32_t>(primitive.vertices.size()),
+                        vc)};
+                    assert(overflow);
+
+                    overflow = cppext::add(ic,
+                        cppext::narrow<uint32_t>(primitive.indices.size()),
+                        ic);
+                    assert(overflow);
                 });
         });
 

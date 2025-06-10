@@ -88,7 +88,10 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(vkrndr::backend_t& backend,
                 cppext::narrow<uint32_t>(slot->advance.x)));
         auto const& glyph_size{it->second.size};
 
-        all_bitmaps_size += size_t{glyph_size.x} * glyph_size.y;
+        [[maybe_unused]] bool const overflow{cppext::add(all_bitmaps_size,
+            size_t{glyph_size.x} * glyph_size.y,
+            all_bitmaps_size)};
+        assert(overflow);
 
         max_glyph_extents = glm::max(max_glyph_extents, glyph_size);
     }
