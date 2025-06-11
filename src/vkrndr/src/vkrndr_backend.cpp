@@ -49,58 +49,6 @@ namespace
     constexpr std::array const required_device_extensions{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-    struct [[nodiscard]] feature_chain_t final
-    {
-        VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT
-            swapchain_maintenance_1_features{
-                .sType = vku::GetSType<
-                    VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT>()};
-
-        VkPhysicalDeviceVulkan13Features required_device_13_features{
-            .sType = vku::GetSType<VkPhysicalDeviceVulkan13Features>()};
-
-        VkPhysicalDeviceVulkan12Features required_device_12_features{
-            .sType = vku::GetSType<VkPhysicalDeviceVulkan12Features>()};
-
-        VkPhysicalDeviceFeatures2 required_device_features{
-            .sType = vku::GetSType<VkPhysicalDeviceFeatures2>()};
-    };
-
-    void link_all(feature_chain_t& chain)
-    {
-        chain.required_device_features.pNext =
-            &chain.required_device_12_features;
-        chain.required_device_12_features.pNext =
-            &chain.required_device_13_features;
-        chain.required_device_13_features.pNext =
-            &chain.swapchain_maintenance_1_features;
-    }
-
-    void link_required(feature_chain_t& chain)
-    {
-        chain.required_device_features.pNext =
-            &chain.required_device_12_features;
-        chain.required_device_12_features.pNext =
-            &chain.required_device_13_features;
-        chain.required_device_13_features.pNext = nullptr;
-    }
-
-    void set_required_features(feature_chain_t& chain)
-    {
-        chain.required_device_features.features.independentBlend = VK_TRUE;
-        chain.required_device_features.features.sampleRateShading = VK_TRUE;
-        chain.required_device_features.features.wideLines = VK_TRUE;
-        chain.required_device_features.features.samplerAnisotropy = VK_TRUE;
-        chain.required_device_features.features.tessellationShader = VK_TRUE;
-
-        chain.required_device_12_features
-            .shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-        chain.required_device_12_features.runtimeDescriptorArray = VK_TRUE;
-
-        chain.required_device_13_features.synchronization2 = VK_TRUE;
-        chain.required_device_13_features.dynamicRendering = VK_TRUE;
-    }
-
     VkDescriptorPool create_descriptor_pool(vkrndr::device_t const& device)
     {
         VkDescriptorPoolSize uniform_buffer_pool_size{};
@@ -149,43 +97,44 @@ namespace
         return rv;
     }
 
-    [[nodiscard]] std::optional<feature_chain_t> check_physical_device_features(
-        VkPhysicalDevice device)
+    [[nodiscard]] std::optional<vkrndr::feature_chain_t>
+    check_physical_device_features(VkPhysicalDevice device,
+        vkrndr::feature_flags_t const& required_feature_flags)
     {
-        feature_chain_t rv;
-        link_all(rv);
+        vkrndr::feature_chain_t rv;
+        link_optional_feature_chain(rv);
 
-        vkGetPhysicalDeviceFeatures2(device, &rv.required_device_features);
+        vkGetPhysicalDeviceFeatures2(device, &rv.device_10_features);
 
-        auto const all_true = [](std::ranges::range auto&& range)
+        auto const all_true =
+            [](auto&& instance, std::ranges::range auto&& range)
         {
             return std::all_of(std::begin(range),
                 std::end(range),
-                [](auto const value) { return value == VK_TRUE; });
+                [&instance](auto const value)
+                { return instance.*value == VK_TRUE; });
         };
 
-        std::array const f10{
-            rv.required_device_features.features.independentBlend,
-            rv.required_device_features.features.sampleRateShading,
-            rv.required_device_features.features.wideLines,
-            rv.required_device_features.features.samplerAnisotropy,
-            rv.required_device_features.features.tessellationShader};
-        if (!all_true(f10))
+        if (!all_true(rv.device_10_features.features,
+                required_feature_flags.device_10_flags))
         {
             return {};
         }
 
-        std::array const f12{rv.required_device_12_features
-                                 .shaderSampledImageArrayNonUniformIndexing,
-            rv.required_device_12_features.runtimeDescriptorArray};
-        if (!all_true(f12))
+        if (!all_true(rv.device_11_features,
+                required_feature_flags.device_11_flags))
         {
             return {};
         }
 
-        std::array const f13{rv.required_device_13_features.synchronization2,
-            rv.required_device_13_features.dynamicRendering};
-        if (!all_true(f13))
+        if (!all_true(rv.device_12_features,
+                required_feature_flags.device_12_flags))
+        {
+            return {};
+        }
+
+        if (!all_true(rv.device_13_features,
+                required_feature_flags.device_13_flags))
         {
             return {};
         }
@@ -200,11 +149,12 @@ namespace
         std::vector<VkExtensionProperties> extensions;
         std::vector<vkrndr::queue_family_t> queue_families;
         vkrndr::swap_chain_support_t swap_chain_support;
-        feature_chain_t optional_features;
+        vkrndr::feature_chain_t optional_features;
     };
 
     [[nodiscard]] std::vector<queried_physical_device_t>
     filter_physical_devices(vkrndr::context_t const& context,
+        vkrndr::feature_flags_t const& required_feature_flags,
         VkSurfaceKHR surface)
     {
         std::vector<queried_physical_device_t> rv;
@@ -228,7 +178,8 @@ namespace
                 continue;
             }
 
-            if (auto optional_features{check_physical_device_features(device)})
+            if (auto optional_features{check_physical_device_features(device,
+                    required_feature_flags)})
             {
                 qpd.optional_features = *optional_features;
             }
@@ -348,7 +299,11 @@ vkrndr::backend_t::backend_t(window_t& window,
         .extensions = required_instance_extensions};
     context_ = create_context(context_create_info);
 
+    feature_flags_t required_flags;
+    add_required_feature_flags(required_flags);
+
     auto const physical_devices{filter_physical_devices(context_,
+        required_flags,
         window_->create_surface(context_.instance))};
     auto physical_device_it{pick_device_by_type(physical_devices)};
     if (physical_device_it == std::end(physical_devices))
@@ -369,8 +324,9 @@ vkrndr::backend_t::backend_t(window_t& window,
         std::cend(required_device_extensions)};
 
     feature_chain_t effective_features;
-    set_required_features(effective_features);
-    link_required(effective_features);
+    set_feature_flags_on_chain(effective_features, required_flags);
+    link_required_feature_chain(effective_features);
+
     if (physical_device_it->optional_features.swapchain_maintenance_1_features
             .swapchainMaintenance1 == VK_TRUE)
     {
@@ -384,15 +340,15 @@ vkrndr::backend_t::backend_t(window_t& window,
             .swapchainMaintenance1 = VK_TRUE;
 
         effective_features.swapchain_maintenance_1_features.pNext =
-            effective_features.required_device_13_features.pNext;
-        effective_features.required_device_13_features.pNext =
+            effective_features.device_13_features.pNext;
+        effective_features.device_13_features.pNext =
             &effective_features.swapchain_maintenance_1_features;
 
         render_settings_.swapchain_maintenance_1_supported = true;
     }
 
     device_create_info_t const device_create_info{
-        .chain = &effective_features.required_device_features,
+        .chain = &effective_features.device_10_features,
         .device = physical_device_it->device,
         .extensions = effective_extensions,
         .queues = cppext::as_span(family)};
