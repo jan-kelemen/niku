@@ -244,7 +244,7 @@ galileo::application_t::application_t(bool const debug)
               .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
           debug)}
     , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-          backend_->context(),
+          backend_->instance(),
           backend_->device(),
           backend_->swap_chain())}
     , depth_buffer_{create_depth_buffer(*backend_)}

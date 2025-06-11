@@ -3,12 +3,13 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_command_pool.hpp>
 #include <vkrndr_commands.hpp>
-#include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
 #include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_instance.hpp>
+#include <vkrndr_library.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_swap_chain.hpp>
@@ -22,9 +23,10 @@
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_fail.hpp>
 
-#include <spdlog/spdlog.h>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 
-#include <vulkan/utility/vk_struct_helper.hpp>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <array>
@@ -153,13 +155,13 @@ namespace
     };
 
     [[nodiscard]] std::vector<queried_physical_device_t>
-    filter_physical_devices(vkrndr::context_t const& context,
+    filter_physical_devices(vkrndr::instance_t const& instance,
         vkrndr::feature_flags_t const& required_feature_flags,
         VkSurfaceKHR surface)
     {
         std::vector<queried_physical_device_t> rv;
         for (VkPhysicalDevice device :
-            vkrndr::query_physical_devices(context.instance))
+            vkrndr::query_physical_devices(instance.handle))
         {
             queried_physical_device_t qpd{.device = device};
 
@@ -260,30 +262,23 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     , window_{&window}
 {
     auto required_instance_extensions{window_->required_extensions()};
-
-    auto const instance_extensions{query_instance_extensions()};
+    ;
 #if VKRNDR_ENABLE_DEBUG_UTILS
-    if (debug)
+    if (debug &&
+        is_instance_extension_available(*library_,
+            VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
     {
-        auto const debug_utils{std::ranges::contains(instance_extensions,
-            std::string_view{VK_EXT_DEBUG_UTILS_EXTENSION_NAME},
-            &VkExtensionProperties::extensionName)};
-        if (debug_utils)
-        {
-            required_instance_extensions.push_back(
-                VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
+        required_instance_extensions.push_back(
+            VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 #endif
 
     {
-        auto const capabilities2{std::ranges::contains(instance_extensions,
-            std::string_view{VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME},
-            &VkExtensionProperties::extensionName)};
+        auto const capabilities2{is_instance_extension_available(*library_,
+            VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME)};
 
-        auto const maintenance1{std::ranges::contains(instance_extensions,
-            std::string_view{VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME},
-            &VkExtensionProperties::extensionName)};
+        auto const maintenance1{is_instance_extension_available(*library_,
+            VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME)};
 
         if (capabilities2 && maintenance1)
         {
@@ -294,17 +289,23 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
         }
     }
 
-    context_create_info_t const context_create_info{
-        .minimal_vulkan_version = VK_API_VERSION_1_3,
+    instance_create_info_t const instance_create_info{
+        .maximum_vulkan_version = VK_API_VERSION_1_3,
         .extensions = required_instance_extensions};
-    context_ = create_context(context_create_info);
+    instance_ = create_instance(instance_create_info);
+
+    spdlog::info(
+        "Created Vulkan instance {}.\n\tEnabled extensions: {}\n\tEnabled layers: {}",
+        std::bit_cast<intptr_t>(instance_.handle),
+        fmt::join(instance_.extensions, ", "),
+        fmt::join(instance_.layers, ", "));
 
     feature_flags_t required_flags;
     add_required_feature_flags(required_flags);
 
-    auto const physical_devices{filter_physical_devices(context_,
+    auto const physical_devices{filter_physical_devices(instance_,
         required_flags,
-        window_->create_surface(context_.instance))};
+        window_->create_surface(instance_.handle))};
     auto physical_device_it{pick_device_by_type(physical_devices)};
     if (physical_device_it == std::end(physical_devices))
     {
@@ -352,7 +353,7 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
         .device = physical_device_it->device,
         .extensions = effective_extensions,
         .queues = cppext::as_span(family)};
-    device_ = create_device(context_, device_create_info);
+    device_ = create_device(instance_, device_create_info);
 
     auto& port{device_.execution_ports.emplace_back(device_.logical,
         family.properties.queueFlags,
@@ -400,9 +401,9 @@ vkrndr::backend_t::~backend_t()
 
     destroy(&device_);
 
-    window_->destroy_surface(context_.instance);
+    window_->destroy_surface(instance_.handle);
 
-    destroy(&context_);
+    destroy(&instance_);
 }
 
 VkFormat vkrndr::backend_t::image_format() const

@@ -64,7 +64,7 @@ reshed::application_t::application_t(bool const debug)
           },
           debug)}
     , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-          backend_->context(),
+          backend_->instance(),
           backend_->device(),
           backend_->swap_chain())}
     , editor_{std::make_unique<text_editor_t>(*backend_)}

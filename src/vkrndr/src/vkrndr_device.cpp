@@ -1,7 +1,7 @@
 #include <vkrndr_device.hpp>
 
-#include <vkrndr_context.hpp>
 #include <vkrndr_execution_port.hpp>
+#include <vkrndr_instance.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/scope_fail.hpp>
@@ -110,7 +110,7 @@ vkrndr::query_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
     return rv;
 }
 
-vkrndr::device_t vkrndr::create_device(context_t const& context,
+vkrndr::device_t vkrndr::create_device(instance_t const& instance,
     device_create_info_t const& create_info)
 {
     device_t rv;
@@ -148,7 +148,7 @@ vkrndr::device_t vkrndr::create_device(context_t const& context,
     vma_vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
     VmaAllocatorCreateInfo allocator_info{};
-    allocator_info.instance = context.instance;
+    allocator_info.instance = instance.handle;
     allocator_info.physicalDevice = rv.physical;
     allocator_info.device = rv.logical;
     allocator_info.vulkanApiVersion = VK_API_VERSION_1_3;

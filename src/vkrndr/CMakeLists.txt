@@ -6,7 +6,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_buffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_command_pool.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_commands.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_context.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_cubemap.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_debug_utils.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_descriptors.hpp
@@ -15,6 +14,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_features.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_formats.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_image.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_instance.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_library.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
@@ -32,7 +32,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_command_pool.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_commands.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_cubemap.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_context.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_debug_utils.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_descriptors.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_device.cpp
@@ -42,6 +41,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_image.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_instance.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_library.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_memory.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp

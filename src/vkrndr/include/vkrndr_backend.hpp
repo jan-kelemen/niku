@@ -2,9 +2,9 @@
 #define VKRNDR_BACKEND_INCLUDED
 
 #include <vkrndr_command_pool.hpp>
-#include <vkrndr_context.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_instance.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_transient_operation.hpp>
 
@@ -51,9 +51,9 @@ namespace vkrndr
         [[nodiscard]] constexpr VkDescriptorPool
         descriptor_pool() const noexcept;
 
-        [[nodiscard]] constexpr context_t& context() noexcept;
+        [[nodiscard]] constexpr instance_t& instance() noexcept;
 
-        [[nodiscard]] constexpr context_t const& context() const noexcept;
+        [[nodiscard]] constexpr instance_t const& instance() const noexcept;
 
         [[nodiscard]] constexpr device_t& device() noexcept;
 
@@ -122,7 +122,7 @@ namespace vkrndr
         render_settings_t render_settings_;
 
         window_t* window_;
-        context_t context_;
+        instance_t instance_;
         device_t device_;
         std::unique_ptr<swap_chain_t> swap_chain_;
 
@@ -139,14 +139,14 @@ constexpr VkDescriptorPool vkrndr::backend_t::descriptor_pool() const noexcept
     return descriptor_pool_;
 }
 
-constexpr vkrndr::context_t& vkrndr::backend_t::context() noexcept
+constexpr vkrndr::instance_t& vkrndr::backend_t::instance() noexcept
 {
-    return context_;
+    return instance_;
 }
 
-constexpr vkrndr::context_t const& vkrndr::backend_t::context() const noexcept
+constexpr vkrndr::instance_t const& vkrndr::backend_t::instance() const noexcept
 {
-    return context_;
+    return instance_;
 }
 
 constexpr vkrndr::device_t& vkrndr::backend_t::device() noexcept

@@ -2,11 +2,11 @@
 
 #include <ngnwsi_sdl_window.hpp>
 
-#include <vkrndr_context.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_instance.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_swap_chain.hpp>
 #include <vkrndr_utility.hpp>
@@ -58,7 +58,7 @@ namespace
 } // namespace
 
 ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
-    vkrndr::context_t const& context,
+    vkrndr::instance_t const& instance,
     vkrndr::device_t& device,
     vkrndr::swap_chain_t const& swap_chain)
     : device_{&device}
@@ -86,7 +86,7 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     [[maybe_unused]] bool const load_functions{
         ImGui_ImplVulkan_LoadFunctions(VK_API_VERSION_1_3,
             load_vulkan_function,
-            context.instance)};
+            instance.handle)};
     assert(load_functions);
 
     VkPipelineRenderingCreateInfoKHR rendering_create_info{};
@@ -97,7 +97,7 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     rendering_create_info.pColorAttachmentFormats = &image_format;
 
     ImGui_ImplVulkan_InitInfo init_info{};
-    init_info.Instance = context.instance;
+    init_info.Instance = instance.handle;
     init_info.PhysicalDevice = device.physical;
     init_info.Device = device.logical;
     init_info.QueueFamily = device.present_queue->queue_family();

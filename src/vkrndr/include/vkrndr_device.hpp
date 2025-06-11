@@ -13,7 +13,7 @@
 
 namespace vkrndr
 {
-    struct context_t;
+    struct instance_t;
 } // namespace vkrndr
 
 namespace vkrndr
@@ -54,7 +54,7 @@ namespace vkrndr
         std::span<queue_family_t const> queues;
     };
 
-    device_t create_device(context_t const& context,
+    device_t create_device(instance_t const& instance,
         device_create_info_t const& create_info);
 
     void destroy(device_t* device);

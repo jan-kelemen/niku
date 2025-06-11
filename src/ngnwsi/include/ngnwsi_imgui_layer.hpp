@@ -8,7 +8,7 @@ union SDL_Event;
 namespace vkrndr
 {
     struct image_t;
-    struct context_t;
+    struct instance_t;
     struct device_t;
     class swap_chain_t;
 } // namespace vkrndr
@@ -24,7 +24,7 @@ namespace ngnwsi
     {
     public:
         imgui_layer_t(sdl_window_t const& window,
-            vkrndr::context_t const& context,
+            vkrndr::instance_t const& instance,
             vkrndr::device_t& device,
             vkrndr::swap_chain_t const& swap_chain);
 
