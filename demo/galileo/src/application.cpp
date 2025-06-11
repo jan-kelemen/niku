@@ -51,6 +51,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_library.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -234,7 +235,8 @@ galileo::application_t::application_t(bool const debug)
     , world_listener_{std::make_unique<world_contact_listener_t>(
           scripting_engine_,
           registry_)}
-    , backend_{std::make_unique<vkrndr::backend_t>(*window(),
+    , backend_{std::make_unique<vkrndr::backend_t>(vkrndr::initialize(),
+          *window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
               .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |

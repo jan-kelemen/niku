@@ -23,6 +23,7 @@ namespace vkrndr
 {
     struct buffer_t;
     class execution_port_t;
+    struct library_handle_t;
     class swap_chain_t;
     class window_t;
 } // namespace vkrndr
@@ -34,7 +35,8 @@ namespace vkrndr
     class [[nodiscard]] backend_t final
     {
     public: // Construction
-        backend_t(window_t& window,
+        backend_t(std::shared_ptr<library_handle_t>&& library,
+            window_t& window,
             render_settings_t const& settings,
             bool debug);
 
@@ -115,6 +117,8 @@ namespace vkrndr
         };
 
     private: // Data
+        std::shared_ptr<library_handle_t> library_;
+
         render_settings_t render_settings_;
 
         window_t* window_;

@@ -35,6 +35,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_library.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_swap_chain.hpp>
@@ -193,7 +194,8 @@ gltfviewer::application_t::application_t(bool const debug)
           .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           .width = 512,
           .height = 512}}
-    , backend_{std::make_unique<vkrndr::backend_t>(*window(),
+    , backend_{std::make_unique<vkrndr::backend_t>(vkrndr::initialize(),
+          *window(),
           vkrndr::render_settings_t{
               .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
               .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |

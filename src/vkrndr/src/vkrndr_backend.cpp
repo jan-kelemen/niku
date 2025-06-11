@@ -251,15 +251,15 @@ namespace
     }
 } // namespace
 
-vkrndr::backend_t::backend_t(window_t& window,
+vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
+    window_t& window,
     render_settings_t const& settings,
     bool const debug)
-    : render_settings_{settings}
+    : library_{std::move(library)}
+    , render_settings_{settings}
     , window_{&window}
 {
     auto required_instance_extensions{window_->required_extensions()};
-
-    check_result(volkInitialize());
 
     auto const instance_extensions{query_instance_extensions()};
 #if VKRNDR_ENABLE_DEBUG_UTILS
@@ -403,8 +403,6 @@ vkrndr::backend_t::~backend_t()
     window_->destroy_surface(context_.instance);
 
     destroy(&context_);
-
-    volkFinalize();
 }
 
 VkFormat vkrndr::backend_t::image_format() const

@@ -15,6 +15,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_features.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_formats.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_image.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_library.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
@@ -41,6 +42,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_image.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_library.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_memory.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
