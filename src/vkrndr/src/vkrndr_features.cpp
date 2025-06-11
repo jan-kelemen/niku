@@ -19,25 +19,28 @@ void vkrndr::link_optional_feature_chain(feature_chain_t& chain)
 
 void vkrndr::add_required_feature_flags(feature_flags_t& flags)
 {
-    // clang-format off
-    flags.device_10_flags.append_range(std::to_array({
-        &VkPhysicalDeviceFeatures::independentBlend,
-        &VkPhysicalDeviceFeatures::sampleRateShading,
-        &VkPhysicalDeviceFeatures::wideLines,
-        &VkPhysicalDeviceFeatures::samplerAnisotropy,
-        &VkPhysicalDeviceFeatures::tessellationShader,
-    }));
+    flags.device_10_flags.insert(flags.device_10_flags.end(),
+        {
+            &VkPhysicalDeviceFeatures::independentBlend,
+            &VkPhysicalDeviceFeatures::sampleRateShading,
+            &VkPhysicalDeviceFeatures::wideLines,
+            &VkPhysicalDeviceFeatures::samplerAnisotropy,
+            &VkPhysicalDeviceFeatures::tessellationShader,
+        });
 
-    flags.device_12_flags.append_range(std::to_array({
-        &VkPhysicalDeviceVulkan12Features::shaderSampledImageArrayNonUniformIndexing,
-        &VkPhysicalDeviceVulkan12Features::runtimeDescriptorArray,
-    }));
+    flags.device_12_flags.insert(flags.device_12_flags.end(),
+        {
+            // clang-format off
+            &VkPhysicalDeviceVulkan12Features::shaderSampledImageArrayNonUniformIndexing,
+            &VkPhysicalDeviceVulkan12Features::runtimeDescriptorArray,
+            // clang-format on
+        });
 
-    flags.device_13_flags.append_range(std::to_array({
-        &VkPhysicalDeviceVulkan13Features::synchronization2,
-        &VkPhysicalDeviceVulkan13Features::dynamicRendering,
-    }));
-    // clang-format on
+    flags.device_13_flags.insert(flags.device_13_flags.end(),
+        {
+            &VkPhysicalDeviceVulkan13Features::synchronization2,
+            &VkPhysicalDeviceVulkan13Features::dynamicRendering,
+        });
 }
 
 void vkrndr::set_feature_flags_on_chain(feature_chain_t& chain,
