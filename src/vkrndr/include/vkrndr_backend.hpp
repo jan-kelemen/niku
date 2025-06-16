@@ -22,6 +22,7 @@
 namespace vkrndr
 {
     struct buffer_t;
+    class descriptor_pool_t;
     class execution_port_t;
     struct library_handle_t;
     class swap_chain_t;
@@ -48,9 +49,6 @@ namespace vkrndr
         ~backend_t();
 
     public: // Interface
-        [[nodiscard]] constexpr VkDescriptorPool
-        descriptor_pool() const noexcept;
-
         [[nodiscard]] constexpr instance_t& instance() noexcept;
 
         [[nodiscard]] constexpr instance_t const& instance() const noexcept;
@@ -62,6 +60,8 @@ namespace vkrndr
         [[nodiscard]] constexpr swap_chain_t& swap_chain() noexcept;
 
         [[nodiscard]] constexpr swap_chain_t const& swap_chain() const noexcept;
+
+        descriptor_pool_t& descriptor_pool();
 
         [[nodiscard]] VkFormat image_format() const;
 
@@ -126,18 +126,13 @@ namespace vkrndr
         device_t device_;
         std::unique_ptr<swap_chain_t> swap_chain_;
 
-        cppext::cycled_buffer_t<frame_data_t> frame_data_;
+        std::unique_ptr<vkrndr::descriptor_pool_t> descriptor_pool_;
 
-        VkDescriptorPool descriptor_pool_{};
+        cppext::cycled_buffer_t<frame_data_t> frame_data_;
 
         uint32_t image_index_{};
     };
 } // namespace vkrndr
-
-constexpr VkDescriptorPool vkrndr::backend_t::descriptor_pool() const noexcept
-{
-    return descriptor_pool_;
-}
 
 constexpr vkrndr::instance_t& vkrndr::backend_t::instance() noexcept
 {

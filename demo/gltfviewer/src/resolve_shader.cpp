@@ -10,6 +10,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -166,10 +167,10 @@ gltfviewer::resolve_shader_t::resolve_shader_t(vkrndr::backend_t& backend)
 
     for (auto& set : cppext::as_span(descriptor_sets_))
     {
-        vkrndr::create_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            cppext::as_span(descriptor_set_layout_),
-            cppext::as_span(set));
+        vkrndr::check_result(
+            backend_->descriptor_pool().allocate_descriptor_sets(
+                cppext::as_span(descriptor_set_layout_),
+                cppext::as_span(set)));
     }
 }
 
@@ -179,8 +180,7 @@ gltfviewer::resolve_shader_t::~resolve_shader_t()
 
     destroy(&backend_->device(), &pipeline_);
 
-    vkrndr::free_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    backend_->descriptor_pool().free_descriptor_sets(
         cppext::as_span(descriptor_sets_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,

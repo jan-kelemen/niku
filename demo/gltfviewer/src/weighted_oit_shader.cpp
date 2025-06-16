@@ -13,6 +13,7 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -142,10 +143,9 @@ gltfviewer::weighted_oit_shader_t::weighted_oit_shader_t(
     , accumulation_sampler_{create_sampler(backend_->device())}
     , reveal_sampler_{create_sampler(backend_->device())}
 {
-    vkrndr::create_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
         cppext::as_span(descriptor_set_layout_),
-        cppext::as_span(descriptor_set_));
+        cppext::as_span(descriptor_set_)));
 }
 
 gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
@@ -158,8 +158,7 @@ gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
         accumulation_sampler_,
         nullptr);
 
-    vkrndr::free_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    backend_->descriptor_pool().free_descriptor_sets(
         cppext::as_span(descriptor_set_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,

@@ -8,6 +8,7 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -277,8 +278,7 @@ gltfviewer::materials_t::~materials_t()
 
     destroy(&backend_->device(), &white_pixel_);
 
-    vkrndr::free_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    backend_->descriptor_pool().free_descriptor_sets(
         cppext::as_span(dummy_descriptor_set_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
@@ -344,10 +344,9 @@ void gltfviewer::materials_t::create_dummy_material()
     dummy_uniform_ =
         create_material_uniform(*backend_, cppext::as_span(dummy_material));
 
-    vkrndr::create_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
         cppext::as_span(dummy_descriptor_layout_),
-        cppext::as_span(dummy_descriptor_set_));
+        cppext::as_span(dummy_descriptor_set_)));
 
     VkDescriptorImageInfo const image_descriptor{
         vkrndr::sampled_image_descriptor(white_pixel_)};
@@ -408,10 +407,9 @@ void gltfviewer::materials_t::transfer_textures(
         image_descriptors.size(),
         sampler_descriptors.size());
 
-    vkrndr::create_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
         cppext::as_span(descriptor_layout_),
-        cppext::as_span(descriptor_set_));
+        cppext::as_span(descriptor_set_)));
 
     update_descriptor_set(backend_->device(),
         descriptor_set_,
@@ -439,8 +437,7 @@ void gltfviewer::materials_t::clear()
 
     if (descriptor_set_ != VK_NULL_HANDLE)
     {
-        vkrndr::free_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
+        backend_->descriptor_pool().free_descriptor_sets(
             cppext::as_span(descriptor_set_));
         descriptor_set_ = VK_NULL_HANDLE;
     }

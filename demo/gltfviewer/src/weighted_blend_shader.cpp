@@ -10,6 +10,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -134,12 +135,10 @@ gltfviewer::weighted_blend_shader_t::weighted_blend_shader_t(
 
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {
-        auto ds{cppext::as_span(data.descriptor_)};
-
-        vkrndr::create_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            cppext::as_span(descriptor_layout_),
-            ds);
+        vkrndr::check_result(
+            backend_->descriptor_pool().allocate_descriptor_sets(
+                cppext::as_span(descriptor_layout_),
+                cppext::as_span(data.descriptor_)));
     }
 }
 
@@ -147,8 +146,7 @@ gltfviewer::weighted_blend_shader_t::~weighted_blend_shader_t()
 {
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {
-        vkrndr::free_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
+        backend_->descriptor_pool().free_descriptor_sets(
             cppext::as_span(data.descriptor_));
     }
 

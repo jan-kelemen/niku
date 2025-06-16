@@ -9,6 +9,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
@@ -259,10 +260,10 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
         data.uniform_map = map_memory(backend_->device(), data.uniform);
 
-        vkrndr::create_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            cppext::as_span(descriptor_layout_),
-            cppext::as_span(data.descriptor_set));
+        vkrndr::check_result(
+            backend_->descriptor_pool().allocate_descriptor_sets(
+                cppext::as_span(descriptor_layout_),
+                cppext::as_span(data.descriptor_set)));
 
         update_descriptor_set(backend_->device(),
             data.descriptor_set,
@@ -438,8 +439,7 @@ void gltfviewer::scene_graph_t::clear()
 {
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {
-        free_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
+        backend_->descriptor_pool().free_descriptor_sets(
             cppext::as_span(data.descriptor_set));
 
         if (data.uniform_map.allocation)

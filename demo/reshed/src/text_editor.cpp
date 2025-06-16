@@ -18,6 +18,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
@@ -256,10 +257,9 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     assert(descriptor_layout);
     text_descriptor_layout_ = *descriptor_layout;
 
-    vkrndr::create_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
         cppext::as_span(text_descriptor_layout_),
-        cppext::as_span(text_descriptor_));
+        cppext::as_span(text_descriptor_)));
 
     VkPipelineColorBlendAttachmentState const alpha_blend{
         .blendEnable = VK_TRUE,
@@ -344,8 +344,7 @@ reshed::text_editor_t::~text_editor_t()
 
     destroy(&backend_->device(), &text_pipeline_);
 
-    vkrndr::free_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    backend_->descriptor_pool().free_descriptor_sets(
         cppext::as_span(text_descriptor_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,

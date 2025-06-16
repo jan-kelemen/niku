@@ -13,6 +13,7 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
@@ -195,10 +196,10 @@ gltfviewer::environment_t::environment_t(vkrndr::backend_t& backend)
 
         data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);
 
-        vkrndr::create_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            cppext::as_span(descriptor_layout_),
-            cppext::as_span(data.descriptor_set));
+        vkrndr::check_result(
+            backend_->descriptor_pool().allocate_descriptor_sets(
+                cppext::as_span(descriptor_layout_),
+                cppext::as_span(data.descriptor_set)));
     }
 }
 
@@ -206,8 +207,7 @@ gltfviewer::environment_t::~environment_t()
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
-        vkrndr::free_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
+        backend_->descriptor_pool().free_descriptor_sets(
             cppext::as_span(data.descriptor_set));
 
         unmap_memory(backend_->device(), &data.uniform_map);

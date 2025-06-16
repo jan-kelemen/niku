@@ -3,6 +3,7 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_command_pool.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
@@ -51,52 +52,28 @@ namespace
     constexpr std::array const required_device_extensions{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-    VkDescriptorPool create_descriptor_pool(vkrndr::device_t const& device)
+    vkrndr::descriptor_pool_t create_descriptor_pool(vkrndr::device_t& device)
     {
-        VkDescriptorPoolSize uniform_buffer_pool_size{};
-        uniform_buffer_pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uniform_buffer_pool_size.descriptorCount = 1000;
+        auto pool{vkrndr::create_descriptor_pool(device,
+            std::to_array<VkDescriptorPoolSize>({
+                // clang-format off
+                {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1000},
+                {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = 1000},
+                {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .descriptorCount = 1000},
+                {.type = VK_DESCRIPTOR_TYPE_SAMPLER, .descriptorCount = 1000},
+                {.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1000},
+                {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .descriptorCount = 1000},
+                // clang-format on
+            }),
+            1000,
+            VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)};
 
-        VkDescriptorPoolSize storage_buffer_pool_size{};
-        storage_buffer_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        storage_buffer_pool_size.descriptorCount = 1000;
+        if (!pool)
+        {
+            vkrndr::check_result(pool.error());
+        }
 
-        VkDescriptorPoolSize storage_image_pool_size{};
-        storage_image_pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        storage_image_pool_size.descriptorCount = 1000;
-
-        VkDescriptorPoolSize sampler_pool_size{};
-        sampler_pool_size.type = VK_DESCRIPTOR_TYPE_SAMPLER;
-        sampler_pool_size.descriptorCount = 1000;
-
-        VkDescriptorPoolSize combined_sampler_pool_size{};
-        combined_sampler_pool_size.type =
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        combined_sampler_pool_size.descriptorCount = 1000;
-
-        VkDescriptorPoolSize sampled_image_pool_size{};
-        sampled_image_pool_size.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        sampled_image_pool_size.descriptorCount = 1000;
-
-        std::array pool_sizes{uniform_buffer_pool_size,
-            storage_buffer_pool_size,
-            storage_image_pool_size,
-            sampler_pool_size,
-            combined_sampler_pool_size,
-            sampled_image_pool_size};
-
-        VkDescriptorPoolCreateInfo pool_info{};
-        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        pool_info.poolSizeCount = vkrndr::count_cast(pool_sizes.size());
-        pool_info.pPoolSizes = pool_sizes.data();
-        pool_info.maxSets = 1000;
-
-        VkDescriptorPool rv{};
-        vkrndr::check_result(
-            vkCreateDescriptorPool(device.logical, &pool_info, nullptr, &rv));
-
-        return rv;
+        return std::move(pool).value();
     }
 
     [[nodiscard]] std::vector<vkrndr::physical_device_features_t>
@@ -311,7 +288,8 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     frame_data_ =
         cppext::cycled_buffer_t<frame_data_t>{settings.frames_in_flight,
             settings.frames_in_flight};
-    descriptor_pool_ = create_descriptor_pool(device_);
+    descriptor_pool_ =
+        std::make_unique<descriptor_pool_t>(::create_descriptor_pool(device_));
 
     for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
@@ -339,7 +317,7 @@ vkrndr::backend_t::~backend_t()
         fd.transfer_transient_command_pool.reset();
     };
 
-    vkDestroyDescriptorPool(device_.logical, descriptor_pool_, nullptr);
+    descriptor_pool_.reset();
 
     swap_chain_.reset();
 
@@ -348,6 +326,11 @@ vkrndr::backend_t::~backend_t()
     window_->destroy_surface(instance_.handle);
 
     destroy(&instance_);
+}
+
+vkrndr::descriptor_pool_t& vkrndr::backend_t::descriptor_pool()
+{
+    return *descriptor_pool_;
 }
 
 VkFormat vkrndr::backend_t::image_format() const

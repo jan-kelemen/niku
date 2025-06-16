@@ -10,6 +10,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
@@ -147,10 +148,10 @@ galileo::frame_info_t::frame_info_t(vkrndr::backend_t& backend)
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
 
-        vkrndr::create_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            cppext::as_span(descriptor_set_layout_),
-            cppext::as_span(data.descriptor_set));
+        vkrndr::check_result(
+            backend_->descriptor_pool().allocate_descriptor_sets(
+                cppext::as_span(descriptor_set_layout_),
+                cppext::as_span(data.descriptor_set)));
 
         update_descriptor_set(backend_->device(),
             data.descriptor_set,
@@ -163,8 +164,7 @@ galileo::frame_info_t::~frame_info_t()
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
-        vkrndr::free_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
+        backend_->descriptor_pool().free_descriptor_sets(
             cppext::as_span(data.descriptor_set));
 
         vkrndr::destroy(&backend_->device(), &data.light_buffer);

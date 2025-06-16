@@ -11,6 +11,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
@@ -163,10 +164,9 @@ gltfviewer::shadow_map_t::shadow_map_t(vkrndr::backend_t& backend)
     , shadow_sampler_{create_shadow_map_sampler(backend_->device())}
     , descriptor_layout_{create_descriptor_set_layout(backend_->device())}
 {
-    vkrndr::create_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
         cppext::as_span(descriptor_layout_),
-        cppext::as_span(descriptor_));
+        cppext::as_span(descriptor_)));
 
     {
         vkrndr::transient_operation_t const transient{
@@ -193,8 +193,7 @@ gltfviewer::shadow_map_t::~shadow_map_t()
 {
     destroy(&backend_->device(), &depth_pipeline_);
 
-    vkrndr::free_descriptor_sets(backend_->device(),
-        backend_->descriptor_pool(),
+    backend_->descriptor_pool().free_descriptor_sets(
         cppext::as_span(descriptor_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
