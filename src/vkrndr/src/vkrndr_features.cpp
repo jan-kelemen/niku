@@ -132,6 +132,7 @@ void vkrndr::add_required_feature_flags(feature_flags_t& flags)
             // clang-format off
             &VkPhysicalDeviceVulkan12Features::shaderSampledImageArrayNonUniformIndexing,
             &VkPhysicalDeviceVulkan12Features::runtimeDescriptorArray,
+            &VkPhysicalDeviceVulkan12Features::bufferDeviceAddress,
             // clang-format on
         });
 

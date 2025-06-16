@@ -104,16 +104,19 @@ vkrndr::device_t vkrndr::create_device(instance_t const& instance,
 
     volkLoadDevice(rv.logical);
 
-    VmaVulkanFunctions vma_vulkan_functions{};
-    vma_vulkan_functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
-    vma_vulkan_functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+    VmaVulkanFunctions vma_vulkan_functions{
+        .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+        .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+    };
 
-    VmaAllocatorCreateInfo allocator_info{};
-    allocator_info.instance = instance.handle;
-    allocator_info.physicalDevice = rv.physical;
-    allocator_info.device = rv.logical;
-    allocator_info.vulkanApiVersion = VK_API_VERSION_1_3;
-    allocator_info.pVulkanFunctions = &vma_vulkan_functions;
+    VmaAllocatorCreateInfo allocator_info{
+        .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+        .physicalDevice = rv.physical,
+        .device = rv.logical,
+        .pVulkanFunctions = &vma_vulkan_functions,
+        .instance = instance.handle,
+        .vulkanApiVersion = VK_API_VERSION_1_3,
+    };
 
     check_result(vmaCreateAllocator(&allocator_info, &rv.allocator));
 
