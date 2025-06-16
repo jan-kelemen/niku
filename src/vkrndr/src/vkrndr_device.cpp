@@ -1,6 +1,7 @@
 #include <vkrndr_device.hpp>
 
 #include <vkrndr_execution_port.hpp>
+#include <vkrndr_features.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -11,7 +12,6 @@
 #include <volk.h>
 
 #include <algorithm>
-#include <cstdint>
 #include <iterator>
 #include <vector>
 
@@ -104,7 +104,7 @@ vkrndr::device_t vkrndr::create_device(instance_t const& instance,
 
     volkLoadDevice(rv.logical);
 
-    VmaVulkanFunctions vma_vulkan_functions{
+    VmaVulkanFunctions const vma_vulkan_functions{
         .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
         .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
     };

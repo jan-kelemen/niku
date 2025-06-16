@@ -2,6 +2,7 @@
 
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
+#include <vkrndr_features.hpp>
 #include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>

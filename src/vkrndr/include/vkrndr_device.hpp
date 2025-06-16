@@ -2,13 +2,12 @@
 #define VKRNDR_DEVICE_INCLUDED
 
 #include <vkrndr_execution_port.hpp>
-#include <vkrndr_features.hpp>
+#include <vkrndr_features.hpp> // IWYU pragma: keep
 
 #include <vma_impl.hpp>
 
 #include <volk.h>
 
-#include <cstdint>
 #include <functional>
 #include <set>
 #include <span>
@@ -38,8 +37,7 @@ namespace vkrndr
         VmaAllocator allocator{VK_NULL_HANDLE};
     };
 
-    [[nodiscard]] bool is_device_extension_enabled(
-        char const* const extension_name,
+    [[nodiscard]] bool is_device_extension_enabled(char const* extension_name,
         device_t const& device);
 
     struct [[nodiscard]] device_create_info_t final

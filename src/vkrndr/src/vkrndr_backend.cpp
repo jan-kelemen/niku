@@ -31,7 +31,7 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
+#include <bit>
 #include <cstring>
 #include <iterator>
 #include <optional>
@@ -43,9 +43,11 @@
 #include <vector>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
+// IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <unordered_map>
+// IWYU pragma: no_include <map>
 
 namespace
 {

@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <iterator>
 
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
+
 vkrndr::instance_t vkrndr::create_instance(
     instance_create_info_t const& create_info)
 {
@@ -31,7 +33,8 @@ vkrndr::instance_t vkrndr::create_instance(
 
     instance_t rv;
     check_result(vkCreateInstance(&ci, nullptr, &rv.handle));
-    boost::scope::scope_fail f{[&rv]() { destroy(&rv); }};
+    [[maybe_unused]] boost::scope::scope_fail const f{
+        [&rv]() { destroy(&rv); }};
 
     volkLoadInstanceOnly(rv.handle);
 

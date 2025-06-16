@@ -3,9 +3,9 @@
 
 #include <volk.h>
 
-#include <vulkan/utility/vk_struct_helper.hpp>
+#include <vulkan/utility/vk_struct_helper.hpp> // IWYU pragma: keep
 
-#include <array>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -107,8 +107,7 @@ namespace vkrndr
     query_available_physical_devices(VkInstance instance,
         VkSurfaceKHR surface = VK_NULL_HANDLE);
 
-    [[nodiscard]] bool enable_extension_for_device(
-        char const* const extension_name,
+    [[nodiscard]] bool enable_extension_for_device(char const* extension_name,
         physical_device_features_t const& device,
         vkrndr::feature_chain_t& chain);
 } // namespace vkrndr

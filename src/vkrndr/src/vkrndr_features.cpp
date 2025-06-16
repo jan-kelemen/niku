@@ -4,7 +4,13 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iterator>
+#include <ranges>
 #include <string_view>
+#include <utility>
+
+// IWYU pragma: no_include <initializer_list>
+// IWYU pragma: no_include <string>
 
 namespace
 {
