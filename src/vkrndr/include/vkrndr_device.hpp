@@ -2,13 +2,17 @@
 #define VKRNDR_DEVICE_INCLUDED
 
 #include <vkrndr_execution_port.hpp>
+#include <vkrndr_features.hpp>
 
 #include <vma_impl.hpp>
 
 #include <volk.h>
 
 #include <cstdint>
+#include <functional>
+#include <set>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace vkrndr
@@ -18,24 +22,13 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    [[nodiscard]] std::vector<VkPhysicalDevice> query_physical_devices(
-        VkInstance instance);
-
-    struct [[nodiscard]] queue_family_t final
-    {
-        uint32_t index;
-        VkQueueFamilyProperties properties;
-        bool supports_present;
-    };
-
-    [[nodiscard]] std::vector<queue_family_t> query_queue_families(
-        VkPhysicalDevice device,
-        VkSurfaceKHR surface = VK_NULL_HANDLE);
-
     struct [[nodiscard]] device_t final
     {
         VkPhysicalDevice physical{VK_NULL_HANDLE};
         VkDevice logical{VK_NULL_HANDLE};
+
+        std::set<std::string, std::less<>> extensions;
+
         VkSampleCountFlagBits max_msaa_samples{VK_SAMPLE_COUNT_1_BIT};
 
         std::vector<execution_port_t> execution_ports;
@@ -44,6 +37,10 @@ namespace vkrndr
 
         VmaAllocator allocator{VK_NULL_HANDLE};
     };
+
+    [[nodiscard]] bool is_device_extension_enabled(
+        char const* const extension_name,
+        device_t const& device);
 
     struct [[nodiscard]] device_create_info_t final
     {

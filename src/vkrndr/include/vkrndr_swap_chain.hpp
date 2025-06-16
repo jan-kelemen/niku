@@ -32,16 +32,6 @@ namespace vkrndr
         void destroy(device_t const* device, swap_frame_t* frame);
     } // namespace detail
 
-    struct [[nodiscard]] swap_chain_support_t final
-    {
-        VkSurfaceCapabilitiesKHR capabilities{};
-        std::vector<VkSurfaceFormatKHR> surface_formats;
-        std::vector<VkPresentModeKHR> present_modes;
-    };
-
-    swap_chain_support_t query_swap_chain_support(VkPhysicalDevice device,
-        VkSurfaceKHR surface);
-
     class [[nodiscard]] swap_chain_t final
     {
     public: // Construction
@@ -104,6 +94,7 @@ namespace vkrndr
         window_t const* window_{};
         device_t* device_{};
         render_settings_t const* settings_{};
+        bool swapchain_maintenance_1_enabled{};
         execution_port_t* present_queue_{};
         VkFormat image_format_{};
         uint32_t min_image_count_{};

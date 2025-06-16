@@ -11,6 +11,11 @@
 
 namespace vkrndr
 {
+    [[nodiscard]] std::vector<VkLayerProperties> query_instance_layers();
+
+    [[nodiscard]] std::vector<VkExtensionProperties> query_instance_extensions(
+        char const* layer_name = nullptr);
+
     struct [[nodiscard]] feature_chain_t final
     {
         VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT
@@ -58,14 +63,44 @@ namespace vkrndr
     void set_feature_flags_on_chain(feature_chain_t& chain,
         feature_flags_t const& flags);
 
-    [[nodiscard]] std::vector<VkLayerProperties> query_instance_layers();
+    [[nodiscard]] bool check_feature_flags(feature_chain_t const& chain,
+        feature_flags_t const& flags);
 
-    [[nodiscard]] std::vector<VkExtensionProperties> query_instance_extensions(
-        char const* layer_name = nullptr);
+    struct [[nodiscard]] queue_family_t final
+    {
+        uint32_t index;
+        VkQueueFamilyProperties properties;
+        bool supports_present;
+    };
 
-    [[nodiscard]] std::vector<VkExtensionProperties> query_device_extensions(
-        VkPhysicalDevice device,
-        char const* layer_name = nullptr);
+    struct [[nodiscard]] swap_chain_support_t final
+    {
+        VkSurfaceCapabilitiesKHR capabilities{};
+        std::vector<VkSurfaceFormatKHR> surface_formats;
+        std::vector<VkPresentModeKHR> present_modes;
+    };
+
+    swap_chain_support_t query_swap_chain_support(VkPhysicalDevice device,
+        VkSurfaceKHR surface);
+
+    struct [[nodiscard]] physical_device_features_t final
+    {
+        VkPhysicalDevice device;
+        VkPhysicalDeviceProperties properties;
+        std::vector<VkExtensionProperties> extensions;
+        std::vector<vkrndr::queue_family_t> queue_families;
+        std::optional<vkrndr::swap_chain_support_t> swap_chain_support;
+        vkrndr::feature_chain_t features;
+    };
+
+    [[nodiscard]] std::vector<physical_device_features_t>
+    query_available_physical_devices(VkInstance instance,
+        VkSurfaceKHR surface = VK_NULL_HANDLE);
+
+    [[nodiscard]] bool enable_extension_for_device(
+        char const* const extension_name,
+        physical_device_features_t const& device,
+        vkrndr::feature_chain_t& chain);
 } // namespace vkrndr
 
 #endif

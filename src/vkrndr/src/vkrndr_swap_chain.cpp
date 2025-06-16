@@ -93,52 +93,15 @@ void vkrndr::detail::destroy(device_t const* const device,
     vkDestroyFence(device->logical, frame->in_flight, nullptr);
 }
 
-vkrndr::swap_chain_support_t
-vkrndr::query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
-{
-    vkrndr::swap_chain_support_t rv;
-
-    check_result(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device,
-        surface,
-        &rv.capabilities));
-
-    uint32_t format_count{};
-    check_result(vkGetPhysicalDeviceSurfaceFormatsKHR(device,
-        surface,
-        &format_count,
-        nullptr));
-    if (format_count != 0)
-    {
-        rv.surface_formats.resize(format_count);
-        check_result(vkGetPhysicalDeviceSurfaceFormatsKHR(device,
-            surface,
-            &format_count,
-            rv.surface_formats.data()));
-    }
-
-    uint32_t present_count{};
-    check_result(vkGetPhysicalDeviceSurfacePresentModesKHR(device,
-        surface,
-        &present_count,
-        nullptr));
-    if (present_count != 0)
-    {
-        rv.present_modes.resize(present_count);
-        check_result(vkGetPhysicalDeviceSurfacePresentModesKHR(device,
-            surface,
-            &present_count,
-            rv.present_modes.data()));
-    }
-
-    return rv;
-}
-
 vkrndr::swap_chain_t::swap_chain_t(window_t const& window,
     device_t& device,
     render_settings_t const& settings)
     : window_{&window}
     , device_{&device}
     , settings_{&settings}
+    , swapchain_maintenance_1_enabled{is_device_extension_enabled(
+          VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+          device)}
     , present_queue_{device.present_queue}
 {
     create_swap_frames(false);
@@ -214,7 +177,7 @@ void vkrndr::swap_chain_t::submit_command_buffers(
 
     if (desired_present_mode_ != current_present_mode_)
     {
-        if (settings_->swapchain_maintenance_1_supported &&
+        if (swapchain_maintenance_1_enabled &&
             std::ranges::contains(compatible_present_modes_,
                 desired_present_mode_))
         {
@@ -273,7 +236,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
 
     available_present_modes_ = std::move(swap_details.present_modes);
 
-    if (settings_->swapchain_maintenance_1_supported)
+    if (swapchain_maintenance_1_enabled)
     {
         compatible_present_modes_ =
             query_compatible_present_modes(device_->physical,
@@ -322,7 +285,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
         .presentModeCount = count_cast(compatible_present_modes_.size()),
         .pPresentModes = compatible_present_modes_.data()};
 
-    if (settings_->swapchain_maintenance_1_supported)
+    if (swapchain_maintenance_1_enabled)
     {
         create_info.pNext = &present_modes;
     }

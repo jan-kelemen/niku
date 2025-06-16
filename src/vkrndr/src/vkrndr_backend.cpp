@@ -99,98 +99,39 @@ namespace
         return rv;
     }
 
-    [[nodiscard]] std::optional<vkrndr::feature_chain_t>
-    check_physical_device_features(VkPhysicalDevice device,
-        vkrndr::feature_flags_t const& required_feature_flags)
-    {
-        vkrndr::feature_chain_t rv;
-        link_optional_feature_chain(rv);
-
-        vkGetPhysicalDeviceFeatures2(device, &rv.device_10_features);
-
-        auto const all_true =
-            [](auto&& instance, std::ranges::range auto&& range)
-        {
-            return std::all_of(std::begin(range),
-                std::end(range),
-                [&instance](auto const value)
-                { return instance.*value == VK_TRUE; });
-        };
-
-        if (!all_true(rv.device_10_features.features,
-                required_feature_flags.device_10_flags))
-        {
-            return {};
-        }
-
-        if (!all_true(rv.device_11_features,
-                required_feature_flags.device_11_flags))
-        {
-            return {};
-        }
-
-        if (!all_true(rv.device_12_features,
-                required_feature_flags.device_12_flags))
-        {
-            return {};
-        }
-
-        if (!all_true(rv.device_13_features,
-                required_feature_flags.device_13_flags))
-        {
-            return {};
-        }
-
-        return rv;
-    }
-
-    struct [[nodiscard]] queried_physical_device_t final
-    {
-        VkPhysicalDevice device;
-        VkPhysicalDeviceProperties properties;
-        std::vector<VkExtensionProperties> extensions;
-        std::vector<vkrndr::queue_family_t> queue_families;
-        vkrndr::swap_chain_support_t swap_chain_support;
-        vkrndr::feature_chain_t optional_features;
-    };
-
-    [[nodiscard]] std::vector<queried_physical_device_t>
+    [[nodiscard]] std::vector<vkrndr::physical_device_features_t>
     filter_physical_devices(vkrndr::instance_t const& instance,
         vkrndr::feature_flags_t const& required_feature_flags,
         VkSurfaceKHR surface)
     {
-        std::vector<queried_physical_device_t> rv;
-        for (VkPhysicalDevice device :
-            vkrndr::query_physical_devices(instance.handle))
-        {
-            queried_physical_device_t qpd{.device = device};
+        std::vector<vkrndr::physical_device_features_t> rv;
 
-            qpd.extensions = vkrndr::query_device_extensions(device);
+        for (vkrndr::physical_device_features_t& device :
+            vkrndr::query_available_physical_devices(instance.handle, surface))
+        {
             bool const device_extensions_supported{
                 std::ranges::all_of(required_device_extensions,
-                    [de = qpd.extensions](std::string_view name)
+                    [de = device.extensions](std::string_view name)
                     {
                         return std::ranges::contains(de,
                             name,
                             &VkExtensionProperties::extensionName);
                     })};
-
             if (!device_extensions_supported)
             {
                 continue;
             }
 
-            if (auto optional_features{check_physical_device_features(device,
-                    required_feature_flags)})
+            if (!vkrndr::check_feature_flags(device.features,
+                    required_feature_flags))
             {
-                qpd.optional_features = *optional_features;
+                continue;
             }
 
-            qpd.queue_families = vkrndr::query_queue_families(device, surface);
             if (surface != VK_NULL_HANDLE)
             {
                 bool const has_present_queue{std::ranges::any_of(
-                    qpd.queue_families,
+                    device.queue_families,
                     [](vkrndr::queue_family_t const& family)
                     {
                         return family.supports_present &&
@@ -202,18 +143,14 @@ namespace
                     continue;
                 }
 
-                qpd.swap_chain_support =
-                    vkrndr::query_swap_chain_support(device, surface);
-                if (qpd.swap_chain_support.surface_formats.empty() ||
-                    qpd.swap_chain_support.present_modes.empty())
+                if (device.swap_chain_support->surface_formats.empty() ||
+                    device.swap_chain_support->present_modes.empty())
                 {
                     continue;
                 }
             }
 
-            vkGetPhysicalDeviceProperties(device, &qpd.properties);
-
-            rv.emplace_back(std::move(qpd));
+            rv.emplace_back(std::move(device));
         }
 
         return rv;
@@ -262,7 +199,7 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     , window_{&window}
 {
     auto required_instance_extensions{window_->required_extensions()};
-    ;
+
 #if VKRNDR_ENABLE_DEBUG_UTILS
     if (debug &&
         is_instance_extension_available(*library_,
@@ -328,24 +265,13 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     set_feature_flags_on_chain(effective_features, required_flags);
     link_required_feature_chain(effective_features);
 
-    if (physical_device_it->optional_features.swapchain_maintenance_1_features
-            .swapchainMaintenance1 == VK_TRUE)
+    if (enable_extension_for_device(
+            VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+            *physical_device_it,
+            effective_features))
     {
-        assert(std::ranges::contains(physical_device_it->extensions,
-            std::string_view{VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME},
-            &VkExtensionProperties::extensionName));
         effective_extensions.push_back(
             VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
-
-        effective_features.swapchain_maintenance_1_features
-            .swapchainMaintenance1 = VK_TRUE;
-
-        effective_features.swapchain_maintenance_1_features.pNext =
-            effective_features.device_13_features.pNext;
-        effective_features.device_13_features.pNext =
-            &effective_features.swapchain_maintenance_1_features;
-
-        render_settings_.swapchain_maintenance_1_supported = true;
     }
 
     device_create_info_t const device_create_info{
@@ -354,6 +280,10 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
         .extensions = effective_extensions,
         .queues = cppext::as_span(family)};
     device_ = create_device(instance_, device_create_info);
+
+    spdlog::info("Created Vulkan device {}.\n\tEnabled extensions: {}",
+        std::bit_cast<intptr_t>(device_.logical),
+        fmt::join(device_.extensions, ", "));
 
     auto& port{device_.execution_ports.emplace_back(device_.logical,
         family.properties.queueFlags,

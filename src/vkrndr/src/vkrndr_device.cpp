@@ -10,7 +10,9 @@
 
 #include <volk.h>
 
+#include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <vector>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
@@ -60,54 +62,10 @@ namespace
     }
 } // namespace
 
-std::vector<VkPhysicalDevice> vkrndr::query_physical_devices(
-    VkInstance instance)
+bool vkrndr::is_device_extension_enabled(char const* const extension_name,
+    device_t const& device)
 {
-    uint32_t count{};
-    vkEnumeratePhysicalDevices(instance, &count, nullptr);
-
-    std::vector<VkPhysicalDevice> rv{count};
-    vkEnumeratePhysicalDevices(instance, &count, rv.data());
-
-    return rv;
-}
-
-std::vector<vkrndr::queue_family_t>
-vkrndr::query_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
-{
-    uint32_t count{};
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
-
-    std::vector<VkQueueFamilyProperties> family_properties{count};
-    vkGetPhysicalDeviceQueueFamilyProperties(device,
-        &count,
-        family_properties.data());
-
-    std::vector<queue_family_t> rv;
-    rv.reserve(family_properties.size());
-
-    uint32_t index{};
-    for (auto const& properties : family_properties)
-    {
-        if (surface != VK_NULL_HANDLE)
-        {
-            VkBool32 present_support{VK_FALSE};
-            vkGetPhysicalDeviceSurfaceSupportKHR(device,
-                index,
-                surface,
-                &present_support);
-
-            rv.emplace_back(index, properties, present_support == VK_TRUE);
-        }
-        else
-        {
-            rv.emplace_back(index, properties, false);
-        }
-
-        ++index;
-    }
-
-    return rv;
+    return device.extensions.contains(extension_name);
 }
 
 vkrndr::device_t vkrndr::create_device(instance_t const& instance,
@@ -140,6 +98,9 @@ vkrndr::device_t vkrndr::create_device(instance_t const& instance,
 
     check_result(vkCreateDevice(create_info.device, &ci, nullptr, &rv.logical));
     boost::scope::scope_fail const rollback{[&rv]() { destroy(&rv); }};
+
+    std::ranges::copy(create_info.extensions,
+        std::inserter(rv.extensions, rv.extensions.begin()));
 
     volkLoadDevice(rv.logical);
 
@@ -174,5 +135,6 @@ void vkrndr::destroy(device_t* const device)
     {
         vmaDestroyAllocator(device->allocator);
         vkDestroyDevice(device->logical, nullptr);
+        device->extensions.clear();
     }
 }
