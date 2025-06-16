@@ -18,22 +18,26 @@ namespace vkrndr
 
     struct [[nodiscard]] feature_chain_t final
     {
+        VkPhysicalDeviceFeatures2 device_10_features{
+            .sType = vku::GetSType<VkPhysicalDeviceFeatures2>()};
+
+        VkPhysicalDeviceVulkan11Features device_11_features{
+            .sType = vku::GetSType<VkPhysicalDeviceVulkan11Features>()};
+
+        VkPhysicalDeviceVulkan12Features device_12_features{
+            .sType = vku::GetSType<VkPhysicalDeviceVulkan12Features>()};
+
+        VkPhysicalDeviceVulkan13Features device_13_features{
+            .sType = vku::GetSType<VkPhysicalDeviceVulkan13Features>()};
+
         VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT
             swapchain_maintenance_1_features{
                 .sType = vku::GetSType<
                     VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT>()};
 
-        VkPhysicalDeviceVulkan13Features device_13_features{
-            .sType = vku::GetSType<VkPhysicalDeviceVulkan13Features>()};
-
-        VkPhysicalDeviceVulkan12Features device_12_features{
-            .sType = vku::GetSType<VkPhysicalDeviceVulkan12Features>()};
-
-        VkPhysicalDeviceVulkan11Features device_11_features{
-            .sType = vku::GetSType<VkPhysicalDeviceVulkan11Features>()};
-
-        VkPhysicalDeviceFeatures2 device_10_features{
-            .sType = vku::GetSType<VkPhysicalDeviceFeatures2>()};
+        VkPhysicalDeviceMemoryPriorityFeaturesEXT memory_priority_features{
+            .sType =
+                vku::GetSType<VkPhysicalDeviceMemoryPriorityFeaturesEXT>()};
     };
 
     void link_required_feature_chain(feature_chain_t& chain);
@@ -56,6 +60,12 @@ namespace vkrndr
         std::optional<
             VkBool32 VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT::*>
             swapchain_maintenance_1_flags;
+
+        std::optional<VkBool32 VkPhysicalDeviceMemoryPriorityFeaturesEXT::*>
+            memory_priority_flags;
+
+        std::vector<VkBool32 VkPhysicalDeviceMemoryBudgetPropertiesEXT::*>
+            memory_budget_flags;
     };
 
     void add_required_feature_flags(feature_flags_t& flags);

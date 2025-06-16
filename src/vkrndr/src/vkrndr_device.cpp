@@ -118,6 +118,16 @@ vkrndr::device_t vkrndr::create_device(instance_t const& instance,
         .vulkanApiVersion = VK_API_VERSION_1_3,
     };
 
+    if (is_device_extension_enabled(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME, rv))
+    {
+        allocator_info.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
+    }
+
+    if (is_device_extension_enabled(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, rv))
+    {
+        allocator_info.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+    }
+
     check_result(vmaCreateAllocator(&allocator_info, &rv.allocator));
 
     rv.execution_ports.reserve(queue_create_infos.size());

@@ -274,6 +274,20 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
             VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
     }
 
+    if (enable_extension_for_device(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
+            *physical_device_it,
+            effective_features))
+    {
+        effective_extensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+    }
+
+    if (enable_extension_for_device(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
+            *physical_device_it,
+            effective_features))
+    {
+        effective_extensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+    }
+
     device_create_info_t const device_create_info{
         .chain = &effective_features.device_10_features,
         .device = physical_device_it->device,

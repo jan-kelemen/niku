@@ -114,6 +114,8 @@ void vkrndr::link_optional_feature_chain(feature_chain_t& chain)
 {
     link_required_feature_chain(chain);
     chain.device_13_features.pNext = &chain.swapchain_maintenance_1_features;
+    chain.swapchain_maintenance_1_features.pNext =
+        &chain.memory_priority_features;
 }
 
 void vkrndr::add_required_feature_flags(feature_flags_t& flags)
@@ -267,18 +269,23 @@ bool vkrndr::enable_extension_for_device(char const* const extension_name,
 {
     static constexpr std::string_view swapchain_maintenance_1{
         VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME};
+    static constexpr std::string_view memory_priority{
+        VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME};
+    static constexpr std::string_view memory_budget{
+        VK_EXT_MEMORY_BUDGET_EXTENSION_NAME};
 
-    if (extension_name == swapchain_maintenance_1)
+    std::string_view const name{extension_name};
+    if (!std::ranges::contains(device.extensions,
+            name,
+            &VkExtensionProperties::extensionName))
+    {
+        return false;
+    }
+
+    if (name == swapchain_maintenance_1)
     {
         if (device.features.swapchain_maintenance_1_features
                 .swapchainMaintenance1 != VK_TRUE)
-        {
-            return false;
-        }
-
-        if (!std::ranges::contains(device.extensions,
-                swapchain_maintenance_1,
-                &VkExtensionProperties::extensionName))
         {
             return false;
         }
@@ -288,6 +295,26 @@ bool vkrndr::enable_extension_for_device(char const* const extension_name,
             std::exchange(chain.device_13_features.pNext,
                 &chain.swapchain_maintenance_1_features);
 
+        return true;
+    }
+
+    if (name == memory_priority)
+    {
+        if (device.features.memory_priority_features.memoryPriority != VK_TRUE)
+        {
+            return false;
+        }
+
+        chain.memory_priority_features.memoryPriority = VK_TRUE;
+        chain.memory_priority_features.pNext =
+            std::exchange(chain.device_13_features.pNext,
+                &chain.memory_priority_features);
+
+        return true;
+    }
+
+    if (name == memory_budget)
+    {
         return true;
     }
 
