@@ -18,7 +18,8 @@ namespace vkrndr
 {
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
         device_t const& device,
-        std::span<VkDescriptorSetLayoutBinding const> const& bindings);
+        std::span<VkDescriptorSetLayoutBinding const> const& bindings,
+        std::span<VkDescriptorBindingFlagsEXT const> const& binding_flags = {});
 
     [[nodiscard]] constexpr VkDescriptorBufferInfo buffer_descriptor(
         vkrndr::buffer_t const& buffer,

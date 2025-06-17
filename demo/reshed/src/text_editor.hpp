@@ -13,6 +13,7 @@
 #include <ngntxt_syntax.hpp>
 
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 
@@ -105,6 +106,7 @@ namespace reshed
 
         VkSampler bitmap_sampler_;
 
+        vkrndr::descriptor_pool_t descriptor_pool_;
         VkDescriptorSetLayout text_descriptor_layout_;
         VkDescriptorSet text_descriptor_{VK_NULL_HANDLE};
 

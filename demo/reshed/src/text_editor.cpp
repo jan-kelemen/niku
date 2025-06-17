@@ -213,6 +213,13 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     , highlight_query_{create_highlight_query(language_)}
     , shaping_buffer_{ngntxt::create_shaping_buffer()}
     , bitmap_sampler_{create_bitmap_sampler(backend_->device())}
+    , descriptor_pool_{vkrndr::create_descriptor_pool(backend_->device(),
+          std::to_array<VkDescriptorPoolSize>(
+              {{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                  .descriptorCount = 100}}),
+          1,
+          VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT)
+              .value()}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
 {
     [[maybe_unused]] bool const language_set{
@@ -261,14 +268,21 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     auto descriptor_layout{shader_set.descriptor_bindings(0).and_then(
         [&device = backend_->device()](auto&& bindings)
         {
-            bindings[0].descriptorCount = 2;
-            return std::expected<VkDescriptorSetLayout, std::error_code>{
-                vkrndr::create_descriptor_set_layout(device, bindings)};
+            bindings[0].descriptorCount = 100;
+            return std::expected<VkDescriptorSetLayout,
+                std::error_code>{vkrndr::create_descriptor_set_layout(device,
+                bindings,
+                std::to_array<VkDescriptorBindingFlagsEXT>(
+                    {VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
+                        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+                        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
+                        VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT}))};
         })};
+
     assert(descriptor_layout);
     text_descriptor_layout_ = *descriptor_layout;
 
-    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
+    vkrndr::check_result(descriptor_pool_.allocate_descriptor_sets(
         cppext::as_span(text_descriptor_layout_),
         cppext::as_span(text_descriptor_)));
 
@@ -355,8 +369,7 @@ reshed::text_editor_t::~text_editor_t()
 
     destroy(&backend_->device(), &text_pipeline_);
 
-    backend_->descriptor_pool().free_descriptor_sets(
-        cppext::as_span(text_descriptor_));
+    descriptor_pool_.free_descriptor_sets(cppext::as_span(text_descriptor_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         text_descriptor_layout_,
@@ -487,20 +500,10 @@ void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
 
     shaping_font_face_ = ngntxt::create_shaping_font_face(font_face_);
 
+    // Load ASCII range into bitmap
     {
         size_t const bitmap_image_index{
-            load_codepoint_range(*backend_, font_bitmap_, 0, 65)};
-
-        update_descriptor_set(backend_->device(),
-            text_descriptor_,
-            cppext::narrow<uint32_t>(bitmap_image_index),
-            vkrndr::combined_sampler_descriptor(bitmap_sampler_,
-                font_bitmap_.bitmap_images[bitmap_image_index]));
-    }
-
-    {
-        size_t const bitmap_image_index{
-            load_codepoint_range(*backend_, font_bitmap_, 65, 256)};
+            load_codepoint_range(*backend_, font_bitmap_, 0, 256)};
 
         update_descriptor_set(backend_->device(),
             text_descriptor_,
@@ -571,6 +574,29 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             hb_buffer_get_glyph_positions(shaping_buffer_.get(), nullptr),
             len};
 
+        std::vector<char32_t> missing_glyphs;
+        for (unsigned int i{}; i != len; i++)
+        {
+            if (!font_bitmap_.glyphs.contains(
+                    shaped_line.glyph_infos[i].codepoint))
+            {
+                missing_glyphs.push_back(shaped_line.glyph_infos[i].codepoint);
+            }
+        }
+
+        if (!missing_glyphs.empty())
+        {
+            size_t const new_descriptor_index{ngntxt::load_codepoints(*backend_,
+                font_bitmap_,
+                missing_glyphs)};
+
+            update_descriptor_set(backend_->device(),
+                text_descriptor_,
+                new_descriptor_index,
+                vkrndr::combined_sampler_descriptor(bitmap_sampler_,
+                    font_bitmap_.bitmap_images[new_descriptor_index]));
+        }
+
         for (unsigned int i{}; i != len; i++)
         {
             auto const glyph_it{
@@ -594,7 +620,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
                 glm::vec2{size},
                 glm::vec2{top_left},
                 glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
-                cppext::narrow<uint32_t>(glyph_it->second.bitmap_image_index)};
+                cppext::narrow<uint32_t>(bitmap_glyph.bitmap_image_index)};
 
             cursor +=
                 glm::ivec2{positions[i].x_advance, positions[i].y_advance} >> 6;

@@ -57,7 +57,9 @@ namespace
         for (char32_t codepoint : codepoints)
         {
             FT_UInt const index{
-                FT_Get_Char_Index(bitmap.font_face.get(), codepoint)};
+                bitmap.indexing == ngntxt::font_bitmap_indexing_t::glyph
+                    ? codepoint
+                    : FT_Get_Char_Index(bitmap.font_face.get(), codepoint)};
             if (bitmap.indexing == ngntxt::font_bitmap_indexing_t::glyph &&
                 new_glpyhs.contains(index))
             {
