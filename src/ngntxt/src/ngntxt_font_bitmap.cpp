@@ -1,5 +1,7 @@
 #include <ngntxt_font_bitmap.hpp>
 
+#include <ngntxt_font_face.hpp>
+
 #include <cppext_numeric.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -225,7 +227,7 @@ namespace
                 1);
         }
 
-        bitmap.bitmap_images.push_back(std::move(new_bitmap_image));
+        bitmap.bitmap_images.push_back(new_bitmap_image);
         bitmap.glyphs.merge(std::move(new_glpyhs));
     }
 } // namespace

@@ -21,6 +21,7 @@
 #include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_shader_module.hpp>
@@ -369,8 +370,6 @@ reshed::text_editor_t::~text_editor_t()
 
     destroy(&backend_->device(), &text_pipeline_);
 
-    descriptor_pool_.free_descriptor_sets(cppext::as_span(text_descriptor_));
-
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         text_descriptor_layout_,
         nullptr);
@@ -592,7 +591,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
             update_descriptor_set(backend_->device(),
                 text_descriptor_,
-                new_descriptor_index,
+                cppext::narrow<uint32_t>(new_descriptor_index),
                 vkrndr::combined_sampler_descriptor(bitmap_sampler_,
                     font_bitmap_.bitmap_images[new_descriptor_index]));
         }

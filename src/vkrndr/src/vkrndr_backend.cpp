@@ -33,6 +33,7 @@
 #include <array>
 #include <bit>
 #include <cstring>
+#include <expected>
 #include <iterator>
 #include <optional>
 #include <ranges>
@@ -122,7 +123,8 @@ namespace
                     continue;
                 }
 
-                if (device.swap_chain_support->surface_formats.empty() ||
+                if (!device.swap_chain_support ||
+                    device.swap_chain_support->surface_formats.empty() ||
                     device.swap_chain_support->present_modes.empty())
                 {
                     continue;

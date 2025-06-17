@@ -3,8 +3,9 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <vulkan/utility/vk_struct_helper.hpp>
+#include <vulkan/utility/vk_struct_helper.hpp> // IWYU pragma: keep
 
+#include <algorithm>
 #include <cassert>
 
 VkDescriptorSetLayout vkrndr::create_descriptor_set_layout(
@@ -23,7 +24,7 @@ VkDescriptorSetLayout vkrndr::create_descriptor_set_layout(
     VkDescriptorSetLayoutBindingFlagsCreateInfoEXT const flags_info{
         .sType =
             vku::GetSType<VkDescriptorSetLayoutBindingFlagsCreateInfoEXT>(),
-        .bindingCount = cppext::narrow<uint32_t>(binding_flags.size()),
+        .bindingCount = count_cast(binding_flags.size()),
         .pBindingFlags = binding_flags.data(),
     };
 

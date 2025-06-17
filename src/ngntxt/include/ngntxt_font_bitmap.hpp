@@ -7,6 +7,7 @@
 
 #include <glm/vec2.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <map>
 #include <span>

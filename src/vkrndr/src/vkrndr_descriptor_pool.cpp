@@ -3,6 +3,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <cassert>
 #include <utility>
 
 vkrndr::descriptor_pool_t::descriptor_pool_t(device_t& device,
@@ -32,7 +33,7 @@ VkResult vkrndr::descriptor_pool_t::allocate_descriptor_sets(
 {
     assert(descriptor_sets.size() >= layouts.size());
 
-    VkDescriptorSetAllocateInfo alloc_info{
+    VkDescriptorSetAllocateInfo const alloc_info{
         .sType = vku::GetSType<VkDescriptorSetAllocateInfo>(),
         .descriptorPool = pool_,
         .descriptorSetCount = count_cast(layouts.size()),

@@ -3,6 +3,7 @@
 
 #include <volk.h>
 
+#include <cstdint>
 #include <expected>
 #include <span>
 
