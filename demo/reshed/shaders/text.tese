@@ -5,11 +5,13 @@ layout(quads, equal_spacing, ccw) in;
 layout(location = 0) in vec2 inSize[];
 layout(location = 1) in vec2 inTexCoords[];
 layout(location = 2) in vec4 inColor[];
+layout(location = 3) in uint inBitmapIndex[];
 
 layout(push_constant) uniform PushConst { mat4 projection; } pc;
 
 layout(location = 0) out vec2 outTexCoords;
 layout(location = 1) out vec4 outTexColor;
+layout(location = 2) out uint outBitmapIndex;
 
 void main(void)
 {
@@ -21,4 +23,5 @@ void main(void)
 
     outTexCoords = inTexCoords[0] + (inSize[0] - gl_TessCoord.xy * inSize[0]);
     outTexColor = inColor[0];
+    outBitmapIndex = inBitmapIndex[0];
 }

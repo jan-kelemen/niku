@@ -3,13 +3,14 @@
 
 #include <vkrndr_image.hpp>
 
-#include <ft2build.h>
-#include FT_FREETYPE_H // IWYU pragma: keep
+#include <ngntxt_font_face.hpp>
 
 #include <glm/vec2.hpp>
 
 #include <cstdint>
 #include <map>
+#include <span>
+#include <vector>
 
 namespace vkrndr
 {
@@ -25,12 +26,7 @@ namespace ngntxt
         glm::uvec2 size;
         glm::ivec2 bearing;
         uint32_t advance;
-    };
-
-    struct [[nodiscard]] font_bitmap_t final
-    {
-        std::map<char32_t, glyph_info_t> glyphs;
-        vkrndr::image_t bitmap;
+        size_t bitmap_image_index;
     };
 
     enum class [[nodiscard]] font_bitmap_indexing_t
@@ -39,11 +35,25 @@ namespace ngntxt
         glyph
     };
 
-    font_bitmap_t create_bitmap(vkrndr::backend_t& backend,
-        FT_Face font_face,
-        char32_t first_codepoint,
-        char32_t last_codepoint,
+    struct [[nodiscard]] font_bitmap_t final
+    {
+        std::map<char32_t, glyph_info_t> glyphs;
+        std::vector<vkrndr::image_t> bitmap_images;
+        font_bitmap_indexing_t indexing{font_bitmap_indexing_t::glyph};
+        font_face_ptr_t font_face;
+    };
+
+    font_bitmap_t create_bitmap(font_face_ptr_t font_face,
         font_bitmap_indexing_t indexing);
+
+    [[nodiscard]] size_t load_codepoint_range(vkrndr::backend_t& backend,
+        font_bitmap_t& bitmap,
+        char32_t begin,
+        char32_t end);
+
+    [[nodiscard]] size_t load_codepoints(vkrndr::backend_t& backend,
+        font_bitmap_t& bitmap,
+        std::span<char32_t const> const& codepoints);
 
     void destroy(vkrndr::device_t const* device, font_bitmap_t* bitmap);
 } // namespace ngntxt

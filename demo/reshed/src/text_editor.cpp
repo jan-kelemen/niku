@@ -77,6 +77,7 @@ namespace
         glm::vec2 size;
         glm::vec2 uv;
         glm::vec4 color;
+        uint32_t bitmap_index;
     };
 
     constexpr auto binding_description()
@@ -108,20 +109,25 @@ namespace
             VkVertexInputAttributeDescription{.location = 3,
                 .binding = 0,
                 .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                .offset = offsetof(vertex_t, color)}};
+                .offset = offsetof(vertex_t, color)},
+            VkVertexInputAttributeDescription{.location = 4,
+                .binding = 0,
+                .format = VK_FORMAT_R32_UINT,
+                .offset = offsetof(vertex_t, bitmap_index)}};
 
         return descriptions;
     }
 
     void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const& descriptor_set,
+        uint32_t const descriptor_index,
         VkDescriptorImageInfo const bitmap_sampler_info)
     {
         VkWriteDescriptorSet const texture_descriptor_write{
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .dstSet = descriptor_set,
             .dstBinding = 0,
-            .dstArrayElement = 0,
+            .dstArrayElement = descriptor_index,
             .descriptorCount = 1,
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .pImageInfo = &bitmap_sampler_info};
@@ -252,8 +258,13 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
         [this, shd = &fragment_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
-    auto descriptor_layout{
-        vkglsl::descriptor_set_layout(shader_set, backend_->device(), 0)};
+    auto descriptor_layout{shader_set.descriptor_bindings(0).and_then(
+        [&device = backend_->device()](auto&& bindings)
+        {
+            bindings[0].descriptorCount = 2;
+            return std::expected<VkDescriptorSetLayout, std::error_code>{
+                vkrndr::create_descriptor_set_layout(device, bindings)};
+        })};
     assert(descriptor_layout);
     text_descriptor_layout_ = *descriptor_layout;
 
@@ -471,18 +482,32 @@ void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
     font_face_ = std::move(font_face);
 
     destroy(&backend_->device(), &font_bitmap_);
-    font_bitmap_ = ngntxt::create_bitmap(*backend_,
-        font_face_.get(),
-        0,
-        256,
+    font_bitmap_ = ngntxt::create_bitmap(font_face_,
         ngntxt::font_bitmap_indexing_t::glyph);
 
     shaping_font_face_ = ngntxt::create_shaping_font_face(font_face_);
 
-    update_descriptor_set(backend_->device(),
-        text_descriptor_,
-        vkrndr::combined_sampler_descriptor(bitmap_sampler_,
-            font_bitmap_.bitmap));
+    {
+        size_t const bitmap_image_index{
+            load_codepoint_range(*backend_, font_bitmap_, 0, 65)};
+
+        update_descriptor_set(backend_->device(),
+            text_descriptor_,
+            cppext::narrow<uint32_t>(bitmap_image_index),
+            vkrndr::combined_sampler_descriptor(bitmap_sampler_,
+                font_bitmap_.bitmap_images[bitmap_image_index]));
+    }
+
+    {
+        size_t const bitmap_image_index{
+            load_codepoint_range(*backend_, font_bitmap_, 65, 256)};
+
+        update_descriptor_set(backend_->device(),
+            text_descriptor_,
+            cppext::narrow<uint32_t>(bitmap_image_index),
+            vkrndr::combined_sampler_descriptor(bitmap_sampler_,
+                font_bitmap_.bitmap_images[bitmap_image_index]));
+    }
 }
 
 VkPipelineLayout reshed::text_editor_t::pipeline_layout() const
@@ -568,7 +593,8 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
             vertices[frame_data_->vertices++] = {cursor + offset + bearing,
                 glm::vec2{size},
                 glm::vec2{top_left},
-                glm::vec4{1.0f, 1.0f, 1.0f, 1.0f}};
+                glm::vec4{1.0f, 1.0f, 1.0f, 1.0f},
+                cppext::narrow<uint32_t>(glyph_it->second.bitmap_image_index)};
 
             cursor +=
                 glm::ivec2{positions[i].x_advance, positions[i].y_advance} >> 6;

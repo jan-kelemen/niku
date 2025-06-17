@@ -4,10 +4,12 @@ layout(location = 0) in vec2 inPos;
 layout(location = 1) in vec2 inSize;
 layout(location = 2) in vec2 inTexCoords;
 layout(location = 3) in vec4 inColor;
+layout(location = 4) in uint inBitmapIndex;
 
 layout(location = 0) out vec2 outSize;
 layout(location = 1) out vec2 outTexCoords;
 layout(location = 2) out vec4 outColor;
+layout(location = 3) out uint outBitmapIndex;
 
 void main()
 {
@@ -15,4 +17,5 @@ void main()
     outSize = inSize;
     outTexCoords = inTexCoords;
     outColor = inColor;
+    outBitmapIndex = inBitmapIndex;
 }
