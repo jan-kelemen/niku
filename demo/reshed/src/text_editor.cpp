@@ -122,16 +122,16 @@ namespace
     void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const& descriptor_set,
         uint32_t const descriptor_index,
-        VkDescriptorImageInfo const bitmap_sampler_info)
+        VkDescriptorImageInfo const bitmap_image_info)
     {
         VkWriteDescriptorSet const texture_descriptor_write{
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .dstSet = descriptor_set,
-            .dstBinding = 0,
+            .dstBinding = 1,
             .dstArrayElement = descriptor_index,
             .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo = &bitmap_sampler_info};
+            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            .pImageInfo = &bitmap_image_info};
 
         std::array const descriptor_writes{texture_descriptor_write};
 
@@ -215,10 +215,12 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     , shaping_buffer_{ngntxt::create_shaping_buffer()}
     , bitmap_sampler_{create_bitmap_sampler(backend_->device())}
     , descriptor_pool_{vkrndr::create_descriptor_pool(backend_->device(),
-          std::to_array<VkDescriptorPoolSize>(
-              {{.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                  .descriptorCount = 100}}),
-          1,
+          std::to_array<VkDescriptorPoolSize>({
+              {.type = VK_DESCRIPTOR_TYPE_SAMPLER, .descriptorCount = 1},
+              {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                  .descriptorCount = 100},
+          }),
+          2,
           VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT)
               .value()}
     , frame_data_{backend_->frames_in_flight(), backend_->frames_in_flight()}
@@ -269,15 +271,15 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     auto descriptor_layout{shader_set.descriptor_bindings(0).and_then(
         [&device = backend_->device()](auto&& bindings)
         {
-            bindings[0].descriptorCount = 100;
+            bindings[1].descriptorCount = 100;
             return std::expected<VkDescriptorSetLayout,
                 std::error_code>{vkrndr::create_descriptor_set_layout(device,
                 bindings,
-                std::to_array<VkDescriptorBindingFlagsEXT>(
-                    {VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
-                        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
-                        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
-                        VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT}))};
+                std::to_array<VkDescriptorBindingFlagsEXT>({0,
+                    VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+                        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                        VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT}))};
         })};
 
     assert(descriptor_layout);
@@ -286,6 +288,27 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     vkrndr::check_result(descriptor_pool_.allocate_descriptor_sets(
         cppext::as_span(text_descriptor_layout_),
         cppext::as_span(text_descriptor_)));
+    {
+        VkDescriptorImageInfo const info{
+            vkrndr::sampler_descriptor(bitmap_sampler_)};
+
+        VkWriteDescriptorSet const sampler_descriptor_write{
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = text_descriptor_,
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+            .pImageInfo = &info};
+
+        std::array const descriptor_writes{sampler_descriptor_write};
+
+        vkUpdateDescriptorSets(backend_->device().logical,
+            1,
+            &sampler_descriptor_write,
+            0,
+            nullptr);
+    }
 
     VkPipelineColorBlendAttachmentState const alpha_blend{
         .blendEnable = VK_TRUE,
