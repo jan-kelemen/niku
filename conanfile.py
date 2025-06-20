@@ -40,12 +40,12 @@ class NikuConan(ConanFile):
         self.requires("imgui/1.91.9b-docking")
         self.requires("joltphysics/5.3.0")
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
-        self.requires("meshoptimizer/0.23", transitive_headers=False)
-        self.requires("sdl/3.2.14")
+        self.requires("meshoptimizer/0.24", transitive_headers=False)
+        self.requires("sdl/3.2.16")
         self.requires("spdlog/1.15.3", transitive_headers=False)
         self.requires("spirv-cross/1.4.304.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
-        self.requires("tree-sitter/0.25.5")
+        self.requires("tree-sitter/0.25.6")
         self.requires("volk/1.4.304.0")
         self.requires("vulkan-memory-allocator/3.3.0")
         self.requires("vulkan-utility-libraries/1.4.304.0")
@@ -53,7 +53,7 @@ class NikuConan(ConanFile):
         if self.options.develop:
             self.requires("entt/3.15.0")
             self.requires("recastnavigation/1.6.0")
-            self.requires("simdjson/3.12.3")
+            self.requires("simdjson/3.13.0")
             self.requires("tree-sitter-glsl/0.2.0")
 
     def build_requirements(self):

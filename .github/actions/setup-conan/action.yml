@@ -75,15 +75,15 @@ runs:
         conan export recipes/recipes/imgui/all --version 1.91.9b-docking
         conan export recipes/recipes/joltphysics/all --version 5.3.0
         conan export recipes/recipes/mikktspace/all --version cci.20200325
-        conan export recipes/recipes/meshoptimizer/all --version 0.23
+        conan export recipes/recipes/meshoptimizer/all --version 0.24
         conan export recipes/recipes/recastnavigation/all --version 1.6.0
-        conan export recipes/recipes/sdl/3.x --version 3.2.14
-        conan export recipes/recipes/simdjson/all --version 3.12.3
+        conan export recipes/recipes/sdl/3.x --version 3.2.16
+        conan export recipes/recipes/simdjson/all --version 3.13.0
         conan export recipes/recipes/spdlog/all --version 1.15.3
         conan export recipes/recipes/spirv-headers/all --version 1.4.304.0
         conan export recipes/recipes/spirv-cross/all --version 1.4.304.0
         conan export recipes/recipes/spirv-tools/all --version 1.4.304.0
-        conan export recipes/recipes/tree-sitter/all --version 0.25.5
+        conan export recipes/recipes/tree-sitter/all --version 0.25.6
         conan export recipes/recipes/tree-sitter-glsl/all --version 0.2.0
         conan export recipes/recipes/volk/all --version 1.4.304.0
         conan export recipes/recipes/vulkan-headers/all --version 1.4.304.0
