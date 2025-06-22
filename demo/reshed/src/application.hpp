@@ -51,7 +51,7 @@ namespace reshed
         application_t& operator=(application_t&&) noexcept = delete;
 
     private: // ngnwsi::application callback interface
-        bool handle_event(SDL_Event const& event, float delta_time) override;
+        bool handle_event(SDL_Event const& event) override;
 
         bool begin_frame() override;
 

@@ -58,8 +58,7 @@ namespace ngnwsi
 
         [[nodiscard]] virtual bool is_quit_event(SDL_Event const& event);
 
-        virtual bool handle_event([[maybe_unused]] SDL_Event const& event,
-            [[maybe_unused]] float const delta_time)
+        virtual bool handle_event([[maybe_unused]] SDL_Event const& event)
         {
             return true;
         }

@@ -108,7 +108,7 @@ void ngnwsi::application_t::run()
                 }
                 else
                 {
-                    handle_event(event, delta);
+                    handle_event(event);
                 }
             }
         }

@@ -226,8 +226,7 @@ gltfviewer::application_t::application_t(bool const debug)
 
 gltfviewer::application_t::~application_t() = default;
 
-bool gltfviewer::application_t::handle_event(SDL_Event const& event,
-    [[maybe_unused]] float const delta_time)
+bool gltfviewer::application_t::handle_event(SDL_Event const& event)
 {
     camera_controller_.handle_event(event);
 

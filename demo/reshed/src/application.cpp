@@ -73,8 +73,7 @@ reshed::application_t::application_t(bool const debug)
 
 reshed::application_t::~application_t() = default;
 
-bool reshed::application_t::handle_event(SDL_Event const& event,
-    [[maybe_unused]] float const delta_time)
+bool reshed::application_t::handle_event(SDL_Event const& event)
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 

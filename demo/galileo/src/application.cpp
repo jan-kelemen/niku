@@ -273,8 +273,7 @@ galileo::application_t::application_t(bool const debug)
 
 galileo::application_t::~application_t() = default;
 
-bool galileo::application_t::handle_event(SDL_Event const& event,
-    [[maybe_unused]] float const delta_time)
+bool galileo::application_t::handle_event(SDL_Event const& event)
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
