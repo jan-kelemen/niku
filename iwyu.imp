@@ -124,5 +124,5 @@
   { include: [ "<spirv_cross_containers.hpp>", private, "<spirv_cross.hpp>", public] },
   
   # vulkan aliases
-  { include: [ "@<vulkan/.*>", private, "<volk.h>", public] },
+  { include: [ "@<vulkan/vulkan_core.h>", private, "<volk.h>", public] },
 ]

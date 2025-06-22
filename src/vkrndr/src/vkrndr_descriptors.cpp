@@ -3,7 +3,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <vulkan/utility/vk_struct_helper.hpp> // IWYU pragma: keep
+#include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <algorithm>
 #include <cassert>

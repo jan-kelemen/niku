@@ -3,7 +3,7 @@
 
 #include <volk.h>
 
-#include <vulkan/utility/vk_struct_helper.hpp> // IWYU pragma: keep
+#include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <cstdint>
 #include <optional>

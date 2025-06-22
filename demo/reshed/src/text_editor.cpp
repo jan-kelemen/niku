@@ -301,8 +301,6 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
             .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
             .pImageInfo = &info};
 
-        std::array const descriptor_writes{sampler_descriptor_write};
-
         vkUpdateDescriptorSets(backend_->device().logical,
             1,
             &sampler_descriptor_write,
