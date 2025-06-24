@@ -47,9 +47,7 @@ namespace ngnwsi
     public:
         void run();
 
-        void fixed_update_interval(float delta_time);
-
-        [[nodiscard]] float fixed_update_interval() const;
+        void fixed_update_interval(float fps);
 
         [[nodiscard]] sdl_window_t* window();
 
@@ -62,8 +60,6 @@ namespace ngnwsi
         {
             return true;
         }
-
-        virtual void fixed_update([[maybe_unused]] float const delta_time) { }
 
         virtual void update([[maybe_unused]] float const delta_time) { }
 

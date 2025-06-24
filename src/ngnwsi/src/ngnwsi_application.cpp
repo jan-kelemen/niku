@@ -46,7 +46,7 @@ public:
     sdl_guard_t guard;
     sdl_window_t window;
 
-    std::optional<float> fixed_update_interval;
+    float fixed_update_interval{1.0f / 60.0f};
     uint64_t last_tick{};
     uint64_t last_fixed_tick{};
 };
@@ -85,18 +85,13 @@ void ngnwsi::application_t::run()
 {
     on_startup();
 
+    auto const frequency{cppext::as_fp(SDL_GetPerformanceFrequency())};
+
     uint64_t last_tick{SDL_GetPerformanceCounter()};
-    uint64_t last_fixed_tick{last_tick};
-
-    bool done{false};
-    while (!done && should_run())
+    float accumulated_error{};
+    while (should_run())
     {
-        auto const frequency{cppext::as_fp(SDL_GetPerformanceFrequency())};
-
-        uint64_t const current_tick{SDL_GetPerformanceCounter()};
-
-        float const delta{cppext::as_fp(current_tick - last_tick) / frequency};
-
+        bool done{false};
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
@@ -118,24 +113,33 @@ void ngnwsi::application_t::run()
             break;
         }
 
-        float const fixed_delta{
-            cppext::as_fp(current_tick - last_fixed_tick) / frequency};
+        // https://gafferongames.com/post/fix_your_timestep/
+        // https://dewitters.com/dewitters-gameloop/
+        // https://jakubtomsu.github.io/posts/input_in_fixed_timestep/
+        uint64_t const current_tick{SDL_GetPerformanceCounter()};
+        auto const frame_duration_in_seconds{
+            cppext::as_fp(current_tick - last_tick) / frequency};
 
-        // NOLINTBEGIN(bugprone-unchecked-optional-access)
-        bool const do_fixed_update{impl_->fixed_update_interval.has_value() &&
-            fixed_delta >= *impl_->fixed_update_interval};
-        // NOLINTEND(bugprone-unchecked-optional-access)
+        accumulated_error += frame_duration_in_seconds;
+        auto const simulation_steps{static_cast<uint64_t>(
+            accumulated_error / impl_->fixed_update_interval)};
+        accumulated_error -= simulation_steps * impl_->fixed_update_interval;
 
+        // spdlog::info(
+        //     "last_tick {} current_tick {} duration {} steps {} error {}
+        //     frequency {}", last_tick, current_tick,
+        //     frame_duration_in_seconds,
+        //     simulation_steps,
+        //     accumulated_error,
+        //     frequency);
+
+        last_tick = current_tick;
         bool const should_render{begin_frame()};
 
-        if (do_fixed_update)
+        for (uint64_t i{}; i != simulation_steps; ++i)
         {
-            last_fixed_tick = current_tick;
-            fixed_update(fixed_delta);
+            update(impl_->fixed_update_interval);
         }
-
-        update(delta);
-        last_tick = current_tick;
 
         if (should_render)
         {
@@ -150,21 +154,9 @@ void ngnwsi::application_t::run()
     on_shutdown();
 }
 
-void ngnwsi::application_t::fixed_update_interval(float const delta_time)
+void ngnwsi::application_t::fixed_update_interval(float const fps)
 {
-    if (delta_time != 0.0f)
-    {
-        impl_->fixed_update_interval = delta_time;
-    }
-    else
-    {
-        impl_->fixed_update_interval.reset();
-    }
-}
-
-float ngnwsi::application_t::fixed_update_interval() const
-{
-    return impl_->fixed_update_interval.value_or(0.0f);
+    impl_->fixed_update_interval = fps;
 }
 
 ngnwsi::sdl_window_t* ngnwsi::application_t::window() { return &impl_->window; }
