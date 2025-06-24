@@ -52,12 +52,14 @@ namespace gltfviewer
 
         void draw_skybox(VkCommandBuffer command_buffer);
 
-        void update(ngngfx::camera_t const& camera,
-            ngngfx::projection_t const& projection);
+        void update();
 
         void bind_on(VkCommandBuffer command_buffer,
             VkPipelineLayout layout,
             VkPipelineBindPoint bind_point);
+
+        void draw(ngngfx::camera_t const& camera,
+            ngngfx::projection_t const& projection);
 
     public:
         environment_t& operator=(environment_t const&) = delete;

@@ -254,11 +254,8 @@ void gltfviewer::environment_t::draw_skybox(VkCommandBuffer command_buffer)
     skybox_.draw(command_buffer);
 }
 
-void gltfviewer::environment_t::update(ngngfx::camera_t const& camera,
-    ngngfx::projection_t const& projection)
+void gltfviewer::environment_t::update()
 {
-    frame_data_.cycle();
-
     glm::vec2 near_far{light_projection_.near_far_planes()};
     float view_volume{light_projection_.left_right().y};
 
@@ -291,6 +288,26 @@ void gltfviewer::environment_t::update(ngngfx::camera_t const& camera,
         light_projection_.set_bottom_top(glm::vec2{-1.0f, 1.0f} * view_volume);
     }
     ImGui::End();
+}
+
+void gltfviewer::environment_t::bind_on(VkCommandBuffer command_buffer,
+    VkPipelineLayout layout,
+    VkPipelineBindPoint bind_point)
+{
+    vkCmdBindDescriptorSets(command_buffer,
+        bind_point,
+        layout,
+        0,
+        1,
+        &frame_data_->descriptor_set,
+        0,
+        nullptr);
+}
+
+void gltfviewer::environment_t::draw(ngngfx::camera_t const& camera,
+    ngngfx::projection_t const& projection)
+{
+    frame_data_.cycle();
 
     auto* const header{frame_data_->uniform_map.as<environment_uniform_t>()};
     header->view = camera.view_matrix();
@@ -326,18 +343,4 @@ void gltfviewer::environment_t::update(ngngfx::camera_t const& camera,
         }
     }
     header->light_count = enabled_lights;
-}
-
-void gltfviewer::environment_t::bind_on(VkCommandBuffer command_buffer,
-    VkPipelineLayout layout,
-    VkPipelineBindPoint bind_point)
-{
-    vkCmdBindDescriptorSets(command_buffer,
-        bind_point,
-        layout,
-        0,
-        1,
-        &frame_data_->descriptor_set,
-        0,
-        nullptr);
 }

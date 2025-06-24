@@ -484,26 +484,6 @@ void galileo::application_t::update(float const delta_time)
     move_spheres(registry_, physics_engine_);
 
     physics_engine_.update(delta_time);
-
-    auto& body_interface{physics_engine_.body_interface()};
-    for (auto const entity :
-        registry_.view<component::mesh_t, component::physics_t>())
-    {
-        scene_graph_->update(registry_.get<component::mesh_t>(entity).index,
-            ngnphy::to_glm(body_interface.GetWorldTransform(
-                registry_.get<component::physics_t>(entity).id)));
-    }
-
-    for (auto const entity :
-        registry_.view<component::mesh_t, component::character_t>())
-    {
-        scene_graph_->update(registry_.get<component::mesh_t>(entity).index,
-            character_->world_transform());
-    }
-
-    frame_info_->update(camera_,
-        projection_,
-        static_cast<uint32_t>(light_count_));
 }
 
 bool galileo::application_t::begin_frame()
@@ -533,6 +513,26 @@ bool galileo::application_t::begin_frame()
 
 void galileo::application_t::draw()
 {
+    auto& body_interface{physics_engine_.body_interface()};
+    for (auto const entity :
+        registry_.view<component::mesh_t, component::physics_t>())
+    {
+        scene_graph_->update(registry_.get<component::mesh_t>(entity).index,
+            ngnphy::to_glm(body_interface.GetWorldTransform(
+                registry_.get<component::physics_t>(entity).id)));
+    }
+
+    for (auto const entity :
+        registry_.view<component::mesh_t, component::character_t>())
+    {
+        scene_graph_->update(registry_.get<component::mesh_t>(entity).index,
+            character_->world_transform());
+    }
+
+    frame_info_->update(camera_,
+        projection_,
+        static_cast<uint32_t>(light_count_));
+
     ImGui::ShowMetricsWindow();
 
     if (free_camera_active_)

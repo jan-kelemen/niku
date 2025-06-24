@@ -370,8 +370,6 @@ void gltfviewer::application_t::update(float delta_time)
 
     camera_controller_.update(delta_time);
     projection_.update(camera_.view_matrix());
-
-    environment_->update(camera_, projection_);
 }
 
 bool gltfviewer::application_t::begin_frame()
@@ -430,8 +428,9 @@ void gltfviewer::application_t::draw()
     VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image.extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
+    environment_->draw(camera_, projection_);
 
+    push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
     if (!scene_graph_->empty())
     {
         {
