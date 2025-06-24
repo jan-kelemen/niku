@@ -71,6 +71,8 @@ namespace ngnwsi
 
         virtual void draw() { }
 
+        virtual void debug_draw() { }
+
         virtual void end_frame() { }
 
         virtual void on_startup() { }

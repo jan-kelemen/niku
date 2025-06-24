@@ -349,133 +349,38 @@ bool galileo::application_t::handle_event(SDL_Event const& event)
 void galileo::application_t::update(float const delta_time)
 {
     character_->update(delta_time);
-    ImGui::ShowMetricsWindow();
 
-    ImGui::Begin("Lights");
-    ImGui::SliderInt("Count", &light_count_, 0, 2000);
-    ImGui::End();
-
-    ImGui::Begin("Debug");
-    ImGui::Checkbox("Draw Physics", &draw_physics_);
-    ImGui::Checkbox("Draw Mesh", &draw_main_polymesh_);
-    ImGui::Checkbox("Draw Detail Mesh", &draw_detail_polymesh_);
-    ImGui::Checkbox("Draw Navigation Mesh", &draw_navigation_mesh_);
-    ImGui::Checkbox("Draw Navigation Queries", &draw_navigation_queries_);
-    ImGui::End();
-
+    if (update_navmesh_)
     {
-        bool update_navmesh{false};
-        ImGui::Begin("Navmesh");
-        update_navmesh |= ImGui::SliderFloat("Cell Size",
-            &polymesh_params_.cell_size,
-            0.1f,
-            1.0f,
-            "%.2f");
-        update_navmesh |= ImGui::SliderFloat("Cell Height",
-            &polymesh_params_.cell_height,
-            0.1f,
-            1.0f,
-            "%.2f");
-
-        update_navmesh |= ImGui::SliderFloat("Walkable Slope Angle",
-            &polymesh_params_.walkable_slope_angle,
-            0.02f,
-            glm::half_pi<float>(),
-            "%.3f");
-
-        update_navmesh |= ImGui::SliderFloat("Walkable Height",
-            &polymesh_params_.walkable_height,
-            0.1f,
-            5.0f,
-            "%.1f");
-
-        update_navmesh |= ImGui::SliderFloat("Walkable Climb",
-            &polymesh_params_.walkable_climb,
-            0.0f,
-            5.0f,
-            "%.1f");
-
-        update_navmesh |= ImGui::SliderFloat("Walkable Radius",
-            &polymesh_params_.walkable_radius,
-            0.0f,
-            5.0f,
-            "%.1f");
-
-        update_navmesh |= ImGui::SliderFloat("Max Edge Length",
-            &polymesh_params_.max_edge_length,
-            0.0f,
-            50.0f,
-            "%.0f");
-
-        update_navmesh |= ImGui::SliderFloat("Max Simplification Error",
-            &polymesh_params_.max_simplification_error,
-            0.1f,
-            3.0f,
-            "%.1f");
-
-        update_navmesh |= ImGui::SliderFloat("Min Region Size",
-            &polymesh_params_.min_region_size,
-            0.0f,
-            150.0f,
-            "%.0f");
-
-        update_navmesh |= ImGui::SliderFloat("Merge Region Size",
-            &polymesh_params_.merge_region_size,
-            0.0f,
-            150.0f,
-            "%.0f");
-
-        update_navmesh |= ImGui::SliderInt("Max Verts Per Poly",
-            &polymesh_params_.max_verts_per_poly,
-            3,
-            12);
-
-        update_navmesh |= ImGui::SliderFloat("Detail Sample Distance",
-            &polymesh_params_.detail_sample_distance,
-            1.0f,
-            16.0f,
-            "%.0f");
-
-        update_navmesh |= ImGui::SliderFloat("Detail Sample Max Error",
-            &polymesh_params_.detail_sample_max_error,
-            0.0f,
-            16.0f,
-            "%.0f");
-
-        ImGui::End();
-
-        if (update_navmesh)
+        try
         {
-            try
-            {
-                auto const now{std::chrono::system_clock::now()};
-                poly_mesh_ = generate_poly_mesh(polymesh_params_,
-                    world_primitive_,
-                    world_aabb_);
+            auto const now{std::chrono::system_clock::now()};
+            poly_mesh_ = generate_poly_mesh(polymesh_params_,
+                world_primitive_,
+                world_aabb_);
 
-                world_.update_navigation_mesh(
-                    generate_navigation_mesh(polymesh_params_,
-                        poly_mesh_,
-                        world_aabb_));
+            world_.update_navigation_mesh(
+                generate_navigation_mesh(polymesh_params_,
+                    poly_mesh_,
+                    world_aabb_));
 
-                auto const diff{std::chrono::system_clock::now() - now};
-                spdlog::info("Navigation mesh generation took {}",
-                    std::chrono::duration_cast<std::chrono::milliseconds>(
-                        diff));
-            }
-            catch (std::exception const& ex)
-            {
-                spdlog::error(ex.what());
-            }
-
-            registry_.clear<component::sphere_path_t>();
+            auto const diff{std::chrono::system_clock::now() - now};
+            spdlog::info("Navigation mesh generation took {}",
+                std::chrono::duration_cast<std::chrono::milliseconds>(diff));
         }
+        catch (std::exception const& ex)
+        {
+            spdlog::error(ex.what());
+        }
+
+        update_navmesh_ = false;
+
+        registry_.clear<component::sphere_path_t>();
     }
 
     if (free_camera_active_)
     {
         free_camera_controller_.update(delta_time);
-        free_camera_controller_.draw_imgui();
     }
     else
     {
@@ -507,13 +412,9 @@ bool galileo::application_t::begin_frame()
         return false;
     };
 
-    auto const rv{std::visit(
+    return std::visit(
         cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame())};
-
-    imgui_->begin_frame();
-
-    return rv;
+        backend_->begin_frame());
 }
 
 void galileo::application_t::draw()
@@ -748,6 +649,111 @@ void galileo::application_t::draw()
     vkrndr::transition_to_present_layout(target_image.image, command_buffer);
 
     backend_->draw();
+}
+
+void galileo::application_t::debug_draw()
+{
+    imgui_->begin_frame();
+
+    ImGui::ShowMetricsWindow();
+
+    ImGui::Begin("Lights");
+    ImGui::SliderInt("Count", &light_count_, 0, 2000);
+    ImGui::End();
+
+    ImGui::Begin("Debug");
+    ImGui::Checkbox("Draw Physics", &draw_physics_);
+    ImGui::Checkbox("Draw Mesh", &draw_main_polymesh_);
+    ImGui::Checkbox("Draw Detail Mesh", &draw_detail_polymesh_);
+    ImGui::Checkbox("Draw Navigation Mesh", &draw_navigation_mesh_);
+    ImGui::Checkbox("Draw Navigation Queries", &draw_navigation_queries_);
+    ImGui::End();
+
+    {
+        ImGui::Begin("Navmesh");
+        update_navmesh_ |= ImGui::SliderFloat("Cell Size",
+            &polymesh_params_.cell_size,
+            0.1f,
+            1.0f,
+            "%.2f");
+        update_navmesh_ |= ImGui::SliderFloat("Cell Height",
+            &polymesh_params_.cell_height,
+            0.1f,
+            1.0f,
+            "%.2f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Walkable Slope Angle",
+            &polymesh_params_.walkable_slope_angle,
+            0.02f,
+            glm::half_pi<float>(),
+            "%.3f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Walkable Height",
+            &polymesh_params_.walkable_height,
+            0.1f,
+            5.0f,
+            "%.1f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Walkable Climb",
+            &polymesh_params_.walkable_climb,
+            0.0f,
+            5.0f,
+            "%.1f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Walkable Radius",
+            &polymesh_params_.walkable_radius,
+            0.0f,
+            5.0f,
+            "%.1f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Max Edge Length",
+            &polymesh_params_.max_edge_length,
+            0.0f,
+            50.0f,
+            "%.0f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Max Simplification Error",
+            &polymesh_params_.max_simplification_error,
+            0.1f,
+            3.0f,
+            "%.1f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Min Region Size",
+            &polymesh_params_.min_region_size,
+            0.0f,
+            150.0f,
+            "%.0f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Merge Region Size",
+            &polymesh_params_.merge_region_size,
+            0.0f,
+            150.0f,
+            "%.0f");
+
+        update_navmesh_ |= ImGui::SliderInt("Max Verts Per Poly",
+            &polymesh_params_.max_verts_per_poly,
+            3,
+            12);
+
+        update_navmesh_ |= ImGui::SliderFloat("Detail Sample Distance",
+            &polymesh_params_.detail_sample_distance,
+            1.0f,
+            16.0f,
+            "%.0f");
+
+        update_navmesh_ |= ImGui::SliderFloat("Detail Sample Max Error",
+            &polymesh_params_.detail_sample_max_error,
+            0.0f,
+            16.0f,
+            "%.0f");
+
+        ImGui::End();
+    }
+
+    if (free_camera_active_)
+    {
+        free_camera_controller_.draw_imgui();
+    }
 }
 
 void galileo::application_t::end_frame()

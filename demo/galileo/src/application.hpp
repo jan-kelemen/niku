@@ -88,6 +88,8 @@ namespace galileo
 
         void draw() override;
 
+        void debug_draw() override;
+
         void end_frame() override;
 
         void on_startup() override;
@@ -135,6 +137,7 @@ namespace galileo
 
         polymesh_parameters_t polymesh_params_;
         poly_mesh_t poly_mesh_;
+        bool update_navmesh_{false};
         bool draw_main_polymesh_{true};
         bool draw_detail_polymesh_{true};
         bool draw_navigation_mesh_{true};

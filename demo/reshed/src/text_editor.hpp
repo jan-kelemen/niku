@@ -53,13 +53,13 @@ namespace reshed
     public:
         void handle_event(SDL_Event const& event);
 
-        void update();
-
         void change_font(ngntxt::font_face_ptr_t font_face);
 
         [[nodiscard]] VkPipelineLayout pipeline_layout() const;
 
         void draw(VkCommandBuffer command_buffer);
+
+        void debug_draw();
 
         void resize(uint32_t width, uint32_t height);
 

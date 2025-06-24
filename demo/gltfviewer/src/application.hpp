@@ -76,6 +76,8 @@ namespace gltfviewer
 
         void draw() override;
 
+        void debug_draw() override;
+
         void end_frame() override;
 
         void on_startup() override;
@@ -111,6 +113,7 @@ namespace gltfviewer
         camera_controller_t camera_controller_;
 
         model_selector_t selector_;
+        bool change_model_{false};
         ngnast::gltf::loader_t gltf_loader_;
 
         uint32_t debug_{0};

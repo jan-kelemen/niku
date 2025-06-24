@@ -139,6 +139,8 @@ void ngnwsi::application_t::run()
 
         if (should_render)
         {
+            debug_draw();
+
             draw();
         }
 

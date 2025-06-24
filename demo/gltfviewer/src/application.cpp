@@ -246,11 +246,7 @@ bool gltfviewer::application_t::handle_event(SDL_Event const& event)
 
 void gltfviewer::application_t::update(float delta_time)
 {
-    ImGui::ShowMetricsWindow();
-
-    camera_controller_.draw_imgui();
-
-    if (selector_.select_model())
+    if (change_model_)
     {
         std::filesystem::path const model_path{selector_.selected_model()};
         spdlog::info("Start loading: {}", model_path);
@@ -287,90 +283,10 @@ void gltfviewer::application_t::update(float delta_time)
             shadow_map_->descriptor_layout(),
             depth_buffer_.format);
 
+        change_model_ = false;
+
         spdlog::info("End loading: {}", model_path);
     }
-
-    ImGui::Begin("Rendering");
-
-    if (ImGui::BeginCombo("PBR Equation", debug_options[debug_], 0))
-    {
-        uint32_t i{};
-        for (auto const& option : debug_options)
-        {
-            auto const selected{debug_ == i};
-
-            if (ImGui::Selectable(option, selected))
-            {
-                debug_ = i;
-            }
-
-            if (selected)
-            {
-                ImGui::SetItemDefaultFocus();
-            }
-
-            ++i;
-        }
-        ImGui::EndCombo();
-    }
-
-    ImGui::SliderFloat("IBL Factor", &ibl_factor_, 0.0f, 9.0f);
-    if (int v{cppext::narrow<int>(blur_levels_)};
-        ImGui::SliderInt("Blur Levels",
-            &v,
-            1,
-            cppext::narrow<int>(pyramid_blur_->source_image().mip_levels) - 1))
-    {
-        blur_levels_ = static_cast<uint32_t>(v);
-    }
-
-    ImGui::SliderFloat("Bloom Strength", &bloom_strength_, 0.0f, 1.0f);
-    ImGui::Checkbox("Color Conversion", &color_conversion_);
-    ImGui::Checkbox("Tone Mapping", &tone_mapping_);
-    ImGui::Checkbox("OIT", &transparent_);
-
-    auto const& available_modes{
-        backend_->swap_chain().available_present_modes()};
-    auto const current_mode{backend_->swap_chain().present_mode()};
-    // NOLINTBEGIN(readability-qualified-auto)
-    auto const present_mode_it{std::ranges::find(present_modes,
-        current_mode,
-        &std::pair<VkPresentModeKHR, char const*>::first)};
-    if (present_mode_it != std::end(present_modes))
-    {
-        if (ImGui::BeginCombo("Present Mode", present_mode_it->second))
-        {
-            for (auto const& option : available_modes)
-            {
-                auto const selected{option == current_mode};
-                auto const other_it{std::ranges::find(present_modes,
-                    option,
-                    &std::pair<VkPresentModeKHR, char const*>::first)};
-                if (other_it == std::end(present_modes))
-                {
-                    continue;
-                }
-
-                if (ImGui::Selectable(other_it->second, selected))
-                {
-                    if (!backend_->swap_chain().change_present_mode(option))
-                    {
-                        spdlog::warn("Unable to switch to present mode {}",
-                            other_it->second);
-                    }
-                }
-
-                if (selected)
-                {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-    }
-    // NOLINTEND(readability-qualified-auto)
-
-    ImGui::End();
 
     camera_controller_.update(delta_time);
     projection_.update(camera_.view_matrix());
@@ -387,13 +303,9 @@ bool gltfviewer::application_t::begin_frame()
         return false;
     };
 
-    auto const rv{std::visit(
+    return std::visit(
         cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame())};
-
-    imgui_->begin_frame();
-
-    return rv;
+        backend_->begin_frame());
 }
 
 void gltfviewer::application_t::draw()
@@ -729,6 +641,99 @@ void gltfviewer::application_t::draw()
     vkrndr::transition_to_present_layout(target_image.image, command_buffer);
 
     backend_->draw();
+}
+
+void gltfviewer::application_t::debug_draw()
+{
+    imgui_->begin_frame();
+
+    ImGui::ShowMetricsWindow();
+
+    camera_controller_.draw_imgui();
+
+    change_model_ = selector_.select_model();
+
+    ImGui::Begin("Rendering");
+
+    if (ImGui::BeginCombo("PBR Equation", debug_options[debug_], 0))
+    {
+        uint32_t i{};
+        for (auto const& option : debug_options)
+        {
+            auto const selected{debug_ == i};
+
+            if (ImGui::Selectable(option, selected))
+            {
+                debug_ = i;
+            }
+
+            if (selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+
+            ++i;
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::SliderFloat("IBL Factor", &ibl_factor_, 0.0f, 9.0f);
+    if (int v{cppext::narrow<int>(blur_levels_)};
+        ImGui::SliderInt("Blur Levels",
+            &v,
+            1,
+            cppext::narrow<int>(pyramid_blur_->source_image().mip_levels) - 1))
+    {
+        blur_levels_ = static_cast<uint32_t>(v);
+    }
+
+    ImGui::SliderFloat("Bloom Strength", &bloom_strength_, 0.0f, 1.0f);
+    ImGui::Checkbox("Color Conversion", &color_conversion_);
+    ImGui::Checkbox("Tone Mapping", &tone_mapping_);
+    ImGui::Checkbox("OIT", &transparent_);
+
+    auto const& available_modes{
+        backend_->swap_chain().available_present_modes()};
+    auto const current_mode{backend_->swap_chain().present_mode()};
+    // NOLINTBEGIN(readability-qualified-auto)
+    auto const present_mode_it{std::ranges::find(present_modes,
+        current_mode,
+        &std::pair<VkPresentModeKHR, char const*>::first)};
+    if (present_mode_it != std::end(present_modes))
+    {
+        if (ImGui::BeginCombo("Present Mode", present_mode_it->second))
+        {
+            for (auto const& option : available_modes)
+            {
+                auto const selected{option == current_mode};
+                auto const other_it{std::ranges::find(present_modes,
+                    option,
+                    &std::pair<VkPresentModeKHR, char const*>::first)};
+                if (other_it == std::end(present_modes))
+                {
+                    continue;
+                }
+
+                if (ImGui::Selectable(other_it->second, selected))
+                {
+                    if (!backend_->swap_chain().change_present_mode(option))
+                    {
+                        spdlog::warn("Unable to switch to present mode {}",
+                            other_it->second);
+                    }
+                }
+
+                if (selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+    }
+    // NOLINTEND(readability-qualified-auto)
+
+    ImGui::End();
 }
 
 void gltfviewer::application_t::end_frame()

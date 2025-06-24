@@ -510,19 +510,6 @@ void reshed::text_editor_t::handle_event(SDL_Event const& event)
     }
 }
 
-void reshed::text_editor_t::update()
-{
-    ImGui::Begin("Syntax colors");
-    for (syntax_color_entry_t& entry : syntax_color_table_)
-    {
-        ImGui::SliderFloat3(entry.name.data(),
-            glm::value_ptr(entry.color),
-            0.0f,
-            1.0f);
-    }
-    ImGui::End();
-}
-
 void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
 {
     font_face_ = std::move(font_face);
@@ -702,6 +689,19 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 
     frame_data_.cycle([]([[maybe_unused]] auto const& prev, auto& next)
         { next.vertices = 0; });
+}
+
+void reshed::text_editor_t::debug_draw()
+{
+    ImGui::Begin("Syntax colors");
+    for (syntax_color_entry_t& entry : syntax_color_table_)
+    {
+        ImGui::SliderFloat3(entry.name.data(),
+            glm::value_ptr(entry.color),
+            0.0f,
+            1.0f);
+    }
+    ImGui::End();
 }
 
 void reshed::text_editor_t::resize(uint32_t const width, uint32_t const height)

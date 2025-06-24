@@ -92,11 +92,13 @@ bool reshed::application_t::handle_event(SDL_Event const& event)
     return true;
 }
 
-void reshed::application_t::update([[maybe_unused]] float const delta_time)
+void reshed::application_t::debug_draw()
 {
+    imgui_->begin_frame();
+
     ImGui::ShowMetricsWindow();
 
-    editor_->update();
+    editor_->debug_draw();
 }
 
 bool reshed::application_t::begin_frame()
@@ -110,13 +112,9 @@ bool reshed::application_t::begin_frame()
         return false;
     };
 
-    auto const rv{std::visit(
+    return std::visit(
         cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame())};
-
-    imgui_->begin_frame();
-
-    return rv;
+        backend_->begin_frame());
 }
 
 void reshed::application_t::draw()
