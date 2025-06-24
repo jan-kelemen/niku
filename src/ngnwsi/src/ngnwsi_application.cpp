@@ -126,21 +126,23 @@ void ngnwsi::application_t::run()
             fixed_delta >= *impl_->fixed_update_interval};
         // NOLINTEND(bugprone-unchecked-optional-access)
 
-        last_tick = current_tick;
-        if (begin_frame())
+        bool const should_render{begin_frame()};
+
+        if (do_fixed_update)
         {
-            if (do_fixed_update)
-            {
-                last_fixed_tick = current_tick;
-                fixed_update(fixed_delta);
-            }
-
-            update(delta);
-
-            draw();
-
-            end_frame();
+            last_fixed_tick = current_tick;
+            fixed_update(fixed_delta);
         }
+
+        update(delta);
+        last_tick = current_tick;
+
+        if (should_render)
+        {
+            draw();
+        }
+
+        end_frame();
     }
 
     on_shutdown();

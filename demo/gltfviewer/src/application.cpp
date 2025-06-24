@@ -246,6 +246,10 @@ bool gltfviewer::application_t::handle_event(SDL_Event const& event)
 
 void gltfviewer::application_t::update(float delta_time)
 {
+    ImGui::ShowMetricsWindow();
+
+    camera_controller_.draw_imgui();
+
     if (selector_.select_model())
     {
         std::filesystem::path const model_path{selector_.selected_model()};
@@ -375,13 +379,7 @@ void gltfviewer::application_t::update(float delta_time)
 bool gltfviewer::application_t::begin_frame()
 {
     auto const on_swapchain_acquire = [this](bool const acquired)
-    {
-        if (acquired)
-        {
-            imgui_->begin_frame();
-        }
-        return acquired;
-    };
+    { return acquired; };
 
     auto const on_swapchain_resized = [this](VkExtent2D const extent)
     {
@@ -389,17 +387,17 @@ bool gltfviewer::application_t::begin_frame()
         return false;
     };
 
-    return std::visit(
+    auto const rv{std::visit(
         cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame());
+        backend_->begin_frame())};
+
+    imgui_->begin_frame();
+
+    return rv;
 }
 
 void gltfviewer::application_t::draw()
 {
-    ImGui::ShowMetricsWindow();
-
-    camera_controller_.draw_imgui();
-
     auto target_image{backend_->swapchain_image()};
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};

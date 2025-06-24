@@ -510,6 +510,19 @@ void reshed::text_editor_t::handle_event(SDL_Event const& event)
     }
 }
 
+void reshed::text_editor_t::update()
+{
+    ImGui::Begin("Syntax colors");
+    for (syntax_color_entry_t& entry : syntax_color_table_)
+    {
+        ImGui::SliderFloat3(entry.name.data(),
+            glm::value_ptr(entry.color),
+            0.0f,
+            1.0f);
+    }
+    ImGui::End();
+}
+
 void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
 {
     font_face_ = std::move(font_face);
@@ -540,16 +553,6 @@ VkPipelineLayout reshed::text_editor_t::pipeline_layout() const
 
 void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
 {
-    ImGui::Begin("Syntax colors");
-    for (syntax_color_entry_t& entry : syntax_color_table_)
-    {
-        ImGui::SliderFloat3(entry.name.data(),
-            glm::value_ptr(entry.color),
-            0.0f,
-            1.0f);
-    }
-    ImGui::End();
-
     vertex_t* const vertices{frame_data_->vertex_map.as<vertex_t>()};
 
     std::vector<shaped_line_t> shaped_lines;

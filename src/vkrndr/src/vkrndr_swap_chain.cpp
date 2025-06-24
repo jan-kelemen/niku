@@ -113,28 +113,29 @@ vkrndr::swap_chain_t::~swap_chain_t() { cleanup(); }
 bool vkrndr::swap_chain_t::acquire_next_image(size_t const current_frame,
     uint32_t& image_index)
 {
-    constexpr auto timeout{std::numeric_limits<uint64_t>::max()};
-
     auto const& frame{frames_[current_frame]};
 
-    check_result(vkWaitForFences(device_->logical,
-        1,
-        &frame.in_flight,
-        VK_TRUE,
-        timeout));
+    VkResult const wait_result{
+        vkWaitForFences(device_->logical, 1, &frame.in_flight, VK_TRUE, 0)};
+    if (wait_result == VK_TIMEOUT)
+    {
+        return false;
+    }
+    check_result(wait_result);
 
-    VkResult const result{vkAcquireNextImageKHR(device_->logical,
+    VkResult const acquire_result{vkAcquireNextImageKHR(device_->logical,
         chain_,
-        timeout,
+        0,
         frame.image_available,
         VK_NULL_HANDLE,
         &image_index)};
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR ||
+        acquire_result == VK_SUBOPTIMAL_KHR)
     {
         swap_chain_refresh.store(true);
         return false;
     }
-    check_result(result);
+    check_result(acquire_result);
 
     check_result(vkResetFences(device_->logical, 1, &frame.in_flight));
     return true;

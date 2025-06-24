@@ -92,16 +92,17 @@ bool reshed::application_t::handle_event(SDL_Event const& event)
     return true;
 }
 
+void reshed::application_t::update([[maybe_unused]] float const delta_time)
+{
+    ImGui::ShowMetricsWindow();
+
+    editor_->update();
+}
+
 bool reshed::application_t::begin_frame()
 {
     auto const on_swapchain_acquire = [this](bool const acquired)
-    {
-        if (acquired)
-        {
-            imgui_->begin_frame();
-        }
-        return acquired;
-    };
+    { return acquired; };
 
     auto const on_swapchain_resized = [this](VkExtent2D const extent)
     {
@@ -109,15 +110,17 @@ bool reshed::application_t::begin_frame()
         return false;
     };
 
-    return std::visit(
+    auto const rv{std::visit(
         cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame());
+        backend_->begin_frame())};
+
+    imgui_->begin_frame();
+
+    return rv;
 }
 
 void reshed::application_t::draw()
 {
-    ImGui::ShowMetricsWindow();
-
     auto target_image{backend_->swapchain_image()};
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};

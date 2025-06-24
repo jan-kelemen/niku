@@ -349,6 +349,7 @@ bool galileo::application_t::handle_event(SDL_Event const& event)
 void galileo::application_t::update(float const delta_time)
 {
     character_->update(delta_time);
+    ImGui::ShowMetricsWindow();
 
     ImGui::Begin("Lights");
     ImGui::SliderInt("Count", &light_count_, 0, 2000);
@@ -474,6 +475,7 @@ void galileo::application_t::update(float const delta_time)
     if (free_camera_active_)
     {
         free_camera_controller_.update(delta_time);
+        free_camera_controller_.draw_imgui();
     }
     else
     {
@@ -495,7 +497,6 @@ bool galileo::application_t::begin_frame()
             frame_info_->begin_frame();
             batch_renderer_->begin_frame();
             scene_graph_->begin_frame();
-            imgui_->begin_frame();
         }
         return acquired;
     };
@@ -506,9 +507,13 @@ bool galileo::application_t::begin_frame()
         return false;
     };
 
-    return std::visit(
+    auto const rv{std::visit(
         cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame());
+        backend_->begin_frame())};
+
+    imgui_->begin_frame();
+
+    return rv;
 }
 
 void galileo::application_t::draw()
@@ -532,13 +537,6 @@ void galileo::application_t::draw()
     frame_info_->update(camera_,
         projection_,
         static_cast<uint32_t>(light_count_));
-
-    ImGui::ShowMetricsWindow();
-
-    if (free_camera_active_)
-    {
-        free_camera_controller_.draw_imgui();
-    }
 
     if (draw_physics_)
     {
