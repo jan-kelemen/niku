@@ -47,8 +47,6 @@ public:
     sdl_window_t window;
 
     float fixed_update_interval{1.0f / 60.0f};
-    uint64_t last_tick{};
-    uint64_t last_fixed_tick{};
 };
 
 ngnwsi::application_t::impl::impl(startup_params_t const& params)
@@ -123,7 +121,8 @@ void ngnwsi::application_t::run()
         accumulated_error += frame_duration_in_seconds;
         auto const simulation_steps{static_cast<uint64_t>(
             accumulated_error / impl_->fixed_update_interval)};
-        accumulated_error -= simulation_steps * impl_->fixed_update_interval;
+        accumulated_error -=
+            cppext::as_fp(simulation_steps) * impl_->fixed_update_interval;
 
         // spdlog::info(
         //     "last_tick {} current_tick {} duration {} steps {} error {}
