@@ -11,7 +11,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
 
 namespace
 {
@@ -35,7 +34,8 @@ public:
     ~impl();
 
 public:
-    [[nodiscard]] bool is_current_window_event(SDL_Event const& event) const;
+    [[nodiscard]] sdl_window_t* is_active_window_event(
+        SDL_Event const& event) const;
 
 public:
     impl& operator=(impl const&) = delete;
@@ -44,32 +44,35 @@ public:
 
 public:
     sdl_guard_t guard;
-    sdl_window_t window;
+    std::vector<std::unique_ptr<sdl_window_t>> windows;
 
     float fixed_update_interval{1.0f / 60.0f};
 };
 
 ngnwsi::application_t::impl::impl(startup_params_t const& params)
     : guard{to_init_flags(params.init_subsystems)}
-    , window{params.title.c_str(),
-          params.window_flags,
-          params.width,
-          params.height}
 {
 }
 
 ngnwsi::application_t::impl::~impl() = default;
 
-bool ngnwsi::application_t::impl::is_current_window_event(
+ngnwsi::sdl_window_t* ngnwsi::application_t::impl::is_active_window_event(
     SDL_Event const& event) const
 {
     if (event.type >= SDL_EVENT_WINDOW_FIRST &&
         event.type <= SDL_EVENT_WINDOW_LAST)
     {
-        return event.window.windowID == SDL_GetWindowID(window.native_handle());
+        for (auto const& window : windows)
+        {
+            if (SDL_GetWindowID(window->native_handle()) ==
+                event.window.windowID)
+            {
+                return window.get();
+            }
+        }
     }
 
-    return true;
+    return nullptr;
 }
 
 ngnwsi::application_t::application_t(startup_params_t const& params)
@@ -93,17 +96,11 @@ void ngnwsi::application_t::run()
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
-            if (impl_->is_current_window_event(event))
+            if (impl_->is_active_window_event(event) && is_quit_event(event))
             {
-                if (is_quit_event(event))
-                {
-                    done = true;
-                }
-                else
-                {
-                    handle_event(event);
-                }
+                done = true;
             }
+            handle_event(event);
         }
 
         if (done)
@@ -158,7 +155,30 @@ void ngnwsi::application_t::fixed_update_interval(float const fps)
     impl_->fixed_update_interval = fps;
 }
 
-ngnwsi::sdl_window_t* ngnwsi::application_t::window() { return &impl_->window; }
+ngnwsi::sdl_window_t* ngnwsi::application_t::window()
+{
+    if (impl_->windows.empty())
+    {
+        return nullptr;
+    }
+
+    return impl_->windows.front().get();
+}
+
+ngnwsi::sdl_window_t* ngnwsi::application_t::create_window(
+    std::string const& title,
+    SDL_WindowFlags const window_flags,
+    int const width,
+    int const height)
+{
+    auto const& wnd{impl_->windows.emplace_back(
+        std::make_unique<sdl_window_t>(title.c_str(),
+            window_flags,
+            width,
+            height))};
+
+    return wnd.get();
+}
 
 bool ngnwsi::application_t::is_quit_event(SDL_Event const& event)
 {

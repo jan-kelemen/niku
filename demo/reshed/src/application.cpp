@@ -47,27 +47,8 @@
 
 reshed::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug},
-          .title = "reshed",
-          .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-          .width = 512,
-          .height = 512}}
+          .init_subsystems = {.video = true, .debug = debug}}}
     , freetype_context_{ngntxt::freetype_context_t::create()}
-    , backend_{std::make_unique<vkrndr::backend_t>(vkrndr::initialize(),
-          *window(),
-          vkrndr::render_settings_t{
-              .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
-              .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                  VK_IMAGE_USAGE_STORAGE_BIT |
-                  VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
-          },
-          debug)}
-    , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-          backend_->instance(),
-          backend_->device(),
-          backend_->swap_chain())}
-    , editor_{std::make_unique<text_editor_t>(*backend_)}
 {
 }
 
@@ -103,7 +84,12 @@ void reshed::application_t::debug_draw()
 
 bool reshed::application_t::begin_frame()
 {
-    auto const on_swapchain_acquire = [this](bool const acquired)
+    if (window()->is_minimized())
+    {
+        return false;
+    }
+
+    auto const on_swapchain_acquire = [](bool const acquired)
     { return acquired; };
 
     auto const on_swapchain_resized = [this](VkExtent2D const extent)
@@ -175,6 +161,31 @@ void reshed::application_t::end_frame()
 
 void reshed::application_t::on_startup()
 {
+    ngnwsi::sdl_window_t* const wnd{create_window("reshed",
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
+        512,
+        512)};
+
+    backend_ = std::make_unique<vkrndr::backend_t>(
+        vkrndr::initialize(),
+        [wnd](VkInstance instance) { return wnd->create_surface(instance); },
+        vkrndr::render_settings_t{
+            .required_extensions = ngnwsi::sdl_window_t::required_extensions(),
+            .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
+            .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_STORAGE_BIT |
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+            .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+        },
+        true);
+    backend_->create_swapchain(*wnd);
+
+    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(*window(),
+        backend_->instance(),
+        backend_->device(),
+        backend_->swap_chain());
+    editor_ = std::make_unique<text_editor_t>(*backend_);
+
     mouse_.set_window_handle(window()->native_handle());
 
     if (std::expected<ngntxt::font_face_ptr_t, std::error_code> font_face{
@@ -203,6 +214,10 @@ void reshed::application_t::on_shutdown()
     editor_.reset();
 
     imgui_.reset();
+
+    backend_->destroy_swapchain();
+
+    window()->destroy_surface(backend_->instance().handle);
 
     backend_.reset();
 }

@@ -14,9 +14,6 @@ namespace vkrndr
         virtual ~window_t() = default;
 
     public: // Interface
-        [[nodiscard]] virtual std::vector<char const*>
-        required_extensions() const = 0;
-
         [[nodiscard]] virtual VkSurfaceKHR create_surface(
             VkInstance instance) = 0;
 

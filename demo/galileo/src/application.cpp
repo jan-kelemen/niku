@@ -220,11 +220,7 @@ namespace
 
 galileo::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug},
-          .title = "galileo",
-          .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-          .width = 512,
-          .height = 512}}
+          .init_subsystems = {.video = true, .debug = debug}}}
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
@@ -232,43 +228,15 @@ galileo::application_t::application_t(bool const debug)
     , polymesh_params_{.walkable_slope_angle = character_t::max_slope_angle,
           .walkable_radius = 1.0f}
     , world_{physics_engine_}
-    , world_listener_{std::make_unique<world_contact_listener_t>(
-          scripting_engine_,
-          registry_)}
-    , backend_{std::make_unique<vkrndr::backend_t>(vkrndr::initialize(),
-          *window(),
-          vkrndr::render_settings_t{
-              .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
-              .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                  VK_IMAGE_USAGE_STORAGE_BIT,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
-          debug)}
-    , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-          backend_->instance(),
-          backend_->device(),
-          backend_->swap_chain())}
-    , depth_buffer_{create_depth_buffer(*backend_)}
-    , gbuffer_{std::make_unique<gbuffer_t>(*backend_)}
-    , color_image_{create_color_image(*backend_)}
-    , frame_info_{std::make_unique<frame_info_t>(*backend_)}
-    , materials_{std::make_unique<materials_t>(*backend_)}
-    , scene_graph_{std::make_unique<scene_graph_t>(*backend_)}
-    , deferred_shader_{std::make_unique<deferred_shader_t>(*backend_,
-          frame_info_->descriptor_set_layout())}
-    , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
-    , batch_renderer_{std::make_unique<batch_renderer_t>(*backend_,
-          frame_info_->descriptor_set_layout(),
-          depth_buffer_.format)}
-    , physics_debug_{std::make_unique<physics_debug_t>(*batch_renderer_)}
-    , navmesh_debug_{std::make_unique<navmesh_debug_t>(*batch_renderer_)}
+    , world_listener_{
+          std::make_unique<world_contact_listener_t>(scripting_engine_,
+              registry_)}
 {
     thread_pool_.set_thread_exit_function([]() { asThreadCleanup(); });
 
     camera_.set_position({-25.0f, 5.0f, -25.0f});
 
     physics_engine_.physics_system().SetContactListener(world_listener_.get());
-
-    physics_debug_->set_camera(camera_);
 }
 
 galileo::application_t::~application_t() = default;
@@ -395,6 +363,11 @@ void galileo::application_t::update(float const delta_time)
 
 bool galileo::application_t::begin_frame()
 {
+    if (window()->is_minimized())
+    {
+        return false;
+    }
+
     auto const on_swapchain_acquire = [this](bool const acquired)
     {
         if (acquired)
@@ -765,7 +738,45 @@ void galileo::application_t::end_frame()
 
 void galileo::application_t::on_startup()
 {
-    mouse_.set_window_handle(window()->native_handle());
+    ngnwsi::sdl_window_t* const wnd{create_window("galileo",
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
+        512,
+        512)};
+
+    backend_ = std::make_unique<vkrndr::backend_t>(
+        vkrndr::initialize(),
+        [wnd](VkInstance instance) { return wnd->create_surface(instance); },
+        vkrndr::render_settings_t{
+            .required_extensions = ngnwsi::sdl_window_t::required_extensions(),
+            .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
+            .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_STORAGE_BIT,
+            .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
+        true);
+    backend_->create_swapchain(*wnd);
+
+    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(*wnd,
+        backend_->instance(),
+        backend_->device(),
+        backend_->swap_chain());
+    depth_buffer_ = create_depth_buffer(*backend_);
+    gbuffer_ = std::make_unique<gbuffer_t>(*backend_);
+    color_image_ = create_color_image(*backend_);
+    frame_info_ = std::make_unique<frame_info_t>(*backend_);
+    materials_ = std::make_unique<materials_t>(*backend_);
+    scene_graph_ = std::make_unique<scene_graph_t>(*backend_);
+    deferred_shader_ = std::make_unique<deferred_shader_t>(*backend_,
+        frame_info_->descriptor_set_layout());
+    postprocess_shader_ = std::make_unique<postprocess_shader_t>(*backend_);
+    batch_renderer_ = std::make_unique<batch_renderer_t>(*backend_,
+        frame_info_->descriptor_set_layout(),
+        depth_buffer_.format);
+    physics_debug_ = std::make_unique<physics_debug_t>(*batch_renderer_);
+    navmesh_debug_ = std::make_unique<navmesh_debug_t>(*batch_renderer_);
+
+    physics_debug_->set_camera(camera_);
+
+    mouse_.set_window_handle(wnd->native_handle());
 
     {
         [[maybe_unused]] auto registered{
@@ -869,6 +880,10 @@ void galileo::application_t::on_shutdown()
     destroy(&backend_->device(), &depth_buffer_);
 
     imgui_.reset();
+
+    backend_->destroy_swapchain();
+
+    window()->destroy_surface(backend_->instance().handle);
 
     backend_.reset();
 }

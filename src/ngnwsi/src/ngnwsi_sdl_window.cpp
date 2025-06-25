@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 ngnwsi::sdl_guard_t::sdl_guard_t(uint32_t const flags)
 {
@@ -37,9 +38,15 @@ ngnwsi::sdl_window_t::sdl_window_t(char const* const title,
     }
 }
 
+ngnwsi::sdl_window_t::sdl_window_t(sdl_window_t&& other) noexcept
+    : window_{std::exchange(other.window_, nullptr)}
+    , surface_{std::exchange(other.surface_, VK_NULL_HANDLE)}
+{
+}
+
 ngnwsi::sdl_window_t::~sdl_window_t() { SDL_DestroyWindow(window_); }
 
-std::vector<char const*> ngnwsi::sdl_window_t::required_extensions() const
+std::vector<char const*> ngnwsi::sdl_window_t::required_extensions()
 {
     unsigned int extension_count{};
     auto const* const extensions{
@@ -102,6 +109,17 @@ VkExtent2D ngnwsi::sdl_window_t::swap_extent(
 bool ngnwsi::sdl_window_t::is_minimized() const
 {
     return (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED) != 0;
+}
+
+ngnwsi::sdl_window_t& ngnwsi::sdl_window_t::operator=(
+    sdl_window_t&& other) noexcept
+{
+    using std::swap;
+
+    swap(window_, other.window_);
+    swap(surface_, other.surface_);
+
+    return *this;
 }
 
 ngnwsi::sdl_text_input_guard_t::sdl_text_input_guard_t(

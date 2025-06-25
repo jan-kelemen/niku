@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <variant>
@@ -37,7 +38,7 @@ namespace vkrndr
     {
     public: // Construction
         backend_t(std::shared_ptr<library_handle_t>&& library,
-            window_t& window,
+            std::function<VkSurfaceKHR(VkInstance)> get_surface,
             render_settings_t const& settings,
             bool debug);
 
@@ -60,6 +61,10 @@ namespace vkrndr
         [[nodiscard]] constexpr swap_chain_t& swap_chain() noexcept;
 
         [[nodiscard]] constexpr swap_chain_t const& swap_chain() const noexcept;
+
+        void create_swapchain(window_t const& window);
+
+        void destroy_swapchain();
 
         descriptor_pool_t& descriptor_pool();
 
@@ -121,7 +126,6 @@ namespace vkrndr
 
         render_settings_t render_settings_;
 
-        window_t* window_;
         instance_t instance_;
         device_t device_;
         std::unique_ptr<swap_chain_t> swap_chain_;

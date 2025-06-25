@@ -1,3 +1,4 @@
+#include <memory>
 #include <vkrndr_backend.hpp>
 
 #include <vkrndr_buffer.hpp>
@@ -172,22 +173,20 @@ namespace
 } // namespace
 
 vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
-    window_t& window,
+    std::function<VkSurfaceKHR(VkInstance)> get_surface,
     render_settings_t const& settings,
     bool const debug)
     : library_{std::move(library)}
     , render_settings_{settings}
-    , window_{&window}
 {
-    auto required_instance_extensions{window_->required_extensions()};
+    auto instance_extensions{render_settings_.required_extensions};
 
 #if VKRNDR_ENABLE_DEBUG_UTILS
     if (debug &&
         is_instance_extension_available(*library_,
             VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
     {
-        required_instance_extensions.push_back(
-            VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 #endif
 
@@ -200,16 +199,16 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
 
         if (capabilities2 && maintenance1)
         {
-            required_instance_extensions.push_back(
+            instance_extensions.push_back(
                 VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
-            required_instance_extensions.push_back(
+            instance_extensions.push_back(
                 VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME);
         }
     }
 
     instance_create_info_t const instance_create_info{
         .maximum_vulkan_version = VK_API_VERSION_1_3,
-        .extensions = required_instance_extensions};
+        .extensions = instance_extensions};
     instance_ = create_instance(instance_create_info);
 
     spdlog::info(
@@ -223,7 +222,7 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
 
     auto const physical_devices{filter_physical_devices(instance_,
         required_flags,
-        window_->create_surface(instance_.handle))};
+        get_surface(instance_.handle))};
     auto physical_device_it{pick_device_by_type(physical_devices)};
     if (physical_device_it == std::end(physical_devices))
     {
@@ -287,8 +286,6 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     device_.present_queue = &port;
     device_.transfer_queue = &port;
 
-    swap_chain_ =
-        std::make_unique<swap_chain_t>(*window_, device_, render_settings_);
     frame_data_ =
         cppext::cycled_buffer_t<frame_data_t>{settings.frames_in_flight,
             settings.frames_in_flight};
@@ -327,8 +324,6 @@ vkrndr::backend_t::~backend_t()
 
     destroy(&device_);
 
-    window_->destroy_surface(instance_.handle);
-
     destroy(&instance_);
 }
 
@@ -336,6 +331,14 @@ vkrndr::descriptor_pool_t& vkrndr::backend_t::descriptor_pool()
 {
     return *descriptor_pool_;
 }
+
+void vkrndr::backend_t::create_swapchain(window_t const& window)
+{
+    swap_chain_ =
+        std::make_unique<swap_chain_t>(window, device_, render_settings_);
+}
+
+void vkrndr::backend_t::destroy_swapchain() { swap_chain_.reset(); }
 
 VkFormat vkrndr::backend_t::image_format() const
 {
@@ -367,11 +370,6 @@ vkrndr::image_t vkrndr::backend_t::swapchain_image()
 
 vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
 {
-    if (window_->is_minimized())
-    {
-        return false;
-    }
-
     if (swap_chain_refresh.load())
     {
         spdlog::info("Recreating swapchain");

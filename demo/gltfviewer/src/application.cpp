@@ -189,37 +189,7 @@ namespace
 
 gltfviewer::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug},
-          .title = "gltfviewer",
-          .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-          .width = 512,
-          .height = 512}}
-    , backend_{std::make_unique<vkrndr::backend_t>(vkrndr::initialize(),
-          *window(),
-          vkrndr::render_settings_t{
-              .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
-              .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                  VK_IMAGE_USAGE_STORAGE_BIT |
-                  VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
-          },
-          debug)}
-    , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-          backend_->instance(),
-          backend_->device(),
-          backend_->swap_chain())}
-    , environment_{std::make_unique<environment_t>(*backend_)}
-    , materials_{std::make_unique<materials_t>(*backend_)}
-    , scene_graph_{std::make_unique<scene_graph_t>(*backend_)}
-    , depth_pass_shader_{std::make_unique<depth_pass_shader_t>(*backend_)}
-    , shadow_map_{std::make_unique<shadow_map_t>(*backend_)}
-    , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
-    , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
-    , resolve_shader_{std::make_unique<resolve_shader_t>(*backend_)}
-    , pyramid_blur_{std::make_unique<pyramid_blur_t>(*backend_)}
-    , weighted_blend_shader_{std::make_unique<weighted_blend_shader_t>(
-          *backend_)}
-    , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
+          .init_subsystems = {.video = true, .debug = debug}}}
     , camera_controller_{camera_, mouse_}
 {
 }
@@ -294,7 +264,12 @@ void gltfviewer::application_t::update(float delta_time)
 
 bool gltfviewer::application_t::begin_frame()
 {
-    auto const on_swapchain_acquire = [this](bool const acquired)
+    if (window()->is_minimized())
+    {
+        return false;
+    }
+
+    auto const on_swapchain_acquire = [](bool const acquired)
     { return acquired; };
 
     auto const on_swapchain_resized = [this](VkExtent2D const extent)
@@ -745,6 +720,43 @@ void gltfviewer::application_t::end_frame()
 
 void gltfviewer::application_t::on_startup()
 {
+    ngnwsi::sdl_window_t* const wnd{create_window("gltfviewer",
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
+        512,
+        512)};
+
+    backend_ = std::make_unique<vkrndr::backend_t>(
+        vkrndr::initialize(),
+        [wnd](VkInstance instance) { return wnd->create_surface(instance); },
+        vkrndr::render_settings_t{
+            .required_extensions = ngnwsi::sdl_window_t::required_extensions(),
+            .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
+            .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_STORAGE_BIT |
+                VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+            .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+        },
+        true);
+
+    backend_->create_swapchain(*wnd);
+
+    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(*wnd,
+        backend_->instance(),
+        backend_->device(),
+        backend_->swap_chain());
+    environment_ = std::make_unique<environment_t>(*backend_);
+    materials_ = std::make_unique<materials_t>(*backend_);
+    scene_graph_ = std::make_unique<scene_graph_t>(*backend_);
+    depth_pass_shader_ = std::make_unique<depth_pass_shader_t>(*backend_);
+    shadow_map_ = std::make_unique<shadow_map_t>(*backend_);
+    pbr_shader_ = std::make_unique<pbr_shader_t>(*backend_);
+    weighted_oit_shader_ = std::make_unique<weighted_oit_shader_t>(*backend_);
+    resolve_shader_ = std::make_unique<resolve_shader_t>(*backend_);
+    pyramid_blur_ = std::make_unique<pyramid_blur_t>(*backend_);
+    weighted_blend_shader_ =
+        std::make_unique<weighted_blend_shader_t>(*backend_);
+    postprocess_shader_ = std::make_unique<postprocess_shader_t>(*backend_);
+
     mouse_.set_window_handle(window()->native_handle());
 
     auto const extent{backend_->extent()};
@@ -786,6 +798,10 @@ void gltfviewer::application_t::on_shutdown()
     destroy(&backend_->device(), &color_image_);
 
     imgui_.reset();
+
+    backend_->destroy_swapchain();
+
+    window()->destroy_surface(backend_->instance().handle);
 
     backend_.reset();
 }
