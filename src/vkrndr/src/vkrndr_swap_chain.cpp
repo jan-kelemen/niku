@@ -3,7 +3,6 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
-#include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -98,7 +97,7 @@ vkrndr::swap_chain_t::swap_chain_t(window_t const& window,
     render_settings_t const& settings)
     : window_{&window}
     , device_{&device}
-    , settings_{&settings}
+    , settings_{settings}
     , swapchain_maintenance_1_enabled{is_device_extension_enabled(
           VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
           device)}
@@ -110,7 +109,8 @@ vkrndr::swap_chain_t::swap_chain_t(window_t const& window,
 vkrndr::swap_chain_t::~swap_chain_t() { cleanup(); }
 
 bool vkrndr::swap_chain_t::acquire_next_image(size_t const current_frame,
-    uint32_t& image_index)
+    uint32_t& image_index,
+    bool& needs_refresh)
 {
     auto const& frame{frames_[current_frame]};
 
@@ -131,7 +131,7 @@ bool vkrndr::swap_chain_t::acquire_next_image(size_t const current_frame,
     if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR ||
         acquire_result == VK_SUBOPTIMAL_KHR)
     {
-        swap_chain_refresh.store(true);
+        needs_refresh = true;
         return false;
     }
     check_result(acquire_result);
@@ -141,9 +141,10 @@ bool vkrndr::swap_chain_t::acquire_next_image(size_t const current_frame,
 }
 
 void vkrndr::swap_chain_t::submit_command_buffers(
-    std::span<VkCommandBuffer const> command_buffers,
+    std::span<VkCommandBuffer const> const& command_buffers,
     size_t const current_frame,
-    uint32_t const image_index)
+    uint32_t const image_index,
+    bool& needs_refresh)
 {
     auto const& frame{frames_[current_frame]};
 
@@ -187,14 +188,14 @@ void vkrndr::swap_chain_t::submit_command_buffers(
         }
         else
         {
-            swap_chain_refresh.store(true);
+            needs_refresh = true;
         }
     }
 
     VkResult const result{present_queue_->present(present_info)};
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
-        swap_chain_refresh.store(true);
+        needs_refresh = true;
         return;
     }
     check_result(result);
@@ -231,9 +232,9 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
     VkPresentModeKHR const chosen_present_mode{
         choose_swap_present_mode(swap_details.present_modes,
             is_recreated ? desired_present_mode_
-                         : settings_->preferred_present_mode)};
+                         : settings_.preferred_present_mode)};
     VkSurfaceFormatKHR const surface_format{
-        choose_swap_surface_format(swap_details.surface_formats, *settings_)};
+        choose_swap_surface_format(swap_details.surface_formats, settings_)};
 
     available_present_modes_ = std::move(swap_details.present_modes);
 
@@ -271,7 +272,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
     create_info.imageColorSpace = surface_format.colorSpace;
     create_info.imageExtent = extent_;
     create_info.imageArrayLayers = 1;
-    create_info.imageUsage = settings_->swapchain_flags;
+    create_info.imageUsage = settings_.swapchain_flags;
     create_info.preTransform = swap_details.capabilities.currentTransform;
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     create_info.presentMode = chosen_present_mode;
@@ -324,7 +325,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
     }
     // cppcheck-suppress-end useStlAlgorithm
 
-    frames_.resize(settings_->frames_in_flight);
+    frames_.resize(settings_.frames_in_flight);
     for (detail::swap_frame_t& frame : frames_)
     {
         frame.image_available = create_semaphore(*device_);

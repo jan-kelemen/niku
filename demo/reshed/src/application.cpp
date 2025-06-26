@@ -1,6 +1,9 @@
+#include "vkrndr_swap_chain.hpp"
+#include <algorithm>
 #include <application.hpp>
 
 #include <text_editor.hpp>
+#include <window.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
@@ -54,117 +57,74 @@ reshed::application_t::application_t(bool const debug)
 
 reshed::application_t::~application_t() = default;
 
+bool reshed::application_t::should_run() { return !windows_.empty(); }
+
 bool reshed::application_t::handle_event(SDL_Event const& event)
 {
-    [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
+    if (event.type == SDL_EVENT_QUIT)
+    {
+        vkDeviceWaitIdle(backend_->device().logical);
 
-    if (event.type == SDL_EVENT_KEY_DOWN &&
-        event.key.scancode == SDL_SCANCODE_F4)
-    {
-        imgui_->set_enabled(!imgui_->enabled());
-    }
-    else if (event.type == SDL_EVENT_TEXT_INPUT ||
-        event.type == SDL_EVENT_KEY_UP ||
-        event.type == SDL_EVENT_KEY_DOWN)
-    {
-        editor_->handle_event(event);
+        std::ranges::for_each(windows_,
+            [this](std::unique_ptr<window_t> const& wnd)
+            { unregister_window(wnd.get()); });
+
+        windows_.clear();
+        return true;
     }
 
+    if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    {
+        vkDeviceWaitIdle(backend_->device().logical);
+
+        auto it{std::ranges::find_if(windows_,
+            [&event](std::unique_ptr<window_t> const& wnd)
+            { return wnd->id() == event.window.windowID; })};
+
+        unregister_window(it->get());
+
+        windows_.erase(it);
+        return true;
+    }
+
+    windows_.front()->handle_event(event);
     return true;
 }
 
 void reshed::application_t::debug_draw()
 {
-    imgui_->begin_frame();
-
     ImGui::ShowMetricsWindow();
-
-    editor_->debug_draw();
+    windows_.front()->debug_draw();
 }
 
 bool reshed::application_t::begin_frame()
 {
-    if (window()->is_minimized())
+    if (windows_.front()->begin_frame())
     {
-        return false;
+        backend_->begin_frame();
+        return true;
     }
-
-    auto const on_swapchain_acquire = [](bool const acquired)
-    { return acquired; };
-
-    auto const on_swapchain_resized = [this](VkExtent2D const extent)
-    {
-        editor_->resize(extent.width, extent.height);
-        return false;
-    };
-
-    return std::visit(
-        cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame());
+    return false;
 }
 
-void reshed::application_t::draw()
+void reshed::application_t::draw() { windows_.front()->render(*backend_); }
+
+void reshed::application_t::end_frame(bool const has_rendered)
 {
-    auto target_image{backend_->swapchain_image()};
+    windows_.front()->end_frame();
 
-    VkCommandBuffer command_buffer{backend_->request_command_buffer()};
-
-    vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
-
-    VkViewport const viewport{.x = 0.0f,
-        .y = cppext::as_fp(target_image.extent.height),
-        .width = cppext::as_fp(target_image.extent.width),
-        .height = -cppext::as_fp(target_image.extent.height),
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f};
-    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image.extent)};
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-    vkrndr::render_pass_t color_render_pass;
-    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        target_image.view,
-        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
-
+    if (has_rendered)
     {
-        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
-        editor_->draw(command_buffer);
+        backend_->end_frame();
     }
-
-    {
-        auto const barrier{vkrndr::with_access(
-            vkrndr::on_stage(vkrndr::image_barrier(target_image),
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)};
-
-        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-    }
-
-    imgui_->render(command_buffer, target_image);
-
-    vkrndr::transition_to_present_layout(target_image.image, command_buffer);
-
-    backend_->draw();
-}
-
-void reshed::application_t::end_frame()
-{
-    imgui_->end_frame();
-
-    backend_->end_frame();
 }
 
 void reshed::application_t::on_startup()
 {
-    ngnwsi::sdl_window_t* const wnd{create_window("reshed",
-        SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-        512,
-        512)};
+    windows_.push_back(std::make_unique<window_t>());
+
+    window_t* const wnd{windows_.back().get()};
+    register_window(wnd);
 
     backend_ = std::make_unique<vkrndr::backend_t>(
         vkrndr::initialize(),
@@ -178,15 +138,9 @@ void reshed::application_t::on_startup()
             .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
         },
         true);
-    backend_->create_swapchain(*wnd);
+    wnd->init_rendering(*backend_);
 
-    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-        backend_->instance(),
-        backend_->device(),
-        backend_->swap_chain());
-    editor_ = std::make_unique<text_editor_t>(*backend_);
-
-    mouse_.set_window_handle(window()->native_handle());
+    mouse_.set_window_handle(wnd->native_window().native_handle());
 
     if (std::expected<ngntxt::font_face_ptr_t, std::error_code> font_face{
             load_font_face(freetype_context_,
@@ -194,30 +148,19 @@ void reshed::application_t::on_startup()
                 {0, 16})})
     {
         spdlog::info("Font loaded");
-        editor_->change_font(std::move(font_face).value());
+        wnd->set_font(std::move(font_face).value());
     }
     else
     {
         std::terminate();
     }
-
-    text_input_guard_ =
-        std::make_unique<ngnwsi::sdl_text_input_guard_t>(*window());
 }
 
 void reshed::application_t::on_shutdown()
 {
-    text_input_guard_.reset();
-
     vkDeviceWaitIdle(backend_->device().logical);
 
-    editor_.reset();
-
-    imgui_.reset();
-
-    backend_->destroy_swapchain();
-
-    window()->destroy_surface(backend_->instance().handle);
+    windows_.clear();
 
     backend_.reset();
 }

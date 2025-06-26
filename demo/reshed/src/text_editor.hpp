@@ -1,6 +1,7 @@
 #ifndef RESHED_TEXT_EDITOR_INCLUDED
 #define RESHED_TEXT_EDITOR_INCLUDED
 
+#include "vkrndr_window.hpp"
 #include <text_buffer.hpp>
 
 #include <cppext_cycled_buffer.hpp>
@@ -31,6 +32,11 @@
 
 union SDL_Event;
 
+namespace ngnwsi
+{
+    class window_t;
+} // namespace ngnwsi
+
 namespace vkrndr
 {
     class backend_t;
@@ -41,7 +47,8 @@ namespace reshed
     class [[nodiscard]] text_editor_t final
     {
     public:
-        explicit text_editor_t(vkrndr::backend_t& backend);
+        explicit text_editor_t(vkrndr::backend_t& backend,
+            ngnwsi::window_t const& window);
 
         text_editor_t(text_editor_t const&) = delete;
 

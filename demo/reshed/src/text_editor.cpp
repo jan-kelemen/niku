@@ -14,6 +14,8 @@
 #include <ngntxt_shaping.hpp>
 #include <ngntxt_syntax.hpp>
 
+#include <ngnwsi_window.hpp>
+
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -207,7 +209,8 @@ namespace
     };
 } // namespace
 
-reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
+reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
+    ngnwsi::window_t const& window)
     : backend_{&backend}
     , parser_{ngntxt::create_parser()}
     , language_{tree_sitter_glsl()}
@@ -333,7 +336,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
             .add_shader(as_pipeline_shader(*tesselation_control_shader))
             .add_shader(as_pipeline_shader(*tesselation_evaluation_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
-            .add_color_attachment(backend_->image_format(), alpha_blend)
+            .add_color_attachment(window.image_format(), alpha_blend)
             .add_vertex_input(binding_description(), attribute_description())
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_PATCH_LIST)
             .with_tesselation_patch_points(1)
@@ -355,7 +358,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     }
 
     projection_.set_invert_y(false);
-    resize(backend_->extent().width, backend_->extent().height);
+    resize(window.extent().width, window.extent().height);
 
     static_cast<void>(buffer_.add(0,
         0,

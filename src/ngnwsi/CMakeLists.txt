@@ -6,11 +6,13 @@ target_sources(ngnwsi
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_imgui_layer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_mouse.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_sdl_window.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_window.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_imgui_layer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_mouse.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_sdl_window.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_window.cpp
 )
 
 target_include_directories(ngnwsi

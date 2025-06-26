@@ -4,6 +4,7 @@
 #include <volk.h>
 
 #include <vkrndr_image.hpp>
+#include <vkrndr_render_settings.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cstddef>
@@ -13,7 +14,6 @@
 
 namespace vkrndr
 {
-    struct render_settings_t;
     struct device_t;
     class execution_port_t;
     class window_t;
@@ -64,12 +64,14 @@ namespace vkrndr
             uint32_t image_index) const noexcept;
 
         [[nodiscard]] bool acquire_next_image(size_t current_frame,
-            uint32_t& image_index);
+            uint32_t& image_index,
+            bool& needs_refresh);
 
         void submit_command_buffers(
-            std::span<VkCommandBuffer const> command_buffers,
+            std::span<VkCommandBuffer const> const& command_buffers,
             size_t current_frame,
-            uint32_t image_index);
+            uint32_t image_index,
+            bool& needs_refresh);
 
         [[nodiscard]] constexpr VkPresentModeKHR present_mode() const;
 
@@ -93,7 +95,7 @@ namespace vkrndr
     private:
         window_t const* window_{};
         device_t* device_{};
-        render_settings_t const* settings_{};
+        render_settings_t settings_{};
         bool swapchain_maintenance_1_enabled{};
         execution_port_t* present_queue_{};
         VkFormat image_format_{};

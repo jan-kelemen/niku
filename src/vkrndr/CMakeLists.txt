@@ -40,8 +40,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_execution_port.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_features.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_formats.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_image.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_instance.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_library.cpp

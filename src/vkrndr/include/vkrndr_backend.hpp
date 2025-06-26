@@ -17,7 +17,6 @@
 #include <functional>
 #include <memory>
 #include <span>
-#include <variant>
 #include <vector>
 
 namespace vkrndr
@@ -32,13 +31,11 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    using swapchain_acquire_t = std::variant<bool, VkExtent2D>;
-
     class [[nodiscard]] backend_t final
     {
     public: // Construction
         backend_t(std::shared_ptr<library_handle_t>&& library,
-            std::function<VkSurfaceKHR(VkInstance)> get_surface,
+            std::function<VkSurfaceKHR(VkInstance)> const& get_surface,
             render_settings_t const& settings,
             bool debug);
 
@@ -58,27 +55,11 @@ namespace vkrndr
 
         [[nodiscard]] constexpr device_t const& device() const noexcept;
 
-        [[nodiscard]] constexpr swap_chain_t& swap_chain() noexcept;
-
-        [[nodiscard]] constexpr swap_chain_t const& swap_chain() const noexcept;
-
-        void create_swapchain(window_t const& window);
-
-        void destroy_swapchain();
-
         descriptor_pool_t& descriptor_pool();
-
-        [[nodiscard]] VkFormat image_format() const;
-
-        [[nodiscard]] uint32_t image_count() const;
 
         [[nodiscard]] uint32_t frames_in_flight() const;
 
-        [[nodiscard]] VkExtent2D extent() const;
-
-        [[nodiscard]] image_t swapchain_image();
-
-        [[nodiscard]] swapchain_acquire_t begin_frame();
+        void begin_frame();
 
         void end_frame();
 
@@ -87,7 +68,7 @@ namespace vkrndr
         [[nodiscard]] transient_operation_t request_transient_operation(
             bool transfer_only);
 
-        void draw();
+        [[nodiscard]] std::span<VkCommandBuffer const> frame_present_buffers();
 
         [[nodiscard]] image_t transfer_image(
             std::span<std::byte const> const& image_data,
@@ -128,13 +109,10 @@ namespace vkrndr
 
         instance_t instance_;
         device_t device_;
-        std::unique_ptr<swap_chain_t> swap_chain_;
 
         std::unique_ptr<vkrndr::descriptor_pool_t> descriptor_pool_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
-
-        uint32_t image_index_{};
     };
 } // namespace vkrndr
 
@@ -156,17 +134,6 @@ constexpr vkrndr::device_t& vkrndr::backend_t::device() noexcept
 constexpr vkrndr::device_t const& vkrndr::backend_t::device() const noexcept
 {
     return device_;
-}
-
-constexpr vkrndr::swap_chain_t& vkrndr::backend_t::swap_chain() noexcept
-{
-    return *swap_chain_;
-}
-
-constexpr vkrndr::swap_chain_t const&
-vkrndr::backend_t::swap_chain() const noexcept
-{
-    return *swap_chain_;
 }
 
 #endif

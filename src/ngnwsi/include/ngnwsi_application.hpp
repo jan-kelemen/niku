@@ -10,7 +10,7 @@
 
 namespace ngnwsi
 {
-    class sdl_window_t;
+    class window_t;
 } // namespace ngnwsi
 
 namespace ngnwsi
@@ -43,12 +43,10 @@ namespace ngnwsi
 
         void fixed_update_interval(float fps);
 
-        [[nodiscard]] sdl_window_t* window();
+    protected:
+        void register_window(window_t* window);
 
-        [[nodiscard]] sdl_window_t* create_window(std::string const& title,
-            SDL_WindowFlags window_flags,
-            int width,
-            int height);
+        void unregister_window(window_t const* window);
 
     private: // Callback interface
         [[nodiscard]] virtual bool should_run() { return true; }
@@ -68,7 +66,7 @@ namespace ngnwsi
 
         virtual void debug_draw() { }
 
-        virtual void end_frame() { }
+        virtual void end_frame([[maybe_unused]] bool has_rendered) { }
 
         virtual void on_startup() { }
 
