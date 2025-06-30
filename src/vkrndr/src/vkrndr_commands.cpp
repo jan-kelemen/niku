@@ -1,6 +1,5 @@
 #include <vkrndr_commands.hpp>
 
-#include <vkrndr_command_pool.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -8,6 +7,8 @@
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
+
+#include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <algorithm>
 #include <span>
@@ -44,15 +45,89 @@ namespace
     }
 } // namespace
 
-void vkrndr::begin_single_time_commands(command_pool_t& pool,
+std::expected<VkCommandPool, VkResult> vkrndr::create_command_pool(
+    device_t const& device,
+    uint32_t const family,
+    VkCommandPoolCreateFlags const flags)
+{
+    VkCommandPoolCreateInfo const create_info{
+        .sType = vku::GetSType<VkCommandPoolCreateInfo>(),
+        .flags = flags,
+        .queueFamilyIndex = family,
+    };
+
+    VkCommandPool rv{};
+    if (auto const result{
+            vkCreateCommandPool(device.logical, &create_info, nullptr, &rv)};
+        result != VK_SUCCESS)
+    {
+        return std::unexpected{result};
+    }
+
+    return rv;
+}
+
+VkResult vkrndr::allocate_command_buffers(device_t const& device,
+    VkCommandPool pool,
+    bool primary,
     uint32_t count,
     std::span<VkCommandBuffer> buffers)
 {
-    pool.allocate_command_buffers(true, count, buffers);
+    assert(count <= buffers.size());
 
-    VkCommandBufferBeginInfo begin_info{};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VkCommandBufferAllocateInfo const alloc_info{
+        .sType = vku::GetSType<VkCommandBufferAllocateInfo>(),
+        .commandPool = pool,
+        .level = primary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY
+                         : VK_COMMAND_BUFFER_LEVEL_SECONDARY,
+        .commandBufferCount = count,
+    };
+
+    return vkAllocateCommandBuffers(device.logical,
+        &alloc_info,
+        buffers.data());
+}
+
+void vkrndr::free_command_buffers(device_t const& device,
+    VkCommandPool pool,
+    std::span<VkCommandBuffer const> const& buffers)
+{
+    vkFreeCommandBuffers(device.logical,
+        pool,
+        count_cast(buffers.size()),
+        buffers.data());
+}
+
+VkResult vkrndr::reset_command_pool(device_t const& device,
+    VkCommandPool pool,
+    bool release_resources)
+{
+    return vkResetCommandPool(device.logical,
+        pool,
+        release_resources ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0);
+}
+
+void vkrndr::trim_command_pool(device_t const& device, VkCommandPool pool)
+{
+    vkTrimCommandPool(device.logical, pool, 0);
+}
+
+void vkrndr::destroy_command_pool(device_t const& device, VkCommandPool pool)
+{
+    vkDestroyCommandPool(device.logical, pool, nullptr);
+}
+
+void vkrndr::begin_single_time_commands(device_t const& device,
+    VkCommandPool pool,
+    uint32_t count,
+    std::span<VkCommandBuffer> buffers)
+{
+    check_result(allocate_command_buffers(device, pool, true, count, buffers));
+
+    VkCommandBufferBeginInfo const begin_info{
+        .sType = vku::GetSType<VkCommandBufferBeginInfo>(),
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
 
     for (uint32_t i{}; i != count; ++i)
     {
@@ -60,7 +135,8 @@ void vkrndr::begin_single_time_commands(command_pool_t& pool,
     }
 }
 
-void vkrndr::end_single_time_commands(command_pool_t& pool,
+void vkrndr::end_single_time_commands(device_t const& device,
+    VkCommandPool pool,
     execution_port_t& port,
     std::span<VkCommandBuffer const> const& command_buffers)
 {
@@ -77,7 +153,7 @@ void vkrndr::end_single_time_commands(command_pool_t& pool,
     port.submit(cppext::as_span(submit_info));
     port.wait_idle();
 
-    pool.free_command_buffers(command_buffers);
+    free_command_buffers(device, pool, command_buffers);
 }
 
 void vkrndr::copy_buffer_to_image(VkCommandBuffer const command_buffer,

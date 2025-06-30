@@ -4,6 +4,7 @@
 #include <volk.h>
 
 #include <cstdint>
+#include <expected>
 #include <span>
 
 namespace vkrndr
@@ -15,13 +16,43 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    void begin_single_time_commands(command_pool_t& pool,
+    // Command pool
+    std::expected<VkCommandPool, VkResult> create_command_pool(
+        device_t const& device,
+        uint32_t family,
+        VkCommandPoolCreateFlags flags = 0);
+
+    VkResult allocate_command_buffers(device_t const& device,
+        VkCommandPool pool,
+        bool primary,
         uint32_t count,
         std::span<VkCommandBuffer> buffers);
 
-    void end_single_time_commands(command_pool_t& pool,
+    void free_command_buffers(device_t const& device,
+        VkCommandPool pool,
+        std::span<VkCommandBuffer const> const& buffers);
+
+    VkResult reset_command_pool(device_t const& device,
+        VkCommandPool pool,
+        bool release_resources = false);
+
+    void trim_command_pool(device_t const& device, VkCommandPool pool);
+
+    void destroy_command_pool(device_t const& device, VkCommandPool pool);
+
+    // One time submit
+
+    void begin_single_time_commands(device_t const& device,
+        VkCommandPool pool,
+        uint32_t count,
+        std::span<VkCommandBuffer> buffers);
+
+    void end_single_time_commands(device_t const& device,
+        VkCommandPool pool,
         execution_port_t& port,
         std::span<VkCommandBuffer const> const& command_buffers);
+
+    // Individual operations
 
     void copy_buffer_to_image(VkCommandBuffer command_buffer,
         VkBuffer buffer,

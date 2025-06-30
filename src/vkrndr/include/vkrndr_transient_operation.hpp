@@ -5,8 +5,8 @@
 
 namespace vkrndr
 {
+    struct device_t;
     class execution_port_t;
-    class command_pool_t;
 } // namespace vkrndr
 
 namespace vkrndr
@@ -14,7 +14,9 @@ namespace vkrndr
     class [[nodiscard]] transient_operation_t final
     {
     public:
-        transient_operation_t(execution_port_t& port, command_pool_t& pool);
+        transient_operation_t(device_t& device,
+            execution_port_t& port,
+            VkCommandPool pool);
 
         transient_operation_t(transient_operation_t const&) = delete;
 
@@ -33,8 +35,9 @@ namespace vkrndr
             transient_operation_t&&) noexcept = delete;
 
     private:
+        device_t* device_;
         execution_port_t* port_;
-        command_pool_t* pool_;
+        VkCommandPool pool_;
         VkCommandBuffer command_buffer_{VK_NULL_HANDLE};
     };
 } // namespace vkrndr

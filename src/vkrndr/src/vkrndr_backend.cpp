@@ -1,7 +1,6 @@
 #include <vkrndr_backend.hpp>
 
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_command_pool.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
@@ -296,17 +295,18 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
         fd.present_queue = device_.present_queue;
-        fd.present_command_pool = std::make_unique<command_pool_t>(device_,
-            fd.present_queue->queue_family());
-        fd.present_transient_command_pool =
-            std::make_unique<command_pool_t>(device_,
-                fd.present_queue->queue_family(),
-                VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+        fd.present_command_pool =
+            create_command_pool(device_, fd.present_queue->queue_family())
+                .value();
+        fd.present_transient_command_pool = create_command_pool(device_,
+            fd.present_queue->queue_family(),
+            VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
+                                                .value();
 
         fd.transfer_queue = device_.transfer_queue;
         fd.transfer_transient_command_pool =
-            std::make_unique<command_pool_t>(device_,
-                fd.transfer_queue->queue_family());
+            create_command_pool(device_, fd.transfer_queue->queue_family())
+                .value();
     };
 }
 
@@ -314,9 +314,9 @@ vkrndr::backend_t::~backend_t()
 {
     for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
-        fd.present_command_pool.reset();
-        fd.present_transient_command_pool.reset();
-        fd.transfer_transient_command_pool.reset();
+        destroy_command_pool(device_, fd.present_command_pool);
+        destroy_command_pool(device_, fd.present_transient_command_pool);
+        destroy_command_pool(device_, fd.transfer_transient_command_pool);
     };
 
     destroy_descriptor_pool(device_, descriptor_pool_);
@@ -407,8 +407,10 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
         return false;
     }
 
-    frame_data_->present_command_pool->reset();
-    frame_data_->transfer_transient_command_pool->reset();
+    check_result(
+        reset_command_pool(device_, frame_data_->present_command_pool));
+    check_result(reset_command_pool(device_,
+        frame_data_->transfer_transient_command_pool));
 
     return true;
 }
@@ -427,9 +429,11 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer()
         frame_data_->present_command_buffers.resize(
             frame_data_->present_command_buffers.size() + 1);
 
-        frame_data_->present_command_pool->allocate_command_buffers(true,
+        check_result(allocate_command_buffers(device_,
+            frame_data_->present_command_pool,
+            true,
             1,
-            cppext::as_span(frame_data_->present_command_buffers.back()));
+            cppext::as_span(frame_data_->present_command_buffers.back())));
     }
 
     VkCommandBuffer rv{frame_data_->present_command_buffers[frame_data_
@@ -447,12 +451,14 @@ vkrndr::transient_operation_t vkrndr::backend_t::request_transient_operation(
 {
     if (transfer_only)
     {
-        return {*frame_data_->transfer_queue,
-            *frame_data_->transfer_transient_command_pool};
+        return {device_,
+            *frame_data_->transfer_queue,
+            frame_data_->transfer_transient_command_pool};
     }
 
-    return {*frame_data_->present_queue,
-        *frame_data_->present_transient_command_pool};
+    return {device_,
+        *frame_data_->present_queue,
+        frame_data_->present_transient_command_pool};
 }
 
 void vkrndr::backend_t::draw()
