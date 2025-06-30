@@ -19,6 +19,12 @@ vkrndr::command_pool_t::command_pool_t(device_t& device,
         vkCreateCommandPool(device_->logical, &create_info, nullptr, &pool_));
 }
 
+vkrndr::command_pool_t::command_pool_t(command_pool_t&& other) noexcept
+    : device_{std::exchange(other.device_, nullptr)}
+    , pool_{std::exchange(other.pool_, nullptr)}
+{
+}
+
 vkrndr::command_pool_t::~command_pool_t()
 {
     if (device_)
@@ -64,4 +70,15 @@ void vkrndr::command_pool_t::reset(bool release_resources)
 void vkrndr::command_pool_t::trim()
 {
     vkTrimCommandPool(device_->logical, pool_, 0);
+}
+
+vkrndr::command_pool_t& vkrndr::command_pool_t::operator=(
+    command_pool_t&& other) noexcept
+{
+    using std::swap;
+
+    swap(device_, other.device_);
+    swap(pool_, other.pool_);
+
+    return *this;
 }

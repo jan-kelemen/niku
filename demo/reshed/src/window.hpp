@@ -1,6 +1,8 @@
 #ifndef RESHED_WINDOW_INCLUDED
 #define RESHED_WINDOW_INCLUDED
 
+#include <cppext_cycled_buffer.hpp>
+
 #include <ngntxt_font_face.hpp>
 
 #include <ngnwsi_imgui_layer.hpp>
@@ -11,6 +13,7 @@ union SDL_Event;
 namespace vkrndr
 {
     class backend_t;
+    class command_pool_t;
 } // namespace vkrndr
 
 namespace reshed
@@ -41,7 +44,7 @@ namespace reshed
 
         bool begin_frame();
 
-        void render(vkrndr::backend_t& backend);
+        void render();
 
         void debug_draw();
 
@@ -53,9 +56,20 @@ namespace reshed
         window_t& operator=(window_t&&) noexcept = delete;
 
     private:
+        struct [[nodiscard]] frame_data_t final
+        {
+            std::unique_ptr<vkrndr::command_pool_t> present_command_pool;
+            VkCommandBuffer present_command_buffer;
+        };
+
+    private:
         ngnwsi::sdl_text_input_guard_t text_input_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
         std::unique_ptr<text_editor_t> editor_;
+
+        cppext::cycled_buffer_t<frame_data_t> frame_data_;
+
+        bool should_render_{false};
     };
 } // namespace reshed
 #endif

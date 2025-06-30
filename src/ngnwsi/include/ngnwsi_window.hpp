@@ -41,6 +41,8 @@ namespace ngnwsi
     public:
         [[nodiscard]] uint32_t id() const;
 
+        [[nodiscard]] bool is_focused() const;
+
         [[nodiscard]] VkFormat image_format() const;
 
         [[nodiscard]] uint32_t image_count() const;
@@ -59,7 +61,7 @@ namespace ngnwsi
             vkrndr::render_settings_t const&);
 
     public:
-        virtual void handle_event(SDL_Event const& event) { }
+        virtual void handle_event([[maybe_unused]] SDL_Event const& event) { }
 
         [[nodiscard]] bool acquire_image();
 

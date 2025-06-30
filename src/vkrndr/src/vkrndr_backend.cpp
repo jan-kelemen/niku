@@ -381,19 +381,6 @@ vkrndr::transient_operation_t vkrndr::backend_t::request_transient_operation(
         *frame_data_->present_transient_command_pool};
 }
 
-std::span<VkCommandBuffer const> vkrndr::backend_t::frame_present_buffers()
-{
-    std::span buffers{frame_data_->present_command_buffers.data(),
-        frame_data_->used_present_command_buffers};
-
-    for (VkCommandBuffer const buffer : buffers)
-    {
-        check_result(vkEndCommandBuffer(buffer));
-    }
-
-    return buffers;
-}
-
 vkrndr::image_t vkrndr::backend_t::transfer_image(
     std::span<std::byte const> const& image_data,
     VkExtent2D const extent,

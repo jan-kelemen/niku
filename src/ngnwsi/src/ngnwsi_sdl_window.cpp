@@ -55,6 +55,21 @@ std::vector<char const*> ngnwsi::sdl_window_t::required_extensions()
     return {extensions, extensions + extension_count};
 }
 
+SDL_Window* ngnwsi::sdl_window_t::native_handle() const noexcept
+{
+    return window_;
+}
+
+uint32_t ngnwsi::sdl_window_t::id() const noexcept
+{
+    return SDL_GetWindowID(window_);
+}
+
+bool ngnwsi::sdl_window_t::is_focused() const noexcept
+{
+    return (SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_FOCUS) != 0;
+}
+
 VkSurfaceKHR ngnwsi::sdl_window_t::create_surface(VkInstance instance)
 {
     if (surface_)

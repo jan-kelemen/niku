@@ -5,9 +5,12 @@
 #include <text_editor.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_command_pool.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_utility.hpp>
+
+#include <imgui.h>
 
 #include <SDL3/SDL_events.h>
 
@@ -40,6 +43,21 @@ void reshed::window_t::init_rendering(vkrndr::backend_t& backend)
         *swapchain);
 
     editor_ = std::make_unique<text_editor_t>(backend, *this);
+
+    frame_data_ =
+        cppext::cycled_buffer_t<frame_data_t>{backend.frames_in_flight(),
+            backend.frames_in_flight()};
+
+    for (frame_data_t& fd : cppext::as_span(frame_data_))
+    {
+        fd.present_command_pool =
+            std::make_unique<vkrndr::command_pool_t>(*device_,
+                device_->present_queue->queue_family());
+
+        fd.present_command_pool->allocate_command_buffers(true,
+            1,
+            cppext::as_span(fd.present_command_buffer));
+    };
 }
 
 void reshed::window_t::set_font(ngntxt::font_face_ptr_t font_face)
@@ -69,20 +87,40 @@ void reshed::window_t::handle_event(SDL_Event const& event)
 
 bool reshed::window_t::begin_frame()
 {
-    if (acquire_image())
+    should_render_ = acquire_image();
+
+    if (should_render_)
     {
         imgui_->begin_frame();
-        return true;
+
+        frame_data_.cycle(
+            [](auto const&, frame_data_t& next)
+            {
+                next.present_command_pool->reset();
+
+                VkCommandBufferBeginInfo const begin_info{
+                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                    .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+                vkrndr::check_result(
+                    vkBeginCommandBuffer(next.present_command_buffer,
+                        &begin_info));
+            });
     }
 
-    return false;
+    return should_render_;
 }
 
-void reshed::window_t::render(vkrndr::backend_t& backend)
+void reshed::window_t::render()
 {
+    if (!std::exchange(should_render_, false))
+    {
+        return;
+    }
+
     auto target_image{swapchain_image()};
 
-    VkCommandBuffer command_buffer{backend.request_command_buffer()};
+    VkCommandBuffer command_buffer{frame_data_->present_command_buffer};
 
     vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
 
@@ -124,9 +162,21 @@ void reshed::window_t::render(vkrndr::backend_t& backend)
 
     vkrndr::transition_to_present_layout(target_image.image, command_buffer);
 
-    present(backend.frame_present_buffers());
+    vkEndCommandBuffer(command_buffer);
+
+    present(cppext::as_span(command_buffer));
 }
 
-void reshed::window_t::debug_draw() { editor_->debug_draw(); }
+void reshed::window_t::debug_draw()
+{
+    if (!should_render_)
+    {
+        return;
+    }
+
+    ImGui::ShowMetricsWindow();
+
+    editor_->debug_draw();
+}
 
 void reshed::window_t::end_frame() { imgui_->end_frame(); }

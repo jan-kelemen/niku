@@ -68,8 +68,6 @@ namespace vkrndr
         [[nodiscard]] transient_operation_t request_transient_operation(
             bool transfer_only);
 
-        [[nodiscard]] std::span<VkCommandBuffer const> frame_present_buffers();
-
         [[nodiscard]] image_t transfer_image(
             std::span<std::byte const> const& image_data,
             VkExtent2D extent,

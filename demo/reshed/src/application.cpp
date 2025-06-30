@@ -39,6 +39,7 @@
 #include <exception>
 #include <expected>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <span>
 #include <string>
@@ -87,19 +88,32 @@ bool reshed::application_t::handle_event(SDL_Event const& event)
         return true;
     }
 
-    windows_.front()->handle_event(event);
+    if (auto focused_window{
+            std::ranges::find_if(windows_, &window_t::is_focused)};
+        focused_window != std::cend(windows_))
+    {
+        (*focused_window)->handle_event(event);
+    }
+
     return true;
 }
 
 void reshed::application_t::debug_draw()
 {
-    ImGui::ShowMetricsWindow();
-    windows_.front()->debug_draw();
+    std::ranges::for_each(windows_,
+        [](std::unique_ptr<window_t>& window) { window->debug_draw(); });
 }
 
 bool reshed::application_t::begin_frame()
 {
-    if (windows_.front()->begin_frame())
+    bool const any_ready{std::transform_reduce(windows_.begin(),
+        windows_.end(),
+        false,
+        std::logical_or{},
+        [](std::unique_ptr<window_t>& window)
+        { return window->begin_frame(); })};
+
+    if (any_ready)
     {
         backend_->begin_frame();
         return true;
@@ -107,11 +121,16 @@ bool reshed::application_t::begin_frame()
     return false;
 }
 
-void reshed::application_t::draw() { windows_.front()->render(*backend_); }
+void reshed::application_t::draw()
+{
+    std::ranges::for_each(windows_,
+        [](std::unique_ptr<window_t>& window) { return window->render(); });
+}
 
 void reshed::application_t::end_frame(bool const has_rendered)
 {
-    windows_.front()->end_frame();
+    std::ranges::for_each(windows_,
+        [](std::unique_ptr<window_t>& window) { window->end_frame(); });
 
     if (has_rendered)
     {
@@ -140,6 +159,11 @@ void reshed::application_t::on_startup()
         true);
     wnd->init_rendering(*backend_);
 
+    windows_.push_back(std::make_unique<window_t>());
+    register_window(windows_.back().get());
+    windows_.back().get()->create_surface(backend_->instance().handle);
+    windows_.back().get()->init_rendering(*backend_);
+
     mouse_.set_window_handle(wnd->native_window().native_handle());
 
     if (std::expected<ngntxt::font_face_ptr_t, std::error_code> font_face{
@@ -148,7 +172,9 @@ void reshed::application_t::on_startup()
                 {0, 16})})
     {
         spdlog::info("Font loaded");
-        wnd->set_font(std::move(font_face).value());
+        std::ranges::for_each(windows_,
+            [&font_face](std::unique_ptr<window_t>& window)
+            { window->set_font(*font_face); });
     }
     else
     {

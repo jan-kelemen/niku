@@ -49,9 +49,11 @@ namespace ngnwsi
         ~sdl_window_t() override;
 
     public: // Interface
-        [[nodiscard]] constexpr SDL_Window* native_handle() const noexcept;
+        [[nodiscard]] SDL_Window* native_handle() const noexcept;
 
-        [[nodiscard]] constexpr uint32_t id() const noexcept;
+        [[nodiscard]] uint32_t id() const noexcept;
+
+        [[nodiscard]] bool is_focused() const noexcept;
 
     public: // window_t implementation
         [[nodiscard]] VkSurfaceKHR create_surface(VkInstance instance) override;
@@ -98,17 +100,5 @@ namespace ngnwsi
         sdl_window_t const* window_;
     };
 } // namespace ngnwsi
-
-[[nodiscard]]
-constexpr SDL_Window* ngnwsi::sdl_window_t::native_handle() const noexcept
-{
-    return window_;
-}
-
-[[nodiscard]]
-constexpr uint32_t ngnwsi::sdl_window_t::id() const noexcept
-{
-    return SDL_GetWindowID(window_);
-}
 
 #endif // !VKRNDR_SDL_WINDOW_INCLUDED

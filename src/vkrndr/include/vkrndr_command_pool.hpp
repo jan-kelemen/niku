@@ -24,7 +24,7 @@ namespace vkrndr
 
         command_pool_t(command_pool_t const&) = delete;
 
-        command_pool_t(command_pool_t&&) noexcept = delete;
+        command_pool_t(command_pool_t&& other) noexcept;
 
     public:
         ~command_pool_t();
@@ -44,7 +44,7 @@ namespace vkrndr
     public:
         command_pool_t& operator=(command_pool_t const&) = delete;
 
-        command_pool_t& operator=(command_pool_t&&) noexcept = delete;
+        command_pool_t& operator=(command_pool_t&& other) noexcept;
 
     private:
         device_t* device_{nullptr};

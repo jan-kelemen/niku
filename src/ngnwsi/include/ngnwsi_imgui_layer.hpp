@@ -3,6 +3,8 @@
 
 #include <volk.h>
 
+struct ImGuiContext;
+
 union SDL_Event;
 
 namespace vkrndr
@@ -58,6 +60,7 @@ namespace ngnwsi
         bool enabled_{true};
         bool frame_rendered_{false};
         vkrndr::device_t* device_;
+        ImGuiContext* context_;
         VkDescriptorPool descriptor_pool_;
     };
 } // namespace ngnwsi

@@ -26,6 +26,8 @@ ngnwsi::window_t::~window_t()
 
 uint32_t ngnwsi::window_t::id() const { return window_.id(); }
 
+bool ngnwsi::window_t::is_focused() const { return window_.is_focused(); }
+
 VkFormat ngnwsi::window_t::image_format() const
 {
     return swapchain_->image_format();
