@@ -10,7 +10,6 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
-#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -197,15 +196,15 @@ galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
 
     for (auto& data : cppext::as_span(frame_data_))
     {
-        vkrndr::check_result(
-            backend_->descriptor_pool().allocate_descriptor_sets(
-                cppext::as_span(tone_mapping_descriptor_set_layout_),
-                cppext::as_span(data.tone_mapping_descriptor_set)));
+        vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            cppext::as_span(tone_mapping_descriptor_set_layout_),
+            cppext::as_span(data.tone_mapping_descriptor_set)));
 
-        vkrndr::check_result(
-            backend_->descriptor_pool().allocate_descriptor_sets(
-                cppext::as_span(fxaa_descriptor_set_layout_),
-                cppext::as_span(data.fxaa_descriptor_set)));
+        vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            cppext::as_span(fxaa_descriptor_set_layout_),
+            cppext::as_span(data.fxaa_descriptor_set)));
     }
 }
 
@@ -213,10 +212,12 @@ galileo::postprocess_shader_t::~postprocess_shader_t()
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
-        backend_->descriptor_pool().free_descriptor_sets(
+        free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
             cppext::as_span(data.fxaa_descriptor_set));
 
-        backend_->descriptor_pool().free_descriptor_sets(
+        free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
             cppext::as_span(data.tone_mapping_descriptor_set));
     }
 

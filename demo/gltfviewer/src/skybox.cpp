@@ -12,7 +12,6 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_cubemap.hpp>
 #include <vkrndr_debug_utils.hpp>
-#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -114,7 +113,7 @@ namespace
 
         std::array bindings{cubemap_binding, projection_binding};
 
-        return vkrndr::create_descriptor_set_layout(device, bindings);
+        return vkrndr::create_descriptor_set_layout(device, bindings).value();
     }
 
     void update_cubemap_descriptor(vkrndr::device_t const& device,
@@ -266,7 +265,8 @@ gltfviewer::skybox_t::~skybox_t()
 
     destroy(&backend_->device(), &skybox_pipeline_);
 
-    backend_->descriptor_pool().free_descriptor_sets(
+    free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
         cppext::as_span(skybox_descriptor_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,
@@ -459,7 +459,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         create_cubemap_descriptor_set_layout(backend_->device())};
 
     VkDescriptorSet cubemap_descriptor; // NOLINT
-    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
+    vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
         cppext::as_span(cubemap_descriptor_layout),
         cppext::as_span(cubemap_descriptor)));
 
@@ -496,7 +497,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         assert(false);
     }
 
-    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
+    vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
         cppext::as_span(skybox_descriptor_layout_),
         cppext::as_span(skybox_descriptor_)));
 
@@ -563,7 +565,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     generate_brdf_lookup();
 
-    backend_->descriptor_pool().free_descriptor_sets(
+    free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
         cppext::as_span(cubemap_descriptor));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,

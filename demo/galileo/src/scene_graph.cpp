@@ -9,7 +9,6 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
@@ -78,7 +77,7 @@ namespace
 
         std::array bindings{uniform_binding};
 
-        return vkrndr::create_descriptor_set_layout(device, bindings);
+        return vkrndr::create_descriptor_set_layout(device, bindings).value();
     }
 
     void update_descriptor_set(vkrndr::device_t const& device,
@@ -185,10 +184,10 @@ galileo::scene_graph_t::scene_graph_t(vkrndr::backend_t& backend)
 
         data.uniform_map = vkrndr::map_memory(backend_->device(), data.uniform);
 
-        vkrndr::check_result(
-            backend_->descriptor_pool().allocate_descriptor_sets(
-                cppext::as_span(descriptor_set_layout_),
-                cppext::as_span(data.descriptor_set)));
+        vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            cppext::as_span(descriptor_set_layout_),
+            cppext::as_span(data.descriptor_set)));
 
         update_descriptor_set(backend_->device(),
             data.descriptor_set,
@@ -200,7 +199,8 @@ galileo::scene_graph_t::~scene_graph_t()
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
-        backend_->descriptor_pool().free_descriptor_sets(
+        free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
             cppext::as_span(data.descriptor_set));
 
         vkrndr::unmap_memory(backend_->device(), &data.uniform_map);

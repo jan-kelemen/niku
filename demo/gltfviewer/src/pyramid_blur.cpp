@@ -10,7 +10,6 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
-#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -174,7 +173,8 @@ gltfviewer::pyramid_blur_t::~pyramid_blur_t()
 {
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {
-        backend_->descriptor_pool().free_descriptor_sets(
+        free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
             cppext::as_span(data.descriptor_));
     }
 
@@ -390,18 +390,21 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
         descriptor_layout_,
         nullptr);
     descriptor_layout_ =
-        vkrndr::create_descriptor_set_layout(backend_->device(), *bindings);
+        vkrndr::create_descriptor_set_layout(backend_->device(), *bindings)
+            .value();
 
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {
         auto ds{cppext::as_span(data.descriptor_)};
 
-        backend_->descriptor_pool().free_descriptor_sets(ds);
+        free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            ds);
 
-        vkrndr::check_result(
-            backend_->descriptor_pool().allocate_descriptor_sets(
-                cppext::as_span(descriptor_layout_),
-                ds));
+        vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            cppext::as_span(descriptor_layout_),
+            ds));
 
         update_descriptor_set(backend_->device(),
             data.descriptor_,

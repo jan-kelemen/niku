@@ -3,7 +3,7 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_command_pool.hpp>
 #include <vkrndr_commands.hpp>
-#include <vkrndr_descriptor_pool.hpp>
+#include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
@@ -54,7 +54,7 @@ namespace
     constexpr std::array const required_device_extensions{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-    vkrndr::descriptor_pool_t create_descriptor_pool(vkrndr::device_t& device)
+    VkDescriptorPool create_descriptor_pool(vkrndr::device_t& device)
     {
         auto pool{vkrndr::create_descriptor_pool(device,
             std::to_array<VkDescriptorPoolSize>({
@@ -291,8 +291,7 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     frame_data_ =
         cppext::cycled_buffer_t<frame_data_t>{settings.frames_in_flight,
             settings.frames_in_flight};
-    descriptor_pool_ =
-        std::make_unique<descriptor_pool_t>(::create_descriptor_pool(device_));
+    descriptor_pool_ = ::create_descriptor_pool(device_);
 
     for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
@@ -320,7 +319,7 @@ vkrndr::backend_t::~backend_t()
         fd.transfer_transient_command_pool.reset();
     };
 
-    descriptor_pool_.reset();
+    destroy_descriptor_pool(device_, descriptor_pool_);
 
     swapchain_.reset();
 
@@ -331,9 +330,33 @@ vkrndr::backend_t::~backend_t()
     destroy(&instance_);
 }
 
-vkrndr::descriptor_pool_t& vkrndr::backend_t::descriptor_pool()
+vkrndr::instance_t& vkrndr::backend_t::instance() noexcept { return instance_; }
+
+vkrndr::instance_t const& vkrndr::backend_t::instance() const noexcept
 {
-    return *descriptor_pool_;
+    return instance_;
+}
+
+vkrndr::device_t& vkrndr::backend_t::device() noexcept { return device_; }
+
+vkrndr::device_t const& vkrndr::backend_t::device() const noexcept
+{
+    return device_;
+}
+
+vkrndr::swapchain_t& vkrndr::backend_t::swapchain() noexcept
+{
+    return *swapchain_;
+}
+
+vkrndr::swapchain_t const& vkrndr::backend_t::swapchain() const noexcept
+{
+    return *swapchain_;
+}
+
+VkDescriptorPool vkrndr::backend_t::descriptor_pool()
+{
+    return descriptor_pool_;
 }
 
 VkFormat vkrndr::backend_t::image_format() const

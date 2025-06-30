@@ -13,7 +13,6 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_debug_utils.hpp>
-#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -64,7 +63,8 @@ namespace
         reveal_sampler_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         return vkrndr::create_descriptor_set_layout(device,
-            std::array{accumulation_sampler_binding, reveal_sampler_binding});
+            std::array{accumulation_sampler_binding, reveal_sampler_binding})
+            .value();
     }
 
     void update_descriptor_set(vkrndr::device_t const& device,
@@ -143,7 +143,8 @@ gltfviewer::weighted_oit_shader_t::weighted_oit_shader_t(
     , accumulation_sampler_{create_sampler(backend_->device())}
     , reveal_sampler_{create_sampler(backend_->device())}
 {
-    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
+    vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
         cppext::as_span(descriptor_set_layout_),
         cppext::as_span(descriptor_set_)));
 }
@@ -158,7 +159,8 @@ gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
         accumulation_sampler_,
         nullptr);
 
-    backend_->descriptor_pool().free_descriptor_sets(
+    free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
         cppext::as_span(descriptor_set_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,

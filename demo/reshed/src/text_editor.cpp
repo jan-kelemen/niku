@@ -18,7 +18,6 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
@@ -268,24 +267,25 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
         [this, shd = &fragment_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
-    auto descriptor_layout{shader_set.descriptor_bindings(0).and_then(
-        [&device = backend_->device()](auto&& bindings)
-        {
-            bindings[1].descriptorCount = 100;
-            return std::expected<VkDescriptorSetLayout,
-                std::error_code>{vkrndr::create_descriptor_set_layout(device,
-                bindings,
-                std::to_array<VkDescriptorBindingFlagsEXT>({0,
-                    VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-                        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                        VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                        VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT}))};
-        })};
-
+    auto descriptor_layout{shader_set.descriptor_bindings(0)
+            .transform(
+                [&device = backend_->device()](auto&& bindings)
+                {
+                    bindings[1].descriptorCount = 100;
+                    return vkrndr::create_descriptor_set_layout(device,
+                        bindings,
+                        std::to_array<VkDescriptorBindingFlagsEXT>({0,
+                            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+                                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                                VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT}));
+                })
+            .transform(
+                [this](auto&& layout) { text_descriptor_layout_ = *layout; })};
     assert(descriptor_layout);
-    text_descriptor_layout_ = *descriptor_layout;
 
-    vkrndr::check_result(descriptor_pool_.allocate_descriptor_sets(
+    vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+        descriptor_pool_,
         cppext::as_span(text_descriptor_layout_),
         cppext::as_span(text_descriptor_)));
     {
@@ -325,7 +325,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     text_pipeline_ =
         vkrndr::pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(*descriptor_layout)
+                .add_descriptor_set_layout(text_descriptor_layout_)
                 .add_push_constants<glm::mat4>(
                     VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
                 .build()}
@@ -394,6 +394,8 @@ reshed::text_editor_t::~text_editor_t()
     vkDestroyDescriptorSetLayout(backend_->device().logical,
         text_descriptor_layout_,
         nullptr);
+
+    destroy_descriptor_pool(backend_->device(), descriptor_pool_);
 
     vkDestroySampler(backend_->device().logical, bitmap_sampler_, nullptr);
 

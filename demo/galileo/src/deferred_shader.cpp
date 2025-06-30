@@ -9,7 +9,6 @@
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_pipeline.hpp>
@@ -58,7 +57,7 @@ namespace
             normal_binding,
             albedo_binding};
 
-        return vkrndr::create_descriptor_set_layout(device, bindings);
+        return vkrndr::create_descriptor_set_layout(device, bindings).value();
     }
 
     void update_descriptor_set(vkrndr::device_t const& device,
@@ -184,10 +183,10 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
 
     for (auto& data : cppext::as_span(frame_data_))
     {
-        vkrndr::check_result(
-            backend_->descriptor_pool().allocate_descriptor_sets(
-                cppext::as_span(descriptor_set_layout_),
-                cppext::as_span(data.descriptor_set)));
+        vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
+            cppext::as_span(descriptor_set_layout_),
+            cppext::as_span(data.descriptor_set)));
     }
 }
 
@@ -195,7 +194,8 @@ galileo::deferred_shader_t::~deferred_shader_t()
 {
     for (auto& data : cppext::as_span(frame_data_))
     {
-        backend_->descriptor_pool().free_descriptor_sets(
+        free_descriptor_sets(backend_->device(),
+            backend_->descriptor_pool(),
             cppext::as_span(data.descriptor_set));
     }
 

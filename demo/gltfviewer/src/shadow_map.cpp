@@ -11,7 +11,6 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
-#include <vkrndr_descriptor_pool.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
@@ -102,7 +101,8 @@ namespace
         sampler_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         return vkrndr::create_descriptor_set_layout(device,
-            cppext::as_span(sampler_binding));
+            cppext::as_span(sampler_binding))
+            .value();
     }
 
     void update_descriptor_set(vkrndr::device_t const& device,
@@ -164,7 +164,8 @@ gltfviewer::shadow_map_t::shadow_map_t(vkrndr::backend_t& backend)
     , shadow_sampler_{create_shadow_map_sampler(backend_->device())}
     , descriptor_layout_{create_descriptor_set_layout(backend_->device())}
 {
-    vkrndr::check_result(backend_->descriptor_pool().allocate_descriptor_sets(
+    vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
         cppext::as_span(descriptor_layout_),
         cppext::as_span(descriptor_)));
 
@@ -193,7 +194,8 @@ gltfviewer::shadow_map_t::~shadow_map_t()
 {
     destroy(&backend_->device(), &depth_pipeline_);
 
-    backend_->descriptor_pool().free_descriptor_sets(
+    free_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
         cppext::as_span(descriptor_));
 
     vkDestroyDescriptorSetLayout(backend_->device().logical,

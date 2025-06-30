@@ -7,6 +7,7 @@
 
 #include <volk.h>
 
+#include <expected>
 #include <span>
 
 namespace vkrndr
@@ -16,10 +17,36 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
-        device_t const& device,
+    // Descriptor pool
+
+    [[nodiscard]] std::expected<VkDescriptorPool, VkResult>
+    create_descriptor_pool(device_t const& device,
+        std::span<VkDescriptorPoolSize const> const& pool_sizes,
+        uint32_t max_sets,
+        VkDescriptorPoolCreateFlags flags =
+            VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+
+    [[nodiscard]] VkResult allocate_descriptor_sets(device_t const& device,
+        VkDescriptorPool pool,
+        std::span<VkDescriptorSetLayout const> const& layouts,
+        std::span<VkDescriptorSet> descriptor_sets);
+
+    void free_descriptor_sets(device_t const& device,
+        VkDescriptorPool pool,
+        std::span<VkDescriptorSet const> const& descriptor_sets);
+
+    void reset_descriptor_pool(device_t const& device, VkDescriptorPool pool);
+
+    void destroy_descriptor_pool(device_t const& device, VkDescriptorPool pool);
+
+    // Descriptor set layout
+
+    [[nodiscard]] std::expected<VkDescriptorSetLayout, VkResult>
+    create_descriptor_set_layout(device_t const& device,
         std::span<VkDescriptorSetLayoutBinding const> const& bindings,
         std::span<VkDescriptorBindingFlagsEXT const> const& binding_flags = {});
+
+    // Descriptor infos
 
     [[nodiscard]] constexpr VkDescriptorBufferInfo buffer_descriptor(
         vkrndr::buffer_t const& buffer,

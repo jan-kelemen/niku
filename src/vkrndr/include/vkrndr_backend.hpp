@@ -22,7 +22,6 @@
 namespace vkrndr
 {
     struct buffer_t;
-    class descriptor_pool_t;
     class execution_port_t;
     struct library_handle_t;
     class swapchain_t;
@@ -49,19 +48,19 @@ namespace vkrndr
         ~backend_t();
 
     public: // Interface
-        [[nodiscard]] constexpr instance_t& instance() noexcept;
+        [[nodiscard]] instance_t& instance() noexcept;
 
-        [[nodiscard]] constexpr instance_t const& instance() const noexcept;
+        [[nodiscard]] instance_t const& instance() const noexcept;
 
-        [[nodiscard]] constexpr device_t& device() noexcept;
+        [[nodiscard]] device_t& device() noexcept;
 
-        [[nodiscard]] constexpr device_t const& device() const noexcept;
+        [[nodiscard]] device_t const& device() const noexcept;
 
-        [[nodiscard]] constexpr swapchain_t& swapchain() noexcept;
+        [[nodiscard]] swapchain_t& swapchain() noexcept;
 
-        [[nodiscard]] constexpr swapchain_t const& swapchain() const noexcept;
+        [[nodiscard]] swapchain_t const& swapchain() const noexcept;
 
-        descriptor_pool_t& descriptor_pool();
+        [[nodiscard]] VkDescriptorPool descriptor_pool();
 
         [[nodiscard]] VkFormat image_format() const;
 
@@ -126,43 +125,12 @@ namespace vkrndr
         device_t device_;
         std::unique_ptr<swapchain_t> swapchain_;
 
-        std::unique_ptr<vkrndr::descriptor_pool_t> descriptor_pool_;
+        VkDescriptorPool descriptor_pool_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
 
         uint32_t image_index_{};
     };
 } // namespace vkrndr
-
-constexpr vkrndr::instance_t& vkrndr::backend_t::instance() noexcept
-{
-    return instance_;
-}
-
-constexpr vkrndr::instance_t const& vkrndr::backend_t::instance() const noexcept
-{
-    return instance_;
-}
-
-constexpr vkrndr::device_t& vkrndr::backend_t::device() noexcept
-{
-    return device_;
-}
-
-constexpr vkrndr::device_t const& vkrndr::backend_t::device() const noexcept
-{
-    return device_;
-}
-
-constexpr vkrndr::swapchain_t& vkrndr::backend_t::swapchain() noexcept
-{
-    return *swapchain_;
-}
-
-constexpr vkrndr::swapchain_t const&
-vkrndr::backend_t::swapchain() const noexcept
-{
-    return *swapchain_;
-}
 
 #endif

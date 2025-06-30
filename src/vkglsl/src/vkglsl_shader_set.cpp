@@ -516,7 +516,12 @@ vkglsl::descriptor_set_layout(shader_set_t const& shader_set,
     return shader_set.descriptor_bindings(set).and_then(
         [&device](auto&& bindings)
         {
-            return std::expected<VkDescriptorSetLayout, std::error_code>{
-                vkrndr::create_descriptor_set_layout(device, bindings)};
+            return vkrndr::create_descriptor_set_layout(device, bindings)
+                .transform_error(
+                    [](auto&&)
+                    {
+                        return std::make_error_code(
+                            std::errc::invalid_argument);
+                    });
         });
 }

@@ -8,8 +8,79 @@
 #include <algorithm>
 #include <cassert>
 
-VkDescriptorSetLayout vkrndr::create_descriptor_set_layout(
+std::expected<VkDescriptorPool, VkResult> vkrndr::create_descriptor_pool(
     device_t const& device,
+    std::span<VkDescriptorPoolSize const> const& pool_sizes,
+    uint32_t max_sets,
+    VkDescriptorPoolCreateFlags flags)
+{
+    VkDescriptorPoolCreateInfo const create_info{
+        .sType = vku::GetSType<VkDescriptorPoolCreateInfo>(),
+        .flags = flags,
+        .maxSets = max_sets,
+        .poolSizeCount = vkrndr::count_cast(pool_sizes.size()),
+        .pPoolSizes = pool_sizes.data(),
+    };
+
+    VkDescriptorPool rv{};
+    if (auto const result{
+            vkCreateDescriptorPool(device.logical, &create_info, nullptr, &rv)};
+        result != VK_SUCCESS)
+    {
+        return std::unexpected(result);
+    }
+
+    return rv;
+}
+
+VkResult vkrndr::allocate_descriptor_sets(device_t const& device,
+    VkDescriptorPool pool,
+    std::span<VkDescriptorSetLayout const> const& layouts,
+    std::span<VkDescriptorSet> descriptor_sets)
+{
+    assert(descriptor_sets.size() >= layouts.size());
+
+    VkDescriptorSetAllocateInfo const alloc_info{
+        .sType = vku::GetSType<VkDescriptorSetAllocateInfo>(),
+        .descriptorPool = pool,
+        .descriptorSetCount = count_cast(layouts.size()),
+        .pSetLayouts = layouts.data(),
+    };
+
+    return vkAllocateDescriptorSets(device.logical,
+        &alloc_info,
+        descriptor_sets.data());
+}
+
+void vkrndr::free_descriptor_sets(device_t const& device,
+    VkDescriptorPool pool,
+    std::span<VkDescriptorSet const> const& descriptor_sets)
+{
+    if (descriptor_sets.empty())
+    {
+        return;
+    }
+
+    vkFreeDescriptorSets(device.logical,
+        pool,
+        count_cast(descriptor_sets.size()),
+        descriptor_sets.data());
+}
+
+void vkrndr::reset_descriptor_pool(device_t const& device,
+    VkDescriptorPool pool)
+{
+    vkResetDescriptorPool(device.logical, pool, {});
+}
+
+void vkrndr::destroy_descriptor_pool(device_t const& device,
+    VkDescriptorPool pool)
+{
+    vkDestroyDescriptorPool(device.logical, pool, nullptr);
+}
+
+std::expected<VkDescriptorSetLayout, VkResult>
+vkrndr::create_descriptor_set_layout(device_t const& device,
     std::span<VkDescriptorSetLayoutBinding const> const& bindings,
     std::span<VkDescriptorBindingFlagsEXT const> const& binding_flags)
 {
