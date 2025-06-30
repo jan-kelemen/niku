@@ -1,9 +1,8 @@
-#include <vkrndr_swap_chain.hpp>
+#include <vkrndr_swapchain.hpp>
 
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
-#include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -94,13 +93,13 @@ void vkrndr::detail::destroy(device_t const* const device,
     vkDestroyFence(device->logical, frame->in_flight, nullptr);
 }
 
-vkrndr::swap_chain_t::swap_chain_t(window_t const& window,
+vkrndr::swapchain_t::swapchain_t(window_t const& window,
     device_t& device,
     render_settings_t const& settings)
     : window_{&window}
     , device_{&device}
     , settings_{&settings}
-    , swapchain_maintenance_1_enabled{is_device_extension_enabled(
+    , swapchain_maintenance_1_enabled_{is_device_extension_enabled(
           VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
           device)}
     , present_queue_{device.present_queue}
@@ -108,9 +107,9 @@ vkrndr::swap_chain_t::swap_chain_t(window_t const& window,
     create_swap_frames(false);
 }
 
-vkrndr::swap_chain_t::~swap_chain_t() { cleanup(); }
+vkrndr::swapchain_t::~swapchain_t() { cleanup(); }
 
-bool vkrndr::swap_chain_t::acquire_next_image(size_t const current_frame,
+bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
     uint32_t& image_index)
 {
     auto const& frame{frames_[current_frame]};
@@ -129,19 +128,23 @@ bool vkrndr::swap_chain_t::acquire_next_image(size_t const current_frame,
         frame.image_available,
         VK_NULL_HANDLE,
         &image_index)};
-    if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR ||
-        acquire_result == VK_SUBOPTIMAL_KHR)
+    if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        swap_chain_refresh.store(true);
+        swapchain_refresh_needed_ = true;
         return false;
     }
+    if (acquire_result == VK_SUBOPTIMAL_KHR)
+    {
+        swapchain_refresh_needed_ = true;
+    }
+
     check_result(acquire_result);
 
     check_result(vkResetFences(device_->logical, 1, &frame.in_flight));
     return true;
 }
 
-void vkrndr::swap_chain_t::submit_command_buffers(
+void vkrndr::swapchain_t::submit_command_buffers(
     std::span<VkCommandBuffer const> command_buffers,
     size_t const current_frame,
     uint32_t const image_index)
@@ -179,7 +182,7 @@ void vkrndr::swap_chain_t::submit_command_buffers(
 
     if (desired_present_mode_ != current_present_mode_)
     {
-        if (swapchain_maintenance_1_enabled &&
+        if (swapchain_maintenance_1_enabled_ &&
             std::ranges::contains(compatible_present_modes_,
                 desired_present_mode_))
         {
@@ -188,32 +191,32 @@ void vkrndr::swap_chain_t::submit_command_buffers(
         }
         else
         {
-            swap_chain_refresh.store(true);
+            swapchain_refresh_needed_ = true;
         }
     }
 
     VkResult const result{present_queue_->present(present_info)};
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
-        swap_chain_refresh.store(true);
+        swapchain_refresh_needed_ = true;
         return;
     }
     check_result(result);
 }
 
-void vkrndr::swap_chain_t::recreate()
+void vkrndr::swapchain_t::recreate()
 {
     cleanup();
     create_swap_frames(true);
 }
 
 std::span<VkPresentModeKHR const>
-vkrndr::swap_chain_t::available_present_modes() const
+vkrndr::swapchain_t::available_present_modes() const
 {
     return available_present_modes_;
 }
 
-bool vkrndr::swap_chain_t::change_present_mode(VkPresentModeKHR const new_mode)
+bool vkrndr::swapchain_t::change_present_mode(VkPresentModeKHR const new_mode)
 {
     if (std::ranges::contains(available_present_modes_, new_mode))
     {
@@ -224,10 +227,10 @@ bool vkrndr::swap_chain_t::change_present_mode(VkPresentModeKHR const new_mode)
     return false;
 }
 
-void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
+void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
 {
     auto swap_details{
-        query_swap_chain_support(device_->physical, window_->surface())};
+        query_swapchain_support(device_->physical, window_->surface())};
 
     VkPresentModeKHR const chosen_present_mode{
         choose_swap_present_mode(swap_details.present_modes,
@@ -238,7 +241,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
 
     available_present_modes_ = std::move(swap_details.present_modes);
 
-    if (swapchain_maintenance_1_enabled)
+    if (swapchain_maintenance_1_enabled_)
     {
         compatible_present_modes_ =
             query_compatible_present_modes(device_->physical,
@@ -287,7 +290,7 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
         .presentModeCount = count_cast(compatible_present_modes_.size()),
         .pPresentModes = compatible_present_modes_.data()};
 
-    if (swapchain_maintenance_1_enabled)
+    if (swapchain_maintenance_1_enabled_)
     {
         create_info.pNext = &present_modes;
     }
@@ -331,9 +334,11 @@ void vkrndr::swap_chain_t::create_swap_frames(bool const is_recreated)
         frame.image_available = create_semaphore(*device_);
         frame.in_flight = create_fence(*device_, true);
     }
+
+    swapchain_refresh_needed_ = false;
 }
 
-void vkrndr::swap_chain_t::cleanup()
+void vkrndr::swapchain_t::cleanup()
 {
     for (detail::swap_frame_t& frame : frames_)
     {
@@ -357,4 +362,47 @@ void vkrndr::swap_chain_t::cleanup()
     available_present_modes_.clear();
 
     vkDestroySwapchainKHR(device_->logical, chain_, nullptr);
+}
+
+VkExtent2D vkrndr::swapchain_t::extent() const noexcept { return extent_; }
+
+VkSwapchainKHR vkrndr::swapchain_t::swapchain() const noexcept
+{
+    return chain_;
+}
+
+VkFormat vkrndr::swapchain_t::image_format() const noexcept
+{
+    return image_format_;
+}
+
+uint32_t vkrndr::swapchain_t::min_image_count() const noexcept
+{
+    return min_image_count_;
+}
+
+uint32_t vkrndr::swapchain_t::image_count() const noexcept
+{
+    return vkrndr::count_cast(frames_.size());
+}
+
+VkImage vkrndr::swapchain_t::image(uint32_t const image_index) const noexcept
+{
+    return images_[image_index].image;
+}
+
+VkImageView vkrndr::swapchain_t::image_view(
+    uint32_t const image_index) const noexcept
+{
+    return images_[image_index].view;
+}
+
+bool vkrndr::swapchain_t::needs_refresh() const noexcept
+{
+    return swapchain_refresh_needed_;
+}
+
+VkPresentModeKHR vkrndr::swapchain_t::present_mode() const
+{
+    return current_present_mode_;
 }

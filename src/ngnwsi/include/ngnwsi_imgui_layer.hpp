@@ -10,7 +10,7 @@ namespace vkrndr
     struct image_t;
     struct instance_t;
     struct device_t;
-    class swap_chain_t;
+    class swapchain_t;
 } // namespace vkrndr
 
 namespace ngnwsi
@@ -26,7 +26,7 @@ namespace ngnwsi
         imgui_layer_t(sdl_window_t const& window,
             vkrndr::instance_t const& instance,
             vkrndr::device_t& device,
-            vkrndr::swap_chain_t const& swap_chain);
+            vkrndr::swapchain_t const& swapchain);
 
         imgui_layer_t(imgui_layer_t const&) = delete;
 

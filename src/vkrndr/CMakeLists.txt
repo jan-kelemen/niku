@@ -22,7 +22,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_settings.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_shader_module.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_swap_chain.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_swapchain.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_synchronization.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_transient_operation.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_utility.hpp
@@ -40,8 +40,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_execution_port.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_features.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_formats.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_global_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_image.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_instance.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_library.cpp
@@ -49,7 +47,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_shader_module.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swap_chain.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swapchain.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_synchronization.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_transient_operation.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_utility.cpp

@@ -7,13 +7,12 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
-#include <vkrndr_global_data.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_render_settings.hpp>
-#include <vkrndr_swap_chain.hpp>
+#include <vkrndr_swapchain.hpp>
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
@@ -123,9 +122,9 @@ namespace
                     continue;
                 }
 
-                if (!device.swap_chain_support ||
-                    device.swap_chain_support->surface_formats.empty() ||
-                    device.swap_chain_support->present_modes.empty())
+                if (!device.swapchain_support ||
+                    device.swapchain_support->surface_formats.empty() ||
+                    device.swapchain_support->present_modes.empty())
                 {
                     continue;
                 }
@@ -287,8 +286,8 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     device_.present_queue = &port;
     device_.transfer_queue = &port;
 
-    swap_chain_ =
-        std::make_unique<swap_chain_t>(*window_, device_, render_settings_);
+    swapchain_ =
+        std::make_unique<swapchain_t>(*window_, device_, render_settings_);
     frame_data_ =
         cppext::cycled_buffer_t<frame_data_t>{settings.frames_in_flight,
             settings.frames_in_flight};
@@ -323,7 +322,7 @@ vkrndr::backend_t::~backend_t()
 
     descriptor_pool_.reset();
 
-    swap_chain_.reset();
+    swapchain_.reset();
 
     destroy(&device_);
 
@@ -339,12 +338,12 @@ vkrndr::descriptor_pool_t& vkrndr::backend_t::descriptor_pool()
 
 VkFormat vkrndr::backend_t::image_format() const
 {
-    return swap_chain_->image_format();
+    return swapchain_->image_format();
 }
 
 uint32_t vkrndr::backend_t::image_count() const
 {
-    return swap_chain_->image_count();
+    return swapchain_->image_count();
 }
 
 uint32_t vkrndr::backend_t::frames_in_flight() const
@@ -352,17 +351,17 @@ uint32_t vkrndr::backend_t::frames_in_flight() const
     return render_settings_.frames_in_flight;
 }
 
-VkExtent2D vkrndr::backend_t::extent() const { return swap_chain_->extent(); }
+VkExtent2D vkrndr::backend_t::extent() const { return swapchain_->extent(); }
 
 vkrndr::image_t vkrndr::backend_t::swapchain_image()
 {
-    return {.image = swap_chain_->image(image_index_),
+    return {.image = swapchain_->image(image_index_),
         .allocation = VK_NULL_HANDLE,
-        .view = swap_chain_->image_view(image_index_),
-        .format = swap_chain_->image_format(),
+        .view = swapchain_->image_view(image_index_),
+        .format = swapchain_->image_format(),
         .sample_count = VK_SAMPLE_COUNT_1_BIT,
         .mip_levels = 1,
-        .extent = vkrndr::to_3d_extent(swap_chain_->extent())};
+        .extent = vkrndr::to_3d_extent(swapchain_->extent())};
 }
 
 vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
@@ -372,16 +371,15 @@ vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
         return false;
     }
 
-    if (swap_chain_refresh.load())
+    if (swapchain_->needs_refresh())
     {
         spdlog::info("Recreating swapchain");
         vkDeviceWaitIdle(device_.logical);
-        swap_chain_->recreate();
-        swap_chain_refresh.store(false);
-        return {swap_chain_->extent()};
+        swapchain_->recreate();
+        return {swapchain_->extent()};
     }
 
-    if (!swap_chain_->acquire_next_image(frame_data_.index(), image_index_))
+    if (!swapchain_->acquire_next_image(frame_data_.index(), image_index_))
     {
         return false;
     }
@@ -444,7 +442,7 @@ void vkrndr::backend_t::draw()
         check_result(vkEndCommandBuffer(buffer));
     }
 
-    swap_chain_->submit_command_buffers(buffers,
+    swapchain_->submit_command_buffers(buffers,
         frame_data_.index(),
         image_index_);
 }

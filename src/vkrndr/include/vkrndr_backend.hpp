@@ -25,7 +25,7 @@ namespace vkrndr
     class descriptor_pool_t;
     class execution_port_t;
     struct library_handle_t;
-    class swap_chain_t;
+    class swapchain_t;
     class window_t;
 } // namespace vkrndr
 
@@ -57,9 +57,9 @@ namespace vkrndr
 
         [[nodiscard]] constexpr device_t const& device() const noexcept;
 
-        [[nodiscard]] constexpr swap_chain_t& swap_chain() noexcept;
+        [[nodiscard]] constexpr swapchain_t& swapchain() noexcept;
 
-        [[nodiscard]] constexpr swap_chain_t const& swap_chain() const noexcept;
+        [[nodiscard]] constexpr swapchain_t const& swapchain() const noexcept;
 
         descriptor_pool_t& descriptor_pool();
 
@@ -124,7 +124,7 @@ namespace vkrndr
         window_t* window_;
         instance_t instance_;
         device_t device_;
-        std::unique_ptr<swap_chain_t> swap_chain_;
+        std::unique_ptr<swapchain_t> swapchain_;
 
         std::unique_ptr<vkrndr::descriptor_pool_t> descriptor_pool_;
 
@@ -154,15 +154,15 @@ constexpr vkrndr::device_t const& vkrndr::backend_t::device() const noexcept
     return device_;
 }
 
-constexpr vkrndr::swap_chain_t& vkrndr::backend_t::swap_chain() noexcept
+constexpr vkrndr::swapchain_t& vkrndr::backend_t::swapchain() noexcept
 {
-    return *swap_chain_;
+    return *swapchain_;
 }
 
-constexpr vkrndr::swap_chain_t const&
-vkrndr::backend_t::swap_chain() const noexcept
+constexpr vkrndr::swapchain_t const&
+vkrndr::backend_t::swapchain() const noexcept
 {
-    return *swap_chain_;
+    return *swapchain_;
 }
 
 #endif

@@ -200,10 +200,10 @@ bool vkrndr::check_feature_flags(feature_chain_t const& chain,
     return true;
 }
 
-vkrndr::swap_chain_support_t
-vkrndr::query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
+vkrndr::swapchain_support_t
+vkrndr::query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    swap_chain_support_t rv;
+    swapchain_support_t rv;
 
     check_result(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device,
         surface,
@@ -259,8 +259,8 @@ vkrndr::query_available_physical_devices(VkInstance instance,
 
         if (surface != VK_NULL_HANDLE)
         {
-            current.swap_chain_support =
-                query_swap_chain_support(device, surface);
+            current.swapchain_support =
+                query_swapchain_support(device, surface);
         }
 
         rv.emplace_back(std::move(current));

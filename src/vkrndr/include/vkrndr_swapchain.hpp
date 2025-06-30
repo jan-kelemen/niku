@@ -1,5 +1,5 @@
-#ifndef VKRNDR_SWAP_CHAIN_INCLUDED
-#define VKRNDR_SWAP_CHAIN_INCLUDED
+#ifndef VKRNDR_SWAPCHAIN_INCLUDED
+#define VKRNDR_SWAPCHAIN_INCLUDED
 
 #include <volk.h>
 
@@ -32,36 +32,37 @@ namespace vkrndr
         void destroy(device_t const* device, swap_frame_t* frame);
     } // namespace detail
 
-    class [[nodiscard]] swap_chain_t final
+    class [[nodiscard]] swapchain_t final
     {
     public: // Construction
-        swap_chain_t(window_t const& window,
+        swapchain_t(window_t const& window,
             device_t& device,
             render_settings_t const& settings);
 
-        swap_chain_t(swap_chain_t const&) = delete;
+        swapchain_t(swapchain_t const&) = delete;
 
-        swap_chain_t(swap_chain_t&& other) noexcept = delete;
+        swapchain_t(swapchain_t&& other) noexcept = delete;
 
     public: // Destruction
-        ~swap_chain_t();
+        ~swapchain_t();
 
     public: // Interface
-        [[nodiscard]] constexpr VkExtent2D extent() const noexcept;
+        [[nodiscard]] VkExtent2D extent() const noexcept;
 
-        [[nodiscard]] constexpr VkSwapchainKHR swap_chain() const noexcept;
+        [[nodiscard]] VkSwapchainKHR swapchain() const noexcept;
 
-        [[nodiscard]] constexpr VkFormat image_format() const noexcept;
+        [[nodiscard]] VkFormat image_format() const noexcept;
 
-        [[nodiscard]] constexpr uint32_t min_image_count() const noexcept;
+        [[nodiscard]] uint32_t min_image_count() const noexcept;
 
-        [[nodiscard]] constexpr uint32_t image_count() const noexcept;
+        [[nodiscard]] uint32_t image_count() const noexcept;
 
-        [[nodiscard]] constexpr VkImage image(
+        [[nodiscard]] VkImage image(uint32_t image_index) const noexcept;
+
+        [[nodiscard]] VkImageView image_view(
             uint32_t image_index) const noexcept;
 
-        [[nodiscard]] constexpr VkImageView image_view(
-            uint32_t image_index) const noexcept;
+        [[nodiscard]] bool needs_refresh() const noexcept;
 
         [[nodiscard]] bool acquire_next_image(size_t current_frame,
             uint32_t& image_index);
@@ -71,7 +72,7 @@ namespace vkrndr
             size_t current_frame,
             uint32_t image_index);
 
-        [[nodiscard]] constexpr VkPresentModeKHR present_mode() const;
+        [[nodiscard]] VkPresentModeKHR present_mode() const;
 
         [[nodiscard]] std::span<VkPresentModeKHR const>
         available_present_modes() const;
@@ -81,9 +82,9 @@ namespace vkrndr
         void recreate();
 
     public: // Operators
-        swap_chain_t& operator=(swap_chain_t const&) = delete;
+        swapchain_t& operator=(swapchain_t const&) = delete;
 
-        swap_chain_t& operator=(swap_chain_t&& other) noexcept = delete;
+        swapchain_t& operator=(swapchain_t&& other) noexcept = delete;
 
     private: // Helpers
         void create_swap_frames(bool is_recreated);
@@ -94,7 +95,8 @@ namespace vkrndr
         window_t const* window_{};
         device_t* device_{};
         render_settings_t const* settings_{};
-        bool swapchain_maintenance_1_enabled{};
+        bool swapchain_maintenance_1_enabled_{};
+        bool swapchain_refresh_needed_{};
         execution_port_t* present_queue_{};
         VkFormat image_format_{};
         uint32_t min_image_count_{};
@@ -110,46 +112,4 @@ namespace vkrndr
     };
 } // namespace vkrndr
 
-constexpr VkExtent2D vkrndr::swap_chain_t::extent() const noexcept
-{
-    return extent_;
-}
-
-constexpr VkSwapchainKHR vkrndr::swap_chain_t::swap_chain() const noexcept
-{
-    return chain_;
-}
-
-constexpr VkFormat vkrndr::swap_chain_t::image_format() const noexcept
-{
-    return image_format_;
-}
-
-constexpr uint32_t vkrndr::swap_chain_t::min_image_count() const noexcept
-{
-    return min_image_count_;
-}
-
-constexpr uint32_t vkrndr::swap_chain_t::image_count() const noexcept
-{
-    return vkrndr::count_cast(frames_.size());
-}
-
-constexpr VkImage vkrndr::swap_chain_t::image(
-    uint32_t const image_index) const noexcept
-{
-    return images_[image_index].image;
-}
-
-constexpr VkImageView vkrndr::swap_chain_t::image_view(
-    uint32_t const image_index) const noexcept
-{
-    return images_[image_index].view;
-}
-
-constexpr VkPresentModeKHR vkrndr::swap_chain_t::present_mode() const
-{
-    return current_present_mode_;
-}
-
-#endif // !VKRNDR_VULKAN_SWAP_CHAIN_INCLUDED
+#endif

@@ -246,7 +246,7 @@ galileo::application_t::application_t(bool const debug)
     , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
           backend_->instance(),
           backend_->device(),
-          backend_->swap_chain())}
+          backend_->swapchain())}
     , depth_buffer_{create_depth_buffer(*backend_)}
     , gbuffer_{std::make_unique<gbuffer_t>(*backend_)}
     , color_image_{create_color_image(*backend_)}

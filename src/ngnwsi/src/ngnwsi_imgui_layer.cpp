@@ -8,7 +8,7 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_render_pass.hpp>
-#include <vkrndr_swap_chain.hpp>
+#include <vkrndr_swapchain.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <imgui_impl_sdl3.h>
@@ -60,7 +60,7 @@ namespace
 ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     vkrndr::instance_t const& instance,
     vkrndr::device_t& device,
-    vkrndr::swap_chain_t const& swap_chain)
+    vkrndr::swapchain_t const& swapchain)
     : device_{&device}
     , descriptor_pool_{create_descriptor_pool(device)}
 {
@@ -93,7 +93,7 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     rendering_create_info.sType =
         VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
     rendering_create_info.colorAttachmentCount = 1;
-    VkFormat const image_format{swap_chain.image_format()};
+    VkFormat const image_format{swapchain.image_format()};
     rendering_create_info.pColorAttachmentFormats = &image_format;
 
     ImGui_ImplVulkan_InitInfo init_info{};
@@ -106,8 +106,8 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     init_info.DescriptorPool = descriptor_pool_;
     init_info.RenderPass = VK_NULL_HANDLE;
     init_info.Subpass = 0;
-    init_info.MinImageCount = swap_chain.min_image_count();
-    init_info.ImageCount = swap_chain.image_count();
+    init_info.MinImageCount = swapchain.min_image_count();
+    init_info.ImageCount = swapchain.image_count();
     init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     init_info.Allocator = VK_NULL_HANDLE;
     init_info.CheckVkResultFn = imgui_vulkan_result_callback;

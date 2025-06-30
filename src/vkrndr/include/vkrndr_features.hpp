@@ -83,14 +83,14 @@ namespace vkrndr
         bool supports_present;
     };
 
-    struct [[nodiscard]] swap_chain_support_t final
+    struct [[nodiscard]] swapchain_support_t final
     {
         VkSurfaceCapabilitiesKHR capabilities{};
         std::vector<VkSurfaceFormatKHR> surface_formats;
         std::vector<VkPresentModeKHR> present_modes;
     };
 
-    swap_chain_support_t query_swap_chain_support(VkPhysicalDevice device,
+    swapchain_support_t query_swapchain_support(VkPhysicalDevice device,
         VkSurfaceKHR surface);
 
     struct [[nodiscard]] physical_device_features_t final
@@ -99,7 +99,7 @@ namespace vkrndr
         VkPhysicalDeviceProperties properties;
         std::vector<VkExtensionProperties> extensions;
         std::vector<vkrndr::queue_family_t> queue_families;
-        std::optional<vkrndr::swap_chain_support_t> swap_chain_support;
+        std::optional<vkrndr::swapchain_support_t> swapchain_support;
         vkrndr::feature_chain_t features;
     };
 

@@ -38,7 +38,7 @@
 #include <vkrndr_library.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_render_settings.hpp>
-#include <vkrndr_swap_chain.hpp>
+#include <vkrndr_swapchain.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -207,7 +207,7 @@ gltfviewer::application_t::application_t(bool const debug)
     , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
           backend_->instance(),
           backend_->device(),
-          backend_->swap_chain())}
+          backend_->swapchain())}
     , environment_{std::make_unique<environment_t>(*backend_)}
     , materials_{std::make_unique<materials_t>(*backend_)}
     , scene_graph_{std::make_unique<scene_graph_t>(*backend_)}
@@ -695,8 +695,8 @@ void gltfviewer::application_t::debug_draw()
     ImGui::Checkbox("OIT", &transparent_);
 
     auto const& available_modes{
-        backend_->swap_chain().available_present_modes()};
-    auto const current_mode{backend_->swap_chain().present_mode()};
+        backend_->swapchain().available_present_modes()};
+    auto const current_mode{backend_->swapchain().present_mode()};
     // NOLINTBEGIN(readability-qualified-auto)
     auto const present_mode_it{std::ranges::find(present_modes,
         current_mode,
@@ -718,7 +718,7 @@ void gltfviewer::application_t::debug_draw()
 
                 if (ImGui::Selectable(other_it->second, selected))
                 {
-                    if (!backend_->swap_chain().change_present_mode(option))
+                    if (!backend_->swapchain().change_present_mode(option))
                     {
                         spdlog::warn("Unable to switch to present mode {}",
                             other_it->second);
