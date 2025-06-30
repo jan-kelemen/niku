@@ -53,11 +53,7 @@ namespace reshed
     private: // ngnwsi::application callback interface
         bool handle_event(SDL_Event const& event) override;
 
-        bool begin_frame() override;
-
         void draw() override;
-
-        void debug_draw() override;
 
         void end_frame() override;
 

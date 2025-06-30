@@ -63,11 +63,9 @@ namespace ngnwsi
 
         virtual void update([[maybe_unused]] float const delta_time) { }
 
-        [[nodiscard]] virtual bool begin_frame() { return false; }
+        [[nodiscard]] virtual void begin_frame() { }
 
         virtual void draw() { }
-
-        virtual void debug_draw() { }
 
         virtual void end_frame() { }
 

@@ -393,18 +393,10 @@ void galileo::application_t::update(float const delta_time)
     physics_engine_.update(delta_time);
 }
 
-bool galileo::application_t::begin_frame()
+void galileo::application_t::draw()
 {
     auto const on_swapchain_acquire = [this](bool const acquired)
-    {
-        if (acquired)
-        {
-            frame_info_->begin_frame();
-            batch_renderer_->begin_frame();
-            scene_graph_->begin_frame();
-        }
-        return acquired;
-    };
+    { return acquired; };
 
     auto const on_swapchain_resized = [this](VkExtent2D const extent)
     {
@@ -412,13 +404,20 @@ bool galileo::application_t::begin_frame()
         return false;
     };
 
-    return std::visit(
-        cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame());
-}
+    if (!std::visit(
+            cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
+            backend_->begin_frame()))
+    {
+        return;
+    }
 
-void galileo::application_t::draw()
-{
+    imgui_->begin_frame();
+    frame_info_->begin_frame();
+    batch_renderer_->begin_frame();
+    scene_graph_->begin_frame();
+
+    debug_draw();
+
     auto& body_interface{physics_engine_.body_interface()};
     for (auto const entity :
         registry_.view<component::mesh_t, component::physics_t>())
@@ -653,8 +652,6 @@ void galileo::application_t::draw()
 
 void galileo::application_t::debug_draw()
 {
-    imgui_->begin_frame();
-
     ImGui::ShowMetricsWindow();
 
     ImGui::Begin("Lights");

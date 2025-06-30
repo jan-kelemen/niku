@@ -89,6 +89,8 @@ void ngnwsi::application_t::run()
     float accumulated_error{};
     while (should_run())
     {
+        begin_frame();
+
         bool done{false};
         SDL_Event event;
         while (SDL_PollEvent(&event))
@@ -133,19 +135,13 @@ void ngnwsi::application_t::run()
         //     frequency);
 
         last_tick = current_tick;
-        bool const should_render{begin_frame()};
 
         for (uint64_t i{}; i != simulation_steps; ++i)
         {
             update(impl_->fixed_update_interval);
         }
 
-        if (should_render)
-        {
-            debug_draw();
-
-            draw();
-        }
+        draw();
 
         end_frame();
     }

@@ -292,7 +292,7 @@ void gltfviewer::application_t::update(float delta_time)
     projection_.update(camera_.view_matrix());
 }
 
-bool gltfviewer::application_t::begin_frame()
+void gltfviewer::application_t::draw()
 {
     auto const on_swapchain_acquire = [this](bool const acquired)
     { return acquired; };
@@ -303,13 +303,17 @@ bool gltfviewer::application_t::begin_frame()
         return false;
     };
 
-    return std::visit(
-        cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-        backend_->begin_frame());
-}
+    if (!std::visit(
+            cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
+            backend_->begin_frame()))
+    {
+        return;
+    }
 
-void gltfviewer::application_t::draw()
-{
+    imgui_->begin_frame();
+
+    debug_draw();
+
     auto target_image{backend_->swapchain_image()};
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
@@ -645,8 +649,6 @@ void gltfviewer::application_t::draw()
 
 void gltfviewer::application_t::debug_draw()
 {
-    imgui_->begin_frame();
-
     ImGui::ShowMetricsWindow();
 
     camera_controller_.draw_imgui();

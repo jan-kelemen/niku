@@ -84,11 +84,7 @@ namespace galileo
 
         void update(float delta_time) override;
 
-        bool begin_frame() override;
-
         void draw() override;
-
-        void debug_draw() override;
 
         void end_frame() override;
 
@@ -99,6 +95,8 @@ namespace galileo
         void on_resize(uint32_t width, uint32_t height) override;
 
     private:
+        void debug_draw();
+
         void setup_world();
 
         void spawn_sphere();
