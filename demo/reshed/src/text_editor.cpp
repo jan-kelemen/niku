@@ -287,6 +287,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend)
     vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
         descriptor_pool_,
         cppext::as_span(text_descriptor_layout_),
+        std::to_array<uint32_t>({10}),
         cppext::as_span(text_descriptor_)));
     {
         VkDescriptorImageInfo const info{

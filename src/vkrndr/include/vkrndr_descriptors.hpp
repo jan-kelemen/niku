@@ -31,6 +31,12 @@ namespace vkrndr
         std::span<VkDescriptorSetLayout const> const& layouts,
         std::span<VkDescriptorSet> descriptor_sets);
 
+    [[nodiscard]] VkResult allocate_descriptor_sets(device_t const& device,
+        VkDescriptorPool pool,
+        std::span<VkDescriptorSetLayout const> const& layouts,
+        std::span<uint32_t const> const& variable_counts,
+        std::span<VkDescriptorSet> descriptor_sets);
+
     void free_descriptor_sets(device_t const& device,
         VkDescriptorPool pool,
         std::span<VkDescriptorSet const> const& descriptor_sets);

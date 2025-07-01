@@ -27,7 +27,7 @@ std::expected<VkDescriptorPool, VkResult> vkrndr::create_descriptor_pool(
             vkCreateDescriptorPool(device.logical, &create_info, nullptr, &rv)};
         result != VK_SUCCESS)
     {
-        return std::unexpected(result);
+        return std::unexpected{result};
     }
 
     return rv;
@@ -46,6 +46,38 @@ VkResult vkrndr::allocate_descriptor_sets(device_t const& device,
         .descriptorSetCount = count_cast(layouts.size()),
         .pSetLayouts = layouts.data(),
     };
+
+    return vkAllocateDescriptorSets(device.logical,
+        &alloc_info,
+        descriptor_sets.data());
+}
+
+VkResult vkrndr::allocate_descriptor_sets(device_t const& device,
+    VkDescriptorPool pool,
+    std::span<VkDescriptorSetLayout const> const& layouts,
+    std::span<uint32_t const> const& variable_counts,
+    std::span<VkDescriptorSet> descriptor_sets)
+{
+    assert(descriptor_sets.size() >= layouts.size());
+
+    VkDescriptorSetAllocateInfo alloc_info{
+        .sType = vku::GetSType<VkDescriptorSetAllocateInfo>(),
+        .descriptorPool = pool,
+        .descriptorSetCount = count_cast(layouts.size()),
+        .pSetLayouts = layouts.data(),
+    };
+
+    VkDescriptorSetVariableDescriptorCountAllocateInfo variable_info{
+        .sType =
+            vku::GetSType<VkDescriptorSetVariableDescriptorCountAllocateInfo>(),
+    };
+    if (!variable_counts.empty())
+    {
+        variable_info.descriptorSetCount = count_cast(variable_counts.size());
+        variable_info.pDescriptorCounts = variable_counts.data();
+
+        alloc_info.pNext = &variable_info;
+    }
 
     return vkAllocateDescriptorSets(device.logical,
         &alloc_info,
@@ -92,22 +124,19 @@ vkrndr::create_descriptor_set_layout(device_t const& device,
         .pBindings = bindings.data(),
     };
 
-    VkDescriptorSetLayoutBindingFlagsCreateInfoEXT const flags_info{
-        .sType =
-            vku::GetSType<VkDescriptorSetLayoutBindingFlagsCreateInfoEXT>(),
-        .bindingCount = count_cast(binding_flags.size()),
-        .pBindingFlags = binding_flags.data(),
+    VkDescriptorSetLayoutBindingFlagsCreateInfo flags_info{
+        .sType = vku::GetSType<VkDescriptorSetLayoutBindingFlagsCreateInfo>(),
     };
 
-    if (binding_flags.empty())
+    if (std::ranges::any_of(binding_flags,
+            [](VkDescriptorBindingFlagsEXT f)
+            { return f & VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT; }))
     {
-        if (std::ranges::any_of(binding_flags,
-                [](VkDescriptorBindingFlagsEXT f)
-                { return f & VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT; }))
-        {
-            layout_info.flags =
-                VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        }
+        flags_info.bindingCount = count_cast(binding_flags.size());
+        flags_info.pBindingFlags = binding_flags.data();
+
+        layout_info.flags =
+            VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
         layout_info.pNext = &flags_info;
     }
 

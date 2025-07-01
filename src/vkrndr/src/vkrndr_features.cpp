@@ -138,7 +138,17 @@ void vkrndr::add_required_feature_flags(feature_flags_t& flags)
     flags.device_12_flags.insert(flags.device_12_flags.end(),
         {
             // clang-format off
+            &VkPhysicalDeviceVulkan12Features::descriptorIndexing,
             &VkPhysicalDeviceVulkan12Features::shaderSampledImageArrayNonUniformIndexing,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingUniformBufferUpdateAfterBind,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingSampledImageUpdateAfterBind,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageImageUpdateAfterBind,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageBufferUpdateAfterBind,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingUniformTexelBufferUpdateAfterBind,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageTexelBufferUpdateAfterBind,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingUpdateUnusedWhilePending,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingPartiallyBound,
+            &VkPhysicalDeviceVulkan12Features::descriptorBindingVariableDescriptorCount,
             &VkPhysicalDeviceVulkan12Features::runtimeDescriptorArray,
             &VkPhysicalDeviceVulkan12Features::bufferDeviceAddress,
             // clang-format on
