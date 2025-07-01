@@ -63,9 +63,12 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     vkrndr::swapchain_t const& swapchain)
     : device_{&device}
     , descriptor_pool_{create_descriptor_pool(device)}
+    , context_{ImGui::CreateContext()}
 {
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+
+    ImGui::SetCurrentContext(context_);
+
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |=
         ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
@@ -119,9 +122,11 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
 
 ngnwsi::imgui_layer_t::~imgui_layer_t()
 {
+    ImGui::SetCurrentContext(context_);
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplSDL3_Shutdown();
-    ImGui::DestroyContext();
+
+    ImGui::DestroyContext(context_);
 
     vkDestroyDescriptorPool(device_->logical, descriptor_pool_, nullptr);
 }
@@ -130,6 +135,7 @@ bool ngnwsi::imgui_layer_t::handle_event(SDL_Event const& event) const
 {
     if (enabled_)
     {
+        ImGui::SetCurrentContext(context_);
         return ImGui_ImplSDL3_ProcessEvent(&event);
     }
 
@@ -138,6 +144,7 @@ bool ngnwsi::imgui_layer_t::handle_event(SDL_Event const& event) const
 
 void ngnwsi::imgui_layer_t::begin_frame()
 {
+    ImGui::SetCurrentContext(context_);
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
@@ -149,6 +156,7 @@ void ngnwsi::imgui_layer_t::render(VkCommandBuffer command_buffer,
 {
     if (enabled_)
     {
+        ImGui::SetCurrentContext(context_);
         ImGui::Render();
         frame_rendered_ = true;
 
@@ -173,6 +181,7 @@ void ngnwsi::imgui_layer_t::end_frame()
 {
     if (!std::exchange(frame_rendered_, true))
     {
+        ImGui::SetCurrentContext(context_);
         ImGui::EndFrame();
     }
 }

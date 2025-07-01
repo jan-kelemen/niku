@@ -5,6 +5,8 @@
 
 union SDL_Event;
 
+struct ImGuiContext;
+
 namespace vkrndr
 {
     struct image_t;
@@ -45,9 +47,9 @@ namespace ngnwsi
 
         void end_frame();
 
-        [[nodiscard]] constexpr bool enabled() const;
+        [[nodiscard]] bool enabled() const;
 
-        constexpr void set_enabled(bool state);
+        void set_enabled(bool state);
 
     public:
         imgui_layer_t& operator=(imgui_layer_t const&) = delete;
@@ -55,16 +57,19 @@ namespace ngnwsi
         imgui_layer_t& operator=(imgui_layer_t&&) noexcept = delete;
 
     public:
-        bool enabled_{true};
-        bool frame_rendered_{false};
         vkrndr::device_t* device_;
         VkDescriptorPool descriptor_pool_;
+
+        ImGuiContext* context_;
+
+        bool enabled_{true};
+        bool frame_rendered_{false};
     };
 } // namespace ngnwsi
 
-constexpr bool ngnwsi::imgui_layer_t::enabled() const { return enabled_; }
+inline bool ngnwsi::imgui_layer_t::enabled() const { return enabled_; }
 
-constexpr void ngnwsi::imgui_layer_t::set_enabled(bool const state)
+inline void ngnwsi::imgui_layer_t::set_enabled(bool const state)
 {
     enabled_ = state;
 }
