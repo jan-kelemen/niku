@@ -1,6 +1,7 @@
 #include <ngnwsi_render_window.hpp>
 
 #include <vkrndr_device.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <spdlog/spdlog.h>
 

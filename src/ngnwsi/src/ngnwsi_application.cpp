@@ -130,15 +130,3 @@ void ngnwsi::application_t::fixed_update_interval(float const fps)
 {
     impl_->fixed_update_interval = fps;
 }
-
-bool ngnwsi::application_t::is_quit_event(SDL_Event const& event)
-{
-    switch (event.type)
-    {
-    case SDL_EVENT_QUIT:
-    case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
-        return true;
-    default:
-        return false;
-    }
-}

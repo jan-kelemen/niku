@@ -4,7 +4,6 @@
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 #include <vkrndr_window.hpp>
@@ -16,7 +15,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
-#include <limits>
 #include <span>
 
 // IWYU pragma: no_include <functional>
@@ -31,8 +29,7 @@ namespace
         if (auto const it{std::ranges::find_if(available_formats,
                 [&settings](VkSurfaceFormatKHR const& format)
                 {
-                    return format.format ==
-                        settings.preferred_swapchain_format &&
+                    return format.format == settings.preffered_format &&
                         format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
                 })};
             it != available_formats.end())
@@ -275,7 +272,7 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     create_info.imageColorSpace = surface_format.colorSpace;
     create_info.imageExtent = extent_;
     create_info.imageArrayLayers = 1;
-    create_info.imageUsage = settings_.swapchain_flags;
+    create_info.imageUsage = settings_.image_flags;
     create_info.preTransform = swap_details.capabilities.currentTransform;
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     create_info.presentMode = chosen_present_mode;

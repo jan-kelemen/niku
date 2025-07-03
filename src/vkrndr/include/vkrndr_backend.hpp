@@ -15,7 +15,6 @@
 #include <functional>
 #include <memory>
 #include <span>
-#include <variant>
 #include <vector>
 
 namespace vkrndr
@@ -23,8 +22,6 @@ namespace vkrndr
     struct buffer_t;
     class execution_port_t;
     struct library_handle_t;
-    class swapchain_t;
-    class window_t;
 } // namespace vkrndr
 
 namespace vkrndr
@@ -34,7 +31,7 @@ namespace vkrndr
     public: // Construction
         backend_t(std::shared_ptr<library_handle_t>&& library,
             std::vector<char const*> const& instance_extensions,
-            std::function<VkSurfaceKHR(VkInstance)> get_surface,
+            std::function<VkSurfaceKHR(VkInstance)> const& get_surface,
             uint32_t frames_in_flight,
             bool debug);
 
@@ -92,19 +89,18 @@ namespace vkrndr
         struct [[nodiscard]] frame_data_t final
         {
             execution_port_t* present_queue{};
-            VkCommandPool present_command_pool;
-            VkCommandPool present_transient_command_pool;
+            VkCommandPool present_command_pool{VK_NULL_HANDLE};
+            VkCommandPool present_transient_command_pool{VK_NULL_HANDLE};
             std::vector<VkCommandBuffer> present_command_buffers;
             size_t used_present_command_buffers{};
 
             execution_port_t* transfer_queue{};
-            VkCommandPool transfer_transient_command_pool;
+            VkCommandPool transfer_transient_command_pool{VK_NULL_HANDLE};
         };
 
     private: // Data
         std::shared_ptr<library_handle_t> library_;
 
-        window_t* window_;
         instance_t instance_;
         device_t device_;
 

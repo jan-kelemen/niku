@@ -10,14 +10,12 @@
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library.hpp>
 #include <vkrndr_memory.hpp>
-#include <vkrndr_render_settings.hpp>
-#include <vkrndr_swapchain.hpp>
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
-#include <vkrndr_window.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
+#include <cppext_numeric.hpp>
 
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_fail.hpp>
@@ -171,7 +169,7 @@ namespace
 
 vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     std::vector<char const*> const& instance_extensions,
-    std::function<VkSurfaceKHR(VkInstance)> get_surface,
+    std::function<VkSurfaceKHR(VkInstance)> const& get_surface,
     uint32_t frames_in_flight,
     bool const debug)
     : library_{std::move(library)}
@@ -308,7 +306,7 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
 
 vkrndr::backend_t::~backend_t()
 {
-    for (frame_data_t& fd : cppext::as_span(frame_data_))
+    for (frame_data_t const& fd : cppext::as_span(frame_data_))
     {
         destroy_command_pool(device_, fd.present_command_pool);
         destroy_command_pool(device_, fd.present_transient_command_pool);

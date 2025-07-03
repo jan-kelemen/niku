@@ -10,7 +10,6 @@
 namespace vkrndr
 {
     struct device_t;
-    class command_pool_t;
     class execution_port_t;
 } // namespace vkrndr
 

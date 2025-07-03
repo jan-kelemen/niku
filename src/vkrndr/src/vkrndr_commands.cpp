@@ -11,6 +11,7 @@
 #include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <algorithm>
+#include <cassert>
 #include <span>
 #include <stdexcept>
 

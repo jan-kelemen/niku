@@ -46,8 +46,6 @@ namespace ngnwsi
     private: // Callback interface
         [[nodiscard]] virtual bool should_run() { return true; }
 
-        [[nodiscard]] virtual bool is_quit_event(SDL_Event const& event);
-
         virtual bool handle_event([[maybe_unused]] SDL_Event const& event)
         {
             return true;
@@ -55,7 +53,7 @@ namespace ngnwsi
 
         virtual void update([[maybe_unused]] float const delta_time) { }
 
-        [[nodiscard]] virtual void begin_frame() { }
+        virtual void begin_frame() { }
 
         virtual void draw() { }
 

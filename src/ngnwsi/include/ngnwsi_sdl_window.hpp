@@ -33,7 +33,7 @@ namespace ngnwsi
     class [[nodiscard]] sdl_window_t final : public vkrndr::window_t
     {
     public:
-        static [[nodiscard]] std::vector<char const*> required_extensions();
+        [[nodiscard]] static std::vector<char const*> required_extensions();
 
     public: // Construction
         sdl_window_t(char const* title,

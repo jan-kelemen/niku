@@ -54,7 +54,6 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_library.hpp>
 #include <vkrndr_render_pass.hpp>
-#include <vkrndr_render_settings.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -250,8 +249,8 @@ galileo::application_t::application_t(bool const debug)
     vkrndr::swapchain_t* const swapchain{
         render_window_->create_swapchain(backend_->device(),
             {
-                .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
-                .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                .preffered_format = VK_FORMAT_B8G8R8A8_UNORM,
+                .image_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                     VK_IMAGE_USAGE_STORAGE_BIT,
                 .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
             })};
