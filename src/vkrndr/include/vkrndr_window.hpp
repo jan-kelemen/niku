@@ -14,9 +14,6 @@ namespace vkrndr
         virtual ~window_t() = default;
 
     public: // Interface
-        [[nodiscard]] virtual std::vector<char const*>
-        required_extensions() const = 0;
-
         [[nodiscard]] virtual VkSurfaceKHR create_surface(
             VkInstance instance) = 0;
 
@@ -26,8 +23,6 @@ namespace vkrndr
 
         [[nodiscard]] virtual VkExtent2D swap_extent(
             VkSurfaceCapabilitiesKHR const& capabilities) const = 0;
-
-        [[nodiscard]] virtual bool is_minimized() const = 0;
     };
 } // namespace vkrndr
 

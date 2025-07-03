@@ -47,35 +47,66 @@
 
 reshed::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug},
-          .title = "reshed",
-          .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-          .width = 512,
-          .height = 512}}
+          .init_subsystems = {.video = true, .debug = debug}}}
     , freetype_context_{ngntxt::freetype_context_t::create()}
-    , backend_{std::make_unique<vkrndr::backend_t>(vkrndr::initialize(),
-          *window(),
-          vkrndr::render_settings_t{
-              .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
-              .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                  VK_IMAGE_USAGE_STORAGE_BIT |
-                  VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
-          },
-          debug)}
-    , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-          backend_->instance(),
-          backend_->device(),
-          backend_->swapchain())}
-    , editor_{std::make_unique<text_editor_t>(*backend_)}
+    , render_window_{std::make_unique<ngnwsi::render_window_t>("reshed",
+          SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
+          512,
+          512)}
 {
+    backend_ = std::make_unique<vkrndr::backend_t>(
+        vkrndr::initialize(),
+        ngnwsi::sdl_window_t::required_extensions(),
+        [this](VkInstance instance)
+        { return render_window_->create_surface(instance); },
+        2,
+        debug);
+
+    vkrndr::swapchain_t* const swapchain{
+        render_window_->create_swapchain(backend_->device(),
+            {
+                .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
+                .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_STORAGE_BIT |
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+            })};
+
+    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
+        render_window_->platform_window(),
+        backend_->instance(),
+        backend_->device(),
+        *swapchain);
+
+    editor_ =
+        std::make_unique<text_editor_t>(*backend_, swapchain->image_format());
 }
 
 reshed::application_t::~application_t() = default;
 
+bool reshed::application_t::should_run()
+{
+    return static_cast<bool>(render_window_);
+}
+
 bool reshed::application_t::handle_event(SDL_Event const& event)
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
+
+    if (event.type == SDL_EVENT_QUIT ||
+        event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    {
+        if (render_window_)
+        {
+            vkDeviceWaitIdle(backend_->device().logical);
+
+            render_window_->destroy_swapchain();
+            render_window_->destroy_surface(backend_->instance().handle);
+            render_window_.reset();
+        }
+
+        return true;
+    }
 
     if (event.type == SDL_EVENT_KEY_DOWN &&
         event.key.scancode == SDL_SCANCODE_F4)
@@ -94,21 +125,14 @@ bool reshed::application_t::handle_event(SDL_Event const& event)
 
 void reshed::application_t::draw()
 {
-    auto const on_swapchain_acquire = [this](bool const acquired)
-    { return acquired; };
-
-    auto const on_swapchain_resized = [this](VkExtent2D const extent)
-    {
-        editor_->resize(extent.width, extent.height);
-        return false;
-    };
-
-    if (!std::visit(
-            cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-            backend_->begin_frame()))
+    std::optional<vkrndr::image_t> const target_image{
+        render_window_->acquire_next_image()};
+    if (!target_image)
     {
         return;
     }
+
+    backend_->begin_frame();
 
     imgui_->begin_frame();
 
@@ -116,38 +140,37 @@ void reshed::application_t::draw()
 
     editor_->debug_draw();
 
-    auto target_image{backend_->swapchain_image()};
-
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
-    vkrndr::wait_for_color_attachment_write(target_image.image, command_buffer);
+    vkrndr::wait_for_color_attachment_write(target_image->image,
+        command_buffer);
 
     VkViewport const viewport{.x = 0.0f,
-        .y = cppext::as_fp(target_image.extent.height),
-        .width = cppext::as_fp(target_image.extent.width),
-        .height = -cppext::as_fp(target_image.extent.height),
+        .y = cppext::as_fp(target_image->extent.height),
+        .width = cppext::as_fp(target_image->extent.width),
+        .height = -cppext::as_fp(target_image->extent.height),
         .minDepth = 0.0f,
         .maxDepth = 1.0f};
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image.extent)};
+    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image->extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     vkrndr::render_pass_t color_render_pass;
     color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
         VK_ATTACHMENT_STORE_OP_STORE,
-        target_image.view,
+        target_image->view,
         VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
 
     {
         [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
+            {{0, 0}, vkrndr::to_2d_extent(target_image->extent)})};
         editor_->draw(command_buffer);
     }
 
     {
         auto const barrier{vkrndr::with_access(
-            vkrndr::on_stage(vkrndr::image_barrier(target_image),
+            vkrndr::on_stage(vkrndr::image_barrier(*target_image),
                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
             VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
@@ -156,23 +179,23 @@ void reshed::application_t::draw()
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
     }
 
-    imgui_->render(command_buffer, target_image);
+    imgui_->render(command_buffer, *target_image);
 
-    vkrndr::transition_to_present_layout(target_image.image, command_buffer);
+    vkrndr::transition_to_present_layout(target_image->image, command_buffer);
 
-    backend_->draw();
-}
-
-void reshed::application_t::end_frame()
-{
-    imgui_->end_frame();
+    render_window_->present(backend_->present_buffers());
 
     backend_->end_frame();
 }
 
+void reshed::application_t::end_frame() { imgui_->end_frame(); }
+
 void reshed::application_t::on_startup()
 {
-    mouse_.set_window_handle(window()->native_handle());
+    mouse_.set_window_handle(render_window_->platform_window().native_handle());
+
+    auto const extent{render_window_->swapchain().extent()};
+    on_resize(extent.width, extent.height);
 
     if (std::expected<ngntxt::font_face_ptr_t, std::error_code> font_face{
             load_font_face(freetype_context_,
@@ -187,8 +210,8 @@ void reshed::application_t::on_startup()
         std::terminate();
     }
 
-    text_input_guard_ =
-        std::make_unique<ngnwsi::sdl_text_input_guard_t>(*window());
+    text_input_guard_ = std::make_unique<ngnwsi::sdl_text_input_guard_t>(
+        render_window_->platform_window());
 }
 
 void reshed::application_t::on_shutdown()
@@ -201,5 +224,21 @@ void reshed::application_t::on_shutdown()
 
     imgui_.reset();
 
+    if (render_window_)
+    {
+        render_window_->destroy_swapchain();
+        render_window_->destroy_surface(backend_->instance().handle);
+        render_window_.reset();
+    }
+
     backend_.reset();
+}
+
+void reshed::application_t::on_resize(uint32_t width, uint32_t height)
+{
+    vkDeviceWaitIdle(backend_->device().logical);
+
+    render_window_->swapchain().recreate();
+
+    editor_->resize(width, height);
 }

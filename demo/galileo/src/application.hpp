@@ -34,6 +34,7 @@
 namespace ngnwsi
 {
     class imgui_layer_t;
+    class render_window_t;
 } // namespace ngnwsi
 
 namespace vkrndr
@@ -80,6 +81,8 @@ namespace galileo
         application_t& operator=(application_t&&) noexcept = delete;
 
     private: // ngnwsi::application callback interface
+        bool should_run() override;
+
         bool handle_event(SDL_Event const& event) override;
 
         void update(float delta_time) override;
@@ -146,6 +149,8 @@ namespace galileo
 
         std::unique_ptr<character_t> character_;
         std::unique_ptr<character_contact_listener_t> character_listener_;
+
+        std::unique_ptr<ngnwsi::render_window_t> render_window_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;

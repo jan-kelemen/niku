@@ -35,42 +35,22 @@ public:
     ~impl();
 
 public:
-    [[nodiscard]] bool is_current_window_event(SDL_Event const& event) const;
-
-public:
     impl& operator=(impl const&) = delete;
 
     impl& operator=(impl&&) noexcept = delete;
 
 public:
     sdl_guard_t guard;
-    sdl_window_t window;
 
     float fixed_update_interval{1.0f / 60.0f};
 };
 
 ngnwsi::application_t::impl::impl(startup_params_t const& params)
     : guard{to_init_flags(params.init_subsystems)}
-    , window{params.title.c_str(),
-          params.window_flags,
-          params.width,
-          params.height}
 {
 }
 
 ngnwsi::application_t::impl::~impl() = default;
-
-bool ngnwsi::application_t::impl::is_current_window_event(
-    SDL_Event const& event) const
-{
-    if (event.type >= SDL_EVENT_WINDOW_FIRST &&
-        event.type <= SDL_EVENT_WINDOW_LAST)
-    {
-        return event.window.windowID == SDL_GetWindowID(window.native_handle());
-    }
-
-    return true;
-}
 
 ngnwsi::application_t::application_t(startup_params_t const& params)
     : impl_{std::make_unique<impl>(params)}
@@ -87,28 +67,25 @@ void ngnwsi::application_t::run()
 
     uint64_t last_tick{SDL_GetPerformanceCounter()};
     float accumulated_error{};
-    while (should_run())
+    while (true)
     {
         begin_frame();
 
-        bool done{false};
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
-            if (impl_->is_current_window_event(event))
+            if (event.type == SDL_EVENT_WINDOW_RESIZED)
             {
-                if (is_quit_event(event))
-                {
-                    done = true;
-                }
-                else
-                {
-                    handle_event(event);
-                }
+                on_resize(cppext::narrow<uint32_t>(event.window.data1),
+                    cppext::narrow<uint32_t>(event.window.data2));
+            }
+            else
+            {
+                handle_event(event);
             }
         }
 
-        if (done)
+        if (!should_run())
         {
             break;
         }
@@ -153,8 +130,6 @@ void ngnwsi::application_t::fixed_update_interval(float const fps)
 {
     impl_->fixed_update_interval = fps;
 }
-
-ngnwsi::sdl_window_t* ngnwsi::application_t::window() { return &impl_->window; }
 
 bool ngnwsi::application_t::is_quit_event(SDL_Event const& event)
 {

@@ -43,7 +43,8 @@
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_mouse.hpp>
-#include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
+#include <ngnwsi_render_window.hpp>
+#include <ngnwsi_sdl_window.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -130,12 +131,13 @@ DISABLE_WARNING_POP
 namespace
 {
     [[nodiscard]] vkrndr::image_t create_color_image(
-        vkrndr::backend_t const& backend)
+        vkrndr::backend_t const& backend,
+        VkExtent2D const extent)
     {
         return vkrndr::create_image_and_view(backend.device(),
             vkrndr::image_2d_create_info_t{
                 .format = VK_FORMAT_R16G16B16A16_SFLOAT,
-                .extent = backend.extent(),
+                .extent = extent,
                 .tiling = VK_IMAGE_TILING_OPTIMAL,
                 .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                     VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -145,13 +147,14 @@ namespace
     }
 
     [[nodiscard]] vkrndr::image_t create_depth_buffer(
-        vkrndr::backend_t const& backend)
+        vkrndr::backend_t const& backend,
+        VkExtent2D const extent)
     {
         auto const& formats{vkrndr::find_supported_depth_stencil_formats(
             backend.device().physical,
             true,
             false)};
-        vkrndr::image_2d_create_info_t create_info{.extent = backend.extent(),
+        vkrndr::image_2d_create_info_t create_info{.extent = extent,
             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT};
@@ -220,11 +223,7 @@ namespace
 
 galileo::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug},
-          .title = "galileo",
-          .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-          .width = 512,
-          .height = 512}}
+          .init_subsystems = {.video = true, .debug = debug}}}
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}
@@ -235,33 +234,49 @@ galileo::application_t::application_t(bool const debug)
     , world_listener_{std::make_unique<world_contact_listener_t>(
           scripting_engine_,
           registry_)}
-    , backend_{std::make_unique<vkrndr::backend_t>(vkrndr::initialize(),
-          *window(),
-          vkrndr::render_settings_t{
-              .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
-              .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                  VK_IMAGE_USAGE_STORAGE_BIT,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR},
-          debug)}
-    , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-          backend_->instance(),
-          backend_->device(),
-          backend_->swapchain())}
-    , depth_buffer_{create_depth_buffer(*backend_)}
-    , gbuffer_{std::make_unique<gbuffer_t>(*backend_)}
-    , color_image_{create_color_image(*backend_)}
-    , frame_info_{std::make_unique<frame_info_t>(*backend_)}
-    , materials_{std::make_unique<materials_t>(*backend_)}
-    , scene_graph_{std::make_unique<scene_graph_t>(*backend_)}
-    , deferred_shader_{std::make_unique<deferred_shader_t>(*backend_,
-          frame_info_->descriptor_set_layout())}
-    , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
-    , batch_renderer_{std::make_unique<batch_renderer_t>(*backend_,
-          frame_info_->descriptor_set_layout(),
-          depth_buffer_.format)}
-    , physics_debug_{std::make_unique<physics_debug_t>(*batch_renderer_)}
-    , navmesh_debug_{std::make_unique<navmesh_debug_t>(*batch_renderer_)}
+    , render_window_{std::make_unique<ngnwsi::render_window_t>("reshed",
+          SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
+          512,
+          512)}
 {
+    backend_ = std::make_unique<vkrndr::backend_t>(
+        vkrndr::initialize(),
+        ngnwsi::sdl_window_t::required_extensions(),
+        [this](VkInstance instance)
+        { return render_window_->create_surface(instance); },
+        2,
+        debug);
+
+    vkrndr::swapchain_t* const swapchain{
+        render_window_->create_swapchain(backend_->device(),
+            {
+                .preferred_swapchain_format = VK_FORMAT_B8G8R8A8_UNORM,
+                .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_STORAGE_BIT,
+                .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+            })};
+
+    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
+        render_window_->platform_window(),
+        backend_->instance(),
+        backend_->device(),
+        *swapchain);
+
+    depth_buffer_ = create_depth_buffer(*backend_, swapchain->extent());
+    gbuffer_ = std::make_unique<gbuffer_t>(*backend_);
+    color_image_ = create_color_image(*backend_, swapchain->extent());
+    frame_info_ = std::make_unique<frame_info_t>(*backend_);
+    materials_ = std::make_unique<materials_t>(*backend_);
+    scene_graph_ = std::make_unique<scene_graph_t>(*backend_);
+    deferred_shader_ = std::make_unique<deferred_shader_t>(*backend_,
+        frame_info_->descriptor_set_layout());
+    postprocess_shader_ = std::make_unique<postprocess_shader_t>(*backend_);
+    batch_renderer_ = std::make_unique<batch_renderer_t>(*backend_,
+        frame_info_->descriptor_set_layout(),
+        depth_buffer_.format);
+    physics_debug_ = std::make_unique<physics_debug_t>(*batch_renderer_);
+    navmesh_debug_ = std::make_unique<navmesh_debug_t>(*batch_renderer_);
+
     thread_pool_.set_thread_exit_function([]() { asThreadCleanup(); });
 
     camera_.set_position({-25.0f, 5.0f, -25.0f});
@@ -273,9 +288,29 @@ galileo::application_t::application_t(bool const debug)
 
 galileo::application_t::~application_t() = default;
 
+bool galileo::application_t::should_run()
+{
+    return static_cast<bool>(render_window_);
+}
+
 bool galileo::application_t::handle_event(SDL_Event const& event)
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
+
+    if (event.type == SDL_EVENT_QUIT ||
+        event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    {
+        if (render_window_)
+        {
+            vkDeviceWaitIdle(backend_->device().logical);
+
+            render_window_->destroy_swapchain();
+            render_window_->destroy_surface(backend_->instance().handle);
+            render_window_.reset();
+        }
+
+        return true;
+    }
 
     if (free_camera_active_ && event.type != SDL_EVENT_MOUSE_BUTTON_DOWN)
     {
@@ -395,21 +430,14 @@ void galileo::application_t::update(float const delta_time)
 
 void galileo::application_t::draw()
 {
-    auto const on_swapchain_acquire = [this](bool const acquired)
-    { return acquired; };
-
-    auto const on_swapchain_resized = [this](VkExtent2D const extent)
-    {
-        on_resize(extent.width, extent.height);
-        return false;
-    };
-
-    if (!std::visit(
-            cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-            backend_->begin_frame()))
+    std::optional<vkrndr::image_t> const target_image{
+        render_window_->acquire_next_image()};
+    if (!target_image)
     {
         return;
     }
+
+    backend_->begin_frame();
 
     imgui_->begin_frame();
     frame_info_->begin_frame();
@@ -475,19 +503,17 @@ void galileo::application_t::draw()
         }
     }
 
-    auto target_image{backend_->swapchain_image()};
-
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
-        .width = cppext::as_fp(target_image.extent.width),
-        .height = cppext::as_fp(target_image.extent.height),
+        .width = cppext::as_fp(target_image->extent.width),
+        .height = cppext::as_fp(target_image->extent.height),
         .minDepth = 0.0f,
         .maxDepth = 1.0f};
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image.extent)};
+    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image->extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     {
@@ -595,7 +621,7 @@ void galileo::application_t::draw()
             depth_buffer_.view);
 
         [[maybe_unused]] auto const guard{debug_pass.begin(command_buffer,
-            {{0, 0}, vkrndr::to_2d_extent(target_image.extent)})};
+            {{0, 0}, vkrndr::to_2d_extent(target_image->extent)})};
         if (VkPipelineLayout const layout{batch_renderer_->pipeline_layout()})
         {
             frame_info_->bind_on(command_buffer,
@@ -619,7 +645,7 @@ void galileo::application_t::draw()
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
             vkrndr::to_layout(
                 vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                    vkrndr::on_stage(vkrndr::image_barrier(*target_image),
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                     VK_ACCESS_2_NONE,
@@ -627,13 +653,13 @@ void galileo::application_t::draw()
                 VK_IMAGE_LAYOUT_GENERAL)};
         vkrndr::wait_for(command_buffer, {}, {}, barriers);
 
-        postprocess_shader_->draw(command_buffer, color_image_, target_image);
+        postprocess_shader_->draw(command_buffer, color_image_, *target_image);
     }
 
     {
         auto const barrier{vkrndr::with_layout(
             vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                vkrndr::on_stage(vkrndr::image_barrier(*target_image),
                     VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
@@ -642,12 +668,14 @@ void galileo::application_t::draw()
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
 
-        imgui_->render(command_buffer, target_image);
+        imgui_->render(command_buffer, *target_image);
     }
 
-    vkrndr::transition_to_present_layout(target_image.image, command_buffer);
+    vkrndr::transition_to_present_layout(target_image->image, command_buffer);
 
-    backend_->draw();
+    render_window_->present(backend_->present_buffers());
+
+    backend_->end_frame();
 }
 
 void galileo::application_t::debug_draw()
@@ -753,16 +781,11 @@ void galileo::application_t::debug_draw()
     }
 }
 
-void galileo::application_t::end_frame()
-{
-    imgui_->end_frame();
-
-    backend_->end_frame();
-}
+void galileo::application_t::end_frame() { imgui_->end_frame(); }
 
 void galileo::application_t::on_startup()
 {
-    mouse_.set_window_handle(window()->native_handle());
+    mouse_.set_window_handle(render_window_->platform_window().native_handle());
 
     {
         [[maybe_unused]] auto registered{
@@ -833,7 +856,7 @@ void galileo::application_t::on_startup()
         scene_graph_->descriptor_set_layout(),
         depth_buffer_.format);
 
-    auto const extent{backend_->extent()};
+    auto const extent{render_window_->swapchain().extent()};
     on_resize(extent.width, extent.height);
 }
 
@@ -867,23 +890,34 @@ void galileo::application_t::on_shutdown()
 
     imgui_.reset();
 
+    if (render_window_)
+    {
+        render_window_->destroy_swapchain();
+        render_window_->destroy_surface(backend_->instance().handle);
+        render_window_.reset();
+    }
+
     backend_.reset();
 }
 
 void galileo::application_t::on_resize(uint32_t const width,
     uint32_t const height)
 {
+    vkDeviceWaitIdle(backend_->device().logical);
+
+    render_window_->swapchain().recreate();
+
     projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 
     destroy(&backend_->device(), &depth_buffer_);
-    depth_buffer_ = create_depth_buffer(*backend_);
+    depth_buffer_ = create_depth_buffer(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_buffer_, "Depth buffer"));
 
     gbuffer_->resize(width, height);
 
     destroy(&backend_->device(), &color_image_);
-    color_image_ = create_color_image(*backend_);
+    color_image_ = create_color_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), color_image_, "Color image"));
 

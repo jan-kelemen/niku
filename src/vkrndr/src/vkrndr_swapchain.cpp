@@ -26,7 +26,7 @@ namespace
 {
     [[nodiscard]] VkSurfaceFormatKHR choose_swap_surface_format(
         std::span<VkSurfaceFormatKHR const> available_formats,
-        vkrndr::render_settings_t const& settings)
+        vkrndr::swapchain_settings_t const& settings)
     {
         if (auto const it{std::ranges::find_if(available_formats,
                 [&settings](VkSurfaceFormatKHR const& format)
@@ -95,10 +95,10 @@ void vkrndr::detail::destroy(device_t const* const device,
 
 vkrndr::swapchain_t::swapchain_t(window_t const& window,
     device_t& device,
-    render_settings_t const& settings)
+    swapchain_settings_t const& settings)
     : window_{&window}
     , device_{&device}
-    , settings_{&settings}
+    , settings_{settings}
     , swapchain_maintenance_1_enabled_{is_device_extension_enabled(
           VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
           device)}
@@ -235,9 +235,9 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     VkPresentModeKHR const chosen_present_mode{
         choose_swap_present_mode(swap_details.present_modes,
             is_recreated ? desired_present_mode_
-                         : settings_->preferred_present_mode)};
+                         : settings_.preferred_present_mode)};
     VkSurfaceFormatKHR const surface_format{
-        choose_swap_surface_format(swap_details.surface_formats, *settings_)};
+        choose_swap_surface_format(swap_details.surface_formats, settings_)};
 
     available_present_modes_ = std::move(swap_details.present_modes);
 
@@ -275,7 +275,7 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     create_info.imageColorSpace = surface_format.colorSpace;
     create_info.imageExtent = extent_;
     create_info.imageArrayLayers = 1;
-    create_info.imageUsage = settings_->swapchain_flags;
+    create_info.imageUsage = settings_.swapchain_flags;
     create_info.preTransform = swap_details.capabilities.currentTransform;
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     create_info.presentMode = chosen_present_mode;
@@ -328,7 +328,7 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     }
     // cppcheck-suppress-end useStlAlgorithm
 
-    frames_.resize(settings_->frames_in_flight);
+    frames_.resize(settings_.frames_in_flight);
     for (detail::swap_frame_t& frame : frames_)
     {
         frame.image_available = create_semaphore(*device_);

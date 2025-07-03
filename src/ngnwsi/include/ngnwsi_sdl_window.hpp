@@ -32,6 +32,9 @@ namespace ngnwsi
 
     class [[nodiscard]] sdl_window_t final : public vkrndr::window_t
     {
+    public:
+        static [[nodiscard]] std::vector<char const*> required_extensions();
+
     public: // Construction
         sdl_window_t(char const* title,
             SDL_WindowFlags window_flags,
@@ -48,10 +51,9 @@ namespace ngnwsi
     public: // Interface
         [[nodiscard]] constexpr SDL_Window* native_handle() const noexcept;
 
-    public: // window_t implementation
-        [[nodiscard]] std::vector<char const*>
-        required_extensions() const override;
+        [[nodiscard]] bool is_minimized() const;
 
+    public: // window_t implementation
         [[nodiscard]] VkSurfaceKHR create_surface(VkInstance instance) override;
 
         void destroy_surface(VkInstance instance) override;
@@ -60,8 +62,6 @@ namespace ngnwsi
 
         [[nodiscard]] VkExtent2D swap_extent(
             VkSurfaceCapabilitiesKHR const& capabilities) const override;
-
-        [[nodiscard]] bool is_minimized() const override;
 
     public: // Operators
         sdl_window_t& operator=(sdl_window_t const&) = delete;

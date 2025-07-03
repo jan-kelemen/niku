@@ -3,6 +3,7 @@
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
+#include <ngnwsi_render_window.hpp>
 
 #include <SDL3/SDL_events.h>
 
@@ -51,6 +52,8 @@ namespace reshed
         application_t& operator=(application_t&&) noexcept = delete;
 
     private: // ngnwsi::application callback interface
+        bool should_run() override;
+
         bool handle_event(SDL_Event const& event) override;
 
         void draw() override;
@@ -61,11 +64,13 @@ namespace reshed
 
         void on_shutdown() override;
 
+        void on_resize(uint32_t width, uint32_t height) override;
+
     private:
         ngnwsi::mouse_t mouse_;
 
         std::shared_ptr<ngntxt::freetype_context_t> freetype_context_;
-
+        std::unique_ptr<ngnwsi::render_window_t> render_window_;
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
 

@@ -170,14 +170,13 @@ namespace
 } // namespace
 
 vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
-    window_t& window,
-    render_settings_t const& settings,
+    std::vector<char const*> const& instance_extensions,
+    std::function<VkSurfaceKHR(VkInstance)> get_surface,
+    uint32_t frames_in_flight,
     bool const debug)
     : library_{std::move(library)}
-    , render_settings_{settings}
-    , window_{&window}
 {
-    auto required_instance_extensions{window_->required_extensions()};
+    auto required_instance_extensions{instance_extensions};
 
 #if VKRNDR_ENABLE_DEBUG_UTILS
     if (debug &&
@@ -221,7 +220,7 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
 
     auto const physical_devices{filter_physical_devices(instance_,
         required_flags,
-        window_->create_surface(instance_.handle))};
+        get_surface(instance_.handle))};
     auto physical_device_it{pick_device_by_type(physical_devices)};
     if (physical_device_it == std::end(physical_devices))
     {
@@ -285,11 +284,8 @@ vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
     device_.present_queue = &port;
     device_.transfer_queue = &port;
 
-    swapchain_ =
-        std::make_unique<swapchain_t>(*window_, device_, render_settings_);
-    frame_data_ =
-        cppext::cycled_buffer_t<frame_data_t>{settings.frames_in_flight,
-            settings.frames_in_flight};
+    frame_data_ = cppext::cycled_buffer_t<frame_data_t>{frames_in_flight,
+        frames_in_flight};
     descriptor_pool_ = ::create_descriptor_pool(device_);
 
     for (frame_data_t& fd : cppext::as_span(frame_data_))
@@ -321,11 +317,7 @@ vkrndr::backend_t::~backend_t()
 
     destroy_descriptor_pool(device_, descriptor_pool_);
 
-    swapchain_.reset();
-
     destroy(&device_);
-
-    window_->destroy_surface(instance_.handle);
 
     destroy(&instance_);
 }
@@ -344,75 +336,35 @@ vkrndr::device_t const& vkrndr::backend_t::device() const noexcept
     return device_;
 }
 
-vkrndr::swapchain_t& vkrndr::backend_t::swapchain() noexcept
-{
-    return *swapchain_;
-}
-
-vkrndr::swapchain_t const& vkrndr::backend_t::swapchain() const noexcept
-{
-    return *swapchain_;
-}
-
 VkDescriptorPool vkrndr::backend_t::descriptor_pool()
 {
     return descriptor_pool_;
 }
 
-VkFormat vkrndr::backend_t::image_format() const
-{
-    return swapchain_->image_format();
-}
-
-uint32_t vkrndr::backend_t::image_count() const
-{
-    return swapchain_->image_count();
-}
-
 uint32_t vkrndr::backend_t::frames_in_flight() const
 {
-    return render_settings_.frames_in_flight;
+    return cppext::narrow<uint32_t>(frame_data_.size());
 }
 
-VkExtent2D vkrndr::backend_t::extent() const { return swapchain_->extent(); }
-
-vkrndr::image_t vkrndr::backend_t::swapchain_image()
+void vkrndr::backend_t::begin_frame()
 {
-    return {.image = swapchain_->image(image_index_),
-        .allocation = VK_NULL_HANDLE,
-        .view = swapchain_->image_view(image_index_),
-        .format = swapchain_->image_format(),
-        .sample_count = VK_SAMPLE_COUNT_1_BIT,
-        .mip_levels = 1,
-        .extent = vkrndr::to_3d_extent(swapchain_->extent())};
-}
-
-vkrndr::swapchain_acquire_t vkrndr::backend_t::begin_frame()
-{
-    if (window_->is_minimized())
-    {
-        return false;
-    }
-
-    if (swapchain_->needs_refresh())
-    {
-        spdlog::info("Recreating swapchain");
-        vkDeviceWaitIdle(device_.logical);
-        swapchain_->recreate();
-        return {swapchain_->extent()};
-    }
-
-    if (!swapchain_->acquire_next_image(frame_data_.index(), image_index_))
-    {
-        return false;
-    }
-
     check_result(
         reset_command_pool(device_, frame_data_->present_command_pool));
     check_result(reset_command_pool(device_,
         frame_data_->transfer_transient_command_pool));
+}
 
-    return true;
+std::span<VkCommandBuffer const> vkrndr::backend_t::present_buffers()
+{
+    std::span const rv{frame_data_->present_command_buffers.data(),
+        frame_data_->used_present_command_buffers};
+
+    for (VkCommandBuffer const buffer : rv)
+    {
+        check_result(vkEndCommandBuffer(buffer));
+    }
+
+    return rv;
 }
 
 void vkrndr::backend_t::end_frame()
@@ -459,21 +411,6 @@ vkrndr::transient_operation_t vkrndr::backend_t::request_transient_operation(
     return {device_,
         *frame_data_->present_queue,
         frame_data_->present_transient_command_pool};
-}
-
-void vkrndr::backend_t::draw()
-{
-    std::span const buffers{frame_data_->present_command_buffers.data(),
-        frame_data_->used_present_command_buffers};
-
-    for (VkCommandBuffer const buffer : buffers)
-    {
-        check_result(vkEndCommandBuffer(buffer));
-    }
-
-    swapchain_->submit_command_buffers(buffers,
-        frame_data_.index(),
-        image_index_);
 }
 
 vkrndr::image_t vkrndr::backend_t::transfer_image(

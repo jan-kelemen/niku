@@ -13,7 +13,6 @@
 
 namespace vkrndr
 {
-    struct render_settings_t;
     struct device_t;
     class execution_port_t;
     class window_t;
@@ -32,12 +31,20 @@ namespace vkrndr
         void destroy(device_t const* device, swap_frame_t* frame);
     } // namespace detail
 
+    struct [[nodiscard]] swapchain_settings_t final
+    {
+        VkFormat preferred_swapchain_format{VK_FORMAT_B8G8R8A8_SRGB};
+        VkImageUsageFlags swapchain_flags{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
+        VkPresentModeKHR preferred_present_mode{VK_PRESENT_MODE_MAILBOX_KHR};
+        uint32_t frames_in_flight{2};
+    };
+
     class [[nodiscard]] swapchain_t final
     {
     public: // Construction
         swapchain_t(window_t const& window,
             device_t& device,
-            render_settings_t const& settings);
+            swapchain_settings_t const& settings);
 
         swapchain_t(swapchain_t const&) = delete;
 
@@ -94,7 +101,7 @@ namespace vkrndr
     private:
         window_t const* window_{};
         device_t* device_{};
-        render_settings_t const* settings_{};
+        swapchain_settings_t settings_{};
         bool swapchain_maintenance_1_enabled_{};
         bool swapchain_refresh_needed_{};
         execution_port_t* present_queue_{};

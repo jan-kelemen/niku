@@ -24,6 +24,7 @@
 namespace ngnwsi
 {
     class imgui_layer_t;
+    class render_window_t;
 } // namespace ngnwsi
 
 namespace vkrndr
@@ -68,6 +69,8 @@ namespace gltfviewer
         application_t& operator=(application_t&&) noexcept = delete;
 
     private: // ngnwsi::application callback interface
+        bool should_run() override;
+
         bool handle_event(SDL_Event const& event) override;
 
         void update(float delta_time) override;
@@ -92,8 +95,10 @@ namespace gltfviewer
         ngngfx::aircraft_camera_t camera_;
         ngngfx::perspective_projection_t projection_;
 
-        std::unique_ptr<vkrndr::backend_t> backend_;
+        std::unique_ptr<ngnwsi::render_window_t> render_window_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
+
+        std::unique_ptr<vkrndr::backend_t> backend_;
         vkrndr::image_t color_image_;
         vkrndr::image_t depth_buffer_;
         vkrndr::image_t resolve_image_;

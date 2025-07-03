@@ -64,6 +64,8 @@ namespace cppext
 
         [[nodiscard]] T const* data() const;
 
+        [[nodiscard]] size_type size() const;
+
         // cppcheck-suppress [functionConst, returnByReference]
         [[nodiscard]] std::span<T> as_span();
 
@@ -215,6 +217,13 @@ namespace cppext
     T const* cycled_buffer_t<T, Container>::data() const
     {
         return data_.data();
+    }
+
+    template<typename T, typename Container>
+    cycled_buffer_t<T, Container>::size_type
+    cycled_buffer_t<T, Container>::size() const
+    {
+        return data_.size();
     }
 
     template<typename T, typename Container>

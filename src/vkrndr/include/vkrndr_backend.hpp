@@ -4,7 +4,6 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
-#include <vkrndr_render_settings.hpp>
 #include <vkrndr_transient_operation.hpp>
 
 #include <cppext_cycled_buffer.hpp>
@@ -13,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <variant>
@@ -29,14 +29,13 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    using swapchain_acquire_t = std::variant<bool, VkExtent2D>;
-
     class [[nodiscard]] backend_t final
     {
     public: // Construction
         backend_t(std::shared_ptr<library_handle_t>&& library,
-            window_t& window,
-            render_settings_t const& settings,
+            std::vector<char const*> const& instance_extensions,
+            std::function<VkSurfaceKHR(VkInstance)> get_surface,
+            uint32_t frames_in_flight,
             bool debug);
 
         backend_t(backend_t const&) = delete;
@@ -55,23 +54,13 @@ namespace vkrndr
 
         [[nodiscard]] device_t const& device() const noexcept;
 
-        [[nodiscard]] swapchain_t& swapchain() noexcept;
-
-        [[nodiscard]] swapchain_t const& swapchain() const noexcept;
-
         [[nodiscard]] VkDescriptorPool descriptor_pool();
-
-        [[nodiscard]] VkFormat image_format() const;
-
-        [[nodiscard]] uint32_t image_count() const;
 
         [[nodiscard]] uint32_t frames_in_flight() const;
 
-        [[nodiscard]] VkExtent2D extent() const;
+        void begin_frame();
 
-        [[nodiscard]] image_t swapchain_image();
-
-        [[nodiscard]] swapchain_acquire_t begin_frame();
+        [[nodiscard]] std::span<VkCommandBuffer const> present_buffers();
 
         void end_frame();
 
@@ -79,8 +68,6 @@ namespace vkrndr
 
         [[nodiscard]] transient_operation_t request_transient_operation(
             bool transfer_only);
-
-        void draw();
 
         [[nodiscard]] image_t transfer_image(
             std::span<std::byte const> const& image_data,
@@ -117,18 +104,13 @@ namespace vkrndr
     private: // Data
         std::shared_ptr<library_handle_t> library_;
 
-        render_settings_t render_settings_;
-
         window_t* window_;
         instance_t instance_;
         device_t device_;
-        std::unique_ptr<swapchain_t> swapchain_;
 
         VkDescriptorPool descriptor_pool_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;
-
-        uint32_t image_index_{};
     };
 } // namespace vkrndr
 

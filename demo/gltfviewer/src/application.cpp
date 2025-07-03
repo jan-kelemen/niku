@@ -27,7 +27,8 @@
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_mouse.hpp>
-#include <ngnwsi_sdl_window.hpp> // IWYU pragma: keep
+#include <ngnwsi_render_window.hpp>
+#include <ngnwsi_sdl_window.hpp>
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
@@ -110,12 +111,13 @@ namespace
             "FIFO Latest Ready")};
 
     [[nodiscard]] vkrndr::image_t create_color_image(
-        vkrndr::backend_t const& backend)
+        vkrndr::backend_t const& backend,
+        VkExtent2D const extent)
     {
         return vkrndr::create_image_and_view(backend.device(),
             vkrndr::image_2d_create_info_t{
                 .format = VK_FORMAT_R16G16B16A16_SFLOAT,
-                .extent = backend.extent(),
+                .extent = extent,
                 .samples = backend.device().max_msaa_samples,
                 .tiling = VK_IMAGE_TILING_OPTIMAL,
                 .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
@@ -126,12 +128,13 @@ namespace
     }
 
     [[nodiscard]] vkrndr::image_t create_resolve_image(
-        vkrndr::backend_t const& backend)
+        vkrndr::backend_t const& backend,
+        VkExtent2D const extent)
     {
         return vkrndr::create_image_and_view(backend.device(),
             vkrndr::image_2d_create_info_t{
                 .format = VK_FORMAT_R16G16B16A16_SFLOAT,
-                .extent = backend.extent(),
+                .extent = extent,
                 .tiling = VK_IMAGE_TILING_OPTIMAL,
                 .usage =
                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -141,13 +144,14 @@ namespace
     }
 
     [[nodiscard]] vkrndr::image_t create_depth_buffer(
-        vkrndr::backend_t const& backend)
+        vkrndr::backend_t const& backend,
+        VkExtent2D const extent)
     {
         auto const& formats{vkrndr::find_supported_depth_stencil_formats(
             backend.device().physical,
             true,
             false)};
-        vkrndr::image_2d_create_info_t create_info{.extent = backend.extent(),
+        vkrndr::image_2d_create_info_t create_info{.extent = extent,
             .samples = backend.device().max_msaa_samples,
             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
@@ -189,45 +193,75 @@ namespace
 
 gltfviewer::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug},
-          .title = "gltfviewer",
-          .window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-          .width = 512,
-          .height = 512}}
-    , backend_{std::make_unique<vkrndr::backend_t>(vkrndr::initialize(),
-          *window(),
-          vkrndr::render_settings_t{
-              .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
-              .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                  VK_IMAGE_USAGE_STORAGE_BIT |
-                  VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-              .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
-          },
-          debug)}
-    , imgui_{std::make_unique<ngnwsi::imgui_layer_t>(*window(),
-          backend_->instance(),
-          backend_->device(),
-          backend_->swapchain())}
-    , environment_{std::make_unique<environment_t>(*backend_)}
-    , materials_{std::make_unique<materials_t>(*backend_)}
-    , scene_graph_{std::make_unique<scene_graph_t>(*backend_)}
-    , depth_pass_shader_{std::make_unique<depth_pass_shader_t>(*backend_)}
-    , shadow_map_{std::make_unique<shadow_map_t>(*backend_)}
-    , pbr_shader_{std::make_unique<pbr_shader_t>(*backend_)}
-    , weighted_oit_shader_{std::make_unique<weighted_oit_shader_t>(*backend_)}
-    , resolve_shader_{std::make_unique<resolve_shader_t>(*backend_)}
-    , pyramid_blur_{std::make_unique<pyramid_blur_t>(*backend_)}
-    , weighted_blend_shader_{std::make_unique<weighted_blend_shader_t>(
-          *backend_)}
-    , postprocess_shader_{std::make_unique<postprocess_shader_t>(*backend_)}
+          .init_subsystems = {.video = true, .debug = debug}}}
+    , render_window_{std::make_unique<ngnwsi::render_window_t>("gltfviewer",
+          SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
+          512,
+          512)}
     , camera_controller_{camera_, mouse_}
 {
+    backend_ = std::make_unique<vkrndr::backend_t>(
+        vkrndr::initialize(),
+        ngnwsi::sdl_window_t::required_extensions(),
+        [this](VkInstance instance)
+        { return render_window_->create_surface(instance); },
+        2,
+        debug);
+
+    vkrndr::swapchain_t* const swapchain{
+        render_window_->create_swapchain(backend_->device(),
+            {
+                .preferred_swapchain_format = VK_FORMAT_R8G8B8A8_UNORM,
+                .swapchain_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_STORAGE_BIT |
+                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+            })};
+
+    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
+        render_window_->platform_window(),
+        backend_->instance(),
+        backend_->device(),
+        *swapchain);
+
+    environment_ = std::make_unique<environment_t>(*backend_);
+    materials_ = std::make_unique<materials_t>(*backend_);
+    scene_graph_ = std::make_unique<scene_graph_t>(*backend_);
+    depth_pass_shader_ = std::make_unique<depth_pass_shader_t>(*backend_);
+    shadow_map_ = std::make_unique<shadow_map_t>(*backend_);
+    pbr_shader_ = std::make_unique<pbr_shader_t>(*backend_);
+    weighted_oit_shader_ = std::make_unique<weighted_oit_shader_t>(*backend_);
+    resolve_shader_ = std::make_unique<resolve_shader_t>(*backend_);
+    pyramid_blur_ = std::make_unique<pyramid_blur_t>(*backend_);
+    weighted_blend_shader_ =
+        std::make_unique<weighted_blend_shader_t>(*backend_);
+    postprocess_shader_ = std::make_unique<postprocess_shader_t>(*backend_);
 }
 
 gltfviewer::application_t::~application_t() = default;
 
+bool gltfviewer::application_t::should_run()
+{
+    return static_cast<bool>(render_window_);
+}
+
 bool gltfviewer::application_t::handle_event(SDL_Event const& event)
 {
+    if (event.type == SDL_EVENT_QUIT ||
+        event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    {
+        if (render_window_)
+        {
+            vkDeviceWaitIdle(backend_->device().logical);
+
+            render_window_->destroy_swapchain();
+            render_window_->destroy_surface(backend_->instance().handle);
+            render_window_.reset();
+        }
+
+        return true;
+    }
+
     camera_controller_.handle_event(event);
 
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
@@ -294,27 +328,18 @@ void gltfviewer::application_t::update(float delta_time)
 
 void gltfviewer::application_t::draw()
 {
-    auto const on_swapchain_acquire = [this](bool const acquired)
-    { return acquired; };
-
-    auto const on_swapchain_resized = [this](VkExtent2D const extent)
-    {
-        on_resize(extent.width, extent.height);
-        return false;
-    };
-
-    if (!std::visit(
-            cppext::overloaded{on_swapchain_acquire, on_swapchain_resized},
-            backend_->begin_frame()))
+    std::optional<vkrndr::image_t> const target_image{
+        render_window_->acquire_next_image()};
+    if (!target_image)
     {
         return;
     }
 
+    backend_->begin_frame();
+
     imgui_->begin_frame();
 
     debug_draw();
-
-    auto target_image{backend_->swapchain_image()};
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
@@ -333,13 +358,13 @@ void gltfviewer::application_t::draw()
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,
-        .width = cppext::as_fp(target_image.extent.width),
-        .height = cppext::as_fp(target_image.extent.height),
+        .width = cppext::as_fp(target_image->extent.width),
+        .height = cppext::as_fp(target_image->extent.height),
         .minDepth = 0.0f,
         .maxDepth = 1.0f};
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image.extent)};
+    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image->extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     environment_->draw(camera_, projection_);
@@ -610,7 +635,7 @@ void gltfviewer::application_t::draw()
 
                 vkrndr::to_layout(
                     vkrndr::with_access(
-                        vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                        vkrndr::on_stage(vkrndr::image_barrier(*target_image),
                             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                         VK_ACCESS_2_NONE,
@@ -624,12 +649,12 @@ void gltfviewer::application_t::draw()
             tone_mapping_,
             command_buffer,
             resolve_image_,
-            target_image);
+            *target_image);
 
         {
             auto const barrier{vkrndr::with_layout(
                 vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(target_image),
+                    vkrndr::on_stage(vkrndr::image_barrier(*target_image),
                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
                     VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
@@ -640,11 +665,13 @@ void gltfviewer::application_t::draw()
         }
     }
 
-    imgui_->render(command_buffer, target_image);
+    imgui_->render(command_buffer, *target_image);
 
-    vkrndr::transition_to_present_layout(target_image.image, command_buffer);
+    vkrndr::transition_to_present_layout(target_image->image, command_buffer);
 
-    backend_->draw();
+    render_window_->present(backend_->present_buffers());
+
+    backend_->end_frame();
 }
 
 void gltfviewer::application_t::debug_draw()
@@ -695,8 +722,8 @@ void gltfviewer::application_t::debug_draw()
     ImGui::Checkbox("OIT", &transparent_);
 
     auto const& available_modes{
-        backend_->swapchain().available_present_modes()};
-    auto const current_mode{backend_->swapchain().present_mode()};
+        render_window_->swapchain().available_present_modes()};
+    auto const current_mode{render_window_->swapchain().present_mode()};
     // NOLINTBEGIN(readability-qualified-auto)
     auto const present_mode_it{std::ranges::find(present_modes,
         current_mode,
@@ -718,7 +745,8 @@ void gltfviewer::application_t::debug_draw()
 
                 if (ImGui::Selectable(other_it->second, selected))
                 {
-                    if (!backend_->swapchain().change_present_mode(option))
+                    if (!render_window_->swapchain().change_present_mode(
+                            option))
                     {
                         spdlog::warn("Unable to switch to present mode {}",
                             other_it->second);
@@ -738,18 +766,13 @@ void gltfviewer::application_t::debug_draw()
     ImGui::End();
 }
 
-void gltfviewer::application_t::end_frame()
-{
-    imgui_->end_frame();
-
-    backend_->end_frame();
-}
+void gltfviewer::application_t::end_frame() { imgui_->end_frame(); }
 
 void gltfviewer::application_t::on_startup()
 {
-    mouse_.set_window_handle(window()->native_handle());
+    mouse_.set_window_handle(render_window_->platform_window().native_handle());
 
-    auto const extent{backend_->extent()};
+    auto const extent{render_window_->swapchain().extent()};
     on_resize(extent.width, extent.height);
 
     environment_->load_skybox("aviation_museum_4k.hdr", depth_buffer_.format);
@@ -789,24 +812,35 @@ void gltfviewer::application_t::on_shutdown()
 
     imgui_.reset();
 
+    if (render_window_)
+    {
+        render_window_->destroy_swapchain();
+        render_window_->destroy_surface(backend_->instance().handle);
+        render_window_.reset();
+    }
+
     backend_.reset();
 }
 
 void gltfviewer::application_t::on_resize(uint32_t const width,
     uint32_t const height)
 {
+    vkDeviceWaitIdle(backend_->device().logical);
+
+    render_window_->swapchain().recreate();
+
     destroy(&backend_->device(), &color_image_);
-    color_image_ = create_color_image(*backend_);
+    color_image_ = create_color_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), color_image_, "Offscreen Image"));
 
     destroy(&backend_->device(), &depth_buffer_);
-    depth_buffer_ = create_depth_buffer(*backend_);
+    depth_buffer_ = create_depth_buffer(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_buffer_, "Depth Buffer"));
 
     destroy(&backend_->device(), &resolve_image_);
-    resolve_image_ = create_resolve_image(*backend_);
+    resolve_image_ = create_resolve_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), resolve_image_, "Resolve Image"));
 

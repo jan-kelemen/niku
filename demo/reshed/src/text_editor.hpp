@@ -40,7 +40,8 @@ namespace reshed
     class [[nodiscard]] text_editor_t final
     {
     public:
-        explicit text_editor_t(vkrndr::backend_t& backend);
+        explicit text_editor_t(vkrndr::backend_t& backend,
+            VkFormat color_attachment_format);
 
         text_editor_t(text_editor_t const&) = delete;
 

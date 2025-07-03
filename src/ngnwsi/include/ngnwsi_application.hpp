@@ -24,12 +24,6 @@ namespace ngnwsi
     struct [[nodiscard]] startup_params_t final
     {
         subsystems_t init_subsystems;
-
-        std::string title;
-
-        SDL_WindowFlags window_flags;
-        int width;
-        int height;
     };
 
     class [[nodiscard]] application_t
@@ -48,8 +42,6 @@ namespace ngnwsi
         void run();
 
         void fixed_update_interval(float fps);
-
-        [[nodiscard]] sdl_window_t* window();
 
     private: // Callback interface
         [[nodiscard]] virtual bool should_run() { return true; }
