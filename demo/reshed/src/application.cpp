@@ -97,6 +97,8 @@ bool reshed::application_t::handle_event(SDL_Event const& event)
     {
         if (render_window_)
         {
+            text_input_guard_.reset();
+
             vkDeviceWaitIdle(backend_->device().logical);
 
             render_window_->destroy_swapchain();
