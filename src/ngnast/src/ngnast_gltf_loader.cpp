@@ -540,13 +540,7 @@ namespace
                 p.vertices.resize(accessor.count);
 
                 {
-                    using bounds_t = ngnast::gltf::position_accessor_bounds_t;
-                    auto const* const min_bound{
-                        std::get_if<bounds_t>(&accessor.min)};
-                    auto const* const max_bound{
-                        std::get_if<bounds_t>(&accessor.max)};
-
-                    if (!min_bound || !max_bound)
+                    if (!accessor.min || !accessor.max)
                     {
                         spdlog::error(
                             "Primitive in {} mesh doesn't have position attribute min/max accessors",
@@ -556,10 +550,17 @@ namespace
                             ngnast::error_t::load_transform_failed)};
                     }
 
-                    auto const to_glm = [](auto const* const v)
-                    { return glm::make_vec3(v->data()); };
+                    auto const to_glm = [](auto const& v) -> glm::vec3
+                    {
+                        return {
+                            v->template get<double>(0),
+                            v->template get<double>(1),
+                            v->template get<double>(2),
+                        };
+                    };
 
-                    p.bounding_box = {to_glm(min_bound), to_glm(max_bound)};
+                    p.bounding_box = {to_glm(accessor.min),
+                        to_glm(accessor.max)};
                 }
             }
             load_indices(asset, primitive, p.indices);

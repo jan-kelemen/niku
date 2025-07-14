@@ -10,11 +10,11 @@ conan export conan-recipes/recipes/angelscript/all --version 2.37.0
 conan export conan-recipes/recipes/boost/all --version 1.88.0
 conan export conan-recipes/recipes/catch2/3.x.x --version 3.8.1
 conan export conan-recipes/recipes/entt/3.x.x --version 3.15.0
-conan export conan-recipes/recipes/fastgltf/all --version 0.8.0
+conan export conan-recipes/recipes/fastgltf/all --version 0.9.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3
 conan export conan-recipes/recipes/glslang/all --version 1.4.304.0
 conan export conan-recipes/recipes/harfbuzz/all --version 11.2.1
-conan export conan-recipes/recipes/imgui/all --version 1.91.9b-docking
+conan export conan-recipes/recipes/imgui/all --version 1.92.1-docking
 conan export conan-recipes/recipes/joltphysics/all --version 5.3.0
 conan export conan-recipes/recipes/mikktspace/all --version cci.20200325
 conan export conan-recipes/recipes/meshoptimizer/all --version 0.24
@@ -25,7 +25,7 @@ conan export conan-recipes/recipes/spdlog/all --version 1.15.3
 conan export conan-recipes/recipes/spirv-headers/all --version 1.4.304.0
 conan export conan-recipes/recipes/spirv-cross/all --version 1.4.304.0
 conan export conan-recipes/recipes/spirv-tools/all --version 1.4.304.0
-conan export conan-recipes/recipes/tree-sitter/all --version 0.25.6
+conan export conan-recipes/recipes/tree-sitter/all --version 0.25.8
 conan export conan-recipes/recipes/tree-sitter-glsl/all --version 0.2.0
 conan export conan-recipes/recipes/volk/all --version 1.4.304.0
 conan export conan-recipes/recipes/vulkan-headers/all --version 1.4.304.0
