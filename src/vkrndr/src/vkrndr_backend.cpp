@@ -163,7 +163,7 @@ namespace
             }
         }
 
-        return std::end(devices);
+        return std::begin(devices);
     }
 } // namespace
 
