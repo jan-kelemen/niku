@@ -40,6 +40,7 @@
 // IWYU pragma: no_include <glm/detail/func_exponential.inl>
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 // IWYU pragma: no_include <glm/geometric.hpp>
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <string_view>
 
 namespace

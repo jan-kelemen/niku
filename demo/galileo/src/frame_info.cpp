@@ -29,6 +29,8 @@
 #include <random>
 #include <span>
 
+// IWYU pragma: no_include <expected>
+
 namespace
 {
     constexpr uint32_t max_lights{2000};

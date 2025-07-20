@@ -1,7 +1,13 @@
 #include <ngnwsi_render_window.hpp>
 
+#include <ngnwsi_sdl_window.hpp>
+
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_swapchain.hpp>
 #include <vkrndr_utility.hpp>
+
+#include <SDL3/SDL_video.h>
 
 #include <spdlog/spdlog.h>
 

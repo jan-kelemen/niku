@@ -268,7 +268,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         [this, shd = &fragment_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
-    auto descriptor_layout{shader_set.descriptor_bindings(0)
+    [[maybe_unused]] auto descriptor_layout{shader_set.descriptor_bindings(0)
             .transform(
                 [&device = backend_->device()](auto&& bindings)
                 {

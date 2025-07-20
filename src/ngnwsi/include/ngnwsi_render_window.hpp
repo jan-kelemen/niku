@@ -6,11 +6,14 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_swapchain.hpp>
 
+#include <SDL3/SDL_video.h>
+
 #include <volk.h>
 
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 
 namespace vkrndr
 {

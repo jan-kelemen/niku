@@ -2,16 +2,9 @@
 #define NGNWSI_APPLICATION_INCLUDED
 
 #include <SDL3/SDL_events.h>
-#include <SDL3/SDL_video.h>
 
 #include <cstdint>
 #include <memory>
-#include <string>
-
-namespace ngnwsi
-{
-    class sdl_window_t;
-} // namespace ngnwsi
 
 namespace ngnwsi
 {

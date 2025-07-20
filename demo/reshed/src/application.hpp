@@ -3,10 +3,10 @@
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
-#include <ngnwsi_render_window.hpp>
 
 #include <SDL3/SDL_events.h>
 
+#include <cstdint>
 #include <memory>
 
 namespace ngntxt
@@ -17,6 +17,7 @@ namespace ngntxt
 namespace ngnwsi
 {
     class imgui_layer_t;
+    class render_window_t;
     class sdl_text_input_guard_t;
 } // namespace ngnwsi
 

@@ -34,6 +34,7 @@
 #include <ranges>
 #include <span>
 
+// IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <vector>

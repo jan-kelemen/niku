@@ -4,11 +4,11 @@
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
-#include <cppext_overloaded.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_mouse.hpp>
+#include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
 #include <ngntxt_font_face.hpp>
@@ -17,8 +17,10 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_instance.hpp>
 #include <vkrndr_library.hpp>
 #include <vkrndr_render_pass.hpp>
+#include <vkrndr_swapchain.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -37,10 +39,8 @@
 #include <memory>
 #include <optional>
 #include <span>
-#include <string>
 #include <system_error>
 #include <utility>
-#include <variant>
 
 // IWYU pragma: no_include  <filesystem>
 

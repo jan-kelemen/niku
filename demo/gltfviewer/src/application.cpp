@@ -16,7 +16,6 @@
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
-#include <cppext_overloaded.hpp>
 #include <cppext_pragma_warning.hpp>
 
 #include <ngnast_gltf_loader.hpp>
@@ -36,6 +35,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_instance.hpp>
 #include <vkrndr_library.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_swapchain.hpp>
@@ -69,7 +69,6 @@ DISABLE_WARNING_POP
 #include <span>
 #include <string>
 #include <utility>
-#include <variant>
 #include <vector>
 
 // IWYU pragma: no_include <fmt/base.h>
