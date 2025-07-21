@@ -12,6 +12,7 @@ namespace vkrndr
     struct image_t;
     struct instance_t;
     struct device_t;
+    class execution_port_t;
     class swapchain_t;
 } // namespace vkrndr
 
@@ -28,7 +29,8 @@ namespace ngnwsi
         imgui_layer_t(sdl_window_t const& window,
             vkrndr::instance_t const& instance,
             vkrndr::device_t& device,
-            vkrndr::swapchain_t const& swapchain);
+            vkrndr::swapchain_t const& swapchain,
+            vkrndr::execution_port_t const& present_queue);
 
         imgui_layer_t(imgui_layer_t const&) = delete;
 

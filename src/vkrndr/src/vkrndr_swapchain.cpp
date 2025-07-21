@@ -99,7 +99,7 @@ vkrndr::swapchain_t::swapchain_t(window_t const& window,
     , swapchain_maintenance_1_enabled_{is_device_extension_enabled(
           VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
           device)}
-    , present_queue_{device.present_queue}
+    , present_queue_{settings.present_queue}
 {
     create_swap_frames(false);
 }

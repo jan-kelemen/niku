@@ -9,7 +9,8 @@ namespace vkrndr
 
     std::shared_ptr<library_handle_t> initialize();
 
-    [[nodiscard]] bool is_instance_extension_available(library_handle_t& handle,
+    [[nodiscard]] bool is_instance_extension_available(
+        library_handle_t const& handle,
         char const* extension_name,
         char const* layer_name = nullptr);
 } // namespace vkrndr

@@ -30,10 +30,9 @@ namespace vkrndr
     {
     public: // Construction
         backend_t(std::shared_ptr<library_handle_t>&& library,
-            std::vector<char const*> const& instance_extensions,
-            std::function<VkSurfaceKHR(VkInstance)> const& get_surface,
-            uint32_t frames_in_flight,
-            bool debug);
+            std::shared_ptr<instance_t>&& instance,
+            std::shared_ptr<device_t>&& device,
+            uint32_t frames_in_flight);
 
         backend_t(backend_t const&) = delete;
 
@@ -100,9 +99,8 @@ namespace vkrndr
 
     private: // Data
         std::shared_ptr<library_handle_t> library_;
-
-        instance_t instance_;
-        device_t device_;
+        std::shared_ptr<instance_t> instance_;
+        std::shared_ptr<device_t> device_;
 
         VkDescriptorPool descriptor_pool_;
 

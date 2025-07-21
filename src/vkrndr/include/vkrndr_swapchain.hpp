@@ -36,6 +36,7 @@ namespace vkrndr
         VkImageUsageFlags image_flags{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
         VkPresentModeKHR preferred_present_mode{VK_PRESENT_MODE_MAILBOX_KHR};
         uint32_t frames_in_flight{2};
+        execution_port_t* present_queue{nullptr};
     };
 
     class [[nodiscard]] swapchain_t final

@@ -2,13 +2,15 @@
 #define VKRNDR_DEVICE_INCLUDED
 
 #include <vkrndr_execution_port.hpp>
-#include <vkrndr_features.hpp> // IWYU pragma: keep
+#include <vkrndr_features.hpp>
 
 #include <vma_impl.hpp>
 
 #include <volk.h>
 
 #include <functional>
+#include <memory>
+#include <optional>
 #include <set>
 #include <span>
 #include <string>
@@ -31,8 +33,6 @@ namespace vkrndr
         VkSampleCountFlagBits max_msaa_samples{VK_SAMPLE_COUNT_1_BIT};
 
         std::vector<execution_port_t> execution_ports;
-        execution_port_t* present_queue{nullptr};
-        execution_port_t* transfer_queue{nullptr};
 
         VmaAllocator allocator{VK_NULL_HANDLE};
     };
@@ -40,19 +40,16 @@ namespace vkrndr
     [[nodiscard]] bool is_device_extension_enabled(char const* extension_name,
         device_t const& device);
 
-    struct [[nodiscard]] device_create_info_t final
-    {
-        void const* chain{};
+    [[nodiscard]] std::shared_ptr<device_t> create_device(
+        instance_t const& instance,
+        std::span<char const* const> const& extensions,
+        physical_device_features_t const& features,
+        std::span<queue_family_t const> const& queue_families);
 
-        VkPhysicalDevice device;
-        std::span<char const* const> extensions;
-        std::span<queue_family_t const> queues;
-    };
-
-    device_t create_device(instance_t const& instance,
-        device_create_info_t const& create_info);
-
-    void destroy(device_t* device);
+    std::optional<physical_device_features_t> pick_best_physical_device(
+        instance_t const& instance,
+        std::span<char const* const> const& extensions,
+        VkSurfaceKHR surface);
 } // namespace vkrndr
 
 #endif

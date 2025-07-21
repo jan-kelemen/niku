@@ -5,6 +5,8 @@
 #include <vkrndr_instance.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <cppext_container.hpp>
+
 #include <boost/scope/scope_fail.hpp>
 
 #include <vma_impl.hpp>
@@ -60,6 +62,197 @@ namespace
 
         return VK_SAMPLE_COUNT_1_BIT;
     }
+
+    void destroy(vkrndr::device_t* const device)
+    {
+        vmaDestroyAllocator(device->allocator);
+        vkDestroyDevice(device->logical, nullptr);
+        device->extensions.clear();
+    }
+
+    struct [[nodiscard]] device_create_info_t final
+    {
+        void const* chain{};
+
+        VkPhysicalDevice device;
+        std::span<char const* const> extensions;
+        std::span<vkrndr::queue_family_t const> queues;
+    };
+
+    [[nodiscard]] std::shared_ptr<vkrndr::device_t> create_device_impl(
+        vkrndr::instance_t const& instance,
+        device_create_info_t const& create_info)
+    {
+        std::shared_ptr<vkrndr::device_t> rv{new vkrndr::device_t, destroy};
+
+        rv->physical = create_info.device;
+        rv->max_msaa_samples = max_usable_sample_count(rv->physical);
+
+        float const priority{1.0f};
+        std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
+        queue_create_infos.reserve(create_info.queues.size());
+        for (auto const& family : create_info.queues)
+        {
+            VkDeviceQueueCreateInfo const queue_create_info{
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .queueFamilyIndex = family.index,
+                .queueCount = 1,
+                .pQueuePriorities = &priority};
+
+            queue_create_infos.push_back(queue_create_info);
+        }
+
+        VkDeviceCreateInfo const ci{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = create_info.chain,
+            .queueCreateInfoCount =
+                vkrndr::count_cast(queue_create_infos.size()),
+            .pQueueCreateInfos = queue_create_infos.data(),
+            .enabledExtensionCount =
+                vkrndr::count_cast(create_info.extensions.size()),
+            .ppEnabledExtensionNames = create_info.extensions.data()};
+
+        vkrndr::check_result(
+            vkCreateDevice(create_info.device, &ci, nullptr, &rv->logical));
+
+        std::ranges::copy(create_info.extensions,
+            std::inserter(rv->extensions, rv->extensions.begin()));
+
+        volkLoadDevice(rv->logical);
+
+        VmaVulkanFunctions const vma_vulkan_functions{
+            .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+            .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+        };
+
+        VmaAllocatorCreateInfo allocator_info{
+            .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+            .physicalDevice = rv->physical,
+            .device = rv->logical,
+            .pVulkanFunctions = &vma_vulkan_functions,
+            .instance = instance.handle,
+            .vulkanApiVersion = VK_API_VERSION_1_3,
+        };
+
+        if (is_device_extension_enabled(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
+                *rv))
+        {
+            allocator_info.flags |=
+                VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
+        }
+
+        if (is_device_extension_enabled(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
+                *rv))
+        {
+            allocator_info.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+        }
+
+        vkrndr::check_result(
+            vmaCreateAllocator(&allocator_info, &rv->allocator));
+
+        rv->execution_ports.reserve(queue_create_infos.size());
+        for (auto const& family : create_info.queues)
+        {
+            rv->execution_ports.emplace_back(rv->logical,
+                family.properties.queueFlags,
+                family.index,
+                0);
+        }
+
+        return rv;
+    }
+
+    [[nodiscard]] std::vector<vkrndr::physical_device_features_t>
+    filter_physical_devices(vkrndr::instance_t const& instance,
+        std::span<char const* const> const& required_extensions,
+        vkrndr::feature_flags_t const& required_feature_flags,
+        VkSurfaceKHR surface)
+    {
+        std::vector<vkrndr::physical_device_features_t> rv;
+
+        for (vkrndr::physical_device_features_t& device :
+            vkrndr::query_available_physical_devices(instance.handle, surface))
+        {
+            bool const device_extensions_supported{
+                std::ranges::all_of(required_extensions,
+                    [de = device.extensions](std::string_view name)
+                    {
+                        return std::ranges::contains(de,
+                            name,
+                            &VkExtensionProperties::extensionName);
+                    })};
+            if (!device_extensions_supported)
+            {
+                continue;
+            }
+
+            if (!vkrndr::check_feature_flags(device.features,
+                    required_feature_flags))
+            {
+                continue;
+            }
+
+            if (surface != VK_NULL_HANDLE)
+            {
+                bool const has_present_queue{std::ranges::any_of(
+                    device.queue_families,
+                    [](vkrndr::queue_family_t const& family)
+                    {
+                        return family.supports_present &&
+                            vkrndr::supports_flags(family.properties.queueFlags,
+                                VK_QUEUE_GRAPHICS_BIT);
+                    })};
+                if (!has_present_queue)
+                {
+                    continue;
+                }
+
+                if (!device.swapchain_support ||
+                    device.swapchain_support->surface_formats.empty() ||
+                    device.swapchain_support->present_modes.empty())
+                {
+                    continue;
+                }
+            }
+
+            rv.emplace_back(std::move(device));
+        }
+
+        return rv;
+    }
+
+    [[nodiscard]] auto pick_device_by_type(
+        std::ranges::forward_range auto&& devices)
+    {
+        for (auto it{std::begin(devices)}; it != std::end(devices); ++it)
+        {
+            if (it->properties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            {
+                return it;
+            }
+        }
+
+        for (auto it{std::begin(devices)}; it != std::end(devices); ++it)
+        {
+            if (it->properties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+            {
+                return it;
+            }
+        }
+
+        for (auto it{std::begin(devices)}; it != std::end(devices); ++it)
+        {
+            if (it->properties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+            {
+                return it;
+            }
+        }
+
+        return std::begin(devices);
+    }
 } // namespace
 
 bool vkrndr::is_device_extension_enabled(char const* const extension_name,
@@ -68,86 +261,68 @@ bool vkrndr::is_device_extension_enabled(char const* const extension_name,
     return device.extensions.contains(extension_name);
 }
 
-vkrndr::device_t vkrndr::create_device(instance_t const& instance,
-    device_create_info_t const& create_info)
+std::shared_ptr<vkrndr::device_t> vkrndr::create_device(
+    instance_t const& instance,
+    std::span<char const* const> const& extensions,
+    physical_device_features_t const& features,
+    std::span<queue_family_t const> const& queue_families)
 {
-    device_t rv;
-    rv.physical = create_info.device;
-    rv.max_msaa_samples = max_usable_sample_count(rv.physical);
+    std::vector<char const*> effective_extensions{std::cbegin(extensions),
+        std::cend(extensions)};
 
-    float const priority{1.0f};
-    std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-    queue_create_infos.reserve(create_info.queues.size());
-    for (auto const& family : create_info.queues)
+    feature_flags_t required_flags;
+    add_required_feature_flags(required_flags);
+
+    feature_chain_t effective_features;
+    set_feature_flags_on_chain(effective_features, required_flags);
+    link_required_feature_chain(effective_features);
+
+    if (enable_extension_for_device(
+            VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+            features,
+            effective_features))
     {
-        VkDeviceQueueCreateInfo const queue_create_info{
-            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .queueFamilyIndex = family.index,
-            .queueCount = 1,
-            .pQueuePriorities = &priority};
-
-        queue_create_infos.push_back(queue_create_info);
+        effective_extensions.push_back(
+            VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
     }
 
-    VkDeviceCreateInfo const ci{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pNext = create_info.chain,
-        .queueCreateInfoCount = count_cast(queue_create_infos.size()),
-        .pQueueCreateInfos = queue_create_infos.data(),
-        .enabledExtensionCount = count_cast(create_info.extensions.size()),
-        .ppEnabledExtensionNames = create_info.extensions.data()};
-
-    check_result(vkCreateDevice(create_info.device, &ci, nullptr, &rv.logical));
-    boost::scope::scope_fail const rollback{[&rv]() { destroy(&rv); }};
-
-    std::ranges::copy(create_info.extensions,
-        std::inserter(rv.extensions, rv.extensions.begin()));
-
-    volkLoadDevice(rv.logical);
-
-    VmaVulkanFunctions const vma_vulkan_functions{
-        .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-        .vkGetDeviceProcAddr = vkGetDeviceProcAddr,
-    };
-
-    VmaAllocatorCreateInfo allocator_info{
-        .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-        .physicalDevice = rv.physical,
-        .device = rv.logical,
-        .pVulkanFunctions = &vma_vulkan_functions,
-        .instance = instance.handle,
-        .vulkanApiVersion = VK_API_VERSION_1_3,
-    };
-
-    if (is_device_extension_enabled(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME, rv))
+    if (enable_extension_for_device(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
+            features,
+            effective_features))
     {
-        allocator_info.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
+        effective_extensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
     }
 
-    if (is_device_extension_enabled(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME, rv))
+    if (enable_extension_for_device(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
+            features,
+            effective_features))
     {
-        allocator_info.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+        effective_extensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
     }
 
-    check_result(vmaCreateAllocator(&allocator_info, &rv.allocator));
-
-    rv.execution_ports.reserve(queue_create_infos.size());
-    for (auto const& family : create_info.queues)
-    {
-        rv.execution_ports.emplace_back(rv.logical,
-            family.properties.queueFlags,
-            family.index,
-            0);
-    }
-
-    return rv;
+    device_create_info_t const device_create_info{
+        .chain = &effective_features.device_10_features,
+        .device = features.device,
+        .extensions = effective_extensions,
+        .queues = queue_families};
+    return create_device_impl(instance, device_create_info);
 }
 
-void vkrndr::destroy(device_t* const device)
+std::optional<vkrndr::physical_device_features_t>
+vkrndr::pick_best_physical_device(instance_t const& instance,
+    std::span<char const* const> const& extensions,
+    VkSurfaceKHR surface)
 {
-    if (device)
+    feature_flags_t required_flags;
+    add_required_feature_flags(required_flags);
+
+    auto const physical_devices{
+        filter_physical_devices(instance, extensions, required_flags, surface)};
+    auto physical_device_it{pick_device_by_type(physical_devices)};
+    if (physical_device_it == std::end(physical_devices))
     {
-        vmaDestroyAllocator(device->allocator);
-        vkDestroyDevice(device->logical, nullptr);
-        device->extensions.clear();
+        return std::nullopt;
     }
+
+    return std::make_optional(*physical_device_it);
 }

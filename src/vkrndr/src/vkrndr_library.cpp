@@ -16,9 +16,10 @@
 
 struct vkrndr::library_handle_t final
 {
-    std::mutex available_instance_extensions_mtx;
-    std::map<std::string, std::vector<VkExtensionProperties>, std::less<>>
-        available_instance_extensions;
+    mutable std::mutex available_instance_extensions_mtx;
+    mutable std::
+        map<std::string, std::vector<VkExtensionProperties>, std::less<>>
+            available_instance_extensions;
 };
 
 std::shared_ptr<vkrndr::library_handle_t> vkrndr::initialize()
@@ -35,7 +36,7 @@ std::shared_ptr<vkrndr::library_handle_t> vkrndr::initialize()
     // NOLINTEND(cppcoreguidelines-owning-memory)
 }
 
-bool vkrndr::is_instance_extension_available(library_handle_t& handle,
+bool vkrndr::is_instance_extension_available(library_handle_t const& handle,
     char const* const extension_name,
     char const* const layer_name)
 {

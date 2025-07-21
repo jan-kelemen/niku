@@ -198,13 +198,62 @@ gltfviewer::application_t::application_t(bool const debug)
           512)}
     , camera_controller_{camera_, mouse_}
 {
-    backend_ = std::make_unique<vkrndr::backend_t>(
-        vkrndr::initialize(),
-        ngnwsi::sdl_window_t::required_extensions(),
-        [this](VkInstance instance)
-        { return render_window_->create_surface(instance); },
-        2,
-        debug);
+    std::shared_ptr<vkrndr::library_handle_t> library_handle{
+        vkrndr::initialize()};
+
+    std::vector<char const*> const instance_extensions{
+        ngnwsi::sdl_window_t::required_extensions()};
+
+    std::shared_ptr<vkrndr::instance_t> instance{
+        create_instance(*library_handle,
+            {
+                .extensions = instance_extensions,
+                .application_name = "gltfviewer",
+            })};
+
+    std::array const device_extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+    std::optional<vkrndr::physical_device_features_t> const physical_device{
+        pick_best_physical_device(*instance,
+            device_extensions,
+            render_window_->create_surface(instance->handle))};
+
+    vkrndr::queue_family_t present_family{};
+    if (!physical_device)
+    {
+        throw std::runtime_error{"Can't find suitable physical device"};
+    }
+    else
+    {
+        auto const queue_with_present{
+            std::ranges::find_if(physical_device->queue_families,
+                [](vkrndr::queue_family_t const& f)
+                {
+                    return f.supports_present &&
+                        vkrndr::supports_flags(f.properties.queueFlags,
+                            VK_QUEUE_GRAPHICS_BIT);
+                })};
+        if (queue_with_present == std::cend(physical_device->queue_families))
+        {
+            throw std::runtime_error{"Can't find suitable present queue"};
+        }
+        present_family = *queue_with_present;
+    }
+
+    std::shared_ptr<vkrndr::device_t> device{create_device(*instance,
+        device_extensions,
+        *physical_device,
+        cppext::as_span(present_family))};
+
+    backend_ = std::make_unique<vkrndr::backend_t>(std::move(library_handle),
+        std::move(instance),
+        std::move(device),
+        2);
+
+    vkrndr::execution_port_t& present_queue{
+        *std::ranges::find_if(backend_->device().execution_ports,
+            [&present_family](vkrndr::execution_port_t const& port)
+            { return port.queue_family() == present_family.index; })};
 
     vkrndr::swapchain_t* const swapchain{
         render_window_->create_swapchain(backend_->device(),
@@ -214,13 +263,15 @@ gltfviewer::application_t::application_t(bool const debug)
                     VK_IMAGE_USAGE_STORAGE_BIT |
                     VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                 .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+                .present_queue = &present_queue,
             })};
 
     imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
         render_window_->platform_window(),
         backend_->instance(),
         backend_->device(),
-        *swapchain);
+        *swapchain,
+        present_queue);
 
     environment_ = std::make_unique<environment_t>(*backend_);
     materials_ = std::make_unique<materials_t>(*backend_);

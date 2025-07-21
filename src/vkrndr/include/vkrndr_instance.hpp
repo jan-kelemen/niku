@@ -5,9 +5,15 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <set>
 #include <span>
 #include <string>
+
+namespace vkrndr
+{
+    struct library_handle_t;
+} // namespace vkrndr
 
 namespace vkrndr
 {
@@ -19,13 +25,11 @@ namespace vkrndr
         std::set<std::string, std::less<>> extensions;
     };
 
-    void destroy(instance_t* instance);
-
     struct [[nodiscard]] instance_create_info_t final
     {
         void const* chain{};
 
-        uint32_t maximum_vulkan_version{};
+        uint32_t maximum_vulkan_version{VK_API_VERSION_1_3};
         std::span<char const* const> extensions;
         std::span<char const* const> layers;
 
@@ -33,7 +37,9 @@ namespace vkrndr
         uint32_t application_version{};
     };
 
-    instance_t create_instance(instance_create_info_t const& create_info);
+    [[nodiscard]] std::shared_ptr<instance_t> create_instance(
+        library_handle_t const& library_handle,
+        instance_create_info_t const& create_info);
 } // namespace vkrndr
 
 #endif
