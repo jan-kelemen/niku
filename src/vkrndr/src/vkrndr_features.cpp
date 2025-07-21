@@ -158,6 +158,7 @@ void vkrndr::add_required_feature_flags(feature_flags_t& flags)
         {
             &VkPhysicalDeviceVulkan13Features::synchronization2,
             &VkPhysicalDeviceVulkan13Features::dynamicRendering,
+            &VkPhysicalDeviceVulkan13Features::shaderDemoteToHelperInvocation,
         });
 }
 
