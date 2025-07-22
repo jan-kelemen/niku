@@ -14,6 +14,7 @@
 
 #include <vkglsl_guard.hpp>
 
+#include <vkrndr_backend.hpp>
 #include <vkrndr_image.hpp>
 
 #include <SDL3/SDL_events.h>
@@ -26,11 +27,6 @@ namespace ngnwsi
     class imgui_layer_t;
     class render_window_t;
 } // namespace ngnwsi
-
-namespace vkrndr
-{
-    class backend_t;
-} // namespace vkrndr
 
 namespace gltfviewer
 {
@@ -94,6 +90,8 @@ namespace gltfviewer
         ngnwsi::mouse_t mouse_;
         ngngfx::aircraft_camera_t camera_;
         ngngfx::perspective_projection_t projection_;
+
+        vkrndr::rendering_context_t rendering_context_;
 
         std::unique_ptr<ngnwsi::render_window_t> render_window_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;

@@ -62,10 +62,8 @@ namespace
         layout_info.pBindings = bindings.data();
 
         VkDescriptorSetLayout rv; // NOLINT
-        vkrndr::check_result(vkCreateDescriptorSetLayout(device.logical,
-            &layout_info,
-            nullptr,
-            &rv));
+        vkrndr::check_result(
+            vkCreateDescriptorSetLayout(device, &layout_info, nullptr, &rv));
 
         return rv;
     }
@@ -86,7 +84,7 @@ namespace
 
         std::array const descriptor_writes{transform_storage_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -463,7 +461,7 @@ void gltfviewer::scene_graph_t::clear()
 
     primitives_.clear();
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
         nullptr);
 }

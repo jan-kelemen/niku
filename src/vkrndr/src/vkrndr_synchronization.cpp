@@ -11,8 +11,7 @@ VkSemaphore vkrndr::create_semaphore(device_t const& device)
     semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
     VkSemaphore rv; // NOLINT
-    check_result(
-        vkCreateSemaphore(device.logical, &semaphore_info, nullptr, &rv));
+    check_result(vkCreateSemaphore(device, &semaphore_info, nullptr, &rv));
 
     return rv;
 }
@@ -27,7 +26,7 @@ VkFence vkrndr::create_fence(device_t const& device, bool const set_signaled)
     }
 
     VkFence rv; // NOLINT
-    check_result(vkCreateFence(device.logical, &fence_info, nullptr, &rv));
+    check_result(vkCreateFence(device, &fence_info, nullptr, &rv));
 
     return rv;
 }

@@ -1,5 +1,6 @@
 #include <vkrndr_device.hpp>
 
+#include <vkrndr_error_code.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
 #include <vkrndr_instance.hpp>
@@ -63,13 +64,6 @@ namespace
         return VK_SAMPLE_COUNT_1_BIT;
     }
 
-    void destroy(vkrndr::device_t* const device)
-    {
-        vmaDestroyAllocator(device->allocator);
-        vkDestroyDevice(device->logical, nullptr);
-        device->extensions.clear();
-    }
-
     struct [[nodiscard]] device_create_info_t final
     {
         void const* chain{};
@@ -79,14 +73,14 @@ namespace
         std::span<vkrndr::queue_family_t const> queues;
     };
 
-    [[nodiscard]] std::shared_ptr<vkrndr::device_t> create_device_impl(
-        vkrndr::instance_t const& instance,
+    [[nodiscard]] std::expected<vkrndr::device_ptr_t, std::error_code>
+    create_device_impl(vkrndr::instance_t const& instance,
         device_create_info_t const& create_info)
     {
-        std::shared_ptr<vkrndr::device_t> rv{new vkrndr::device_t, destroy};
+        vkrndr::device_ptr_t rv{new vkrndr::device_t};
 
-        rv->physical = create_info.device;
-        rv->max_msaa_samples = max_usable_sample_count(rv->physical);
+        rv->physical_device = create_info.device;
+        rv->max_msaa_samples = max_usable_sample_count(*rv);
 
         float const priority{1.0f};
         std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
@@ -112,13 +106,19 @@ namespace
                 vkrndr::count_cast(create_info.extensions.size()),
             .ppEnabledExtensionNames = create_info.extensions.data()};
 
-        vkrndr::check_result(
-            vkCreateDevice(create_info.device, &ci, nullptr, &rv->logical));
+        if (VkResult const result{vkCreateDevice(create_info.device,
+                &ci,
+                nullptr,
+                &rv->logical_device)};
+            result != VK_SUCCESS)
+        {
+            return std::unexpected{vkrndr::make_error_code(result)};
+        }
 
         std::ranges::copy(create_info.extensions,
             std::inserter(rv->extensions, rv->extensions.begin()));
 
-        volkLoadDevice(rv->logical);
+        volkLoadDevice(*rv);
 
         VmaVulkanFunctions const vma_vulkan_functions{
             .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
@@ -127,8 +127,8 @@ namespace
 
         VmaAllocatorCreateInfo allocator_info{
             .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-            .physicalDevice = rv->physical,
-            .device = rv->logical,
+            .physicalDevice = *rv,
+            .device = *rv,
             .pVulkanFunctions = &vma_vulkan_functions,
             .instance = instance.handle,
             .vulkanApiVersion = VK_API_VERSION_1_3,
@@ -147,13 +147,17 @@ namespace
             allocator_info.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
         }
 
-        vkrndr::check_result(
-            vmaCreateAllocator(&allocator_info, &rv->allocator));
+        if (VkResult const result{
+                vmaCreateAllocator(&allocator_info, &rv->allocator)};
+            result != VK_SUCCESS)
+        {
+            return std::unexpected{vkrndr::make_error_code(result)};
+        }
 
         rv->execution_ports.reserve(queue_create_infos.size());
         for (auto const& family : create_info.queues)
         {
-            rv->execution_ports.emplace_back(rv->logical,
+            rv->execution_ports.emplace_back(*rv,
                 family.properties.queueFlags,
                 family.index,
                 0);
@@ -166,12 +170,12 @@ namespace
     filter_physical_devices(vkrndr::instance_t const& instance,
         std::span<char const* const> const& required_extensions,
         vkrndr::feature_flags_t const& required_feature_flags,
-        VkSurfaceKHR surface)
+        VkSurfaceKHR const surface)
     {
         std::vector<vkrndr::physical_device_features_t> rv;
 
         for (vkrndr::physical_device_features_t& device :
-            vkrndr::query_available_physical_devices(instance.handle, surface))
+            vkrndr::query_available_physical_devices(instance, surface))
         {
             bool const device_extensions_supported{
                 std::ranges::all_of(required_extensions,
@@ -255,13 +259,20 @@ namespace
     }
 } // namespace
 
+vkrndr::device_t::~device_t()
+{
+    vmaDestroyAllocator(allocator);
+
+    vkDestroyDevice(logical_device, nullptr);
+}
+
 bool vkrndr::is_device_extension_enabled(char const* const extension_name,
     device_t const& device)
 {
     return device.extensions.contains(extension_name);
 }
 
-std::shared_ptr<vkrndr::device_t> vkrndr::create_device(
+std::expected<vkrndr::device_ptr_t, std::error_code> vkrndr::create_device(
     instance_t const& instance,
     std::span<char const* const> const& extensions,
     physical_device_features_t const& features,
@@ -316,7 +327,7 @@ vkrndr::pick_best_physical_device(instance_t const& instance,
     feature_flags_t required_flags;
     add_required_feature_flags(required_flags);
 
-    auto const physical_devices{
+    auto physical_devices{
         filter_physical_devices(instance, extensions, required_flags, surface)};
     auto physical_device_it{pick_device_by_type(physical_devices)};
     if (physical_device_it == std::end(physical_devices))
@@ -324,5 +335,5 @@ vkrndr::pick_best_physical_device(instance_t const& instance,
         return std::nullopt;
     }
 
-    return std::make_optional(*physical_device_it);
+    return std::make_optional(std::move(*physical_device_it));
 }

@@ -18,11 +18,11 @@ void vkrndr::destroy(device_t const* const device, cubemap_t* const cubemap)
 {
     if (cubemap)
     {
-        vkDestroyImageView(device->logical, cubemap->view, nullptr);
+        vkDestroyImageView(*device, cubemap->view, nullptr);
 
         for (VkImageView const face_view : cubemap->face_views)
         {
-            vkDestroyImageView(device->logical, face_view, nullptr);
+            vkDestroyImageView(*device, face_view, nullptr);
         }
 
         vmaDestroyImage(device->allocator, cubemap->image, cubemap->allocation);
@@ -88,8 +88,7 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
     view_info.subresourceRange.baseArrayLayer = 0;
     view_info.subresourceRange.layerCount = 6;
 
-    check_result(
-        vkCreateImageView(device.logical, &view_info, nullptr, &rv.view));
+    check_result(vkCreateImageView(device, &view_info, nullptr, &rv.view));
 
     for (uint32_t i{}; i != 6; ++i)
     {
@@ -104,7 +103,7 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
         face_view_info.subresourceRange.baseArrayLayer = i;
         face_view_info.subresourceRange.layerCount = 1;
 
-        check_result(vkCreateImageView(device.logical,
+        check_result(vkCreateImageView(device,
             &face_view_info,
             nullptr,
             &rv.face_views[i]));
@@ -127,7 +126,7 @@ std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
         {
             for (VkImageView const v : rv)
             {
-                vkDestroyImageView(device.logical, v, nullptr);
+                vkDestroyImageView(device, v, nullptr);
             }
         }};
 
@@ -144,10 +143,8 @@ std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
         face_view_info.subresourceRange.baseArrayLayer = i;
         face_view_info.subresourceRange.layerCount = 1;
 
-        check_result(vkCreateImageView(device.logical,
-            &face_view_info,
-            nullptr,
-            &rv[i]));
+        check_result(
+            vkCreateImageView(device, &face_view_info, nullptr, &rv[i]));
     }
 
     return rv;
@@ -157,7 +154,7 @@ void vkrndr::object_name(device_t const& device,
     cubemap_t const& cubemap,
     std::string_view name)
 {
-    object_name(device.logical,
+    object_name(device,
         VK_OBJECT_TYPE_IMAGE,
         std::bit_cast<uint64_t>(cubemap.image),
         name);

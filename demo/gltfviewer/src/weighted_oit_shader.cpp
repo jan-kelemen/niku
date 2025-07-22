@@ -98,7 +98,7 @@ namespace
         std::array const descriptor_writes{accumulation_sampler_uniform_write,
             reveal_sampler_uniform_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -108,7 +108,7 @@ namespace
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -130,7 +130,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -154,16 +154,14 @@ gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
     destroy(&backend_->device(), &composition_pipeline_);
     destroy(&backend_->device(), &pbr_pipeline_);
 
-    vkDestroySampler(backend_->device().logical, reveal_sampler_, nullptr);
-    vkDestroySampler(backend_->device().logical,
-        accumulation_sampler_,
-        nullptr);
+    vkDestroySampler(backend_->device(), reveal_sampler_, nullptr);
+    vkDestroySampler(backend_->device(), accumulation_sampler_, nullptr);
 
     free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
         cppext::as_span(descriptor_set_));
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_set_layout_,
         nullptr);
 

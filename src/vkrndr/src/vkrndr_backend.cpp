@@ -8,7 +8,7 @@
 #include <vkrndr_features.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
-#include <vkrndr_library.hpp>
+#include <vkrndr_library_handle.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
@@ -73,51 +73,50 @@ namespace
     }
 } // namespace
 
-vkrndr::backend_t::backend_t(std::shared_ptr<library_handle_t>&& library,
-    std::shared_ptr<instance_t>&& instance,
-    std::shared_ptr<device_t>&& device,
+vkrndr::backend_t::backend_t(rendering_context_t rendering_context,
     uint32_t frames_in_flight)
-    : library_{std::move(library)}
-    , instance_{std::move(instance)}
-    , device_{std::move(device)}
+    : context_{std::move(rendering_context)}
 {
     spdlog::info(
         "Vulkan backend created with instance handle {}.\n\tEnabled extensions: {}\n\tEnabled layers: {}",
-        std::bit_cast<intptr_t>(instance_->handle),
-        fmt::join(instance_->extensions, ", "),
-        fmt::join(instance_->layers, ", "));
+        std::bit_cast<intptr_t>(context_.instance->handle),
+        fmt::join(context_.instance->extensions, ", "),
+        fmt::join(context_.instance->layers, ", "));
 
     spdlog::info(
         "Vulkan backend created with device handle {}.\n\tEnabled extensions: {}",
-        std::bit_cast<intptr_t>(device_->logical),
-        fmt::join(device_->extensions, ", "));
+        std::bit_cast<intptr_t>(context_.device->logical_device),
+        fmt::join(context_.device->extensions, ", "));
 
-    auto const execution_port{std::ranges::find_if(device_->execution_ports,
-        [](execution_port_t const& port)
-        { return port.has_graphics() && port.has_transfer(); })};
-    if (execution_port == std::cend(device_->execution_ports))
+    auto const execution_port{
+        std::ranges::find_if(context_.device->execution_ports,
+            [](execution_port_t const& port)
+            { return port.has_graphics() && port.has_transfer(); })};
+    if (execution_port == std::cend(context_.device->execution_ports))
     {
         throw std::runtime_error{"no suitable execution port found"};
     }
 
     frame_data_ = cppext::cycled_buffer_t<frame_data_t>{frames_in_flight,
         frames_in_flight};
-    descriptor_pool_ = ::create_descriptor_pool(*device_);
+    descriptor_pool_ = ::create_descriptor_pool(*context_.device);
 
     for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
         fd.present_queue = &(*execution_port);
-        fd.present_command_pool =
-            create_command_pool(*device_, fd.present_queue->queue_family())
+        fd.present_command_pool = create_command_pool(*context_.device,
+            fd.present_queue->queue_family())
+                                      .value();
+        fd.present_transient_command_pool =
+            create_command_pool(*context_.device,
+                fd.present_queue->queue_family(),
+                VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
                 .value();
-        fd.present_transient_command_pool = create_command_pool(*device_,
-            fd.present_queue->queue_family(),
-            VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
-                                                .value();
 
         fd.transfer_queue = &(*execution_port);
         fd.transfer_transient_command_pool =
-            create_command_pool(*device_, fd.transfer_queue->queue_family())
+            create_command_pool(*context_.device,
+                fd.transfer_queue->queue_family())
                 .value();
     };
 }
@@ -126,29 +125,34 @@ vkrndr::backend_t::~backend_t()
 {
     for (frame_data_t const& fd : cppext::as_span(frame_data_))
     {
-        destroy_command_pool(*device_, fd.present_command_pool);
-        destroy_command_pool(*device_, fd.present_transient_command_pool);
-        destroy_command_pool(*device_, fd.transfer_transient_command_pool);
+        destroy_command_pool(*context_.device, fd.present_command_pool);
+        destroy_command_pool(*context_.device,
+            fd.present_transient_command_pool);
+        destroy_command_pool(*context_.device,
+            fd.transfer_transient_command_pool);
     };
 
-    destroy_descriptor_pool(*device_, descriptor_pool_);
+    destroy_descriptor_pool(*context_.device, descriptor_pool_);
 }
 
 vkrndr::instance_t& vkrndr::backend_t::instance() noexcept
 {
-    return *instance_;
+    return *context_.instance;
 }
 
 vkrndr::instance_t const& vkrndr::backend_t::instance() const noexcept
 {
-    return *instance_;
+    return *context_.instance;
 }
 
-vkrndr::device_t& vkrndr::backend_t::device() noexcept { return *device_; }
+vkrndr::device_t& vkrndr::backend_t::device() noexcept
+{
+    return *context_.device;
+}
 
 vkrndr::device_t const& vkrndr::backend_t::device() const noexcept
 {
-    return *device_;
+    return *context_.device;
 }
 
 VkDescriptorPool vkrndr::backend_t::descriptor_pool()
@@ -163,9 +167,9 @@ uint32_t vkrndr::backend_t::frames_in_flight() const
 
 void vkrndr::backend_t::begin_frame()
 {
-    check_result(
-        reset_command_pool(*device_, frame_data_->present_command_pool));
-    check_result(reset_command_pool(*device_,
+    check_result(reset_command_pool(*context_.device,
+        frame_data_->present_command_pool));
+    check_result(reset_command_pool(*context_.device,
         frame_data_->transfer_transient_command_pool));
 }
 
@@ -196,7 +200,7 @@ VkCommandBuffer vkrndr::backend_t::request_command_buffer()
         frame_data_->present_command_buffers.resize(
             frame_data_->present_command_buffers.size() + 1);
 
-        check_result(allocate_command_buffers(*device_,
+        check_result(allocate_command_buffers(*context_.device,
             frame_data_->present_command_pool,
             true,
             1,
@@ -218,12 +222,12 @@ vkrndr::transient_operation_t vkrndr::backend_t::request_transient_operation(
 {
     if (transfer_only)
     {
-        return {*device_,
+        return {*context_.device,
             *frame_data_->transfer_queue,
             frame_data_->transfer_transient_command_pool};
     }
 
-    return {*device_,
+    return {*context_.device,
         *frame_data_->present_queue,
         frame_data_->present_transient_command_pool};
 }
@@ -234,14 +238,16 @@ vkrndr::image_t vkrndr::backend_t::transfer_image(
     VkFormat const format,
     uint32_t const mip_levels)
 {
-    buffer_t staging_buffer{create_staging_buffer(*device_, image_data.size())};
+    buffer_t staging_buffer{
+        create_staging_buffer(*context_.device, image_data.size())};
     boost::scope::defer_guard const rollback{[this, staging_buffer]() mutable
-        { destroy(device_.get(), &staging_buffer); }};
+        { destroy(context_.device.get(), &staging_buffer); }};
 
     {
-        mapped_memory_t staging_map{map_memory(*device_, staging_buffer)};
+        mapped_memory_t staging_map{
+            map_memory(*context_.device, staging_buffer)};
         memcpy(staging_map.mapped_memory, image_data.data(), image_data.size());
-        unmap_memory(*device_, &staging_map);
+        unmap_memory(*context_.device, &staging_map);
     }
 
     return transfer_buffer_to_image(staging_buffer, extent, format, mip_levels);
@@ -253,7 +259,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
     VkFormat const format,
     uint32_t const mip_levels)
 {
-    image_t image{create_image_and_view(*device_,
+    image_t image{create_image_and_view(*context_.device,
         image_2d_create_info_t{.format = format,
             .extent = extent,
             .mip_levels = mip_levels,
@@ -264,7 +270,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT)};
     boost::scope::scope_fail const rollback{
-        [this, &image]() mutable { destroy(device_.get(), &image); }};
+        [this, &image]() mutable { destroy(context_.device.get(), &image); }};
 
     {
         auto transient{request_transient_operation(false)};
@@ -277,7 +283,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
         }
         else
         {
-            generate_mipmaps(*device_,
+            generate_mipmaps(*context_.device,
                 image.image,
                 cb,
                 format,

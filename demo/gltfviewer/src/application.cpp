@@ -36,7 +36,7 @@
 #include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
-#include <vkrndr_library.hpp>
+#include <vkrndr_library_handle.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_swapchain.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -145,10 +145,10 @@ namespace
         vkrndr::backend_t const& backend,
         VkExtent2D const extent)
     {
-        auto const& formats{vkrndr::find_supported_depth_stencil_formats(
-            backend.device().physical,
-            true,
-            false)};
+        auto const& formats{
+            vkrndr::find_supported_depth_stencil_formats(backend.device(),
+                true,
+                false)};
         vkrndr::image_2d_create_info_t create_info{.extent = extent,
             .samples = backend.device().max_msaa_samples,
             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -198,93 +198,143 @@ gltfviewer::application_t::application_t(bool const debug)
           512)}
     , camera_controller_{camera_, mouse_}
 {
-    std::shared_ptr<vkrndr::library_handle_t> library_handle{
-        vkrndr::initialize()};
-
-    std::vector<char const*> const instance_extensions{
-        ngnwsi::sdl_window_t::required_extensions()};
-
-    std::shared_ptr<vkrndr::instance_t> instance{
-        create_instance(*library_handle,
-            {
-                .extensions = instance_extensions,
-                .application_name = "gltfviewer",
-            })};
-
-    std::array const device_extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
-    std::optional<vkrndr::physical_device_features_t> const physical_device{
-        pick_best_physical_device(*instance,
-            device_extensions,
-            render_window_->create_surface(instance->handle))};
-
-    vkrndr::queue_family_t present_family{};
-    if (!physical_device)
-    {
-        throw std::runtime_error{"Can't find suitable physical device"};
-    }
-    else
-    {
-        auto const queue_with_present{
-            std::ranges::find_if(physical_device->queue_families,
-                [](vkrndr::queue_family_t const& f)
+    std::optional<vkrndr::queue_family_t> present_family;
+    auto const create_result{vkrndr::initialize()
+            .and_then(
+                [this](vkrndr::library_handle_ptr_t&& library_handle)
                 {
-                    return f.supports_present &&
-                        vkrndr::supports_flags(f.properties.queueFlags,
-                            VK_QUEUE_GRAPHICS_BIT);
+                    rendering_context_.library_handle =
+                        std::move(library_handle);
+
+                    std::vector<char const*> const instance_extensions{
+                        ngnwsi::sdl_window_t::required_extensions()};
+
+                    return vkrndr::create_instance({
+                        .extensions = instance_extensions,
+                        .application_name = "gltfviewer",
+                    });
+                })
+            .transform_error(
+                [](std::error_code&& ec)
+                {
+                    spdlog::error("Instance creation failed with: {}",
+                        ec.message());
+                    return ec;
+                })
+            .and_then(
+                [this, &present_family](
+                    vkrndr::instance_ptr_t&& instance) mutable
+                    -> std::expected<vkrndr::device_ptr_t, std::error_code>
+                {
+                    rendering_context_.instance = std::move(instance);
+                    std::array const device_extensions{
+                        VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+                    std::optional<vkrndr::physical_device_features_t> const
+                        physical_device{pick_best_physical_device(
+                            *rendering_context_.instance,
+                            device_extensions,
+                            render_window_->create_surface(
+                                *rendering_context_.instance))};
+                    if (!physical_device)
+                    {
+                        spdlog::error("No suitable physical device");
+                        return std::unexpected{
+                            make_error_code(std::errc::no_such_device)};
+                    }
+
+                    auto const queue_with_present{std::ranges::find_if(
+                        physical_device->queue_families,
+                        [](vkrndr::queue_family_t const& f)
+                        {
+                            return f.supports_present &&
+                                vkrndr::supports_flags(f.properties.queueFlags,
+                                    VK_QUEUE_GRAPHICS_BIT);
+                        })};
+                    if (queue_with_present ==
+                        std::cend(physical_device->queue_families))
+                    {
+                        spdlog::error("No present queue");
+                        return std::unexpected{
+                            make_error_code(std::errc::not_supported)};
+                    }
+                    present_family = *queue_with_present;
+
+                    return create_device(*rendering_context_.instance,
+                        device_extensions,
+                        *physical_device,
+                        cppext::as_span(*queue_with_present));
+                })
+            .transform_error(
+                [](std::error_code&& ec)
+                {
+                    spdlog::error("Device creation failed with: {}",
+                        ec.message());
+                    return ec;
+                })
+            .and_then(
+                [this, &present_family](vkrndr::device_ptr_t&& device)
+                {
+                    rendering_context_.device = std::move(device);
+
+                    backend_ =
+                        std::make_unique<vkrndr::backend_t>(rendering_context_,
+                            2);
+
+                    vkrndr::execution_port_t& present_queue{
+                        *std::ranges::find_if(
+                            rendering_context_.device->execution_ports,
+                            [&present_family](
+                                vkrndr::execution_port_t const& port)
+                            {
+                                return port.queue_family() ==
+                                    present_family->index;
+                            })};
+
+                    vkrndr::swapchain_t* const swapchain{
+                        render_window_->create_swapchain(
+                            *rendering_context_.device,
+                            {
+                                .preffered_format = VK_FORMAT_R8G8B8A8_UNORM,
+                                .image_flags =
+                                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                    VK_IMAGE_USAGE_STORAGE_BIT |
+                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                .preferred_present_mode =
+                                    VK_PRESENT_MODE_FIFO_KHR,
+                                .present_queue = &present_queue,
+                            })};
+
+                    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
+                        render_window_->platform_window(),
+                        *rendering_context_.instance,
+                        *rendering_context_.device,
+                        *swapchain,
+                        present_queue);
+
+                    environment_ = std::make_unique<environment_t>(*backend_);
+                    materials_ = std::make_unique<materials_t>(*backend_);
+                    scene_graph_ = std::make_unique<scene_graph_t>(*backend_);
+                    depth_pass_shader_ =
+                        std::make_unique<depth_pass_shader_t>(*backend_);
+                    shadow_map_ = std::make_unique<shadow_map_t>(*backend_);
+                    pbr_shader_ = std::make_unique<pbr_shader_t>(*backend_);
+                    weighted_oit_shader_ =
+                        std::make_unique<weighted_oit_shader_t>(*backend_);
+                    resolve_shader_ =
+                        std::make_unique<resolve_shader_t>(*backend_);
+                    pyramid_blur_ = std::make_unique<pyramid_blur_t>(*backend_);
+                    weighted_blend_shader_ =
+                        std::make_unique<weighted_blend_shader_t>(*backend_);
+                    postprocess_shader_ =
+                        std::make_unique<postprocess_shader_t>(*backend_);
+
+                    return std::expected<std::void_t<>, std::error_code>{};
                 })};
-        if (queue_with_present == std::cend(physical_device->queue_families))
-        {
-            throw std::runtime_error{"Can't find suitable present queue"};
-        }
-        present_family = *queue_with_present;
+    if (!create_result)
+    {
+        throw std::system_error{create_result.error()};
     }
-
-    std::shared_ptr<vkrndr::device_t> device{create_device(*instance,
-        device_extensions,
-        *physical_device,
-        cppext::as_span(present_family))};
-
-    backend_ = std::make_unique<vkrndr::backend_t>(std::move(library_handle),
-        std::move(instance),
-        std::move(device),
-        2);
-
-    vkrndr::execution_port_t& present_queue{
-        *std::ranges::find_if(backend_->device().execution_ports,
-            [&present_family](vkrndr::execution_port_t const& port)
-            { return port.queue_family() == present_family.index; })};
-
-    vkrndr::swapchain_t* const swapchain{
-        render_window_->create_swapchain(backend_->device(),
-            {
-                .preffered_format = VK_FORMAT_R8G8B8A8_UNORM,
-                .image_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                    VK_IMAGE_USAGE_STORAGE_BIT |
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
-                .present_queue = &present_queue,
-            })};
-
-    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
-        render_window_->platform_window(),
-        backend_->instance(),
-        backend_->device(),
-        *swapchain,
-        present_queue);
-
-    environment_ = std::make_unique<environment_t>(*backend_);
-    materials_ = std::make_unique<materials_t>(*backend_);
-    scene_graph_ = std::make_unique<scene_graph_t>(*backend_);
-    depth_pass_shader_ = std::make_unique<depth_pass_shader_t>(*backend_);
-    shadow_map_ = std::make_unique<shadow_map_t>(*backend_);
-    pbr_shader_ = std::make_unique<pbr_shader_t>(*backend_);
-    weighted_oit_shader_ = std::make_unique<weighted_oit_shader_t>(*backend_);
-    resolve_shader_ = std::make_unique<resolve_shader_t>(*backend_);
-    pyramid_blur_ = std::make_unique<pyramid_blur_t>(*backend_);
-    weighted_blend_shader_ =
-        std::make_unique<weighted_blend_shader_t>(*backend_);
-    postprocess_shader_ = std::make_unique<postprocess_shader_t>(*backend_);
 }
 
 gltfviewer::application_t::~application_t() = default;
@@ -301,7 +351,7 @@ bool gltfviewer::application_t::handle_event(SDL_Event const& event)
     {
         if (render_window_)
         {
-            vkDeviceWaitIdle(backend_->device().logical);
+            vkDeviceWaitIdle(backend_->device());
 
             render_window_->destroy_swapchain();
             render_window_->destroy_surface(backend_->instance().handle);
@@ -343,7 +393,7 @@ void gltfviewer::application_t::update(float delta_time)
             return;
         }
 
-        vkDeviceWaitIdle(backend_->device().logical);
+        vkDeviceWaitIdle(backend_->device());
 
         materials_->load(*model);
         scene_graph_->load(std::move(model).value());
@@ -829,7 +879,7 @@ void gltfviewer::application_t::on_startup()
 
 void gltfviewer::application_t::on_shutdown()
 {
-    vkDeviceWaitIdle(backend_->device().logical);
+    vkDeviceWaitIdle(backend_->device());
 
     postprocess_shader_.reset();
 
@@ -869,12 +919,16 @@ void gltfviewer::application_t::on_shutdown()
     }
 
     backend_.reset();
+
+    rendering_context_.device.reset();
+    rendering_context_.instance.reset();
+    rendering_context_.library_handle.reset();
 }
 
 void gltfviewer::application_t::on_resize(uint32_t const width,
     uint32_t const height)
 {
-    vkDeviceWaitIdle(backend_->device().logical);
+    vkDeviceWaitIdle(backend_->device());
 
     render_window_->swapchain().recreate();
 

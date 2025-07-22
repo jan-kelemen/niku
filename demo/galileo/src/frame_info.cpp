@@ -97,7 +97,7 @@ namespace
 
         std::array const descriptor_writes{info_write, light_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -176,7 +176,7 @@ galileo::frame_info_t::~frame_info_t()
         vkrndr::destroy(&backend_->device(), &data.info_buffer);
     }
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_set_layout_,
         nullptr);
 }

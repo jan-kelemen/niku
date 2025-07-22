@@ -55,7 +55,7 @@ std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
     {
         spdlog::info("Recreating swapchain");
         // TODO-JK: Fix global wait
-        vkDeviceWaitIdle(device_->logical);
+        vkDeviceWaitIdle(*device_);
         swapchain_->recreate();
         return std::nullopt;
     }

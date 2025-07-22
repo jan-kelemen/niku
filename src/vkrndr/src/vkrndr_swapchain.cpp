@@ -86,8 +86,8 @@ namespace
 void vkrndr::detail::destroy(device_t const* const device,
     swap_frame_t* const frame)
 {
-    vkDestroySemaphore(device->logical, frame->image_available, nullptr);
-    vkDestroyFence(device->logical, frame->in_flight, nullptr);
+    vkDestroySemaphore(*device, frame->image_available, nullptr);
+    vkDestroyFence(*device, frame->in_flight, nullptr);
 }
 
 vkrndr::swapchain_t::swapchain_t(window_t const& window,
@@ -112,14 +112,14 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
     auto const& frame{frames_[current_frame]};
 
     VkResult const wait_result{
-        vkWaitForFences(device_->logical, 1, &frame.in_flight, VK_TRUE, 0)};
+        vkWaitForFences(*device_, 1, &frame.in_flight, VK_TRUE, 0)};
     if (wait_result == VK_TIMEOUT)
     {
         return false;
     }
     check_result(wait_result);
 
-    VkResult const acquire_result{vkAcquireNextImageKHR(device_->logical,
+    VkResult const acquire_result{vkAcquireNextImageKHR(*device_,
         chain_,
         0,
         frame.image_available,
@@ -137,7 +137,7 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
 
     check_result(acquire_result);
 
-    check_result(vkResetFences(device_->logical, 1, &frame.in_flight));
+    check_result(vkResetFences(*device_, 1, &frame.in_flight));
     return true;
 }
 
@@ -226,8 +226,7 @@ bool vkrndr::swapchain_t::change_present_mode(VkPresentModeKHR const new_mode)
 
 void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
 {
-    auto swap_details{
-        query_swapchain_support(device_->physical, window_->surface())};
+    auto swap_details{query_swapchain_support(*device_, window_->surface())};
 
     VkPresentModeKHR const chosen_present_mode{
         choose_swap_present_mode(swap_details.present_modes,
@@ -240,10 +239,9 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
 
     if (swapchain_maintenance_1_enabled_)
     {
-        compatible_present_modes_ =
-            query_compatible_present_modes(device_->physical,
-                window_->surface(),
-                chosen_present_mode);
+        compatible_present_modes_ = query_compatible_present_modes(*device_,
+            window_->surface(),
+            chosen_present_mode);
     }
     else
     {
@@ -293,15 +291,13 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     }
 
     check_result(
-        vkCreateSwapchainKHR(device_->logical, &create_info, nullptr, &chain_));
+        vkCreateSwapchainKHR(*device_, &create_info, nullptr, &chain_));
 
-    check_result(vkGetSwapchainImagesKHR(device_->logical,
-        chain_,
-        &used_image_count,
-        nullptr));
+    check_result(
+        vkGetSwapchainImagesKHR(*device_, chain_, &used_image_count, nullptr));
 
     std::vector<VkImage> swapchain_images{used_image_count};
-    check_result(vkGetSwapchainImagesKHR(device_->logical,
+    check_result(vkGetSwapchainImagesKHR(*device_,
         chain_,
         &used_image_count,
         swapchain_images.data()));
@@ -345,20 +341,20 @@ void vkrndr::swapchain_t::cleanup()
 
     for (vkrndr::image_t const& swapchain_image : images_)
     {
-        vkDestroyImageView(device_->logical, swapchain_image.view, nullptr);
+        vkDestroyImageView(*device_, swapchain_image.view, nullptr);
     }
     images_.clear();
 
     for (VkSemaphore const semaphore : submit_finished_semaphore_)
     {
-        vkDestroySemaphore(device_->logical, semaphore, nullptr);
+        vkDestroySemaphore(*device_, semaphore, nullptr);
     }
     submit_finished_semaphore_.clear();
 
     compatible_present_modes_.clear();
     available_present_modes_.clear();
 
-    vkDestroySwapchainKHR(device_->logical, chain_, nullptr);
+    vkDestroySwapchainKHR(*device_, chain_, nullptr);
 }
 
 VkExtent2D vkrndr::swapchain_t::extent() const noexcept { return extent_; }

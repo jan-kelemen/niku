@@ -9,12 +9,13 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_debug_utils.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_descriptors.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_device.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_error_code.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_execution_port.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_features.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_formats.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_image.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_instance.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_library.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_library_handle.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
@@ -32,12 +33,13 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_debug_utils.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_descriptors.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_device.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_error_code.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_execution_port.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_features.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_formats.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_image.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_instance.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_library.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_library_handle.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_memory.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
@@ -61,10 +63,10 @@ target_link_libraries(vkrndr
         cppext
         vma_impl
     PUBLIC
+        Boost::headers
         volk::volk
         vulkan-utility-libraries::vulkan-utility-libraries
     PRIVATE
-        Boost::headers
         fmt::fmt
         spdlog::spdlog
     PRIVATE

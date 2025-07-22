@@ -153,7 +153,7 @@ namespace
             prefiltered_write,
             brdf_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -215,7 +215,7 @@ gltfviewer::environment_t::~environment_t()
         destroy(&backend_->device(), &data.uniform);
     }
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
         nullptr);
 }

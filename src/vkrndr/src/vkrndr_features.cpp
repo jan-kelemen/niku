@@ -19,16 +19,16 @@ namespace
         char const* layer_name = nullptr)
     {
         uint32_t count{};
-        vkEnumerateDeviceExtensionProperties(device,
+        vkrndr::check_result(vkEnumerateDeviceExtensionProperties(device,
             layer_name,
             &count,
-            nullptr);
+            nullptr));
 
         std::vector<VkExtensionProperties> rv{count};
-        vkEnumerateDeviceExtensionProperties(device,
+        vkrndr::check_result(vkEnumerateDeviceExtensionProperties(device,
             layer_name,
             &count,
-            rv.data());
+            rv.data()));
 
         return rv;
     }
@@ -54,10 +54,11 @@ namespace
             if (surface != VK_NULL_HANDLE)
             {
                 VkBool32 present_support{VK_FALSE};
-                vkGetPhysicalDeviceSurfaceSupportKHR(device,
-                    index,
-                    surface,
-                    &present_support);
+                vkrndr::check_result(
+                    vkGetPhysicalDeviceSurfaceSupportKHR(device,
+                        index,
+                        surface,
+                        &present_support));
 
                 rv.emplace_back(index, properties, present_support == VK_TRUE);
             }
@@ -76,10 +77,12 @@ namespace
         VkInstance instance)
     {
         uint32_t count{};
-        vkEnumeratePhysicalDevices(instance, &count, nullptr);
+        vkrndr::check_result(
+            vkEnumeratePhysicalDevices(instance, &count, nullptr));
 
         std::vector<VkPhysicalDevice> rv{count};
-        vkEnumeratePhysicalDevices(instance, &count, rv.data());
+        vkrndr::check_result(
+            vkEnumeratePhysicalDevices(instance, &count, rv.data()));
 
         return rv;
     }
@@ -88,10 +91,10 @@ namespace
 std::vector<VkLayerProperties> vkrndr::query_instance_layers()
 {
     uint32_t count{};
-    vkEnumerateInstanceLayerProperties(&count, nullptr);
+    check_result(vkEnumerateInstanceLayerProperties(&count, nullptr));
 
     std::vector<VkLayerProperties> rv{count};
-    vkEnumerateInstanceLayerProperties(&count, rv.data());
+    check_result(vkEnumerateInstanceLayerProperties(&count, rv.data()));
 
     return rv;
 }
@@ -100,10 +103,12 @@ std::vector<VkExtensionProperties> vkrndr::query_instance_extensions(
     char const* const layer_name)
 {
     uint32_t count{};
-    vkEnumerateInstanceExtensionProperties(layer_name, &count, nullptr);
+    check_result(
+        vkEnumerateInstanceExtensionProperties(layer_name, &count, nullptr));
 
     std::vector<VkExtensionProperties> rv{count};
-    vkEnumerateInstanceExtensionProperties(layer_name, &count, rv.data());
+    check_result(
+        vkEnumerateInstanceExtensionProperties(layer_name, &count, rv.data()));
 
     return rv;
 }

@@ -24,7 +24,7 @@ std::expected<VkDescriptorPool, VkResult> vkrndr::create_descriptor_pool(
 
     VkDescriptorPool rv{};
     if (auto const result{
-            vkCreateDescriptorPool(device.logical, &create_info, nullptr, &rv)};
+            vkCreateDescriptorPool(device, &create_info, nullptr, &rv)};
         result != VK_SUCCESS)
     {
         return std::unexpected{result};
@@ -47,7 +47,7 @@ VkResult vkrndr::allocate_descriptor_sets(device_t const& device,
         .pSetLayouts = layouts.data(),
     };
 
-    return vkAllocateDescriptorSets(device.logical,
+    return vkAllocateDescriptorSets(device,
         &alloc_info,
         descriptor_sets.data());
 }
@@ -79,7 +79,7 @@ VkResult vkrndr::allocate_descriptor_sets(device_t const& device,
         alloc_info.pNext = &variable_info;
     }
 
-    return vkAllocateDescriptorSets(device.logical,
+    return vkAllocateDescriptorSets(device,
         &alloc_info,
         descriptor_sets.data());
 }
@@ -93,7 +93,7 @@ void vkrndr::free_descriptor_sets(device_t const& device,
         return;
     }
 
-    vkFreeDescriptorSets(device.logical,
+    vkFreeDescriptorSets(device,
         pool,
         count_cast(descriptor_sets.size()),
         descriptor_sets.data());
@@ -102,13 +102,13 @@ void vkrndr::free_descriptor_sets(device_t const& device,
 void vkrndr::reset_descriptor_pool(device_t const& device,
     VkDescriptorPool pool)
 {
-    vkResetDescriptorPool(device.logical, pool, {});
+    vkResetDescriptorPool(device, pool, {});
 }
 
 void vkrndr::destroy_descriptor_pool(device_t const& device,
     VkDescriptorPool pool)
 {
-    vkDestroyDescriptorPool(device.logical, pool, nullptr);
+    vkDestroyDescriptorPool(device, pool, nullptr);
 }
 
 std::expected<VkDescriptorSetLayout, VkResult>
@@ -141,10 +141,8 @@ vkrndr::create_descriptor_set_layout(device_t const& device,
     }
 
     VkDescriptorSetLayout rv; // NOLINT
-    check_result(vkCreateDescriptorSetLayout(device.logical,
-        &layout_info,
-        nullptr,
-        &rv));
+    check_result(
+        vkCreateDescriptorSetLayout(device, &layout_info, nullptr, &rv));
 
     return rv;
 }

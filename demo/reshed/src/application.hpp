@@ -4,6 +4,8 @@
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_mouse.hpp>
 
+#include <vkrndr_backend.hpp>
+
 #include <SDL3/SDL_events.h>
 
 #include <cstdint>
@@ -20,11 +22,6 @@ namespace ngnwsi
     class render_window_t;
     class sdl_text_input_guard_t;
 } // namespace ngnwsi
-
-namespace vkrndr
-{
-    class backend_t;
-} // namespace vkrndr
 
 namespace reshed
 {
@@ -69,6 +66,8 @@ namespace reshed
 
     private:
         ngnwsi::mouse_t mouse_;
+
+        vkrndr::rendering_context_t rendering_context_;
 
         std::shared_ptr<ngntxt::freetype_context_t> freetype_context_;
         std::unique_ptr<ngnwsi::render_window_t> render_window_;

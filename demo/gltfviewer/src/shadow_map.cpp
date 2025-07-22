@@ -48,10 +48,10 @@ namespace
     [[nodiscard]] vkrndr::image_t create_depth_buffer(
         vkrndr::backend_t const& backend)
     {
-        auto const& formats{vkrndr::find_supported_depth_stencil_formats(
-            backend.device().physical,
-            true,
-            false)};
+        auto const& formats{
+            vkrndr::find_supported_depth_stencil_formats(backend.device(),
+                true,
+                false)};
         vkrndr::image_2d_create_info_t create_info{.extent = {1024, 1024},
             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
                 VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -119,18 +119,14 @@ namespace
         shadow_map_write.descriptorCount = 1;
         shadow_map_write.pImageInfo = &shadow_map_info;
 
-        vkUpdateDescriptorSets(device.logical,
-            1,
-            &shadow_map_write,
-            0,
-            nullptr);
+        vkUpdateDescriptorSets(device, 1, &shadow_map_write, 0, nullptr);
     }
 
     [[nodiscard]] VkSampler create_shadow_map_sampler(
         vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -152,7 +148,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -198,11 +194,11 @@ gltfviewer::shadow_map_t::~shadow_map_t()
         backend_->descriptor_pool(),
         cppext::as_span(descriptor_));
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
         nullptr);
 
-    vkDestroySampler(backend_->device().logical, shadow_sampler_, nullptr);
+    vkDestroySampler(backend_->device(), shadow_sampler_, nullptr);
 
     destroy(&backend_->device(), &shadow_map_);
     destroy(&backend_->device(), &vertex_shader_);

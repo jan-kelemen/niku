@@ -1,6 +1,8 @@
 #include <vkrndr_instance.hpp>
 
-#include <vkrndr_library.hpp>
+#include <vkrndr_error_code.hpp>
+#include <vkrndr_features.hpp>
+#include <vkrndr_library_handle.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/scope_fail.hpp>
@@ -11,18 +13,14 @@
 #include <iterator>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
-namespace
-{
-    void destroy(vkrndr::instance_t* const instance)
-    {
-        vkDestroyInstance(instance->handle, nullptr);
-        instance->layers.clear();
-        instance->extensions.clear();
-    }
-} // namespace
 
-std::shared_ptr<vkrndr::instance_t> vkrndr::create_instance(
-    library_handle_t const& library_handle,
+vkrndr::instance_t::~instance_t()
+{
+    vkDestroyInstance(handle, nullptr);
+    handle = VK_NULL_HANDLE;
+}
+
+std::expected<vkrndr::instance_ptr_t, std::error_code> vkrndr::create_instance(
     instance_create_info_t const& create_info)
 {
     std::vector<char const*> required_extensions{
@@ -30,18 +28,17 @@ std::shared_ptr<vkrndr::instance_t> vkrndr::create_instance(
         std::cend(create_info.extensions)};
 
 #if VKRNDR_ENABLE_DEBUG_UTILS
-    if (is_instance_extension_available(library_handle,
-            VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+    if (is_instance_extension_available(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
     {
         required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 #endif
 
     {
-        auto const capabilities2{is_instance_extension_available(library_handle,
+        auto const capabilities2{is_instance_extension_available(
             VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME)};
 
-        auto const maintenance1{is_instance_extension_available(library_handle,
+        auto const maintenance1{is_instance_extension_available(
             VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME)};
 
         if (capabilities2 && maintenance1)
@@ -70,9 +67,13 @@ std::shared_ptr<vkrndr::instance_t> vkrndr::create_instance(
         .enabledExtensionCount = count_cast(required_extensions.size()),
         .ppEnabledExtensionNames = required_extensions.data()};
 
-    std::shared_ptr<instance_t> rv{new instance_t, destroy};
+    instance_ptr_t rv{new instance_t};
 
-    check_result(vkCreateInstance(&ci, nullptr, &rv->handle));
+    if (VkResult const result{vkCreateInstance(&ci, nullptr, &rv->handle)};
+        result != VK_SUCCESS)
+    {
+        return std::unexpected{vkrndr::make_error_code(result)};
+    }
 
     volkLoadInstanceOnly(rv->handle);
 
@@ -83,4 +84,12 @@ std::shared_ptr<vkrndr::instance_t> vkrndr::create_instance(
         std::inserter(rv->extensions, rv->extensions.begin()));
 
     return rv;
+}
+
+bool vkrndr::is_instance_extension_available(char const* extension_name,
+    char const* layer_name)
+{
+    return std::ranges::contains(query_instance_extensions(layer_name),
+        std::string_view{extension_name},
+        &VkExtensionProperties::extensionName);
 }

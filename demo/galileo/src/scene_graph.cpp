@@ -96,7 +96,7 @@ namespace
 
         std::array const descriptor_writes{uniform_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -217,7 +217,7 @@ galileo::scene_graph_t::~scene_graph_t()
 
     destroy(&backend_->device(), &vertex_buffer_);
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_set_layout_,
         nullptr);
 }

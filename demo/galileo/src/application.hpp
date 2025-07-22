@@ -21,6 +21,7 @@
 
 #include <vkglsl_guard.hpp>
 
+#include <vkrndr_backend.hpp>
 #include <vkrndr_image.hpp>
 
 #include <entt/entt.hpp>
@@ -36,11 +37,6 @@ namespace ngnwsi
     class imgui_layer_t;
     class render_window_t;
 } // namespace ngnwsi
-
-namespace vkrndr
-{
-    class backend_t;
-} // namespace vkrndr
 
 namespace galileo
 {
@@ -150,6 +146,7 @@ namespace galileo
         std::unique_ptr<character_t> character_;
         std::unique_ptr<character_contact_listener_t> character_listener_;
 
+        vkrndr::rendering_context_t rendering_context_;
         std::unique_ptr<ngnwsi::render_window_t> render_window_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;

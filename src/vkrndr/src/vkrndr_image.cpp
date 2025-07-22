@@ -14,7 +14,7 @@ void vkrndr::destroy(device_t const* device, image_t* const image)
 {
     if (image)
     {
-        vkDestroyImageView(device->logical, image->view, nullptr);
+        vkDestroyImageView(*device, image->view, nullptr);
         vmaDestroyImage(device->allocator, image->image, image->allocation);
     }
 }
@@ -97,8 +97,7 @@ VkImageView vkrndr::create_image_view(device_t const& device,
     view_info.subresourceRange.layerCount = 1;
 
     VkImageView imageView; // NOLINT
-    check_result(
-        vkCreateImageView(device.logical, &view_info, nullptr, &imageView));
+    check_result(vkCreateImageView(device, &view_info, nullptr, &imageView));
     return imageView;
 }
 
@@ -125,7 +124,7 @@ void vkrndr::object_name(device_t const& device,
     image_t const& image,
     std::string_view name)
 {
-    object_name(device.logical,
+    object_name(device,
         VK_OBJECT_TYPE_IMAGE,
         std::bit_cast<uint64_t>(image.image),
         name);

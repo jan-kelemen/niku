@@ -59,7 +59,7 @@ std::expected<VkCommandPool, VkResult> vkrndr::create_command_pool(
 
     VkCommandPool rv{};
     if (auto const result{
-            vkCreateCommandPool(device.logical, &create_info, nullptr, &rv)};
+            vkCreateCommandPool(device, &create_info, nullptr, &rv)};
         result != VK_SUCCESS)
     {
         return std::unexpected{result};
@@ -84,16 +84,14 @@ VkResult vkrndr::allocate_command_buffers(device_t const& device,
         .commandBufferCount = count,
     };
 
-    return vkAllocateCommandBuffers(device.logical,
-        &alloc_info,
-        buffers.data());
+    return vkAllocateCommandBuffers(device, &alloc_info, buffers.data());
 }
 
 void vkrndr::free_command_buffers(device_t const& device,
     VkCommandPool pool,
     std::span<VkCommandBuffer const> const& buffers)
 {
-    vkFreeCommandBuffers(device.logical,
+    vkFreeCommandBuffers(device,
         pool,
         count_cast(buffers.size()),
         buffers.data());
@@ -103,19 +101,19 @@ VkResult vkrndr::reset_command_pool(device_t const& device,
     VkCommandPool pool,
     bool release_resources)
 {
-    return vkResetCommandPool(device.logical,
+    return vkResetCommandPool(device,
         pool,
         release_resources ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0);
 }
 
 void vkrndr::trim_command_pool(device_t const& device, VkCommandPool pool)
 {
-    vkTrimCommandPool(device.logical, pool, 0);
+    vkTrimCommandPool(device, pool, 0);
 }
 
 void vkrndr::destroy_command_pool(device_t const& device, VkCommandPool pool)
 {
-    vkDestroyCommandPool(device.logical, pool, nullptr);
+    vkDestroyCommandPool(device, pool, nullptr);
 }
 
 void vkrndr::begin_single_time_commands(device_t const& device,
@@ -278,7 +276,7 @@ void vkrndr::generate_mipmaps(device_t const& device,
     uint32_t const layers)
 {
     VkFormatProperties properties;
-    vkGetPhysicalDeviceFormatProperties(device.physical, format, &properties);
+    vkGetPhysicalDeviceFormatProperties(device, format, &properties);
     if (!(properties.optimalTilingFeatures &
             VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
     {

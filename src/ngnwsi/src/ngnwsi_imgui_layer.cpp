@@ -39,7 +39,7 @@ namespace
 
         VkDescriptorPool rv; // NOLINT
         vkrndr::check_result(
-            vkCreateDescriptorPool(device.logical, &pool_info, nullptr, &rv));
+            vkCreateDescriptorPool(device, &pool_info, nullptr, &rv));
 
         return rv;
     }
@@ -102,8 +102,8 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
 
     ImGui_ImplVulkan_InitInfo init_info{};
     init_info.Instance = instance.handle;
-    init_info.PhysicalDevice = device.physical;
-    init_info.Device = device.logical;
+    init_info.PhysicalDevice = device;
+    init_info.Device = device;
     init_info.QueueFamily = present_queue.queue_family();
     init_info.Queue = present_queue.queue();
     init_info.PipelineCache = VK_NULL_HANDLE;
@@ -129,7 +129,7 @@ ngnwsi::imgui_layer_t::~imgui_layer_t()
 
     ImGui::DestroyContext(context_);
 
-    vkDestroyDescriptorPool(device_->logical, descriptor_pool_, nullptr);
+    vkDestroyDescriptorPool(*device_, descriptor_pool_, nullptr);
 }
 
 bool ngnwsi::imgui_layer_t::handle_event(SDL_Event const& event) const

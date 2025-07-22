@@ -38,7 +38,7 @@ void vkrndr::destroy(device_t* device, shader_module_t* shader_module)
 {
     if (device)
     {
-        vkDestroyShaderModule(device->logical, shader_module->handle, nullptr);
+        vkDestroyShaderModule(*device, shader_module->handle, nullptr);
     }
 }
 
@@ -71,10 +71,8 @@ vkrndr::shader_module_t vkrndr::create_shader_module(device_t& device,
     shader_module_t rv;
     rv.stage = stage;
     rv.entry_point = std::string{entry_point};
-    check_result(vkCreateShaderModule(device.logical,
-        &create_info,
-        nullptr,
-        &rv.handle));
+    check_result(
+        vkCreateShaderModule(device, &create_info, nullptr, &rv.handle));
 
     return rv;
 }
@@ -97,7 +95,7 @@ void vkrndr::object_name(device_t const& device,
     shader_module_t const& shader_module,
     std::string_view name)
 {
-    object_name(device.logical,
+    object_name(device,
         VK_OBJECT_TYPE_SHADER_MODULE,
         std::bit_cast<uint64_t>(shader_module.handle),
         name);

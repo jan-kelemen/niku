@@ -134,7 +134,7 @@ namespace
 
         std::array const descriptor_writes{texture_descriptor_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -145,7 +145,7 @@ namespace
         vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -166,7 +166,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -303,7 +303,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
             .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
             .pImageInfo = &info};
 
-        vkUpdateDescriptorSets(backend_->device().logical,
+        vkUpdateDescriptorSets(backend_->device(),
             1,
             &sampler_descriptor_write,
             0,
@@ -392,13 +392,13 @@ reshed::text_editor_t::~text_editor_t()
 
     destroy(&backend_->device(), &text_pipeline_);
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         text_descriptor_layout_,
         nullptr);
 
     destroy_descriptor_pool(backend_->device(), descriptor_pool_);
 
-    vkDestroySampler(backend_->device().logical, bitmap_sampler_, nullptr);
+    vkDestroySampler(backend_->device(), bitmap_sampler_, nullptr);
 
     destroy(&backend_->device(), &font_bitmap_);
 }

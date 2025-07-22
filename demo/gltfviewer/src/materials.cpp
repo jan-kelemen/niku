@@ -136,7 +136,7 @@ namespace
             sampler_uniform_write,
             material_uniform_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -148,7 +148,7 @@ namespace
         uint32_t const mip_levels)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -170,7 +170,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -274,7 +274,7 @@ gltfviewer::materials_t::~materials_t()
 
     destroy(&backend_->device(), &dummy_uniform_);
 
-    vkDestroySampler(backend_->device().logical, default_sampler_, nullptr);
+    vkDestroySampler(backend_->device(), default_sampler_, nullptr);
 
     destroy(&backend_->device(), &white_pixel_);
 
@@ -282,7 +282,7 @@ gltfviewer::materials_t::~materials_t()
         backend_->descriptor_pool(),
         cppext::as_span(dummy_descriptor_set_));
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         dummy_descriptor_layout_,
         nullptr);
 }
@@ -428,7 +428,7 @@ void gltfviewer::materials_t::clear()
 
     for (VkSampler sampler : samplers_)
     {
-        vkDestroySampler(backend_->device().logical, sampler, nullptr);
+        vkDestroySampler(backend_->device(), sampler, nullptr);
     }
     samplers_.clear();
 
@@ -446,7 +446,7 @@ void gltfviewer::materials_t::clear()
         descriptor_set_ = VK_NULL_HANDLE;
     }
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
         nullptr);
     descriptor_layout_ = VK_NULL_HANDLE;

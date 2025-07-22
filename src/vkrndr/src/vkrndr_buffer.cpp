@@ -82,7 +82,7 @@ void vkrndr::object_name(device_t const& device,
     buffer_t const& buffer,
     std::string_view name)
 {
-    object_name(device.logical,
+    object_name(device,
         VK_OBJECT_TYPE_BUFFER,
         std::bit_cast<uint64_t>(buffer.buffer),
         name);

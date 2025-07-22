@@ -74,7 +74,7 @@ namespace
         std::array const descriptor_writes{combined_sampler_uniform_write,
             target_image_uniform_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -134,7 +134,7 @@ gltfviewer::postprocess_shader_t::~postprocess_shader_t()
         backend_->descriptor_pool(),
         cppext::as_span(descriptor_sets_));
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_set_layout_,
         nullptr);
 }

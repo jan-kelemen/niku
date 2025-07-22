@@ -18,7 +18,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
-#include <vkrndr_library.hpp>
+#include <vkrndr_library_handle.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_swapchain.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -54,83 +54,129 @@ reshed::application_t::application_t(bool const debug)
           512,
           512)}
 {
-    std::shared_ptr<vkrndr::library_handle_t> library_handle{
-        vkrndr::initialize()};
-
-    std::vector<char const*> const instance_extensions{
-        ngnwsi::sdl_window_t::required_extensions()};
-
-    std::shared_ptr<vkrndr::instance_t> instance{
-        create_instance(*library_handle,
-            {
-                .extensions = instance_extensions,
-                .application_name = "reshed",
-            })};
-
-    std::array const device_extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
-    std::optional<vkrndr::physical_device_features_t> const physical_device{
-        pick_best_physical_device(*instance,
-            device_extensions,
-            render_window_->create_surface(instance->handle))};
-
-    vkrndr::queue_family_t present_family{};
-    if (!physical_device)
-    {
-        throw std::runtime_error{"Can't find suitable physical device"};
-    }
-    else
-    {
-        auto const queue_with_present{
-            std::ranges::find_if(physical_device->queue_families,
-                [](vkrndr::queue_family_t const& f)
+    std::optional<vkrndr::queue_family_t> present_family;
+    auto const create_result{vkrndr::initialize()
+            .and_then(
+                [this](vkrndr::library_handle_ptr_t&& library_handle)
                 {
-                    return f.supports_present &&
-                        vkrndr::supports_flags(f.properties.queueFlags,
-                            VK_QUEUE_GRAPHICS_BIT);
+                    rendering_context_.library_handle =
+                        std::move(library_handle);
+
+                    std::vector<char const*> const instance_extensions{
+                        ngnwsi::sdl_window_t::required_extensions()};
+
+                    return vkrndr::create_instance({
+                        .extensions = instance_extensions,
+                        .application_name = "reshed",
+                    });
+                })
+            .transform_error(
+                [](std::error_code&& ec)
+                {
+                    spdlog::error("Instance creation failed with: {}",
+                        ec.message());
+                    return ec;
+                })
+            .and_then(
+                [this, &present_family](
+                    vkrndr::instance_ptr_t&& instance) mutable
+                    -> std::expected<vkrndr::device_ptr_t, std::error_code>
+                {
+                    rendering_context_.instance = std::move(instance);
+                    std::array const device_extensions{
+                        VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+                    std::optional<vkrndr::physical_device_features_t> const
+                        physical_device{pick_best_physical_device(
+                            *rendering_context_.instance,
+                            device_extensions,
+                            render_window_->create_surface(
+                                *rendering_context_.instance))};
+                    if (!physical_device)
+                    {
+                        spdlog::error("No suitable physical device");
+                        return std::unexpected{
+                            make_error_code(std::errc::no_such_device)};
+                    }
+
+                    auto const queue_with_present{std::ranges::find_if(
+                        physical_device->queue_families,
+                        [](vkrndr::queue_family_t const& f)
+                        {
+                            return f.supports_present &&
+                                vkrndr::supports_flags(f.properties.queueFlags,
+                                    VK_QUEUE_GRAPHICS_BIT);
+                        })};
+                    if (queue_with_present ==
+                        std::cend(physical_device->queue_families))
+                    {
+                        spdlog::error("No present queue");
+                        return std::unexpected{
+                            make_error_code(std::errc::not_supported)};
+                    }
+                    present_family = *queue_with_present;
+
+                    return create_device(*rendering_context_.instance,
+                        device_extensions,
+                        *physical_device,
+                        cppext::as_span(*queue_with_present));
+                })
+            .transform_error(
+                [](std::error_code&& ec)
+                {
+                    spdlog::error("Device creation failed with: {}",
+                        ec.message());
+                    return ec;
+                })
+            .and_then(
+                [this, &present_family](vkrndr::device_ptr_t&& device)
+                {
+                    rendering_context_.device = std::move(device);
+
+                    backend_ =
+                        std::make_unique<vkrndr::backend_t>(rendering_context_,
+                            2);
+
+                    vkrndr::execution_port_t& present_queue{
+                        *std::ranges::find_if(
+                            rendering_context_.device->execution_ports,
+                            [&present_family](
+                                vkrndr::execution_port_t const& port)
+                            {
+                                return port.queue_family() ==
+                                    present_family->index;
+                            })};
+
+                    vkrndr::swapchain_t* const swapchain{
+                        render_window_->create_swapchain(
+                            *rendering_context_.device,
+                            {
+                                .preffered_format = VK_FORMAT_R8G8B8A8_UNORM,
+                                .image_flags =
+                                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                    VK_IMAGE_USAGE_STORAGE_BIT |
+                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                .preferred_present_mode =
+                                    VK_PRESENT_MODE_FIFO_KHR,
+                                .present_queue = &present_queue,
+                            })};
+
+                    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
+                        render_window_->platform_window(),
+                        *rendering_context_.instance,
+                        *rendering_context_.device,
+                        *swapchain,
+                        present_queue);
+
+                    editor_ = std::make_unique<text_editor_t>(*backend_,
+                        swapchain->image_format());
+
+                    return std::expected<std::void_t<>, std::error_code>{};
                 })};
-        if (queue_with_present == std::cend(physical_device->queue_families))
-        {
-            throw std::runtime_error{"Can't find suitable present queue"};
-        }
-        present_family = *queue_with_present;
+    if (!create_result)
+    {
+        throw std::system_error{create_result.error()};
     }
-
-    std::shared_ptr<vkrndr::device_t> device{create_device(*instance,
-        device_extensions,
-        *physical_device,
-        cppext::as_span(present_family))};
-
-    backend_ = std::make_unique<vkrndr::backend_t>(std::move(library_handle),
-        std::move(instance),
-        std::move(device),
-        2);
-
-    vkrndr::execution_port_t& present_queue{
-        *std::ranges::find_if(backend_->device().execution_ports,
-            [&present_family](vkrndr::execution_port_t const& port)
-            { return port.queue_family() == present_family.index; })};
-
-    vkrndr::swapchain_t* const swapchain{
-        render_window_->create_swapchain(backend_->device(),
-            {
-                .preffered_format = VK_FORMAT_R8G8B8A8_UNORM,
-                .image_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                    VK_IMAGE_USAGE_STORAGE_BIT |
-                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
-                .present_queue = &present_queue,
-            })};
-
-    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
-        render_window_->platform_window(),
-        backend_->instance(),
-        backend_->device(),
-        *swapchain,
-        present_queue);
-
-    editor_ =
-        std::make_unique<text_editor_t>(*backend_, swapchain->image_format());
 }
 
 reshed::application_t::~application_t() = default;
@@ -151,7 +197,7 @@ bool reshed::application_t::handle_event(SDL_Event const& event)
         {
             text_input_guard_.reset();
 
-            vkDeviceWaitIdle(backend_->device().logical);
+            vkDeviceWaitIdle(backend_->device());
 
             render_window_->destroy_swapchain();
             render_window_->destroy_surface(backend_->instance().handle);
@@ -271,7 +317,7 @@ void reshed::application_t::on_shutdown()
 {
     text_input_guard_.reset();
 
-    vkDeviceWaitIdle(backend_->device().logical);
+    vkDeviceWaitIdle(backend_->device());
 
     editor_.reset();
 
@@ -285,11 +331,15 @@ void reshed::application_t::on_shutdown()
     }
 
     backend_.reset();
+
+    rendering_context_.device.reset();
+    rendering_context_.instance.reset();
+    rendering_context_.library_handle.reset();
 }
 
 void reshed::application_t::on_resize(uint32_t width, uint32_t height)
 {
-    vkDeviceWaitIdle(backend_->device().logical);
+    vkDeviceWaitIdle(backend_->device());
 
     render_window_->swapchain().recreate();
 

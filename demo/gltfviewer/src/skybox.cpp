@@ -68,7 +68,7 @@ namespace
         vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -90,7 +90,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -142,7 +142,7 @@ namespace
 
         std::array const descriptor_writes{sampler_write, uniform_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -176,7 +176,7 @@ namespace
         uint32_t const mip_levels)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -198,7 +198,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -217,13 +217,13 @@ namespace
         sampler_write.descriptorCount = 1;
         sampler_write.pImageInfo = &cubemap_sampler;
 
-        vkUpdateDescriptorSets(device.logical, 1, &sampler_write, 0, nullptr);
+        vkUpdateDescriptorSets(device, 1, &sampler_write, 0, nullptr);
     }
 
     [[nodiscard]] VkSampler create_brdf_sampler(vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -245,7 +245,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -269,13 +269,13 @@ gltfviewer::skybox_t::~skybox_t()
         backend_->descriptor_pool(),
         cppext::as_span(skybox_descriptor_));
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         skybox_descriptor_layout_,
         nullptr);
 
-    vkDestroySampler(backend_->device().logical, skybox_sampler_, nullptr);
+    vkDestroySampler(backend_->device(), skybox_sampler_, nullptr);
 
-    vkDestroySampler(backend_->device().logical, brdf_sampler_, nullptr);
+    vkDestroySampler(backend_->device(), brdf_sampler_, nullptr);
 
     destroy(&backend_->device(), &cubemap_uniform_buffer_);
 
@@ -569,11 +569,11 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         backend_->descriptor_pool(),
         cppext::as_span(cubemap_descriptor));
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         cubemap_descriptor_layout,
         nullptr);
 
-    vkDestroySampler(backend_->device().logical, cubemap_sampler, nullptr);
+    vkDestroySampler(backend_->device(), cubemap_sampler, nullptr);
 
     destroy(&backend_->device(), &cubemap_texture);
 }
@@ -899,7 +899,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
 
     for (VkImageView view : face_views)
     {
-        vkDestroyImageView(backend_->device().logical, view, nullptr);
+        vkDestroyImageView(backend_->device(), view, nullptr);
     }
 
     destroy(&backend_->device(), &pipeline);

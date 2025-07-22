@@ -50,7 +50,7 @@ namespace
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -72,7 +72,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -154,7 +154,7 @@ namespace
 
         std::array const descriptor_writes{sampler_write, storage_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -182,18 +182,18 @@ gltfviewer::pyramid_blur_t::~pyramid_blur_t()
 
     destroy(&backend_->device(), &downsample_pipeline_);
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
         nullptr);
 
     for (VkImageView view : mip_views_)
     {
-        vkDestroyImageView(backend_->device().logical, view, nullptr);
+        vkDestroyImageView(backend_->device(), view, nullptr);
     }
 
     destroy(&backend_->device(), &pyramid_image_);
 
-    vkDestroySampler(backend_->device().logical, bilinear_sampler_, nullptr);
+    vkDestroySampler(backend_->device(), bilinear_sampler_, nullptr);
 }
 
 vkrndr::image_t gltfviewer::pyramid_blur_t::source_image() const
@@ -338,7 +338,7 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
 
     for (VkImageView view : mip_views_)
     {
-        vkDestroyImageView(backend_->device().logical, view, nullptr);
+        vkDestroyImageView(backend_->device(), view, nullptr);
     }
 
     mip_views_.resize(pyramid_image_.mip_levels);
@@ -386,7 +386,7 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources()
     (*bindings)[0].descriptorCount = pyramid_image_.mip_levels;
     (*bindings)[1].descriptorCount = pyramid_image_.mip_levels;
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
         nullptr);
     descriptor_layout_ =

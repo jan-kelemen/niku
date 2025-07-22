@@ -41,7 +41,7 @@ namespace
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -63,7 +63,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -94,7 +94,7 @@ namespace
 
         std::array const descriptor_writes{sampler_write, target_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -152,11 +152,11 @@ gltfviewer::weighted_blend_shader_t::~weighted_blend_shader_t()
 
     destroy(&backend_->device(), &pipeline_);
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
         nullptr);
 
-    vkDestroySampler(backend_->device().logical, bilinear_sampler_, nullptr);
+    vkDestroySampler(backend_->device(), bilinear_sampler_, nullptr);
 }
 
 void gltfviewer::weighted_blend_shader_t::draw(float const bias,

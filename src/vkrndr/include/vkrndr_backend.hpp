@@ -4,6 +4,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
+#include <vkrndr_library_handle.hpp>
 #include <vkrndr_transient_operation.hpp>
 
 #include <cppext_cycled_buffer.hpp>
@@ -21,17 +22,21 @@ namespace vkrndr
 {
     struct buffer_t;
     class execution_port_t;
-    struct library_handle_t;
 } // namespace vkrndr
 
 namespace vkrndr
 {
+    struct rendering_context_t final
+    {
+        library_handle_ptr_t library_handle;
+        instance_ptr_t instance;
+        device_ptr_t device;
+    };
+
     class [[nodiscard]] backend_t final
     {
     public: // Construction
-        backend_t(std::shared_ptr<library_handle_t>&& library,
-            std::shared_ptr<instance_t>&& instance,
-            std::shared_ptr<device_t>&& device,
+        backend_t(rendering_context_t rendering_context,
             uint32_t frames_in_flight);
 
         backend_t(backend_t const&) = delete;
@@ -98,9 +103,7 @@ namespace vkrndr
         };
 
     private: // Data
-        std::shared_ptr<library_handle_t> library_;
-        std::shared_ptr<instance_t> instance_;
-        std::shared_ptr<device_t> device_;
+        rendering_context_t context_;
 
         VkDescriptorPool descriptor_pool_;
 

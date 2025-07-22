@@ -42,12 +42,10 @@ void vkrndr::destroy(device_t* const device, pipeline_t* const pipeline)
 {
     if (pipeline)
     {
-        vkDestroyPipeline(device->logical, pipeline->pipeline, nullptr);
+        vkDestroyPipeline(*device, pipeline->pipeline, nullptr);
         if (pipeline->layout.use_count() == 1)
         {
-            vkDestroyPipelineLayout(device->logical,
-                *pipeline->layout,
-                nullptr);
+            vkDestroyPipelineLayout(*device, *pipeline->layout, nullptr);
         }
         pipeline->layout.reset();
     }
@@ -72,10 +70,8 @@ std::shared_ptr<VkPipelineLayout> vkrndr::pipeline_layout_builder_t::build()
     pipeline_layout_info.pSetLayouts = descriptor_set_layouts_.data();
 
     VkPipelineLayout rv; // NOLINT
-    vkrndr::check_result(vkCreatePipelineLayout(device_->logical,
-        &pipeline_layout_info,
-        nullptr,
-        &rv));
+    vkrndr::check_result(
+        vkCreatePipelineLayout(*device_, &pipeline_layout_info, nullptr, &rv));
 
     return std::make_shared<VkPipelineLayout>(rv);
 }
@@ -201,7 +197,7 @@ vkrndr::pipeline_t vkrndr::pipeline_builder_t::build()
     create_info.pNext = &rendering_create_info;
 
     VkPipeline pipeline; // NOLINT
-    check_result(vkCreateGraphicsPipelines(device_->logical,
+    check_result(vkCreateGraphicsPipelines(*device_,
         VK_NULL_HANDLE,
         1,
         &create_info,
@@ -395,7 +391,7 @@ vkrndr::pipeline_t vkrndr::compute_pipeline_builder_t::build()
     create_info.stage = shader_;
 
     VkPipeline pipeline; // NOLINT
-    check_result(vkCreateComputePipelines(device_->logical,
+    check_result(vkCreateComputePipelines(*device_,
         nullptr,
         1,
         &create_info,
@@ -419,7 +415,7 @@ void vkrndr::object_name(device_t const& device,
     pipeline_t const& pipeline,
     std::string_view name)
 {
-    object_name(device.logical,
+    object_name(device,
         VK_OBJECT_TYPE_PIPELINE,
         std::bit_cast<uint64_t>(pipeline.pipeline),
         name);

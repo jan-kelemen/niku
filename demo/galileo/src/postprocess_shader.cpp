@@ -71,7 +71,7 @@ namespace
         std::array const descriptor_writes{combined_sampler_uniform_write,
             target_image_uniform_write};
 
-        vkUpdateDescriptorSets(device.logical,
+        vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes.size()),
             descriptor_writes.data(),
             0,
@@ -97,7 +97,7 @@ namespace
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
     {
         VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device.physical, &properties);
+        vkGetPhysicalDeviceProperties(device, &properties);
 
         VkSamplerCreateInfo sampler_info{};
         sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -119,7 +119,7 @@ namespace
 
         VkSampler rv; // NOLINT
         vkrndr::check_result(
-            vkCreateSampler(device.logical, &sampler_info, nullptr, &rv));
+            vkCreateSampler(device, &sampler_info, nullptr, &rv));
 
         return rv;
     }
@@ -225,17 +225,17 @@ galileo::postprocess_shader_t::~postprocess_shader_t()
 
     destroy(&backend_->device(), &tone_mapping_pipeline_);
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         fxaa_descriptor_set_layout_,
         nullptr);
 
-    vkDestroyDescriptorSetLayout(backend_->device().logical,
+    vkDestroyDescriptorSetLayout(backend_->device(),
         tone_mapping_descriptor_set_layout_,
         nullptr);
 
     destroy(&backend_->device(), &intermediate_image_);
 
-    vkDestroySampler(backend_->device().logical, sampler_, nullptr);
+    vkDestroySampler(backend_->device(), sampler_, nullptr);
 }
 
 void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
