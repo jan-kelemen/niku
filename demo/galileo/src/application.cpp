@@ -49,6 +49,7 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_error_code.hpp>
 #include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
@@ -70,6 +71,8 @@ DISABLE_WARNING_POP
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/vec3.hpp>
+
+#include <fmt/ranges.h>
 
 #include <Jolt/Core/Core.h>
 #include <Jolt/Geometry/IndexedTriangle.h>
@@ -251,8 +254,19 @@ galileo::application_t::application_t(bool const debug)
 
                     return vkrndr::create_instance({
                         .extensions = instance_extensions,
-                        .application_name = "gltfviewer",
+                        .application_name = "galileo",
                     });
+                })
+            .transform(
+                [this](vkrndr::instance_ptr_t&& instance)
+                {
+                    spdlog::info(
+                        "Created with instance handle {}.\n\tEnabled extensions: {}\n\tEnabled layers: {}",
+                        std::bit_cast<intptr_t>(instance->handle),
+                        fmt::join(instance->extensions, ", "),
+                        fmt::join(instance->layers, ", "));
+
+                    rendering_context_.instance = std::move(instance);
                 })
             .transform_error(
                 [](std::error_code&& ec)
@@ -262,11 +276,9 @@ galileo::application_t::application_t(bool const debug)
                     return ec;
                 })
             .and_then(
-                [this, &present_family](
-                    vkrndr::instance_ptr_t&& instance) mutable
+                [this, &present_family]() mutable
                     -> std::expected<vkrndr::device_ptr_t, std::error_code>
                 {
-                    rendering_context_.instance = std::move(instance);
                     std::array const device_extensions{
                         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -279,8 +291,8 @@ galileo::application_t::application_t(bool const debug)
                     if (!physical_device)
                     {
                         spdlog::error("No suitable physical device");
-                        return std::unexpected{
-                            make_error_code(std::errc::no_such_device)};
+                        return std::unexpected{vkrndr::make_error_code(
+                            VK_ERROR_INITIALIZATION_FAILED)};
                     }
 
                     auto const queue_with_present{std::ranges::find_if(
@@ -295,8 +307,8 @@ galileo::application_t::application_t(bool const debug)
                         std::cend(physical_device->queue_families))
                     {
                         spdlog::error("No present queue");
-                        return std::unexpected{
-                            make_error_code(std::errc::not_supported)};
+                        return std::unexpected{vkrndr::make_error_code(
+                            VK_ERROR_INITIALIZATION_FAILED)};
                     }
                     present_family = *queue_with_present;
 
@@ -305,6 +317,16 @@ galileo::application_t::application_t(bool const debug)
                         *physical_device,
                         cppext::as_span(*queue_with_present));
                 })
+            .transform(
+                [this](vkrndr::device_ptr_t&& device)
+                {
+                    spdlog::info(
+                        "Created with device handle {}.\n\tEnabled extensions: {}",
+                        std::bit_cast<intptr_t>(device->logical_device),
+                        fmt::join(device->extensions, ", "));
+
+                    rendering_context_.device = std::move(device);
+                })
             .transform_error(
                 [](std::error_code&& ec)
                 {
@@ -312,11 +334,9 @@ galileo::application_t::application_t(bool const debug)
                         ec.message());
                     return ec;
                 })
-            .and_then(
-                [this, &present_family](vkrndr::device_ptr_t&& device)
+            .transform(
+                [this, &present_family]()
                 {
-                    rendering_context_.device = std::move(device);
-
                     backend_ =
                         std::make_unique<vkrndr::backend_t>(rendering_context_,
                             2);
@@ -372,8 +392,6 @@ galileo::application_t::application_t(bool const debug)
                         std::make_unique<physics_debug_t>(*batch_renderer_);
                     navmesh_debug_ =
                         std::make_unique<navmesh_debug_t>(*batch_renderer_);
-
-                    return std::expected<std::void_t<>, std::error_code>{};
                 })};
     if (!create_result)
     {

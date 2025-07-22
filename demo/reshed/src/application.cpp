@@ -16,6 +16,7 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_error_code.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
@@ -25,6 +26,8 @@
 #include <vkrndr_utility.hpp>
 
 #include <imgui.h>
+
+#include <fmt/ranges.h>
 
 #include <volk.h>
 
@@ -70,6 +73,17 @@ reshed::application_t::application_t(bool const debug)
                         .application_name = "reshed",
                     });
                 })
+            .transform(
+                [this](vkrndr::instance_ptr_t&& instance)
+                {
+                    spdlog::info(
+                        "Created with instance handle {}.\n\tEnabled extensions: {}\n\tEnabled layers: {}",
+                        std::bit_cast<intptr_t>(instance->handle),
+                        fmt::join(instance->extensions, ", "),
+                        fmt::join(instance->layers, ", "));
+
+                    rendering_context_.instance = std::move(instance);
+                })
             .transform_error(
                 [](std::error_code&& ec)
                 {
@@ -78,11 +92,9 @@ reshed::application_t::application_t(bool const debug)
                     return ec;
                 })
             .and_then(
-                [this, &present_family](
-                    vkrndr::instance_ptr_t&& instance) mutable
+                [this, &present_family]() mutable
                     -> std::expected<vkrndr::device_ptr_t, std::error_code>
                 {
-                    rendering_context_.instance = std::move(instance);
                     std::array const device_extensions{
                         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -95,8 +107,8 @@ reshed::application_t::application_t(bool const debug)
                     if (!physical_device)
                     {
                         spdlog::error("No suitable physical device");
-                        return std::unexpected{
-                            make_error_code(std::errc::no_such_device)};
+                        return std::unexpected{vkrndr::make_error_code(
+                            VK_ERROR_INITIALIZATION_FAILED)};
                     }
 
                     auto const queue_with_present{std::ranges::find_if(
@@ -111,8 +123,8 @@ reshed::application_t::application_t(bool const debug)
                         std::cend(physical_device->queue_families))
                     {
                         spdlog::error("No present queue");
-                        return std::unexpected{
-                            make_error_code(std::errc::not_supported)};
+                        return std::unexpected{vkrndr::make_error_code(
+                            VK_ERROR_INITIALIZATION_FAILED)};
                     }
                     present_family = *queue_with_present;
 
@@ -120,6 +132,16 @@ reshed::application_t::application_t(bool const debug)
                         device_extensions,
                         *physical_device,
                         cppext::as_span(*queue_with_present));
+                })
+            .transform(
+                [this](vkrndr::device_ptr_t&& device)
+                {
+                    spdlog::info(
+                        "Created with device handle {}.\n\tEnabled extensions: {}",
+                        std::bit_cast<intptr_t>(device->logical_device),
+                        fmt::join(device->extensions, ", "));
+
+                    rendering_context_.device = std::move(device);
                 })
             .transform_error(
                 [](std::error_code&& ec)
@@ -129,10 +151,8 @@ reshed::application_t::application_t(bool const debug)
                     return ec;
                 })
             .and_then(
-                [this, &present_family](vkrndr::device_ptr_t&& device)
+                [this, &present_family]()
                 {
-                    rendering_context_.device = std::move(device);
-
                     backend_ =
                         std::make_unique<vkrndr::backend_t>(rendering_context_,
                             2);

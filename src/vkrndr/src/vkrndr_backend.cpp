@@ -77,17 +77,6 @@ vkrndr::backend_t::backend_t(rendering_context_t rendering_context,
     uint32_t frames_in_flight)
     : context_{std::move(rendering_context)}
 {
-    spdlog::info(
-        "Vulkan backend created with instance handle {}.\n\tEnabled extensions: {}\n\tEnabled layers: {}",
-        std::bit_cast<intptr_t>(context_.instance->handle),
-        fmt::join(context_.instance->extensions, ", "),
-        fmt::join(context_.instance->layers, ", "));
-
-    spdlog::info(
-        "Vulkan backend created with device handle {}.\n\tEnabled extensions: {}",
-        std::bit_cast<intptr_t>(context_.device->logical_device),
-        fmt::join(context_.device->extensions, ", "));
-
     auto const execution_port{
         std::ranges::find_if(context_.device->execution_ports,
             [](execution_port_t const& port)

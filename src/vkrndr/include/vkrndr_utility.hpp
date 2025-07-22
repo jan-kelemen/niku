@@ -16,6 +16,11 @@ namespace vkrndr
     VkResult check_result(VkResult result,
         std::source_location source_location = std::source_location::current());
 
+    [[nodiscard]] constexpr bool is_success_result(VkResult result) noexcept
+    {
+        return std::to_underlying(result) >= 0;
+    }
+
     template<typename T>
     [[nodiscard]] constexpr uint32_t count_cast(T const count)
     {

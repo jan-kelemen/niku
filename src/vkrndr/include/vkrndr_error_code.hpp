@@ -9,11 +9,6 @@
 namespace vkrndr
 {
     [[nodiscard]] std::error_code make_error_code(VkResult result);
-
-    [[nodiscard]] constexpr bool is_success_result(VkResult result) noexcept
-    {
-        return std::to_underlying(result) >= 0;
-    }
 } // namespace vkrndr
 
 template<>
