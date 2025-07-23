@@ -1,7 +1,7 @@
 #ifndef VKRNDR_DEVICE_INCLUDED
 #define VKRNDR_DEVICE_INCLUDED
 
-#include <vkrndr_execution_port.hpp>
+#include <vkrndr_execution_port.hpp> // IWYU pragma: keep
 #include <vkrndr_features.hpp>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
@@ -13,7 +13,6 @@
 
 #include <expected>
 #include <functional>
-#include <memory>
 #include <optional>
 #include <set>
 #include <span>

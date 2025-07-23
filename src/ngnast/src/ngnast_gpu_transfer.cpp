@@ -104,7 +104,7 @@ namespace
     }
 } // namespace
 
-void ngnast::gpu::destroy(vkrndr::device_t* const device,
+void ngnast::gpu::destroy(vkrndr::device_t const* const device,
     geometry_transfer_result_t* const model)
 {
     if (model)
@@ -115,7 +115,7 @@ void ngnast::gpu::destroy(vkrndr::device_t* const device,
 }
 
 ngnast::gpu::geometry_transfer_result_t ngnast::gpu::transfer_geometry(
-    vkrndr::device_t& device,
+    vkrndr::device_t const& device,
     scene_model_t const& model)
 {
     geometry_transfer_result_t rv;

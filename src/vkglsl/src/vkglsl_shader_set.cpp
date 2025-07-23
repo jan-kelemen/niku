@@ -376,7 +376,7 @@ std::vector<uint32_t>* vkglsl::shader_set_t::shader_binary(
 }
 
 std::expected<vkrndr::shader_module_t, std::error_code>
-vkglsl::shader_set_t::shader_module(vkrndr::device_t& device,
+vkglsl::shader_set_t::shader_module(vkrndr::device_t const& device,
     VkShaderStageFlagBits const stage) const
 {
     if (auto it{impl_->shaders.find(to_glslang(stage))};
@@ -470,7 +470,7 @@ vkglsl::shader_set_t::descriptor_bindings(uint32_t const set) const
 
 std::expected<vkrndr::shader_module_t, std::error_code>
 vkglsl::add_shader_module_from_path(shader_set_t& shader_set,
-    vkrndr::device_t& device,
+    vkrndr::device_t const& device,
     VkShaderStageFlagBits const stage,
     std::filesystem::path const& file,
     std::span<std::string_view const> const& preprocessor_defines,
@@ -482,7 +482,7 @@ vkglsl::add_shader_module_from_path(shader_set_t& shader_set,
 
 std::expected<vkrndr::shader_module_t, std::error_code>
 vkglsl::add_shader_binary_from_path(shader_set_t& shader_set,
-    vkrndr::device_t& device,
+    vkrndr::device_t const& device,
     VkShaderStageFlagBits const stage,
     std::filesystem::path const& file,
     std::string_view entry_point)

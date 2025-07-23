@@ -5,7 +5,6 @@
 
 #include <volk.h>
 
-#include <algorithm>
 #include <expected>
 
 std::expected<vkrndr::library_handle_ptr_t, std::error_code>

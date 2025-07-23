@@ -38,7 +38,7 @@ void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,
     vkCmdBindPipeline(command_buffer, pipeline.type, pipeline.pipeline);
 }
 
-void vkrndr::destroy(device_t* const device, pipeline_t* const pipeline)
+void vkrndr::destroy(device_t const* const device, pipeline_t* const pipeline)
 {
     if (pipeline)
     {
@@ -51,7 +51,8 @@ void vkrndr::destroy(device_t* const device, pipeline_t* const pipeline)
     }
 }
 
-vkrndr::pipeline_layout_builder_t::pipeline_layout_builder_t(device_t& device)
+vkrndr::pipeline_layout_builder_t::pipeline_layout_builder_t(
+    device_t const& device)
     : device_{&device}
 {
 }
@@ -92,7 +93,7 @@ vkrndr::pipeline_layout_builder_t::add_push_constants(
     return *this;
 }
 
-vkrndr::pipeline_builder_t::pipeline_builder_t(device_t& device,
+vkrndr::pipeline_builder_t::pipeline_builder_t(device_t const& device,
     std::shared_ptr<VkPipelineLayout> pipeline_layout)
     : device_{&device}
     , pipeline_layout_{std::move(pipeline_layout)}
@@ -376,7 +377,8 @@ void vkrndr::pipeline_builder_t::cleanup()
     pipeline_layout_.reset();
 }
 
-vkrndr::compute_pipeline_builder_t::compute_pipeline_builder_t(device_t& device,
+vkrndr::compute_pipeline_builder_t::compute_pipeline_builder_t(
+    device_t const& device,
     std::shared_ptr<VkPipelineLayout> pipeline_layout)
     : device_{&device}
     , pipeline_layout_{std::move(pipeline_layout)}

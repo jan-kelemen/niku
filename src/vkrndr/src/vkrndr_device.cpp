@@ -6,19 +6,16 @@
 #include <vkrndr_instance.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <cppext_container.hpp>
-
-#include <boost/scope/scope_fail.hpp>
-
 #include <vma_impl.hpp>
 
 #include <volk.h>
 
 #include <algorithm>
 #include <iterator>
+#include <ranges>
+#include <string_view>
 #include <vector>
 
-// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <utility>

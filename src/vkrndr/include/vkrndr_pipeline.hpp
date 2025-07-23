@@ -36,12 +36,12 @@ namespace vkrndr
         bind_pipeline(command_buffer, pipeline, 0, descriptor_sets);
     }
 
-    void destroy(device_t* device, pipeline_t* pipeline);
+    void destroy(device_t const* device, pipeline_t* pipeline);
 
     class [[nodiscard]] pipeline_layout_builder_t final
     {
     public:
-        explicit pipeline_layout_builder_t(device_t& device);
+        explicit pipeline_layout_builder_t(device_t const& device);
 
         pipeline_layout_builder_t(pipeline_layout_builder_t const&) = default;
 
@@ -72,7 +72,7 @@ namespace vkrndr
             pipeline_layout_builder_t&&) = default;
 
     private:
-        device_t* device_;
+        device_t const* device_;
         std::vector<VkDescriptorSetLayout> descriptor_set_layouts_;
         std::vector<VkPushConstantRange> push_constants_;
     };
@@ -91,7 +91,7 @@ namespace vkrndr
     class [[nodiscard]] pipeline_builder_t final
     {
     public: // Construction
-        pipeline_builder_t(device_t& device,
+        pipeline_builder_t(device_t const& device,
             std::shared_ptr<VkPipelineLayout> pipeline_layout);
 
         pipeline_builder_t(pipeline_builder_t const&) = default;
@@ -146,7 +146,7 @@ namespace vkrndr
         void cleanup();
 
     private: // Data
-        device_t* device_{};
+        device_t const* device_{};
         std::shared_ptr<VkPipelineLayout> pipeline_layout_;
         VkPrimitiveTopology primitive_topology_{
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
@@ -167,7 +167,7 @@ namespace vkrndr
     class [[nodiscard]] compute_pipeline_builder_t final
     {
     public:
-        compute_pipeline_builder_t(device_t& device,
+        compute_pipeline_builder_t(device_t const& device,
             std::shared_ptr<VkPipelineLayout> pipeline_layout);
 
         compute_pipeline_builder_t(compute_pipeline_builder_t const&) = default;
@@ -192,7 +192,7 @@ namespace vkrndr
             compute_pipeline_builder_t&&) noexcept = default;
 
     private: // Data
-        device_t* device_{};
+        device_t const* device_{};
         std::shared_ptr<VkPipelineLayout> pipeline_layout_;
         VkPipelineShaderStageCreateInfo shader_{};
     };

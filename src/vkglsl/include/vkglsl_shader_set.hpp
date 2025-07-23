@@ -53,7 +53,7 @@ namespace vkglsl
             VkShaderStageFlagBits stage);
 
         [[nodiscard]] std::expected<vkrndr::shader_module_t, std::error_code>
-        shader_module(vkrndr::device_t& device,
+        shader_module(vkrndr::device_t const& device,
             VkShaderStageFlagBits stage) const;
 
         [[nodiscard]] std::expected<std::vector<VkDescriptorSetLayoutBinding>,
@@ -72,7 +72,7 @@ namespace vkglsl
 
     [[nodiscard]] std::expected<vkrndr::shader_module_t, std::error_code>
     add_shader_module_from_path(shader_set_t& shader_set,
-        vkrndr::device_t& device,
+        vkrndr::device_t const& device,
         VkShaderStageFlagBits stage,
         std::filesystem::path const& file,
         std::span<std::string_view const> const& preprocessor_defines = {},
@@ -80,7 +80,7 @@ namespace vkglsl
 
     [[nodiscard]] std::expected<vkrndr::shader_module_t, std::error_code>
     add_shader_binary_from_path(shader_set_t& shader_set,
-        vkrndr::device_t& device,
+        vkrndr::device_t const& device,
         VkShaderStageFlagBits stage,
         std::filesystem::path const& file,
         std::string_view entry_point = "main");

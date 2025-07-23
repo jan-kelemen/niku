@@ -16,11 +16,6 @@
 
 namespace vkrndr
 {
-    struct library_handle_t;
-} // namespace vkrndr
-
-namespace vkrndr
-{
     struct [[nodiscard]] instance_t final
         : public boost::intrusive_ref_counter<instance_t>
     {

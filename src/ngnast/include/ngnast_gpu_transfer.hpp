@@ -60,9 +60,10 @@ namespace ngnast::gpu
         std::vector<primitive_t> primitives;
     };
 
-    void destroy(vkrndr::device_t* device, geometry_transfer_result_t* model);
+    void destroy(vkrndr::device_t const* device,
+        geometry_transfer_result_t* model);
 
-    geometry_transfer_result_t transfer_geometry(vkrndr::device_t& device,
+    geometry_transfer_result_t transfer_geometry(vkrndr::device_t const& device,
         scene_model_t const& model);
 } // namespace ngnast::gpu
 

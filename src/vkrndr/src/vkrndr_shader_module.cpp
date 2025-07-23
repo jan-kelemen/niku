@@ -34,7 +34,8 @@ namespace
     }
 } // namespace
 
-void vkrndr::destroy(device_t* device, shader_module_t* shader_module)
+void vkrndr::destroy(device_t const* const device,
+    shader_module_t* const shader_module)
 {
     if (device)
     {
@@ -42,7 +43,7 @@ void vkrndr::destroy(device_t* device, shader_module_t* shader_module)
     }
 }
 
-vkrndr::shader_module_t vkrndr::create_shader_module(device_t& device,
+vkrndr::shader_module_t vkrndr::create_shader_module(device_t const& device,
     std::filesystem::path const& path,
     VkShaderStageFlagBits const stage,
     std::string_view const entry_point)
@@ -57,7 +58,7 @@ vkrndr::shader_module_t vkrndr::create_shader_module(device_t& device,
         entry_point);
 }
 
-vkrndr::shader_module_t vkrndr::create_shader_module(device_t& device,
+vkrndr::shader_module_t vkrndr::create_shader_module(device_t const& device,
     std::span<uint32_t const> const& spirv,
     VkShaderStageFlagBits const stage,
     std::string_view const entry_point)

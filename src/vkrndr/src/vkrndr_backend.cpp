@@ -5,10 +5,7 @@
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_execution_port.hpp>
-#include <vkrndr_features.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_instance.hpp>
-#include <vkrndr_library_handle.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
@@ -20,27 +17,17 @@
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_fail.hpp>
 
-#include <fmt/format.h>
-#include <fmt/ranges.h>
-
-#include <spdlog/spdlog.h>
-
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <cstring>
 #include <expected>
 #include <iterator>
-#include <optional>
-#include <ranges>
 #include <span>
 #include <stdexcept>
-#include <string_view>
 #include <utility>
 #include <vector>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
-// IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <unordered_map>
@@ -122,21 +109,6 @@ vkrndr::backend_t::~backend_t()
     };
 
     destroy_descriptor_pool(*context_.device, descriptor_pool_);
-}
-
-vkrndr::instance_t& vkrndr::backend_t::instance() noexcept
-{
-    return *context_.instance;
-}
-
-vkrndr::instance_t const& vkrndr::backend_t::instance() const noexcept
-{
-    return *context_.instance;
-}
-
-vkrndr::device_t& vkrndr::backend_t::device() noexcept
-{
-    return *context_.device;
 }
 
 vkrndr::device_t const& vkrndr::backend_t::device() const noexcept

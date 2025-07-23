@@ -9,7 +9,7 @@ namespace
     {
         [[nodiscard]] char const* name() const noexcept override;
 
-        [[nodiscard]] std::string message(int ev) const override;
+        [[nodiscard]] std::string message(int value) const override;
     };
 
     char const* vulkan_error_category_t::name() const noexcept
@@ -107,7 +107,7 @@ namespace
         case VK_THREAD_DONE_KHR:
             return "A deferred operation is not complete but there is no work remaining to assign to additional threads";
         case VK_OPERATION_DEFERRED_KHR:
-            return "A deferred operation is not complete but there is no work remaining to assign to additional threads";
+            return "A deferred operation was requested and at least some of the work was deferred";
         case VK_OPERATION_NOT_DEFERRED_KHR:
             return "A deferred operation was requested and no operations were deferred";
         case VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR:

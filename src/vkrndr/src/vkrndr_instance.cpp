@@ -2,17 +2,14 @@
 
 #include <vkrndr_error_code.hpp>
 #include <vkrndr_features.hpp>
-#include <vkrndr_library_handle.hpp>
 #include <vkrndr_utility.hpp>
-
-#include <boost/scope/scope_fail.hpp>
 
 #include <volk.h>
 
 #include <algorithm>
 #include <iterator>
-
-// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
+#include <string_view>
+#include <vector>
 
 vkrndr::instance_t::~instance_t()
 {

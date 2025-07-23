@@ -34,6 +34,8 @@
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_error_code.hpp>
+#include <vkrndr_execution_port.hpp>
+#include <vkrndr_features.hpp>
 #include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
@@ -43,6 +45,7 @@
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <fmt/format.h>
 #include <fmt/ranges.h>
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_STRINGOP_OVERFLOW
@@ -63,22 +66,25 @@ DISABLE_WARNING_POP
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <exception>
+#include <expected>
 #include <filesystem>
 #include <iterator>
 #include <memory>
 #include <span>
 #include <string>
+#include <system_error>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 // IWYU pragma: no_include <fmt/base.h>
-// IWYU pragma: no_include <fmt/format.h>
-// IWYU pragma: no_include <expected>
+// IWYU pragma: no_include <map>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string_view>
-// IWYU pragma: no_include <system_error>
 
 namespace
 {
@@ -228,7 +234,7 @@ gltfviewer::application_t::application_t(bool const debug)
                     rendering_context_.instance = std::move(instance);
                 })
             .transform_error(
-                [](std::error_code&& ec)
+                [](std::error_code ec)
                 {
                     spdlog::error("Instance creation failed with: {}",
                         ec.message());
@@ -287,7 +293,7 @@ gltfviewer::application_t::application_t(bool const debug)
                     rendering_context_.device = std::move(device);
                 })
             .transform_error(
-                [](std::error_code&& ec)
+                [](std::error_code ec)
                 {
                     spdlog::error("Device creation failed with: {}",
                         ec.message());
@@ -373,7 +379,7 @@ bool gltfviewer::application_t::handle_event(SDL_Event const& event)
             vkDeviceWaitIdle(backend_->device());
 
             render_window_->destroy_swapchain();
-            render_window_->destroy_surface(backend_->instance().handle);
+            render_window_->destroy_surface(*rendering_context_.instance);
             render_window_.reset();
         }
 
@@ -933,7 +939,7 @@ void gltfviewer::application_t::on_shutdown()
     if (render_window_)
     {
         render_window_->destroy_swapchain();
-        render_window_->destroy_surface(backend_->instance().handle);
+        render_window_->destroy_surface(*rendering_context_.instance);
         render_window_.reset();
     }
 

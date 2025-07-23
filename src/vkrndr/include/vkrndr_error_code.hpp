@@ -4,7 +4,7 @@
 #include <volk.h>
 
 #include <system_error>
-#include <utility>
+#include <type_traits>
 
 namespace vkrndr
 {

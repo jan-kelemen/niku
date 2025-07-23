@@ -13,10 +13,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <functional>
-#include <memory>
 #include <span>
 #include <vector>
+
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 namespace vkrndr
 {
@@ -47,12 +47,6 @@ namespace vkrndr
         ~backend_t();
 
     public: // Interface
-        [[nodiscard]] instance_t& instance() noexcept;
-
-        [[nodiscard]] instance_t const& instance() const noexcept;
-
-        [[nodiscard]] device_t& device() noexcept;
-
         [[nodiscard]] device_t const& device() const noexcept;
 
         [[nodiscard]] VkDescriptorPool descriptor_pool();
