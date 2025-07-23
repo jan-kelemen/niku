@@ -36,7 +36,7 @@ class NikuConan(ConanFile):
         self.requires("freetype/2.13.3")
         self.requires("glm/1.0.1")
         self.requires("glslang/1.4.321.0", transitive_headers=False)
-        self.requires("harfbuzz/11.2.1")
+        self.requires("harfbuzz/11.3.2")
         self.requires("imgui/1.92.1-docking")
         self.requires("joltphysics/5.3.0")
         self.requires("mikktspace/cci.20200325", transitive_headers=False)

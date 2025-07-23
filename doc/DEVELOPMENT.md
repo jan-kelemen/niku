@@ -13,7 +13,7 @@ conan export conan-recipes/recipes/entt/3.x.x --version 3.15.0
 conan export conan-recipes/recipes/fastgltf/all --version 0.9.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3
 conan export conan-recipes/recipes/glslang/all --version 1.4.321.0
-conan export conan-recipes/recipes/harfbuzz/all --version 11.2.1
+conan export conan-recipes/recipes/harfbuzz/all --version 11.3.2
 conan export conan-recipes/recipes/imgui/all --version 1.92.1-docking
 conan export conan-recipes/recipes/joltphysics/all --version 5.3.0
 conan export conan-recipes/recipes/mikktspace/all --version cci.20200325
