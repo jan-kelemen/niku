@@ -45,8 +45,6 @@ namespace vkrndr
 
     using instance_ptr_t = boost::intrusive_ptr<instance_t>;
 
-    inline instance_t::operator VkInstance() const noexcept { return handle; }
-
     struct [[nodiscard]] instance_create_info_t final
     {
         void const* chain{};
@@ -67,4 +65,8 @@ namespace vkrndr
         char const* layer_name = nullptr);
 } // namespace vkrndr
 
+inline vkrndr::instance_t::operator VkInstance() const noexcept
+{
+    return handle;
+}
 #endif

@@ -105,7 +105,7 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     init_info.PhysicalDevice = device;
     init_info.Device = device;
     init_info.QueueFamily = present_queue.queue_family();
-    init_info.Queue = present_queue.queue();
+    init_info.Queue = present_queue;
     init_info.PipelineCache = VK_NULL_HANDLE;
     init_info.DescriptorPool = descriptor_pool_;
     init_info.RenderPass = VK_NULL_HANDLE;

@@ -24,7 +24,8 @@ namespace vkrndr
         execution_port_t(VkDevice device,
             VkQueueFlags queue_flags,
             uint32_t queue_family,
-            uint32_t queue_index);
+            uint32_t queue_index,
+            bool present_flag);
 
         execution_port_t(execution_port_t const&) = default;
 
@@ -34,17 +35,17 @@ namespace vkrndr
         ~execution_port_t() = default;
 
     public:
-        [[nodiscard]] bool has_graphics() const;
+        [[nodiscard]] bool has_graphics() const noexcept;
 
-        [[nodiscard]] bool has_compute() const;
+        [[nodiscard]] bool has_compute() const noexcept;
 
-        [[nodiscard]] bool has_transfer() const;
+        [[nodiscard]] bool has_transfer() const noexcept;
 
-        [[nodiscard]] VkQueue queue() const;
+        [[nodiscard]] bool has_present() const noexcept;
 
-        [[nodiscard]] uint32_t queue_family() const;
+        [[nodiscard]] uint32_t queue_family() const noexcept;
 
-        void submit(std::span<VkSubmitInfo const> submits,
+        void submit(std::span<VkSubmitInfo const> const& submits,
             VkFence fence = VK_NULL_HANDLE);
 
         [[nodiscard]] VkResult present(VkPresentInfoKHR const& present_info);
@@ -52,6 +53,8 @@ namespace vkrndr
         void wait_idle();
 
     public:
+        [[nodiscard]] operator VkQueue() const noexcept;
+
         execution_port_t& operator=(execution_port_t const&) = default;
 
         execution_port_t& operator=(execution_port_t&&) = default;
@@ -60,6 +63,13 @@ namespace vkrndr
         VkQueue queue_{VK_NULL_HANDLE};
         VkQueueFlags queue_flags_{};
         uint32_t queue_family_{};
+        bool present_flag_{};
     };
 } // namespace vkrndr
+
+inline vkrndr::execution_port_t::operator VkQueue() const noexcept
+{
+    return queue_;
+}
+
 #endif

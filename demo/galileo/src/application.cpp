@@ -245,7 +245,6 @@ galileo::application_t::application_t(bool const debug)
           512,
           512)}
 {
-    std::optional<vkrndr::queue_family_t> present_family;
     auto const create_result{vkrndr::initialize()
             .and_then(
                 [this](vkrndr::library_handle_ptr_t&& library_handle)
@@ -280,8 +279,7 @@ galileo::application_t::application_t(bool const debug)
                     return ec;
                 })
             .and_then(
-                [this, &present_family]() mutable
-                    -> std::expected<vkrndr::device_ptr_t, std::error_code>
+                [this]() -> std::expected<vkrndr::device_ptr_t, std::error_code>
                 {
                     std::array const device_extensions{
                         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -314,7 +312,6 @@ galileo::application_t::application_t(bool const debug)
                         return std::unexpected{vkrndr::make_error_code(
                             VK_ERROR_INITIALIZATION_FAILED)};
                     }
-                    present_family = *queue_with_present;
 
                     return create_device(*rendering_context_.instance,
                         device_extensions,
@@ -339,7 +336,7 @@ galileo::application_t::application_t(bool const debug)
                     return ec;
                 })
             .transform(
-                [this, &present_family]()
+                [this]()
                 {
                     backend_ =
                         std::make_unique<vkrndr::backend_t>(rendering_context_,
@@ -348,12 +345,7 @@ galileo::application_t::application_t(bool const debug)
                     vkrndr::execution_port_t& present_queue{
                         *std::ranges::find_if(
                             rendering_context_.device->execution_ports,
-                            [&present_family](
-                                vkrndr::execution_port_t const& port)
-                            {
-                                return port.queue_family() ==
-                                    present_family->index;
-                            })};
+                            &vkrndr::execution_port_t::has_present)};
 
                     vkrndr::swapchain_t* const swapchain{
                         render_window_->create_swapchain(

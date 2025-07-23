@@ -157,7 +157,8 @@ namespace
             rv->execution_ports.emplace_back(*rv,
                 family.properties.queueFlags,
                 family.index,
-                0);
+                0,
+                family.supports_present);
         }
 
         return rv;

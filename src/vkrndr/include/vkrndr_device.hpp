@@ -63,16 +63,6 @@ namespace vkrndr
 
     using device_ptr_t = boost::intrusive_ptr<device_t>;
 
-    inline device_t::operator VkDevice() const noexcept
-    {
-        return logical_device;
-    }
-
-    inline device_t::operator VkPhysicalDevice() const noexcept
-    {
-        return physical_device;
-    }
-
     [[nodiscard]] bool is_device_extension_enabled(char const* extension_name,
         device_t const& device);
 
@@ -88,4 +78,13 @@ namespace vkrndr
         VkSurfaceKHR surface);
 } // namespace vkrndr
 
+inline vkrndr::device_t::operator VkDevice() const noexcept
+{
+    return logical_device;
+}
+
+inline vkrndr::device_t::operator VkPhysicalDevice() const noexcept
+{
+    return physical_device;
+}
 #endif
