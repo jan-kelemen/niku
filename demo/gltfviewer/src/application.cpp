@@ -363,6 +363,13 @@ bool gltfviewer::application_t::should_run()
 
 bool gltfviewer::application_t::handle_event(SDL_Event const& event)
 {
+    if (event.type == SDL_EVENT_WINDOW_RESIZED)
+    {
+        on_resize(cppext::narrow<uint32_t>(event.window.data1),
+            cppext::narrow<uint32_t>(event.window.data2));
+        return true;
+    }
+
     if (event.type == SDL_EVENT_QUIT ||
         event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
     {

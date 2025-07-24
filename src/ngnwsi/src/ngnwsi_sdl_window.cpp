@@ -7,6 +7,8 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -48,16 +50,32 @@ ngnwsi::sdl_window_t::sdl_window_t(char const* const title,
 
 ngnwsi::sdl_window_t::~sdl_window_t() { SDL_DestroyWindow(window_); }
 
-bool ngnwsi::sdl_window_t::is_minimized() const
+SDL_WindowID ngnwsi::sdl_window_t::window_id() const noexcept
+{
+    return SDL_GetWindowID(window_);
+}
+
+bool ngnwsi::sdl_window_t::is_minimized() const noexcept
 {
     return (SDL_GetWindowFlags(window_) & SDL_WINDOW_MINIMIZED) != 0;
 }
 
+bool ngnwsi::sdl_window_t::is_focused() const noexcept
+{
+    return (SDL_GetWindowFlags(window_) & SDL_WINDOW_INPUT_FOCUS) != 0;
+}
+
 VkSurfaceKHR ngnwsi::sdl_window_t::create_surface(VkInstance instance)
 {
-    if (SDL_Vulkan_CreateSurface(window_, instance, nullptr, &surface_))
+    if (!surface_)
     {
-        return surface_;
+        if (!SDL_Vulkan_CreateSurface(window_, instance, nullptr, &surface_))
+        {
+            spdlog::error(
+                "Vulkan surface not created for window {}, reason: {}",
+                window_id(),
+                SDL_GetError());
+        }
     }
 
     return surface_;

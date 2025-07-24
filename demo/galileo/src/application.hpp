@@ -91,9 +91,9 @@ namespace galileo
 
         void on_shutdown() override;
 
-        void on_resize(uint32_t width, uint32_t height) override;
-
     private:
+        void on_resize(uint32_t width, uint32_t height);
+
         void debug_draw();
 
         void setup_world();

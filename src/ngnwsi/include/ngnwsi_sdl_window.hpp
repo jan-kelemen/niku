@@ -51,7 +51,11 @@ namespace ngnwsi
     public: // Interface
         [[nodiscard]] constexpr SDL_Window* native_handle() const noexcept;
 
-        [[nodiscard]] bool is_minimized() const;
+        [[nodiscard]] SDL_WindowID window_id() const noexcept;
+
+        [[nodiscard]] bool is_minimized() const noexcept;
+
+        [[nodiscard]] bool is_focused() const noexcept;
 
     public: // window_t implementation
         [[nodiscard]] VkSurfaceKHR create_surface(VkInstance instance) override;

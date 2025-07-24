@@ -72,15 +72,7 @@ void ngnwsi::application_t::run()
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
-            if (event.type == SDL_EVENT_WINDOW_RESIZED)
-            {
-                on_resize(cppext::narrow<uint32_t>(event.window.data1),
-                    cppext::narrow<uint32_t>(event.window.data2));
-            }
-            else
-            {
-                handle_event(event);
-            }
+            handle_event(event);
         }
 
         if (!should_run())

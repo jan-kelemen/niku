@@ -65,11 +65,12 @@ reshed::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
           .init_subsystems = {.video = true, .debug = debug}}}
     , freetype_context_{ngntxt::freetype_context_t::create()}
-    , render_window_{std::make_unique<ngnwsi::render_window_t>("reshed",
-          SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-          512,
-          512)}
 {
+    auto render_window{std::make_unique<ngnwsi::render_window_t>("reshed",
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
+        512,
+        512)};
+
     auto const create_result{vkrndr::initialize()
             .and_then(
                 [this](vkrndr::library_handle_ptr_t&& library_handle)
@@ -104,7 +105,8 @@ reshed::application_t::application_t(bool const debug)
                     return ec;
                 })
             .and_then(
-                [this]() -> std::expected<vkrndr::device_ptr_t, std::error_code>
+                [this, &render_window]()
+                    -> std::expected<vkrndr::device_ptr_t, std::error_code>
                 {
                     std::array const device_extensions{
                         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -113,7 +115,7 @@ reshed::application_t::application_t(bool const debug)
                         physical_device{pick_best_physical_device(
                             *rendering_context_.instance,
                             device_extensions,
-                            render_window_->create_surface(
+                            render_window->create_surface(
                                 *rendering_context_.instance))};
                     if (!physical_device)
                     {
@@ -161,40 +163,13 @@ reshed::application_t::application_t(bool const debug)
                     return ec;
                 })
             .and_then(
-                [this]()
+                [this, &render_window]() mutable
                 {
-                    backend_ =
-                        std::make_unique<vkrndr::backend_t>(rendering_context_,
-                            2);
+                    windows_.emplace_back(std::move(render_window),
+                        rendering_context_,
+                        2);
 
-                    vkrndr::execution_port_t& present_queue{
-                        *std::ranges::find_if(
-                            rendering_context_.device->execution_ports,
-                            &vkrndr::execution_port_t::has_present)};
-
-                    vkrndr::swapchain_t* const swapchain{
-                        render_window_->create_swapchain(
-                            *rendering_context_.device,
-                            {
-                                .preffered_format = VK_FORMAT_R8G8B8A8_UNORM,
-                                .image_flags =
-                                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                    VK_IMAGE_USAGE_STORAGE_BIT |
-                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                                .preferred_present_mode =
-                                    VK_PRESENT_MODE_FIFO_KHR,
-                                .present_queue = &present_queue,
-                            })};
-
-                    imgui_ = std::make_unique<ngnwsi::imgui_layer_t>(
-                        render_window_->platform_window(),
-                        *rendering_context_.instance,
-                        *rendering_context_.device,
-                        *swapchain,
-                        present_queue);
-
-                    editor_ = std::make_unique<text_editor_t>(*backend_,
-                        swapchain->image_format());
+                    windows_.emplace_back(rendering_context_, 2);
 
                     return std::expected<std::void_t<>, std::error_code>{};
                 })};
@@ -206,167 +181,105 @@ reshed::application_t::application_t(bool const debug)
 
 reshed::application_t::~application_t() = default;
 
-bool reshed::application_t::should_run()
-{
-    return static_cast<bool>(render_window_);
-}
+bool reshed::application_t::should_run() { return !windows_.empty(); }
 
 bool reshed::application_t::handle_event(SDL_Event const& event)
 {
-    [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
-
-    if (event.type == SDL_EVENT_QUIT ||
-        event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    if (event.type == SDL_EVENT_QUIT)
     {
-        if (render_window_)
+        for (editor_window_t& window : windows_)
         {
-            text_input_guard_.reset();
-
-            vkDeviceWaitIdle(backend_->device());
-
-            render_window_->destroy_swapchain();
-            render_window_->destroy_surface(*rendering_context_.instance);
-            render_window_.reset();
+            [[maybe_unused]] bool const handled{window.handle_event(
+                {.window = {
+                     .type = SDL_EVENT_WINDOW_CLOSE_REQUESTED,
+                     .windowID = window.window_id(),
+                 }})};
         }
 
+        windows_.clear();
         return true;
     }
 
-    if (event.type == SDL_EVENT_KEY_DOWN &&
-        event.key.scancode == SDL_SCANCODE_F4)
+    if (event.type >= SDL_EVENT_WINDOW_FIRST &&
+        event.type <= SDL_EVENT_WINDOW_LAST)
     {
-        imgui_->set_enabled(!imgui_->enabled());
-    }
-    else if (event.type == SDL_EVENT_TEXT_INPUT ||
-        event.type == SDL_EVENT_KEY_UP ||
-        event.type == SDL_EVENT_KEY_DOWN)
-    {
-        editor_->handle_event(event);
+        auto window{std::ranges::find(windows_,
+            event.window.windowID,
+            &editor_window_t::window_id)};
+        if (window != windows_.cend())
+        {
+            bool const handled{window->handle_event(event)};
+            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+            {
+                windows_.erase(window);
+            }
+
+            return handled;
+        }
+
+        return false;
     }
 
-    return true;
+    if (event.type == SDL_EVENT_KEY_DOWN)
+    {
+        auto window{
+            std::ranges::find_if(windows_, &editor_window_t::is_focused)};
+        if (window != windows_.cend())
+        {
+            return window->handle_event(event);
+        }
+    }
+
+    auto window{std::ranges::find_if(windows_, &editor_window_t::is_focused)};
+    if (window != windows_.cend())
+    {
+        return window->handle_event(event);
+    }
+
+    return false;
 }
 
 void reshed::application_t::draw()
 {
-    std::optional<vkrndr::image_t> const target_image{
-        render_window_->acquire_next_image()};
-    if (!target_image)
-    {
-        return;
-    }
-
-    backend_->begin_frame();
-
-    imgui_->begin_frame();
-
-    ImGui::ShowMetricsWindow();
-
-    editor_->debug_draw();
-
-    VkCommandBuffer command_buffer{backend_->request_command_buffer()};
-
-    vkrndr::wait_for_color_attachment_write(target_image->image,
-        command_buffer);
-
-    VkViewport const viewport{.x = 0.0f,
-        .y = cppext::as_fp(target_image->extent.height),
-        .width = cppext::as_fp(target_image->extent.width),
-        .height = -cppext::as_fp(target_image->extent.height),
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f};
-    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image->extent)};
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-    vkrndr::render_pass_t color_render_pass;
-    color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        target_image->view,
-        VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 1.0f}}});
-
-    {
-        [[maybe_unused]] auto guard{color_render_pass.begin(command_buffer,
-            {{0, 0}, vkrndr::to_2d_extent(target_image->extent)})};
-        editor_->draw(command_buffer);
-    }
-
-    {
-        auto const barrier{vkrndr::with_access(
-            vkrndr::on_stage(vkrndr::image_barrier(*target_image),
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)};
-
-        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-    }
-
-    imgui_->render(command_buffer, *target_image);
-
-    vkrndr::transition_to_present_layout(target_image->image, command_buffer);
-
-    render_window_->present(backend_->present_buffers());
-
-    backend_->end_frame();
+    std::ranges::for_each(windows_, &editor_window_t::draw);
 }
 
-void reshed::application_t::end_frame() { imgui_->end_frame(); }
+void reshed::application_t::end_frame() { }
 
 void reshed::application_t::on_startup()
 {
-    mouse_.set_window_handle(render_window_->platform_window().native_handle());
-
-    auto const extent{render_window_->swapchain().extent()};
-    on_resize(extent.width, extent.height);
-
     if (std::expected<ngntxt::font_face_ptr_t, std::error_code> font_face{
             load_font_face(freetype_context_,
                 "SpaceMono-Regular.ttf",
                 {0, 16})})
     {
         spdlog::info("Font loaded");
-        editor_->change_font(std::move(font_face).value());
+        for (editor_window_t& window : windows_)
+        {
+            window.use_font(*font_face);
+        }
     }
     else
     {
         std::terminate();
     }
-
-    text_input_guard_ = std::make_unique<ngnwsi::sdl_text_input_guard_t>(
-        render_window_->platform_window());
 }
 
 void reshed::application_t::on_shutdown()
 {
-    text_input_guard_.reset();
+    vkDeviceWaitIdle(*rendering_context_.device);
 
-    vkDeviceWaitIdle(backend_->device());
-
-    editor_.reset();
-
-    imgui_.reset();
-
-    if (render_window_)
+    for (editor_window_t& window : windows_)
     {
-        render_window_->destroy_swapchain();
-        render_window_->destroy_surface(*rendering_context_.instance);
-        render_window_.reset();
+        [[maybe_unused]] bool const handled{
+            window.handle_event({.window = {
+                                     .type = SDL_EVENT_WINDOW_CLOSE_REQUESTED,
+                                     .windowID = window.window_id(),
+                                 }})};
     }
-
-    backend_.reset();
+    windows_.clear();
 
     rendering_context_.device.reset();
     rendering_context_.instance.reset();
     rendering_context_.library_handle.reset();
-}
-
-void reshed::application_t::on_resize(uint32_t width, uint32_t height)
-{
-    vkDeviceWaitIdle(backend_->device());
-
-    render_window_->swapchain().recreate();
-
-    editor_->resize(width, height);
 }

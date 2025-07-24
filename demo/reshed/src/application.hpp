@@ -1,31 +1,22 @@
 #ifndef RESHED_APPLICATION_INCLUDED
 #define RESHED_APPLICATION_INCLUDED
 
+#include <editor_window.hpp>
+
 #include <ngnwsi_application.hpp>
-#include <ngnwsi_mouse.hpp>
-
-#include <vkrndr_backend.hpp>
-
-#include <SDL3/SDL_events.h>
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace ngntxt
 {
     class freetype_context_t;
 } // namespace ngntxt
 
-namespace ngnwsi
-{
-    class imgui_layer_t;
-    class render_window_t;
-    class sdl_text_input_guard_t;
-} // namespace ngnwsi
-
 namespace reshed
 {
-    class text_editor_t;
+    class editor_window_t;
 } // namespace reshed
 
 namespace reshed
@@ -62,21 +53,11 @@ namespace reshed
 
         void on_shutdown() override;
 
-        void on_resize(uint32_t width, uint32_t height) override;
-
     private:
-        ngnwsi::mouse_t mouse_;
-
         vkrndr::rendering_context_t rendering_context_;
 
         std::shared_ptr<ngntxt::freetype_context_t> freetype_context_;
-        std::unique_ptr<ngnwsi::render_window_t> render_window_;
-        std::unique_ptr<vkrndr::backend_t> backend_;
-        std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
-
-        std::unique_ptr<text_editor_t> editor_;
-
-        std::unique_ptr<ngnwsi::sdl_text_input_guard_t> text_input_guard_;
+        std::vector<editor_window_t> windows_;
     };
 } // namespace reshed
 #endif

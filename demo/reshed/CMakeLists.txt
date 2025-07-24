@@ -4,10 +4,12 @@ target_sources(reshed
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/editor_window.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/text_buffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/text_editor.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/editor_window.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/reshed.m.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/text_buffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/text_editor.cpp

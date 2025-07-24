@@ -56,11 +56,6 @@ namespace ngnwsi
 
         virtual void on_shutdown() { }
 
-        virtual void on_resize([[maybe_unused]] uint32_t width,
-            [[maybe_unused]] uint32_t height)
-        {
-        }
-
     public:
         application_t& operator=(application_t const&) = delete;
 
