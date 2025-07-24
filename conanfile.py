@@ -41,7 +41,7 @@ class NikuConan(ConanFile):
         self.requires("joltphysics/5.3.0")
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
         self.requires("meshoptimizer/0.24", transitive_headers=False)
-        self.requires("sdl/3.2.16")
+        self.requires("sdl/3.2.18")
         self.requires("spdlog/1.15.3", transitive_headers=False)
         self.requires("spirv-cross/1.4.321.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
@@ -111,7 +111,7 @@ class NikuConan(ConanFile):
 
         component = "glm_impl"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
-        self.cpp_info.components[component].defines = ["IMGUI_IMPL_VULKAN_USE_VOLK", "VK_NO_PROTOTYPES"]
+        self.cpp_info.components[component].defines = ["GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL"]
         self.cpp_info.components[component].requires.extend(["glm::glm"])
 
         component = "as_scriptbuilder"

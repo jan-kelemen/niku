@@ -19,7 +19,7 @@ conan export conan-recipes/recipes/joltphysics/all --version 5.3.0
 conan export conan-recipes/recipes/mikktspace/all --version cci.20200325
 conan export conan-recipes/recipes/meshoptimizer/all --version 0.24
 conan export conan-recipes/recipes/recastnavigation/all --version 1.6.0
-conan export conan-recipes/recipes/sdl/3.x --version 3.2.16
+conan export conan-recipes/recipes/sdl/3.x --version 3.2.18
 conan export conan-recipes/recipes/simdjson/all --version 3.13.0
 conan export conan-recipes/recipes/spdlog/all --version 1.15.3
 conan export conan-recipes/recipes/spirv-headers/all --version 1.4.321.0
