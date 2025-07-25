@@ -134,6 +134,10 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
     {
         swapchain_refresh_needed_ = true;
     }
+    if (acquire_result == VK_NOT_READY || acquire_result == VK_TIMEOUT)
+    {
+        return false;
+    }
 
     check_result(acquire_result);
 
