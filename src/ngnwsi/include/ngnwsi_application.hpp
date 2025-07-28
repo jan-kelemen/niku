@@ -3,7 +3,6 @@
 
 #include <SDL3/SDL_events.h>
 
-#include <cstdint>
 #include <memory>
 
 namespace ngnwsi

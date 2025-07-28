@@ -1,18 +1,32 @@
 #ifndef EDITOR_WINDOW_INCLUDED
 #define EDITOR_WINDOW_INCLUDED
 
-#include <text_editor.hpp>
-
-#include <ngnwsi_imgui_layer.hpp>
-#include <ngnwsi_render_window.hpp>
-
 #include <ngntxt_font_face.hpp>
 
-#include <vkrndr_backend.hpp>
+#include <vkrndr_instance.hpp>
 
+#include <cstdint>
 #include <memory>
 
 union SDL_Event;
+
+namespace ngnwsi
+{
+    class imgui_layer_t;
+    class render_window_t;
+    class sdl_text_input_guard_t;
+} // namespace ngnwsi
+
+namespace vkrndr
+{
+    class backend_t;
+    struct rendering_context_t;
+} // namespace vkrndr
+
+namespace reshed
+{
+    class text_editor_t;
+} // namespace reshed
 
 namespace reshed
 {
@@ -28,7 +42,7 @@ namespace reshed
 
         editor_window_t(editor_window_t const&) = delete;
 
-        editor_window_t(editor_window_t&&) noexcept = default;
+        editor_window_t(editor_window_t&&) noexcept;
 
     public:
         ~editor_window_t();
@@ -47,7 +61,7 @@ namespace reshed
     public:
         editor_window_t& operator=(editor_window_t const&) = delete;
 
-        editor_window_t& operator=(editor_window_t&&) noexcept = default;
+        editor_window_t& operator=(editor_window_t&&) noexcept;
 
     private:
         std::unique_ptr<vkrndr::backend_t> backend_;

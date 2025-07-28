@@ -1,11 +1,12 @@
 #ifndef RESHED_APPLICATION_INCLUDED
 #define RESHED_APPLICATION_INCLUDED
 
-#include <editor_window.hpp>
-
 #include <ngnwsi_application.hpp>
 
-#include <cstdint>
+#include <vkrndr_backend.hpp>
+
+#include <SDL3/SDL_events.h>
+
 #include <memory>
 #include <vector>
 

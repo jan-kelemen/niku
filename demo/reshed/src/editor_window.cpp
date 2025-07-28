@@ -1,14 +1,44 @@
 #include <editor_window.hpp>
 
+#include <text_editor.hpp>
+
+#include <cppext_container.hpp>
+#include <cppext_numeric.hpp>
+
+#include <ngntxt_font_face.hpp>
+
+#include <ngnwsi_imgui_layer.hpp>
+#include <ngnwsi_render_window.hpp>
+#include <ngnwsi_sdl_window.hpp>
+
+#include <vkrndr_backend.hpp>
+#include <vkrndr_commands.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_execution_port.hpp>
+#include <vkrndr_image.hpp>
+#include <vkrndr_instance.hpp>
+#include <vkrndr_render_pass.hpp>
+#include <vkrndr_swapchain.hpp>
+#include <vkrndr_synchronization.hpp>
+#include <vkrndr_utility.hpp>
+
 #include <imgui.h>
 
 #include <SDL3/SDL_events.h>
+#include <SDL_scancode.h>
+#include <SDL_video.h>
 
-#include <vkrndr_commands.hpp>
-#include <vkrndr_render_pass.hpp>
-#include <vkrndr_utility.hpp>
+#include <volk.h>
 
 #include <algorithm>
+#include <optional>
+#include <span>
+#include <utility>
+
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
+// IWYU pragma: no_include <functional>
+// IWYU pragma: no_include <vector>
 
 reshed::editor_window_t::editor_window_t(vkrndr::rendering_context_t context,
     uint32_t const frames_in_flight)
@@ -25,10 +55,9 @@ reshed::editor_window_t::editor_window_t(
     std::unique_ptr<ngnwsi::render_window_t>&& window,
     vkrndr::rendering_context_t context,
     uint32_t const frames_in_flight)
-    : render_window_(std::move(window))
+    : instance_{context.instance}
+    , render_window_(std::move(window))
 {
-    instance_ = context.instance;
-
     static_cast<void>(render_window_->create_surface(*instance_));
 
     vkrndr::execution_port_t& present_queue{
@@ -66,6 +95,8 @@ reshed::editor_window_t::editor_window_t(
     auto const& [width, height] = swapchain->extent();
     editor_->resize(width, height);
 }
+
+reshed::editor_window_t::editor_window_t(editor_window_t&&) noexcept = default;
 
 reshed::editor_window_t::~editor_window_t()
 {
@@ -215,3 +246,6 @@ void reshed::editor_window_t::draw()
 
     backend_->end_frame();
 }
+
+reshed::editor_window_t& reshed::editor_window_t::operator=(
+    editor_window_t&&) noexcept = default;

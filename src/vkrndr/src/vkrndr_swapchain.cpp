@@ -125,6 +125,7 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
         frame.image_available,
         VK_NULL_HANDLE,
         &image_index)};
+
     if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         swapchain_refresh_needed_ = true;
@@ -134,7 +135,7 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
     {
         swapchain_refresh_needed_ = true;
     }
-    if (acquire_result == VK_NOT_READY || acquire_result == VK_TIMEOUT)
+    else if (acquire_result == VK_NOT_READY || acquire_result == VK_TIMEOUT)
     {
         return false;
     }

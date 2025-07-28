@@ -1,33 +1,22 @@
 #include <application.hpp>
 
-#include <text_editor.hpp>
+#include <editor_window.hpp>
 
 #include <cppext_container.hpp>
-#include <cppext_numeric.hpp>
 
 #include <ngnwsi_application.hpp>
-#include <ngnwsi_imgui_layer.hpp>
-#include <ngnwsi_mouse.hpp>
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
 #include <ngntxt_font_face.hpp>
 
 #include <vkrndr_backend.hpp>
-#include <vkrndr_commands.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_error_code.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
-#include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
-#include <vkrndr_render_pass.hpp>
-#include <vkrndr_swapchain.hpp>
-#include <vkrndr_synchronization.hpp>
-#include <vkrndr_utility.hpp>
-
-#include <imgui.h>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -35,7 +24,6 @@
 #include <volk.h>
 
 #include <SDL3/SDL_events.h>
-#include <SDL3/SDL_scancode.h>
 #include <SDL3/SDL_video.h>
 
 #include <spdlog/spdlog.h>
@@ -43,6 +31,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cstdint>
 #include <exception>
 #include <expected>
 #include <iterator>

@@ -13,6 +13,9 @@
 #include <limits>
 #include <stdexcept>
 
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+
 ngnwsi::sdl_guard_t::sdl_guard_t(uint32_t const flags)
 {
     if (!SDL_Init(flags))
