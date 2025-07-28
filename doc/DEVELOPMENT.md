@@ -8,7 +8,7 @@ Override packages from public Conan2 package index with updated ones from [jan-k
 git clone git@github.com:jan-kelemen/conan-recipes.git
 conan export conan-recipes/recipes/angelscript/all --version 2.37.0
 conan export conan-recipes/recipes/boost/all --version 1.88.0
-conan export conan-recipes/recipes/catch2/3.x.x --version 3.8.1
+conan export conan-recipes/recipes/catch2/3.x.x --version 3.9.0
 conan export conan-recipes/recipes/entt/3.x.x --version 3.15.0
 conan export conan-recipes/recipes/fastgltf/all --version 0.9.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3
