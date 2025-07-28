@@ -256,7 +256,7 @@ vkrndr::query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
             [](VkPresentModeKHR const mode)
             {
                 return mode < VK_PRESENT_MODE_IMMEDIATE_KHR ||
-                    mode > VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+                    mode > VK_PRESENT_MODE_FIFO_KHR;
             });
     }
 
