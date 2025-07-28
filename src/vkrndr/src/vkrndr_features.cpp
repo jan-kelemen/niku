@@ -251,13 +251,6 @@ vkrndr::query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
             surface,
             &present_count,
             rv.present_modes.data()));
-
-        std::erase_if(rv.present_modes,
-            [](VkPresentModeKHR const mode)
-            {
-                return mode < VK_PRESENT_MODE_IMMEDIATE_KHR ||
-                    mode > VK_PRESENT_MODE_FIFO_KHR;
-            });
     }
 
     return rv;

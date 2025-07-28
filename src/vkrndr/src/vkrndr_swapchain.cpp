@@ -15,9 +15,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <ranges>
 #include <span>
 
 // IWYU pragma: no_include <functional>
+// IWYU pragma: no_include <set>
+// IWYU pragma: no_include <string>
 // IWYU pragma: no_include <utility>
 
 namespace
@@ -50,8 +53,28 @@ namespace
             : VK_PRESENT_MODE_FIFO_KHR;
     }
 
+    [[nodiscard]] bool is_present_mode_available(vkrndr::device_t const& device,
+        VkPresentModeKHR const mode)
+    {
+        if (mode == VK_PRESENT_MODE_FIFO_LATEST_READY_EXT)
+        {
+            return device.extensions.contains(
+                VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME);
+        }
+
+        if (mode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR ||
+            mode == VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR)
+        {
+            return device.extensions.contains(
+                VK_KHR_SHARED_PRESENTABLE_IMAGE_EXTENSION_NAME);
+        }
+
+        return mode >= VK_PRESENT_MODE_IMMEDIATE_KHR &&
+            mode <= VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+    }
+
     [[nodiscard]] std::vector<VkPresentModeKHR> query_compatible_present_modes(
-        VkPhysicalDevice const device,
+        vkrndr::device_t const& device,
         VkSurfaceKHR const surface,
         VkPresentModeKHR const present_mode)
     {
@@ -78,8 +101,14 @@ namespace
             &surface_info,
             &surface_capabilities);
 
-        return {std::cbegin(results),
-            std::cbegin(results) + compatibility.presentModeCount};
+        std::vector<VkPresentModeKHR> rv;
+        std::ranges::copy_if(
+            results | std::views::take(compatibility.presentModeCount),
+            std::back_inserter(rv),
+            [&device](VkPresentModeKHR const mode)
+            { return is_present_mode_available(device, mode); });
+
+        return rv;
     }
 } // namespace
 
@@ -240,7 +269,10 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     VkSurfaceFormatKHR const surface_format{
         choose_swap_surface_format(swap_details.surface_formats, settings_)};
 
-    available_present_modes_ = std::move(swap_details.present_modes);
+    std::ranges::copy_if(swap_details.present_modes,
+        std::back_inserter(available_present_modes_),
+        [this](VkPresentModeKHR const mode)
+        { return is_present_mode_available(*device_, mode); });
 
     if (swapchain_maintenance_1_enabled_)
     {
@@ -381,7 +413,7 @@ uint32_t vkrndr::swapchain_t::min_image_count() const noexcept
 
 uint32_t vkrndr::swapchain_t::image_count() const noexcept
 {
-    return vkrndr::count_cast(frames_.size());
+    return vkrndr::count_cast(images_.size());
 }
 
 VkImage vkrndr::swapchain_t::image(uint32_t const image_index) const noexcept
