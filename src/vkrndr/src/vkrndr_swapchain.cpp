@@ -10,6 +10,8 @@
 
 #include <cppext_container.hpp>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -32,7 +34,7 @@ namespace
         if (auto const it{std::ranges::find_if(available_formats,
                 [&settings](VkSurfaceFormatKHR const& format)
                 {
-                    return format.format == settings.preffered_format &&
+                    return format.format == settings.preferred_format &&
                         format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
                 })};
             it != available_formats.end())
@@ -80,21 +82,21 @@ namespace
     {
         std::array<VkPresentModeKHR, 7> results{};
         VkSurfacePresentModeCompatibilityEXT compatibility{
-            .sType = VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_EXT,
+            .sType = vku::GetSType<VkSurfacePresentModeCompatibilityEXT>(),
             .presentModeCount = vkrndr::count_cast(results.size()),
             .pPresentModes = results.data()};
 
         VkSurfacePresentModeEXT surface_present_mode{
-            .sType = VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT,
+            .sType = vku::GetSType<VkSurfacePresentModeEXT>(),
             .presentMode = present_mode};
 
         VkPhysicalDeviceSurfaceInfo2KHR const surface_info{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+            .sType = vku::GetSType<VkPhysicalDeviceSurfaceInfo2KHR>(),
             .pNext = &surface_present_mode,
             .surface = surface};
 
         VkSurfaceCapabilities2KHR surface_capabilities{
-            .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+            .sType = vku::GetSType<VkSurfaceCapabilities2KHR>(),
             .pNext = &compatibility};
 
         vkGetPhysicalDeviceSurfaceCapabilities2KHR(device,
@@ -128,7 +130,6 @@ vkrndr::swapchain_t::swapchain_t(window_t const& window,
     , swapchain_maintenance_1_enabled_{is_device_extension_enabled(
           VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
           device)}
-    , present_queue_{settings.present_queue}
 {
     create_swap_frames(false);
 }
@@ -149,7 +150,7 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
     check_result(wait_result);
 
     VkResult const acquire_result{vkAcquireNextImageKHR(*device_,
-        chain_,
+        handle_,
         0,
         frame.image_available,
         VK_NULL_HANDLE,
@@ -188,7 +189,7 @@ void vkrndr::swapchain_t::submit_command_buffers(
     auto const* const signal_semaphores{
         &submit_finished_semaphore_[image_index]};
 
-    VkSubmitInfo submit_info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+    VkSubmitInfo submit_info{.sType = vku::GetSType<VkSubmitInfo>(),
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = wait_semaphores,
         .pWaitDstStageMask = wait_stages.data(),
@@ -197,17 +198,18 @@ void vkrndr::swapchain_t::submit_command_buffers(
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = signal_semaphores};
 
-    present_queue_->submit(cppext::as_span(submit_info), frame.in_flight);
+    settings_.present_queue->submit(cppext::as_span(submit_info),
+        frame.in_flight);
 
-    VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+    VkPresentInfoKHR present_info{.sType = vku::GetSType<VkPresentInfoKHR>(),
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = signal_semaphores,
         .swapchainCount = 1,
-        .pSwapchains = &chain_,
+        .pSwapchains = &handle_,
         .pImageIndices = &image_index};
 
     VkSwapchainPresentModeInfoEXT const present_mode_info{
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODE_INFO_EXT,
+        .sType = vku::GetSType<VkSwapchainPresentModeInfoEXT>(),
         .swapchainCount = 1,
         .pPresentModes = &desired_present_mode_};
 
@@ -226,7 +228,7 @@ void vkrndr::swapchain_t::submit_command_buffers(
         }
     }
 
-    VkResult const result{present_queue_->present(present_info)};
+    VkResult const result{settings_.present_queue->present(present_info)};
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
         swapchain_refresh_needed_ = true;
@@ -239,12 +241,6 @@ void vkrndr::swapchain_t::recreate()
 {
     cleanup();
     create_swap_frames(true);
-}
-
-std::span<VkPresentModeKHR const>
-vkrndr::swapchain_t::available_present_modes() const
-{
-    return available_present_modes_;
 }
 
 bool vkrndr::swapchain_t::change_present_mode(VkPresentModeKHR const new_mode)
@@ -299,26 +295,27 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
             std::min(swap_details.capabilities.maxImageCount, used_image_count);
     }
 
-    VkSwapchainCreateInfoKHR create_info{};
-    create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    create_info.surface = window_->surface();
-    create_info.minImageCount = used_image_count;
-    create_info.imageFormat = surface_format.format;
-    create_info.imageColorSpace = surface_format.colorSpace;
-    create_info.imageExtent = extent_;
-    create_info.imageArrayLayers = 1;
-    create_info.imageUsage = settings_.image_flags;
-    create_info.preTransform = swap_details.capabilities.currentTransform;
-    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    create_info.presentMode = chosen_present_mode;
-    create_info.clipped = VK_TRUE;
-    create_info.oldSwapchain = VK_NULL_HANDLE;
-    create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    create_info.queueFamilyIndexCount = 0;
-    create_info.pQueueFamilyIndices = nullptr;
+    VkSwapchainCreateInfoKHR create_info{
+        .sType = vku::GetSType<VkSwapchainCreateInfoKHR>(),
+        .surface = window_->surface(),
+        .minImageCount = used_image_count,
+        .imageFormat = surface_format.format,
+        .imageColorSpace = surface_format.colorSpace,
+        .imageExtent = extent_,
+        .imageArrayLayers = 1,
+        .imageUsage = settings_.image_flags,
+        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .preTransform = swap_details.capabilities.currentTransform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode = chosen_present_mode,
+        .clipped = VK_TRUE,
+        .oldSwapchain = VK_NULL_HANDLE,
+    };
 
     VkSwapchainPresentModesCreateInfoEXT const present_modes{
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT,
+        .sType = vku::GetSType<VkSwapchainPresentModesCreateInfoEXT>(),
         .presentModeCount = count_cast(compatible_present_modes_.size()),
         .pPresentModes = compatible_present_modes_.data()};
 
@@ -328,14 +325,14 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     }
 
     check_result(
-        vkCreateSwapchainKHR(*device_, &create_info, nullptr, &chain_));
+        vkCreateSwapchainKHR(*device_, &create_info, nullptr, &handle_));
 
     check_result(
-        vkGetSwapchainImagesKHR(*device_, chain_, &used_image_count, nullptr));
+        vkGetSwapchainImagesKHR(*device_, handle_, &used_image_count, nullptr));
 
     std::vector<VkImage> swapchain_images{used_image_count};
     check_result(vkGetSwapchainImagesKHR(*device_,
-        chain_,
+        handle_,
         &used_image_count,
         swapchain_images.data()));
     images_.reserve(swapchain_images.size());
@@ -344,16 +341,11 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     for (VkImage swapchain_image : swapchain_images)
     {
         images_.emplace_back(swapchain_image,
-            VK_NULL_HANDLE,
             create_image_view(*device_,
                 swapchain_image,
                 image_format_,
                 VK_IMAGE_ASPECT_COLOR_BIT,
-                1),
-            image_format_,
-            VK_SAMPLE_COUNT_1_BIT,
-            1,
-            to_3d_extent(extent_));
+                1));
         submit_finished_semaphore_.emplace_back(create_semaphore(*device_));
     }
     // cppcheck-suppress-end useStlAlgorithm
@@ -376,9 +368,9 @@ void vkrndr::swapchain_t::cleanup()
     }
     frames_.clear();
 
-    for (vkrndr::image_t const& swapchain_image : images_)
+    for (detail::swap_image_t const& image : images_)
     {
-        vkDestroyImageView(*device_, swapchain_image.view, nullptr);
+        vkDestroyImageView(*device_, image.view, nullptr);
     }
     images_.clear();
 
@@ -391,48 +383,5 @@ void vkrndr::swapchain_t::cleanup()
     compatible_present_modes_.clear();
     available_present_modes_.clear();
 
-    vkDestroySwapchainKHR(*device_, chain_, nullptr);
-}
-
-VkExtent2D vkrndr::swapchain_t::extent() const noexcept { return extent_; }
-
-VkSwapchainKHR vkrndr::swapchain_t::swapchain() const noexcept
-{
-    return chain_;
-}
-
-VkFormat vkrndr::swapchain_t::image_format() const noexcept
-{
-    return image_format_;
-}
-
-uint32_t vkrndr::swapchain_t::min_image_count() const noexcept
-{
-    return min_image_count_;
-}
-
-uint32_t vkrndr::swapchain_t::image_count() const noexcept
-{
-    return vkrndr::count_cast(images_.size());
-}
-
-VkImage vkrndr::swapchain_t::image(uint32_t const image_index) const noexcept
-{
-    return images_[image_index].image;
-}
-
-VkImageView vkrndr::swapchain_t::image_view(
-    uint32_t const image_index) const noexcept
-{
-    return images_[image_index].view;
-}
-
-bool vkrndr::swapchain_t::needs_refresh() const noexcept
-{
-    return swapchain_refresh_needed_;
-}
-
-VkPresentModeKHR vkrndr::swapchain_t::present_mode() const
-{
-    return current_present_mode_;
+    vkDestroySwapchainKHR(*device_, handle_, nullptr);
 }

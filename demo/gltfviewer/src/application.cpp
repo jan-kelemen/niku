@@ -312,7 +312,7 @@ gltfviewer::application_t::application_t(bool const debug)
                         render_window_->create_swapchain(
                             *rendering_context_.device,
                             {
-                                .preffered_format = VK_FORMAT_R8G8B8A8_UNORM,
+                                .preferred_format = VK_FORMAT_R8G8B8A8_UNORM,
                                 .image_flags =
                                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                                     VK_IMAGE_USAGE_STORAGE_BIT |
