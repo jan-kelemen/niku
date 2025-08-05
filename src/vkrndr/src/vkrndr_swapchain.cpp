@@ -184,8 +184,17 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
     {
         return false;
     }
-
     check_result(acquire_result);
+
+    if (VkImageView& view{images_[image_index].view};
+        swapchain_maintenance_1_enabled_ && view == VK_NULL_HANDLE)
+    {
+        view = create_image_view(*device_,
+            images_[image_index].handle,
+            image_format_,
+            VK_IMAGE_ASPECT_COLOR_BIT,
+            1);
+    }
 
     check_result(vkResetFences(*device_, 1, &frame.in_flight));
     return true;
@@ -336,6 +345,8 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
 
     if (swapchain_maintenance_1_enabled_)
     {
+        create_info.flags =
+            VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_EXT;
         create_info.pNext = &present_modes;
     }
 
@@ -356,11 +367,12 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
     for (VkImage swapchain_image : swapchain_images)
     {
         images_.emplace_back(swapchain_image,
-            create_image_view(*device_,
-                swapchain_image,
-                image_format_,
-                VK_IMAGE_ASPECT_COLOR_BIT,
-                1));
+            swapchain_maintenance_1_enabled_ ? VK_NULL_HANDLE
+                                             : create_image_view(*device_,
+                                                   swapchain_image,
+                                                   image_format_,
+                                                   VK_IMAGE_ASPECT_COLOR_BIT,
+                                                   1));
         submit_finished_semaphore_.push_back(semaphore_pool_.get().value());
     }
     // cppcheck-suppress-end useStlAlgorithm
