@@ -1,10 +1,13 @@
 #ifndef VKRNDR_SWAPCHAIN_INCLUDED
 #define VKRNDR_SWAPCHAIN_INCLUDED
 
-#include <volk.h>
-
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
+
+#include <boost/container/deque.hpp>
+#include <boost/container/small_vector.hpp>
+
+#include <volk.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -22,16 +25,36 @@ namespace vkrndr
 {
     namespace detail
     {
-        struct [[nodiscard]] swap_frame_t final
-        {
-            VkSemaphore image_available{VK_NULL_HANDLE};
-            VkFence in_flight{VK_NULL_HANDLE};
-        };
+        inline constexpr uint32_t invalid_image_index{
+            std::numeric_limits<uint32_t>::max()};
 
         struct [[nodiscard]] swap_image_t final
         {
             VkImage handle;
             VkImageView view;
+        };
+
+        struct [[nodiscard]] swap_frame_t final
+        {
+            VkFence submit_fence{VK_NULL_HANDLE};
+            VkSemaphore acquire_semaphore{VK_NULL_HANDLE};
+            VkSemaphore present_semaphore{VK_NULL_HANDLE};
+
+            std::vector<swap_image_t> garbage;
+        };
+
+        struct [[nodiscard]] cleanup_data_t final
+        {
+            VkSwapchainKHR swapchain;
+            std::vector<VkSemaphore> semaphores;
+        };
+
+        struct [[nodiscard]] present_operation_t final
+        {
+            VkFence cleanup_fence{VK_NULL_HANDLE};
+            VkSemaphore present_semaphore{VK_NULL_HANDLE};
+            boost::container::small_vector<cleanup_data_t, 1> old_swapchains;
+            uint32_t image_index{invalid_image_index};
         };
     } // namespace detail
 
@@ -91,7 +114,7 @@ namespace vkrndr
 
         [[nodiscard]] bool change_present_mode(VkPresentModeKHR new_mode);
 
-        void recreate();
+        void recreate(uint32_t current_frame);
 
     public: // Operators
         swapchain_t& operator=(swapchain_t const&) = delete;
@@ -99,9 +122,24 @@ namespace vkrndr
         swapchain_t& operator=(swapchain_t&& other) noexcept = delete;
 
     private: // Helpers
-        void create_swap_frames(bool is_recreated);
+        void create_swap_frames(bool is_recreated, uint32_t current_frame);
 
-        void cleanup();
+        void cleanup_images(std::vector<detail::swap_image_t>& images);
+
+        void schedule_destruction(VkSwapchainKHR swapchain);
+
+        void associate_with_present_history(uint32_t image_index,
+            VkFence fence);
+
+        void add_to_present_history(uint32_t image_index,
+            VkFence present_fence,
+            detail::swap_frame_t& frame);
+
+        void cleanup_present_history();
+
+        void cleanup_present_info(detail::present_operation_t& operation);
+
+        void cleanup_swapchain(detail::cleanup_data_t& data);
 
     private:
         window_t const* window_{};
@@ -116,15 +154,17 @@ namespace vkrndr
         uint32_t min_image_count_{};
         VkExtent2D extent_{};
 
-        VkSwapchainKHR handle_{};
-        std::vector<detail::swap_frame_t> frames_;
-        std::vector<VkSemaphore> submit_finished_semaphore_;
-        std::vector<detail::swap_image_t> images_;
-
         VkPresentModeKHR current_present_mode_{VK_PRESENT_MODE_FIFO_KHR};
         VkPresentModeKHR desired_present_mode_{VK_PRESENT_MODE_FIFO_KHR};
         std::vector<VkPresentModeKHR> available_present_modes_;
         std::vector<VkPresentModeKHR> compatible_present_modes_;
+
+        VkSwapchainKHR handle_{VK_NULL_HANDLE};
+        std::vector<detail::swap_frame_t> frames_in_flight_;
+        std::vector<detail::swap_image_t> images_;
+        boost::container::deque<detail::present_operation_t> present_history_;
+        boost::container::small_vector<detail::cleanup_data_t, 1>
+            old_swapchains_;
 
         bool swapchain_refresh_needed_{};
     };

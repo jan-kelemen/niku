@@ -13,6 +13,8 @@
 
 #include <vulkan/utility/vk_struct_helper.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -28,6 +30,9 @@
 
 namespace
 {
+    static_assert(VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_KHR ==
+        VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_EXT);
+
     [[nodiscard]] VkSurfaceFormatKHR choose_swap_surface_format(
         std::span<VkSurfaceFormatKHR const> available_formats,
         vkrndr::swapchain_settings_t const& settings)
@@ -78,10 +83,15 @@ namespace
     [[nodiscard]] bool is_present_mode_available(vkrndr::device_t const& device,
         VkPresentModeKHR const mode)
     {
-        if (mode == VK_PRESENT_MODE_FIFO_LATEST_READY_EXT)
+        if (mode == VK_PRESENT_MODE_FIFO_LATEST_READY_KHR)
         {
+            static_assert(VK_PRESENT_MODE_FIFO_LATEST_READY_KHR ==
+                VK_PRESENT_MODE_FIFO_LATEST_READY_EXT);
+
             return device.extensions.contains(
-                VK_EXT_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME);
+                       VK_KHR_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME) ||
+                device.extensions.contains(
+                    VK_KHR_PRESENT_MODE_FIFO_LATEST_READY_EXTENSION_NAME);
         }
 
         if (mode == VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR ||
@@ -101,13 +111,13 @@ namespace
         VkPresentModeKHR const present_mode)
     {
         std::array<VkPresentModeKHR, 7> results{};
-        VkSurfacePresentModeCompatibilityEXT compatibility{
-            .sType = vku::GetSType<VkSurfacePresentModeCompatibilityEXT>(),
+        VkSurfacePresentModeCompatibilityKHR compatibility{
+            .sType = vku::GetSType<VkSurfacePresentModeCompatibilityKHR>(),
             .presentModeCount = vkrndr::count_cast(results.size()),
             .pPresentModes = results.data()};
 
-        VkSurfacePresentModeEXT surface_present_mode{
-            .sType = vku::GetSType<VkSurfacePresentModeEXT>(),
+        VkSurfacePresentModeKHR surface_present_mode{
+            .sType = vku::GetSType<VkSurfacePresentModeKHR>(),
             .presentMode = present_mode};
 
         VkPhysicalDeviceSurfaceInfo2KHR const surface_info{
@@ -141,62 +151,172 @@ vkrndr::swapchain_t::swapchain_t(window_t const& window,
     , device_{&device}
     , settings_{settings}
     , swapchain_maintenance_1_enabled_{is_device_extension_enabled(
-          VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
-          device)}
+                                           VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+                                           device) ||
+          is_device_extension_enabled(
+              VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
+              device)}
     , fence_pool_{device}
     , semaphore_pool_{device}
 {
-    create_swap_frames(false);
+    create_swap_frames(false, 0);
 }
 
-vkrndr::swapchain_t::~swapchain_t() { cleanup(); }
+vkrndr::swapchain_t::~swapchain_t()
+{
+    for (detail::swap_frame_t& frame : frames_in_flight_)
+    {
+        if (VkResult const result{fence_pool_.recycle(frame.submit_fence)};
+            result != VK_SUCCESS)
+        {
+            spdlog::error("Fence recycle failed: {}",
+                make_error_code(result).message());
+        }
+
+        if (VkResult const result{
+                semaphore_pool_.recycle(frame.acquire_semaphore)};
+            result != VK_SUCCESS)
+        {
+            spdlog::error("Semaphore recycle failed: {}",
+                make_error_code(result).message());
+        }
+
+        cleanup_images(frame.garbage);
+
+        assert(frame.present_semaphore == VK_NULL_HANDLE);
+    }
+
+    for (detail::present_operation_t& present_info : present_history_)
+    {
+        if (present_info.cleanup_fence != VK_NULL_HANDLE)
+        {
+            vkWaitForFences(*device_,
+                1,
+                &present_info.cleanup_fence,
+                true,
+                UINT64_MAX);
+        }
+
+        cleanup_present_info(present_info);
+    }
+
+    std::ranges::for_each(old_swapchains_,
+        [this](detail::cleanup_data_t& data) { cleanup_swapchain(data); });
+
+    cleanup_images(images_);
+
+    vkDestroySwapchainKHR(*device_, handle_, nullptr);
+}
 
 bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
     uint32_t& image_index)
 {
-    auto const& frame{frames_[current_frame]};
-
-    VkResult const wait_result{
-        vkWaitForFences(*device_, 1, &frame.in_flight, VK_TRUE, 0)};
-    if (wait_result == VK_TIMEOUT)
+    auto& frame{frames_in_flight_[current_frame]};
+    if (frame.submit_fence != VK_NULL_HANDLE)
     {
-        return false;
+        VkResult const wait_result{
+            vkWaitForFences(*device_, 1, &frame.submit_fence, VK_TRUE, 0)};
+        if (wait_result == VK_TIMEOUT)
+        {
+            return false;
+        }
+        check_result(wait_result);
+
+        if (VkResult const result{fence_pool_.recycle(frame.submit_fence)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
+        frame.submit_fence = VK_NULL_HANDLE;
+
+        if (VkResult const result{
+                semaphore_pool_.recycle(frame.acquire_semaphore)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
+        frame.acquire_semaphore = VK_NULL_HANDLE;
+
+        cleanup_images(frame.garbage);
+
+        assert(frame.present_semaphore == VK_NULL_HANDLE);
     }
-    check_result(wait_result);
+
+    VkFence const submit_fence{fence_pool_.get().value()};
+    VkFence const acquire_fence{swapchain_maintenance_1_enabled_
+            ? VK_NULL_HANDLE
+            : fence_pool_.get().value()};
+    VkSemaphore const acquire_semaphore{semaphore_pool_.get().value()};
+    VkSemaphore const present_semaphore{semaphore_pool_.get().value()};
 
     VkResult const acquire_result{vkAcquireNextImageKHR(*device_,
         handle_,
         0,
-        frame.image_available,
-        VK_NULL_HANDLE,
+        acquire_semaphore,
+        acquire_fence,
         &image_index)};
+    if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR ||
+        acquire_result == VK_SUBOPTIMAL_KHR)
+    {
+        swapchain_refresh_needed_ = true;
+    }
 
-    if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR)
+    if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR ||
+        acquire_result == VK_NOT_READY ||
+        acquire_result == VK_TIMEOUT)
     {
-        swapchain_refresh_needed_ = true;
-        return false;
-    }
-    if (acquire_result == VK_SUBOPTIMAL_KHR)
-    {
-        swapchain_refresh_needed_ = true;
-    }
-    else if (acquire_result == VK_NOT_READY || acquire_result == VK_TIMEOUT)
-    {
+        if (VkResult const result{fence_pool_.recycle(submit_fence)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
+
+        if (acquire_fence != VK_NULL_HANDLE)
+        {
+            if (VkResult const result{fence_pool_.recycle(acquire_fence)};
+                result != VK_SUCCESS)
+            {
+                throw std::system_error{make_error_code(result)};
+            }
+        }
+
+        if (VkResult const result{semaphore_pool_.recycle(acquire_semaphore)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
+
+        if (VkResult const result{semaphore_pool_.recycle(present_semaphore)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
+
         return false;
     }
     check_result(acquire_result);
 
-    if (VkImageView& view{images_[image_index].view};
-        swapchain_maintenance_1_enabled_ && view == VK_NULL_HANDLE)
+    if (swapchain_maintenance_1_enabled_)
     {
-        view = create_image_view(*device_,
-            images_[image_index].handle,
-            image_format_,
-            VK_IMAGE_ASPECT_COLOR_BIT,
-            1);
+        if (detail::swap_image_t& image{images_[image_index]};
+            image.view == VK_NULL_HANDLE)
+        {
+            image.view = create_image_view(*device_,
+                image.handle,
+                image_format_,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                1);
+        }
+    }
+    else
+    {
+        associate_with_present_history(image_index, acquire_fence);
     }
 
-    check_result(vkResetFences(*device_, 1, &frame.in_flight));
+    frame.submit_fence = submit_fence;
+    frame.acquire_semaphore = acquire_semaphore;
+    frame.present_semaphore = present_semaphore;
+
     return true;
 }
 
@@ -205,45 +325,53 @@ void vkrndr::swapchain_t::submit_command_buffers(
     size_t const current_frame,
     uint32_t const image_index)
 {
-    auto const& frame{frames_[current_frame]};
+    auto& frame{frames_in_flight_[current_frame]};
 
-    auto const* const wait_semaphores{&frame.image_available};
-    std::array<VkPipelineStageFlags, 1> const wait_stages{
+    VkPipelineStageFlags const wait_stage{
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    auto const* const signal_semaphores{
-        &submit_finished_semaphore_[image_index]};
 
-    VkSubmitInfo submit_info{.sType = vku::GetSType<VkSubmitInfo>(),
+    VkSubmitInfo const submit_info{.sType = vku::GetSType<VkSubmitInfo>(),
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = wait_semaphores,
-        .pWaitDstStageMask = wait_stages.data(),
+        .pWaitSemaphores = &frame.acquire_semaphore,
+        .pWaitDstStageMask = &wait_stage,
         .commandBufferCount = count_cast(command_buffers.size()),
         .pCommandBuffers = command_buffers.data(),
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = signal_semaphores};
+        .pSignalSemaphores = &frame.present_semaphore};
 
     settings_.present_queue->submit(cppext::as_span(submit_info),
-        frame.in_flight);
+        frame.submit_fence);
 
     VkPresentInfoKHR present_info{.sType = vku::GetSType<VkPresentInfoKHR>(),
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = signal_semaphores,
+        .pWaitSemaphores = &frame.present_semaphore,
         .swapchainCount = 1,
         .pSwapchains = &handle_,
         .pImageIndices = &image_index};
 
-    VkSwapchainPresentModeInfoEXT const present_mode_info{
-        .sType = vku::GetSType<VkSwapchainPresentModeInfoEXT>(),
+    VkFence present_fence{VK_NULL_HANDLE};
+    VkSwapchainPresentFenceInfoKHR fence_info{
+        .sType = vku::GetSType<VkSwapchainPresentFenceInfoKHR>(),
+        .swapchainCount = 1,
+        .pFences = &present_fence};
+    if (swapchain_maintenance_1_enabled_)
+    {
+        present_fence = fence_pool_.get().value();
+        fence_info.pNext = std::exchange(present_info.pNext, &fence_info);
+    }
+
+    VkSwapchainPresentModeInfoKHR present_mode_info{
+        .sType = vku::GetSType<VkSwapchainPresentModeInfoKHR>(),
         .swapchainCount = 1,
         .pPresentModes = &desired_present_mode_};
-
     if (desired_present_mode_ != current_present_mode_)
     {
         if (swapchain_maintenance_1_enabled_ &&
             std::ranges::contains(compatible_present_modes_,
                 desired_present_mode_))
         {
-            present_info.pNext = &present_mode_info;
+            present_mode_info.pNext =
+                std::exchange(present_info.pNext, &present_mode_info);
             current_present_mode_ = desired_present_mode_;
         }
         else
@@ -253,18 +381,21 @@ void vkrndr::swapchain_t::submit_command_buffers(
     }
 
     VkResult const result{settings_.present_queue->present(present_info)};
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    swapchain_refresh_needed_ =
+        result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR;
+
+    add_to_present_history(image_index, present_fence, frame);
+    cleanup_present_history();
+
+    if (result != VK_ERROR_OUT_OF_DATE_KHR)
     {
-        swapchain_refresh_needed_ = true;
-        return;
+        check_result(result);
     }
-    check_result(result);
 }
 
-void vkrndr::swapchain_t::recreate()
+void vkrndr::swapchain_t::recreate(uint32_t const current_frame)
 {
-    cleanup();
-    create_swap_frames(true);
+    create_swap_frames(true, current_frame);
 }
 
 bool vkrndr::swapchain_t::change_present_mode(VkPresentModeKHR const new_mode)
@@ -278,9 +409,11 @@ bool vkrndr::swapchain_t::change_present_mode(VkPresentModeKHR const new_mode)
     return false;
 }
 
-void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
+void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated,
+    uint32_t const current_frame)
 {
-    auto swap_details{query_swapchain_support(*device_, window_->surface())};
+    swapchain_support_t const swap_details{
+        query_swapchain_support(*device_, window_->surface())};
 
     VkPresentModeKHR const chosen_present_mode{
         choose_swap_present_mode(swap_details.present_modes,
@@ -319,6 +452,8 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
             std::min(swap_details.capabilities.maxImageCount, used_image_count);
     }
 
+    VkSwapchainKHR const old_swapchain{handle_};
+
     VkSwapchainCreateInfoKHR create_info{
         .sType = vku::GetSType<VkSwapchainCreateInfoKHR>(),
         .surface = window_->surface(),
@@ -335,23 +470,34 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
         .compositeAlpha = choose_composite_alpha(swap_details.capabilities),
         .presentMode = chosen_present_mode,
         .clipped = VK_TRUE,
-        .oldSwapchain = VK_NULL_HANDLE,
+        .oldSwapchain = old_swapchain,
     };
 
-    VkSwapchainPresentModesCreateInfoEXT const present_modes{
-        .sType = vku::GetSType<VkSwapchainPresentModesCreateInfoEXT>(),
+    VkSwapchainPresentModesCreateInfoKHR const present_modes{
+        .sType = vku::GetSType<VkSwapchainPresentModesCreateInfoKHR>(),
         .presentModeCount = count_cast(compatible_present_modes_.size()),
         .pPresentModes = compatible_present_modes_.data()};
 
     if (swapchain_maintenance_1_enabled_)
     {
         create_info.flags =
-            VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_EXT;
+            VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_KHR;
         create_info.pNext = &present_modes;
     }
 
     check_result(
         vkCreateSwapchainKHR(*device_, &create_info, nullptr, &handle_));
+
+    frames_in_flight_.resize(settings_.frames_in_flight);
+
+    std::ranges::move(images_,
+        std::back_inserter(frames_in_flight_[current_frame].garbage));
+    images_.clear();
+
+    if (old_swapchain != VK_NULL_HANDLE)
+    {
+        schedule_destruction(old_swapchain);
+    }
 
     check_result(
         vkGetSwapchainImagesKHR(*device_, handle_, &used_image_count, nullptr));
@@ -362,57 +508,218 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
         &used_image_count,
         swapchain_images.data()));
     images_.reserve(swapchain_images.size());
-    submit_finished_semaphore_.reserve(swapchain_images.size());
     // cppcheck-suppress-begin useStlAlgorithm
-    for (VkImage swapchain_image : swapchain_images)
+
+    for (VkImage const image : swapchain_images)
     {
-        images_.emplace_back(swapchain_image,
+        images_.emplace_back(image,
             swapchain_maintenance_1_enabled_ ? VK_NULL_HANDLE
                                              : create_image_view(*device_,
-                                                   swapchain_image,
+                                                   image,
                                                    image_format_,
                                                    VK_IMAGE_ASPECT_COLOR_BIT,
                                                    1));
-        submit_finished_semaphore_.push_back(semaphore_pool_.get().value());
     }
-    // cppcheck-suppress-end useStlAlgorithm
 
-    frames_.resize(settings_.frames_in_flight);
-    for (detail::swap_frame_t& frame : frames_)
-    {
-        frame.image_available = semaphore_pool_.get().value();
-        frame.in_flight = fence_pool_.get(true).value();
-    }
+    // cppcheck-suppress-end useStlAlgorithm
 
     swapchain_refresh_needed_ = false;
 }
 
-void vkrndr::swapchain_t::cleanup()
+void vkrndr::swapchain_t::cleanup_images(
+    std::vector<detail::swap_image_t>& images)
 {
-    for (detail::swap_frame_t& frame : frames_)
-    {
-        if (VkResult const result{
-                semaphore_pool_.recycle(frame.image_available)};
-            result != VK_SUCCESS)
-        {
-            throw std::system_error{make_error_code(result)};
-        }
-
-        if (VkResult const result{fence_pool_.recycle(frame.in_flight)};
-            result != VK_SUCCESS)
-        {
-            throw std::system_error{make_error_code(result)};
-        }
-    }
-    frames_.clear();
-
-    for (detail::swap_image_t const& image : images_)
+    for (detail::swap_image_t const& image : images)
     {
         vkDestroyImageView(*device_, image.view, nullptr);
     }
-    images_.clear();
+    images.clear();
+}
 
-    for (VkSemaphore const semaphore : submit_finished_semaphore_)
+void vkrndr::swapchain_t::schedule_destruction(VkSwapchainKHR const swapchain)
+{
+    // If no presentation is done on the swapchain, destroy it right away.
+    if (!present_history_.empty() &&
+        present_history_.back().image_index == detail::invalid_image_index)
+    {
+        vkDestroySwapchainKHR(*device_, swapchain, nullptr);
+        return;
+    }
+
+    detail::cleanup_data_t cleanup{.swapchain = swapchain};
+
+    std::vector<detail::present_operation_t> history_to_keep;
+    while (!present_history_.empty())
+    {
+        detail::present_operation_t& present_info{present_history_.back()};
+
+        if (present_info.image_index == detail::invalid_image_index)
+        {
+            assert(present_info.cleanup_fence != VK_NULL_HANDLE);
+            break;
+        }
+
+        present_info.image_index = detail::invalid_image_index;
+
+        if (present_info.cleanup_fence != VK_NULL_HANDLE)
+        {
+            history_to_keep.push_back(std::move(present_info));
+        }
+        else
+        {
+            assert(present_info.present_semaphore != VK_NULL_HANDLE);
+
+            cleanup.semaphores.push_back(present_info.present_semaphore);
+
+            std::ranges::move(present_info.old_swapchains,
+                std::back_inserter(old_swapchains_));
+
+            present_info.old_swapchains.clear();
+        }
+
+        present_history_.pop_back();
+    }
+
+    std::ranges::move(history_to_keep, std::back_inserter(present_history_));
+
+    if (cleanup.swapchain != VK_NULL_HANDLE || !cleanup.semaphores.empty())
+    {
+        old_swapchains_.emplace_back(std::move(cleanup));
+    }
+}
+
+void vkrndr::swapchain_t::associate_with_present_history(
+    uint32_t const image_index,
+    VkFence const fence)
+{
+    for (detail::present_operation_t& present_operation :
+        std::views::reverse(present_history_))
+    {
+        if (present_operation.image_index == detail::invalid_image_index)
+        {
+            break;
+        }
+
+        if (present_operation.image_index == image_index)
+        {
+            assert(present_operation.cleanup_fence == VK_NULL_HANDLE);
+            present_operation.cleanup_fence = fence;
+            return;
+        }
+    }
+
+    detail::present_operation_t& present_operation{
+        present_history_.emplace_back()};
+    present_operation.cleanup_fence = fence;
+    present_operation.image_index = image_index;
+}
+
+void vkrndr::swapchain_t::add_to_present_history(uint32_t const image_index,
+    VkFence const present_fence,
+    detail::swap_frame_t& frame)
+{
+    detail::present_operation_t& present_operation{
+        present_history_.emplace_back()};
+
+    present_operation.present_semaphore =
+        std::exchange(frame.present_semaphore, VK_NULL_HANDLE);
+
+    present_operation.old_swapchains = std::move(old_swapchains_);
+    old_swapchains_ = {};
+
+    if (swapchain_maintenance_1_enabled_)
+    {
+        present_operation.cleanup_fence = present_fence;
+    }
+    else
+    {
+        present_operation.image_index = image_index;
+    }
+}
+
+void vkrndr::swapchain_t::cleanup_present_history()
+{
+    while (!present_history_.empty())
+    {
+        detail::present_operation_t& operation{present_history_.front()};
+
+        if (operation.cleanup_fence == VK_NULL_HANDLE)
+        {
+            assert(operation.image_index != detail::invalid_image_index);
+            break;
+        }
+
+        VkResult const result{
+            vkGetFenceStatus(*device_, operation.cleanup_fence)};
+        if (result == VK_NOT_READY)
+        {
+            break;
+        }
+        check_result(result);
+
+        cleanup_present_info(operation);
+        present_history_.pop_front();
+    }
+
+    if (present_history_.size() > images_.size() * 2 &&
+        present_history_.front().cleanup_fence == VK_NULL_HANDLE)
+    {
+        detail::present_operation_t present_info{
+            std::move(present_history_.front())};
+        present_history_.pop_front();
+
+        assert(present_info.image_index != detail::invalid_image_index);
+
+        assert(std::ranges::all_of(present_history_,
+            [](detail::present_operation_t const& op)
+            { return op.old_swapchains.empty(); }));
+        present_history_.front().old_swapchains =
+            std::move(present_info.old_swapchains);
+
+        present_history_.push_back(std::move(present_info));
+    }
+}
+
+void vkrndr::swapchain_t::cleanup_present_info(
+    detail::present_operation_t& operation)
+{
+    if (operation.cleanup_fence != VK_NULL_HANDLE)
+    {
+        if (VkResult const result{fence_pool_.recycle(operation.cleanup_fence)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
+        operation.cleanup_fence = VK_NULL_HANDLE;
+    }
+
+    if (operation.present_semaphore != VK_NULL_HANDLE)
+    {
+        if (VkResult const result{
+                semaphore_pool_.recycle(operation.present_semaphore)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
+        operation.present_semaphore = VK_NULL_HANDLE;
+    }
+
+    std::ranges::for_each(operation.old_swapchains,
+        [this](detail::cleanup_data_t& data) { cleanup_swapchain(data); });
+    operation.old_swapchains.clear();
+
+    operation.image_index = detail::invalid_image_index;
+}
+
+void vkrndr::swapchain_t::cleanup_swapchain(detail::cleanup_data_t& data)
+{
+    if (data.swapchain != VK_NULL_HANDLE)
+    {
+        vkDestroySwapchainKHR(*device_, data.swapchain, nullptr);
+        data.swapchain = VK_NULL_HANDLE;
+    }
+
+    for (VkSemaphore const semaphore : data.semaphores)
     {
         if (VkResult const result{semaphore_pool_.recycle(semaphore)};
             result != VK_SUCCESS)
@@ -420,10 +727,6 @@ void vkrndr::swapchain_t::cleanup()
             throw std::system_error{make_error_code(result)};
         }
     }
-    submit_finished_semaphore_.clear();
 
-    compatible_present_modes_.clear();
-    available_present_modes_.clear();
-
-    vkDestroySwapchainKHR(*device_, handle_, nullptr);
+    data.semaphores.clear();
 }

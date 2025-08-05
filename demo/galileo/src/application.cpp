@@ -1031,9 +1031,9 @@ void galileo::application_t::on_shutdown()
 void galileo::application_t::on_resize(uint32_t const width,
     uint32_t const height)
 {
-    vkDeviceWaitIdle(backend_->device());
+    render_window_->resize(width, height);
 
-    render_window_->swapchain().recreate();
+    vkDeviceWaitIdle(backend_->device());
 
     projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 

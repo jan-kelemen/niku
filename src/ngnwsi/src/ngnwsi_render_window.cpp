@@ -54,10 +54,7 @@ std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
     if (swapchain_->needs_refresh())
     {
         spdlog::info("Recreating swapchain");
-        // TODO-JK: Fix global wait
-        vkDeviceWaitIdle(*device_);
-        swapchain_->recreate();
-        return std::nullopt;
+        swapchain_->recreate(current_frame_);
     }
 
     if (!swapchain_->acquire_next_image(current_frame_, image_index_))
@@ -82,4 +79,11 @@ void ngnwsi::render_window_t::present(
         image_index_);
 
     current_frame_ = (current_frame_ + 1) % frames_in_flight_;
+}
+
+void ngnwsi::render_window_t::resize([[maybe_unused]] uint32_t const width,
+    [[maybe_unused]] uint32_t const height)
+{
+    spdlog::info("Recreating swapchain due to resize");
+    swapchain_->recreate(current_frame_);
 }

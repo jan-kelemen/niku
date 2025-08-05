@@ -55,6 +55,8 @@ namespace ngnwsi
 
         void present(std::span<VkCommandBuffer const> const& command_buffers);
 
+        void resize(uint32_t width, uint32_t height);
+
     public:
         render_window_t& operator=(render_window_t const&) = delete;
 

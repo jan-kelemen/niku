@@ -156,12 +156,12 @@ bool reshed::editor_window_t::handle_event(SDL_Event const& event)
 
     if (event.type == SDL_EVENT_WINDOW_RESIZED)
     {
-        vkDeviceWaitIdle(backend_->device());
+        uint32_t const width{cppext::narrow<uint32_t>(event.window.data1)};
+        uint32_t const height{cppext::narrow<uint32_t>(
+            cppext::narrow<uint32_t>(event.window.data2))};
 
-        render_window_->swapchain().recreate();
-
-        editor_->resize(cppext::narrow<uint32_t>(event.window.data1),
-            cppext::narrow<uint32_t>(event.window.data2));
+        render_window_->resize(width, height);
+        editor_->resize(width, height);
     }
 
     if (event.type == SDL_EVENT_KEY_DOWN &&

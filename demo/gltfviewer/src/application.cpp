@@ -952,9 +952,9 @@ void gltfviewer::application_t::on_shutdown()
 void gltfviewer::application_t::on_resize(uint32_t const width,
     uint32_t const height)
 {
-    vkDeviceWaitIdle(backend_->device());
+    render_window_->resize(width, height);
 
-    render_window_->swapchain().recreate();
+    vkDeviceWaitIdle(backend_->device());
 
     destroy(&backend_->device(), &color_image_);
     color_image_ = create_color_image(*backend_, {width, height});

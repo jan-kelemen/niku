@@ -219,12 +219,6 @@ bool reshed::application_t::handle_event(SDL_Event const& event)
         }
     }
 
-    auto window{std::ranges::find_if(windows_, &editor_window_t::is_focused)};
-    if (window != windows_.cend())
-    {
-        return window->handle_event(event);
-    }
-
     return false;
 }
 
