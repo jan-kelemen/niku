@@ -56,6 +56,25 @@ namespace
             : VK_PRESENT_MODE_FIFO_KHR;
     }
 
+    [[nodiscard]] VkCompositeAlphaFlagBitsKHR choose_composite_alpha(
+        VkSurfaceCapabilitiesKHR const& capabilities)
+    {
+        for (VkCompositeAlphaFlagBitsKHR const flag :
+            {VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+                VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+                VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+                VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR})
+        {
+            if ((capabilities.supportedCompositeAlpha & flag) == flag)
+            {
+                return flag;
+            }
+        }
+
+        assert(false);
+        return VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    }
+
     [[nodiscard]] bool is_present_mode_available(vkrndr::device_t const& device,
         VkPresentModeKHR const mode)
     {
@@ -304,7 +323,7 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
         .queueFamilyIndexCount = 0,
         .pQueueFamilyIndices = nullptr,
         .preTransform = swap_details.capabilities.currentTransform,
-        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .compositeAlpha = choose_composite_alpha(swap_details.capabilities),
         .presentMode = chosen_present_mode,
         .clipped = VK_TRUE,
         .oldSwapchain = VK_NULL_HANDLE,
