@@ -1,6 +1,7 @@
 #include <vkrndr_swapchain.hpp>
 
 #include <vkrndr_device.hpp>
+#include <vkrndr_error_code.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
 #include <vkrndr_image.hpp>
@@ -114,13 +115,6 @@ namespace
     }
 } // namespace
 
-void vkrndr::detail::destroy(device_t const* const device,
-    swap_frame_t* const frame)
-{
-    vkDestroySemaphore(*device, frame->image_available, nullptr);
-    vkDestroyFence(*device, frame->in_flight, nullptr);
-}
-
 vkrndr::swapchain_t::swapchain_t(window_t const& window,
     device_t& device,
     swapchain_settings_t const& settings)
@@ -130,6 +124,8 @@ vkrndr::swapchain_t::swapchain_t(window_t const& window,
     , swapchain_maintenance_1_enabled_{is_device_extension_enabled(
           VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
           device)}
+    , fence_pool_{device}
+    , semaphore_pool_{device}
 {
     create_swap_frames(false);
 }
@@ -346,15 +342,15 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated)
                 image_format_,
                 VK_IMAGE_ASPECT_COLOR_BIT,
                 1));
-        submit_finished_semaphore_.emplace_back(create_semaphore(*device_));
+        submit_finished_semaphore_.push_back(semaphore_pool_.get().value());
     }
     // cppcheck-suppress-end useStlAlgorithm
 
     frames_.resize(settings_.frames_in_flight);
     for (detail::swap_frame_t& frame : frames_)
     {
-        frame.image_available = create_semaphore(*device_);
-        frame.in_flight = create_fence(*device_, true);
+        frame.image_available = semaphore_pool_.get().value();
+        frame.in_flight = fence_pool_.get(true).value();
     }
 
     swapchain_refresh_needed_ = false;
@@ -364,7 +360,18 @@ void vkrndr::swapchain_t::cleanup()
 {
     for (detail::swap_frame_t& frame : frames_)
     {
-        destroy(device_, &frame);
+        if (VkResult const result{
+                semaphore_pool_.recycle(frame.image_available)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
+
+        if (VkResult const result{fence_pool_.recycle(frame.in_flight)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
     }
     frames_.clear();
 
@@ -376,7 +383,11 @@ void vkrndr::swapchain_t::cleanup()
 
     for (VkSemaphore const semaphore : submit_finished_semaphore_)
     {
-        vkDestroySemaphore(*device_, semaphore, nullptr);
+        if (VkResult const result{semaphore_pool_.recycle(semaphore)};
+            result != VK_SUCCESS)
+        {
+            throw std::system_error{make_error_code(result)};
+        }
     }
     submit_finished_semaphore_.clear();
 

@@ -5,7 +5,9 @@
 
 #include <concepts>
 #include <cstdint>
+#include <expected>
 #include <span>
+#include <vector>
 
 namespace vkrndr
 {
@@ -14,6 +16,61 @@ namespace vkrndr
 
 namespace vkrndr
 {
+    class [[nodiscard]] semaphore_pool_t final
+    {
+    public:
+        semaphore_pool_t(vkrndr::device_t const& device);
+
+        semaphore_pool_t(semaphore_pool_t const&) = delete;
+
+        semaphore_pool_t(semaphore_pool_t&& other) noexcept = default;
+
+    public:
+        ~semaphore_pool_t();
+
+    public:
+        [[nodiscard]] std::expected<VkSemaphore, VkResult> get();
+
+        [[nodiscard]] VkResult recycle(VkSemaphore semaphore);
+
+    public:
+        semaphore_pool_t& operator=(semaphore_pool_t const&) = delete;
+
+        semaphore_pool_t& operator=(semaphore_pool_t&& other) noexcept;
+
+    private:
+        device_t const* device_;
+        std::vector<VkSemaphore> pool_;
+    };
+
+    class [[nodiscard]] fence_pool_t final
+    {
+    public:
+        fence_pool_t(vkrndr::device_t const& device);
+
+        fence_pool_t(fence_pool_t const&) = delete;
+
+        fence_pool_t(fence_pool_t&&) noexcept = default;
+
+    public:
+        ~fence_pool_t();
+
+    public:
+        [[nodiscard]] std::expected<VkFence, VkResult> get(
+            bool signaled = false);
+
+        [[nodiscard]] VkResult recycle(VkFence fence);
+
+    public:
+        fence_pool_t& operator=(fence_pool_t const&) = delete;
+
+        fence_pool_t& operator=(fence_pool_t&&) noexcept;
+
+    private:
+        device_t const* device_;
+        std::vector<VkFence> pool_;
+    };
+
     [[nodiscard]] VkSemaphore create_semaphore(device_t const& device);
 
     [[nodiscard]] VkFence create_fence(device_t const& device,

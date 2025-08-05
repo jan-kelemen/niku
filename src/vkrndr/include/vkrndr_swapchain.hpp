@@ -3,6 +3,7 @@
 
 #include <volk.h>
 
+#include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cstddef>
@@ -32,8 +33,6 @@ namespace vkrndr
             VkImage handle;
             VkImageView view;
         };
-
-        void destroy(device_t const* device, swap_frame_t* frame);
     } // namespace detail
 
     struct [[nodiscard]] swapchain_settings_t final
@@ -109,6 +108,9 @@ namespace vkrndr
         device_t* device_{};
         swapchain_settings_t settings_{};
         bool swapchain_maintenance_1_enabled_{};
+
+        fence_pool_t fence_pool_;
+        semaphore_pool_t semaphore_pool_;
 
         VkFormat image_format_{};
         uint32_t min_image_count_{};
