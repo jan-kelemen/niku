@@ -17,15 +17,22 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <ranges>
 #include <span>
 
+// IWYU pragma: no_include <boost/container/vector.hpp>
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <expected>
+// IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <set>
 // IWYU pragma: no_include <string>
+// IWYU pragma: no_include <system_error>
 // IWYU pragma: no_include <utility>
 
 namespace
@@ -70,7 +77,8 @@ namespace
                 VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
                 VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR})
         {
-            if ((capabilities.supportedCompositeAlpha & flag) == flag)
+            if (static_cast<VkCompositeAlphaFlagBitsKHR>(
+                    capabilities.supportedCompositeAlpha & flag) == flag)
             {
                 return flag;
             }
@@ -186,22 +194,29 @@ vkrndr::swapchain_t::~swapchain_t()
         assert(frame.present_semaphore == VK_NULL_HANDLE);
     }
 
-    for (detail::present_operation_t& present_info : present_history_)
+    try
     {
-        if (present_info.cleanup_fence != VK_NULL_HANDLE)
+        for (detail::present_operation_t& present_info : present_history_)
         {
-            vkWaitForFences(*device_,
-                1,
-                &present_info.cleanup_fence,
-                true,
-                UINT64_MAX);
+            if (present_info.cleanup_fence != VK_NULL_HANDLE)
+            {
+                vkWaitForFences(*device_,
+                    1,
+                    &present_info.cleanup_fence,
+                    VK_TRUE,
+                    UINT64_MAX);
+            }
+
+            cleanup_present_info(present_info);
         }
 
-        cleanup_present_info(present_info);
+        std::ranges::for_each(old_swapchains_,
+            [this](detail::cleanup_data_t& data) { cleanup_swapchain(data); });
     }
-
-    std::ranges::for_each(old_swapchains_,
-        [this](detail::cleanup_data_t& data) { cleanup_swapchain(data); });
+    catch (std::system_error const&)
+    {
+        assert(false);
+    }
 
     cleanup_images(images_);
 

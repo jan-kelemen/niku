@@ -11,8 +11,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <vector>
+
+// IWYU pragma: no_include <boost/intrusive/detail/iterator.hpp>
+// IWYU pragma: no_include <boost/move/detail/addressof.hpp>
+// IWYU pragma: no_include <boost/move/utility_core.hpp>
 
 namespace vkrndr
 {

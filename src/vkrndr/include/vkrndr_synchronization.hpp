@@ -19,7 +19,7 @@ namespace vkrndr
     class [[nodiscard]] semaphore_pool_t final
     {
     public:
-        semaphore_pool_t(vkrndr::device_t const& device);
+        explicit semaphore_pool_t(vkrndr::device_t const& device);
 
         semaphore_pool_t(semaphore_pool_t const&) = delete;
 
@@ -46,7 +46,7 @@ namespace vkrndr
     class [[nodiscard]] fence_pool_t final
     {
     public:
-        fence_pool_t(vkrndr::device_t const& device);
+        explicit fence_pool_t(vkrndr::device_t const& device);
 
         fence_pool_t(fence_pool_t const&) = delete;
 
@@ -64,7 +64,7 @@ namespace vkrndr
     public:
         fence_pool_t& operator=(fence_pool_t const&) = delete;
 
-        fence_pool_t& operator=(fence_pool_t&&) noexcept;
+        fence_pool_t& operator=(fence_pool_t&& other) noexcept;
 
     private:
         device_t const* device_;
