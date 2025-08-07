@@ -10,6 +10,7 @@
 #include <vkrndr_window.hpp>
 
 #include <cppext_container.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <vulkan/utility/vk_struct_helper.hpp>
 
@@ -77,11 +78,14 @@ namespace
                 VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
                 VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR})
         {
+            DISABLE_WARNING_PUSH
+            DISABLE_WARNING_SIGN_CONVERSION
             if (static_cast<VkCompositeAlphaFlagBitsKHR>(
                     capabilities.supportedCompositeAlpha & flag) == flag)
             {
                 return flag;
             }
+            DISABLE_WARNING_POP
         }
 
         assert(false);
