@@ -805,6 +805,8 @@ void gltfviewer::application_t::debug_draw()
 
     change_model_ = selector_.select_model();
 
+    environment_->update();
+
     ImGui::Begin("Rendering");
 
     if (ImGui::BeginCombo("PBR Equation", debug_options[debug_], 0))
