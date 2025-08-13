@@ -441,6 +441,8 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated,
     VkSurfaceFormatKHR const surface_format{
         choose_swap_surface_format(swap_details.surface_formats, settings_)};
 
+    available_present_modes_.clear();
+
     std::ranges::copy_if(swap_details.present_modes,
         std::back_inserter(available_present_modes_),
         [this](VkPresentModeKHR const mode)
