@@ -29,19 +29,19 @@ class NikuConan(ConanFile):
     implements = ["auto_shared_fpic"]
 
     def requirements(self):
-        self.requires("angelscript/2.37.0")
+        self.requires("angelscript/2.38.0")
         self.requires("boost/1.88.0", transitive_headers=False)
         self.requires("fastgltf/0.9.0", transitive_headers=False)
         self.requires("fmt/11.2.0")
         self.requires("freetype/2.13.3")
         self.requires("glm/1.0.1")
         self.requires("glslang/1.4.321.0", transitive_headers=False)
-        self.requires("harfbuzz/11.3.2")
-        self.requires("imgui/1.92.1-docking")
+        self.requires("harfbuzz/11.4.1")
+        self.requires("imgui/1.92.2b-docking")
         self.requires("joltphysics/5.3.0")
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
         self.requires("meshoptimizer/0.24", transitive_headers=False)
-        self.requires("sdl/3.2.18")
+        self.requires("sdl/3.2.20")
         self.requires("spdlog/1.15.3", transitive_headers=False)
         self.requires("spirv-cross/1.4.321.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
@@ -58,7 +58,7 @@ class NikuConan(ConanFile):
 
     def build_requirements(self):
         self.tool_requires("cmake/[^3.27]")
-        self.test_requires("catch2/3.9.0")
+        self.test_requires("catch2/3.9.1")
 
     def layout(self):
         cmake_layout(self)
