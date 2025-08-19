@@ -10,7 +10,7 @@ require_conan_version = ">=2.0"
 class NikuConan(ConanFile):
     name = "niku"
     settings = "os", "compiler", "build_type", "arch"
-    version = "0.1"
+    version = "0.2"
 
     options = {
         "shared": [True, False],

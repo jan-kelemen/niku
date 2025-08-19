@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.27)
 
 cmake_policy(SET CMP0083 NEW)
 
-project(niku VERSION 0.1 LANGUAGES C CXX)
+project(niku VERSION 0.2 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
