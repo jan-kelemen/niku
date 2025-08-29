@@ -2,6 +2,7 @@
 
 #include <ngnwsi_sdl_window.hpp>
 
+#include <vkrndr_cpu_pacing.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_swapchain.hpp>
 #include <vkrndr_utility.hpp>
@@ -32,11 +33,13 @@ vkrndr::swapchain_t* ngnwsi::render_window_t::create_swapchain(
     vkrndr::device_t& device,
     vkrndr::swapchain_settings_t const& settings)
 {
+    pacing_ = std::make_unique<vkrndr::cpu_pacing_t>(device,
+        settings.frames_in_flight);
+
     swapchain_ =
         std::make_unique<vkrndr::swapchain_t>(window_, device, settings);
 
     device_ = &device;
-    frames_in_flight_ = settings.frames_in_flight;
 
     return swapchain_.get();
 }
@@ -50,26 +53,43 @@ std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
         return std::nullopt;
     }
 
+    vkrndr::frame_in_flight_t const* const current{pacing_->pace()};
+    if (!current)
+    {
+        return std::nullopt;
+    }
+
     if (swapchain_->needs_refresh())
     {
         spdlog::info("Recreating swapchain");
-        swapchain_->recreate(current_frame_);
+        swapchain_->recreate(current->index);
     }
 
-    return swapchain_->acquire_next_image(current_frame_);
+    std::optional<vkrndr::image_t> rv{
+        swapchain_->acquire_next_image(current->index)};
+    if (rv)
+    {
+        pacing_->begin_frame();
+    }
+
+    return rv;
 }
 
 void ngnwsi::render_window_t::present(
     std::span<VkCommandBuffer const> const& command_buffers)
 {
-    swapchain_->submit_command_buffers(command_buffers, current_frame_);
+    vkrndr::frame_in_flight_t const& current{pacing_->current()};
+    swapchain_->submit_command_buffers(command_buffers,
+        current.index,
+        current.submit_fence);
 
-    current_frame_ = (current_frame_ + 1) % frames_in_flight_;
+    pacing_->end_frame();
 }
 
 void ngnwsi::render_window_t::resize([[maybe_unused]] uint32_t const width,
     [[maybe_unused]] uint32_t const height)
 {
     spdlog::info("Recreating swapchain due to resize");
-    swapchain_->recreate(current_frame_);
+    vkrndr::frame_in_flight_t const& current{pacing_->current()};
+    swapchain_->recreate(current.index);
 }

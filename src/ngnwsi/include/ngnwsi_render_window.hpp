@@ -17,6 +17,7 @@
 
 namespace vkrndr
 {
+    class cpu_pacing_t;
     struct device_t;
 } // namespace vkrndr
 
@@ -65,10 +66,8 @@ namespace ngnwsi
     protected:
         sdl_window_t window_;
         vkrndr::device_t* device_{};
+        std::unique_ptr<vkrndr::cpu_pacing_t> pacing_;
         std::unique_ptr<vkrndr::swapchain_t> swapchain_;
-        uint32_t current_frame_{};
-        uint32_t image_index_{};
-        uint32_t frames_in_flight_{};
     };
 } // namespace ngnwsi
 

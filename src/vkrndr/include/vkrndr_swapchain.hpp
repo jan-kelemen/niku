@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -42,7 +43,6 @@ namespace vkrndr
 
         struct [[nodiscard]] swap_frame_t final
         {
-            VkFence submit_fence{VK_NULL_HANDLE};
             VkSemaphore acquire_semaphore{VK_NULL_HANDLE};
             VkSemaphore present_semaphore{VK_NULL_HANDLE};
 
@@ -112,7 +112,8 @@ namespace vkrndr
 
         void submit_command_buffers(
             std::span<VkCommandBuffer const> command_buffers,
-            size_t current_frame);
+            size_t current_frame,
+            VkFence submit_fence);
 
         [[nodiscard]] bool change_present_mode(VkPresentModeKHR new_mode);
 

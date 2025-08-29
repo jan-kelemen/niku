@@ -178,13 +178,6 @@ vkrndr::swapchain_t::~swapchain_t()
 {
     for (detail::swap_frame_t& frame : frames_in_flight_)
     {
-        if (VkResult const result{fence_pool_.recycle(frame.submit_fence)};
-            result != VK_SUCCESS)
-        {
-            spdlog::error("Fence recycle failed: {}",
-                make_error_code(result).message());
-        }
-
         if (VkResult const result{
                 semaphore_pool_.recycle(frame.acquire_semaphore)};
             result != VK_SUCCESS)
@@ -231,23 +224,8 @@ std::optional<vkrndr::image_t> vkrndr::swapchain_t::acquire_next_image(
     size_t const current_frame)
 {
     auto& frame{frames_in_flight_[current_frame]};
-    if (frame.submit_fence != VK_NULL_HANDLE)
+    if (frame.acquire_semaphore != VK_NULL_HANDLE)
     {
-        VkResult const wait_result{
-            vkWaitForFences(*device_, 1, &frame.submit_fence, VK_TRUE, 0)};
-        if (wait_result == VK_TIMEOUT)
-        {
-            return std::nullopt;
-        }
-        check_result(wait_result);
-
-        if (VkResult const result{fence_pool_.recycle(frame.submit_fence)};
-            result != VK_SUCCESS)
-        {
-            throw std::system_error{make_error_code(result)};
-        }
-        frame.submit_fence = VK_NULL_HANDLE;
-
         if (VkResult const result{
                 semaphore_pool_.recycle(frame.acquire_semaphore)};
             result != VK_SUCCESS)
@@ -261,7 +239,6 @@ std::optional<vkrndr::image_t> vkrndr::swapchain_t::acquire_next_image(
         assert(frame.present_semaphore == VK_NULL_HANDLE);
     }
 
-    VkFence const submit_fence{fence_pool_.get().value()};
     VkFence const acquire_fence{swapchain_maintenance_1_enabled_
             ? VK_NULL_HANDLE
             : fence_pool_.get().value()};
@@ -284,12 +261,6 @@ std::optional<vkrndr::image_t> vkrndr::swapchain_t::acquire_next_image(
         acquire_result == VK_NOT_READY ||
         acquire_result == VK_TIMEOUT)
     {
-        if (VkResult const result{fence_pool_.recycle(submit_fence)};
-            result != VK_SUCCESS)
-        {
-            throw std::system_error{make_error_code(result)};
-        }
-
         if (acquire_fence != VK_NULL_HANDLE)
         {
             if (VkResult const result{fence_pool_.recycle(acquire_fence)};
@@ -332,7 +303,6 @@ std::optional<vkrndr::image_t> vkrndr::swapchain_t::acquire_next_image(
         associate_with_present_history(frame.image_index, acquire_fence);
     }
 
-    frame.submit_fence = submit_fence;
     frame.acquire_semaphore = acquire_semaphore;
     frame.present_semaphore = present_semaphore;
 
@@ -348,7 +318,8 @@ std::optional<vkrndr::image_t> vkrndr::swapchain_t::acquire_next_image(
 
 void vkrndr::swapchain_t::submit_command_buffers(
     std::span<VkCommandBuffer const> command_buffers,
-    size_t const current_frame)
+    size_t const current_frame,
+    VkFence const submit_fence)
 {
     auto& frame{frames_in_flight_[current_frame]};
 
@@ -364,8 +335,7 @@ void vkrndr::swapchain_t::submit_command_buffers(
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &frame.present_semaphore};
 
-    settings_.present_queue->submit(cppext::as_span(submit_info),
-        frame.submit_fence);
+    settings_.present_queue->submit(cppext::as_span(submit_info), submit_fence);
 
     VkPresentInfoKHR present_info{.sType = vku::GetSType<VkPresentInfoKHR>(),
         .waitSemaphoreCount = 1,

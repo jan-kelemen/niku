@@ -5,6 +5,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_backend.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_buffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_commands.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_cpu_pacing.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_cubemap.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_debug_utils.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_descriptors.hpp
@@ -30,6 +31,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_buffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_commands.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_cubemap.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_cpu_pacing.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_debug_utils.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_descriptors.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_device.cpp
