@@ -46,6 +46,11 @@ vkrndr::swapchain_t* ngnwsi::render_window_t::create_swapchain(
 
 void ngnwsi::render_window_t::destroy_swapchain() { swapchain_.reset(); }
 
+vkrndr::frame_in_flight_t& ngnwsi::render_window_t::frame_in_flight()
+{
+    return pacing_->current();
+}
+
 std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
 {
     if (window_.is_minimized())

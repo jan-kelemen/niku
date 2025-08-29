@@ -9,6 +9,7 @@
 #include <volk.h>
 
 #include <cstdint>
+#include <functional>
 
 namespace vkrndr
 {
@@ -34,7 +35,9 @@ namespace galileo
             vkrndr::image_t const& color_image,
             vkrndr::image_t const& target_image);
 
-        void resize(uint32_t width, uint32_t height);
+        void resize(uint32_t width,
+            uint32_t height,
+            std::function<void(std::function<void()>)>& deletion_queue_insert);
 
     public:
         postprocess_shader_t& operator=(postprocess_shader_t const&) = delete;

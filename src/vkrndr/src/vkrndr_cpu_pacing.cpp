@@ -49,6 +49,18 @@ vkrndr::cpu_pacing_t::~cpu_pacing_t()
     for (frame_in_flight_t const& frame : frames_)
     {
         vkDestroyFence(*device_, frame.submit_fence, nullptr);
+
+        for (auto it{frame.cleanup.rbegin()}; it != frame.cleanup.rend(); ++it)
+        {
+            (*it)();
+        }
+
+        for (auto it{frame.old_cleanup_queue.rbegin()};
+            it != frame.old_cleanup_queue.rend();
+            ++it)
+        {
+            (*it)();
+        }
     }
 }
 
@@ -68,7 +80,19 @@ vkrndr::frame_in_flight_t* vkrndr::cpu_pacing_t::pace(uint64_t const timeout)
         throw std::system_error{make_error_code(result)};
     }
 
-    return &frames_[current_frame_];
+    auto& frame{current()};
+    for (auto it{frame.old_cleanup_queue.rbegin()};
+        it != frame.old_cleanup_queue.rend();
+        ++it)
+    {
+        (*it)();
+    }
+    frame.old_cleanup_queue.clear();
+
+    using std::swap;
+    swap(frame.old_cleanup_queue, frame.cleanup);
+
+    return &frame;
 }
 
 void vkrndr::cpu_pacing_t::begin_frame()

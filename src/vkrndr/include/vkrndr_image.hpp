@@ -29,7 +29,7 @@ namespace vkrndr
         VkExtent3D extent{};
     };
 
-    void destroy(device_t const* device, image_t* image);
+    void destroy(device_t const* device, image_t const* image);
 
     struct [[nodiscard]] image_create_info_t final
     {

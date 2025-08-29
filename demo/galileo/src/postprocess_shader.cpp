@@ -314,9 +314,13 @@ void galileo::postprocess_shader_t::draw(VkCommandBuffer command_buffer,
     }
 }
 
-void galileo::postprocess_shader_t::resize(uint32_t width, uint32_t height)
+void galileo::postprocess_shader_t::resize(uint32_t width,
+    uint32_t height,
+    std::function<void(std::function<void()>)>& deletion_queue_insert)
 {
-    destroy(&backend_->device(), &intermediate_image_);
+    deletion_queue_insert(
+        [device = &backend_->device(), image = std::move(intermediate_image_)]()
+        { destroy(device, &image); });
     intermediate_image_ = create_intermediate_image(*backend_,
         vkrndr::to_2d_extent(width, height));
 }

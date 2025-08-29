@@ -276,9 +276,12 @@ void gltfviewer::weighted_oit_shader_t::draw(scene_graph_t const& graph,
 }
 
 void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
-    uint32_t const height)
+    uint32_t const height,
+    std::function<void(std::function<void()>)>& deletion_queue_insert)
 {
-    destroy(&backend_->device(), &accumulation_image_);
+    deletion_queue_insert(
+        [device = &backend_->device(), image = std::move(accumulation_image_)]()
+        { destroy(device, &image); });
     accumulation_image_ = create_image_and_view(backend_->device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R16G16B16A16_SFLOAT,
             .extent = vkrndr::to_2d_extent(width, height),
@@ -290,7 +293,9 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
 
-    destroy(&backend_->device(), &reveal_image_);
+    deletion_queue_insert(
+        [device = &backend_->device(), image = std::move(reveal_image_)]()
+        { destroy(device, &image); });
     reveal_image_ = create_image_and_view(backend_->device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R8_UNORM,
             .extent = vkrndr::to_2d_extent(width, height),
@@ -302,6 +307,14 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT);
 
+    deletion_queue_insert([device = &backend_->device(),
+                              pool = backend_->descriptor_pool(),
+                              set = descriptor_set_]()
+        { vkrndr::free_descriptor_sets(*device, pool, cppext::as_span(set)); });
+    vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
+        backend_->descriptor_pool(),
+        cppext::as_span(descriptor_set_layout_),
+        cppext::as_span(descriptor_set_)));
     update_descriptor_set(backend_->device(),
         descriptor_set_,
         vkrndr::combined_sampler_descriptor(accumulation_sampler_,

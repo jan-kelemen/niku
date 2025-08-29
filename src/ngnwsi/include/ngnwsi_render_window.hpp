@@ -19,6 +19,7 @@ namespace vkrndr
 {
     class cpu_pacing_t;
     struct device_t;
+    struct frame_in_flight_t;
 } // namespace vkrndr
 
 namespace ngnwsi
@@ -51,6 +52,8 @@ namespace ngnwsi
             vkrndr::swapchain_settings_t const& settings);
 
         void destroy_swapchain();
+
+        [[nodiscard]] vkrndr::frame_in_flight_t& frame_in_flight();
 
         [[nodiscard]] std::optional<vkrndr::image_t> acquire_next_image();
 

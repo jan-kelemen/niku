@@ -47,6 +47,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_cpu_pacing.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_error_code.hpp>
@@ -1033,23 +1034,32 @@ void galileo::application_t::on_resize(uint32_t const width,
 {
     render_window_->resize(width, height);
 
-    vkDeviceWaitIdle(backend_->device());
+    vkrndr::frame_in_flight_t& in_flight{render_window_->frame_in_flight()};
+    std::function<void(std::function<void()>)> deletion_queue_insert{
+        [&in_flight](std::function<void()> cb)
+        { in_flight.cleanup.push_back(std::move(cb)); }};
 
     projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 
-    destroy(&backend_->device(), &depth_buffer_);
+    deletion_queue_insert(
+        [device = &backend_->device(), image = std::move(depth_buffer_)]()
+        { destroy(device, &image); });
     depth_buffer_ = create_depth_buffer(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_buffer_, "Depth buffer"));
 
+    deletion_queue_insert([gbuffer = gbuffer_.release()]() { delete gbuffer; });
+    gbuffer_ = std::make_unique<gbuffer_t>(*backend_);
     gbuffer_->resize(width, height);
 
-    destroy(&backend_->device(), &color_image_);
+    deletion_queue_insert(
+        [device = &backend_->device(), image = std::move(color_image_)]()
+        { destroy(device, &image); });
     color_image_ = create_color_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), color_image_, "Color image"));
 
-    postprocess_shader_->resize(width, height);
+    postprocess_shader_->resize(width, height, deletion_queue_insert);
 }
 
 void galileo::application_t::setup_world()

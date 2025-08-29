@@ -10,7 +10,7 @@
 
 #include <bit>
 
-void vkrndr::destroy(device_t const* device, image_t* const image)
+void vkrndr::destroy(device_t const* const device, image_t const* const image)
 {
     if (image)
     {

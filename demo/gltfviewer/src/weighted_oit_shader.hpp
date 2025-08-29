@@ -7,6 +7,7 @@
 #include <volk.h>
 
 #include <cstdint>
+#include <functional>
 
 namespace vkrndr
 {
@@ -46,7 +47,9 @@ namespace gltfviewer
             vkrndr::image_t const& color_image,
             vkrndr::image_t const& depth_buffer);
 
-        void resize(uint32_t width, uint32_t height);
+        void resize(uint32_t width,
+            uint32_t height,
+            std::function<void(std::function<void()>)>& deletion_queue_insert);
 
     public:
         weighted_oit_shader_t& operator=(weighted_oit_shader_t const&) = delete;

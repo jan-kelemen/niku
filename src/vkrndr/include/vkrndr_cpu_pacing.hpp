@@ -22,6 +22,7 @@ namespace vkrndr
         VkFence submit_fence;
 
         boost::container::deque<std::function<void()>> cleanup;
+        boost::container::deque<std::function<void()>> old_cleanup_queue;
     };
 
     class [[nodiscard]] cpu_pacing_t final

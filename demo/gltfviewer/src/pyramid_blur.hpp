@@ -9,6 +9,7 @@
 #include <volk.h>
 
 #include <cstdint>
+#include <functional>
 #include <vector>
 
 namespace vkrndr
@@ -35,7 +36,9 @@ namespace gltfviewer
 
         void draw(uint32_t levels, VkCommandBuffer command_buffer);
 
-        void resize(uint32_t width, uint32_t height);
+        void resize(uint32_t width,
+            uint32_t height,
+            std::function<void(std::function<void()>)>& deletion_queue_insert);
 
     public:
         pyramid_blur_t& operator=(pyramid_blur_t const&) = delete;
@@ -53,8 +56,10 @@ namespace gltfviewer
 
         void upsample_pass(uint32_t levels, VkCommandBuffer command_buffer);
 
-        void create_downsample_resources();
-        void create_upsample_resources();
+        void create_downsample_resources(
+            std::function<void(std::function<void()>)>& deletion_queue_insert);
+        void create_upsample_resources(
+            std::function<void(std::function<void()>)>& deletion_queue_insert);
 
     private:
         vkrndr::backend_t* backend_;

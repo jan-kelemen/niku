@@ -31,6 +31,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_cpu_pacing.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_error_code.hpp>
@@ -956,26 +957,35 @@ void gltfviewer::application_t::on_resize(uint32_t const width,
 {
     render_window_->resize(width, height);
 
-    vkDeviceWaitIdle(backend_->device());
+    vkrndr::frame_in_flight_t& in_flight{render_window_->frame_in_flight()};
+    std::function<void(std::function<void()>)> deletion_queue_insert{
+        [&in_flight](std::function<void()> cb)
+        { in_flight.cleanup.push_back(std::move(cb)); }};
 
-    destroy(&backend_->device(), &color_image_);
+    deletion_queue_insert(
+        [device = &backend_->device(), image = std::move(color_image_)]()
+        { destroy(device, &image); });
     color_image_ = create_color_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), color_image_, "Offscreen Image"));
 
-    destroy(&backend_->device(), &depth_buffer_);
+    deletion_queue_insert(
+        [device = &backend_->device(), image = std::move(depth_buffer_)]()
+        { destroy(device, &image); });
     depth_buffer_ = create_depth_buffer(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_buffer_, "Depth Buffer"));
 
-    destroy(&backend_->device(), &resolve_image_);
+    deletion_queue_insert(
+        [device = &backend_->device(), image = std::move(resolve_image_)]()
+        { destroy(device, &image); });
     resolve_image_ = create_resolve_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), resolve_image_, "Resolve Image"));
 
-    weighted_oit_shader_->resize(width, height);
+    weighted_oit_shader_->resize(width, height, deletion_queue_insert);
 
-    pyramid_blur_->resize(width, height);
+    pyramid_blur_->resize(width, height, deletion_queue_insert);
 
     projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 }
