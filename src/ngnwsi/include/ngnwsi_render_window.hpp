@@ -37,7 +37,7 @@ namespace ngnwsi
         render_window_t(render_window_t&& other) noexcept = delete;
 
     public:
-        virtual ~render_window_t() = default;
+        virtual ~render_window_t();
 
     public:
         [[nodiscard]] sdl_window_t& platform_window();

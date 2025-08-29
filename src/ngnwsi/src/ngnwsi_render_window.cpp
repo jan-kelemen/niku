@@ -19,6 +19,8 @@ ngnwsi::render_window_t::render_window_t(char const* title,
 {
 }
 
+ngnwsi::render_window_t::~render_window_t() = default;
+
 VkSurfaceKHR ngnwsi::render_window_t::create_surface(VkInstance instance)
 {
     return window_.create_surface(instance);
