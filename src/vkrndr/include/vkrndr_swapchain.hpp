@@ -1,6 +1,7 @@
 #ifndef VKRNDR_SWAPCHAIN_INCLUDED
 #define VKRNDR_SWAPCHAIN_INCLUDED
 
+#include <vkrndr_image.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -44,6 +45,8 @@ namespace vkrndr
             VkFence submit_fence{VK_NULL_HANDLE};
             VkSemaphore acquire_semaphore{VK_NULL_HANDLE};
             VkSemaphore present_semaphore{VK_NULL_HANDLE};
+
+            uint32_t image_index;
 
             std::vector<swap_image_t> garbage;
         };
@@ -97,11 +100,6 @@ namespace vkrndr
 
         [[nodiscard]] uint32_t image_count() const noexcept;
 
-        [[nodiscard]] VkImage image(uint32_t image_index) const noexcept;
-
-        [[nodiscard]] VkImageView image_view(
-            uint32_t image_index) const noexcept;
-
         [[nodiscard]] bool needs_refresh() const noexcept;
 
         [[nodiscard]] VkPresentModeKHR present_mode() const noexcept;
@@ -109,13 +107,12 @@ namespace vkrndr
         [[nodiscard]] std::span<VkPresentModeKHR const>
         available_present_modes() const noexcept;
 
-        [[nodiscard]] bool acquire_next_image(size_t current_frame,
-            uint32_t& image_index);
+        [[nodiscard]] std::optional<vkrndr::image_t> acquire_next_image(
+            size_t current_frame);
 
         void submit_command_buffers(
             std::span<VkCommandBuffer const> command_buffers,
-            size_t current_frame,
-            uint32_t image_index);
+            size_t current_frame);
 
         [[nodiscard]] bool change_present_mode(VkPresentModeKHR new_mode);
 
@@ -198,18 +195,6 @@ inline uint32_t vkrndr::swapchain_t::min_image_count() const noexcept
 inline uint32_t vkrndr::swapchain_t::image_count() const noexcept
 {
     return vkrndr::count_cast(images_.size());
-}
-
-inline VkImage vkrndr::swapchain_t::image(
-    uint32_t const image_index) const noexcept
-{
-    return images_[image_index].handle;
-}
-
-inline VkImageView vkrndr::swapchain_t::image_view(
-    uint32_t const image_index) const noexcept
-{
-    return images_[image_index].view;
 }
 
 inline bool vkrndr::swapchain_t::needs_refresh() const noexcept

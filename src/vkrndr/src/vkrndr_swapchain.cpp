@@ -227,8 +227,8 @@ vkrndr::swapchain_t::~swapchain_t()
     vkDestroySwapchainKHR(*device_, handle_, nullptr);
 }
 
-bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
-    uint32_t& image_index)
+std::optional<vkrndr::image_t> vkrndr::swapchain_t::acquire_next_image(
+    size_t const current_frame)
 {
     auto& frame{frames_in_flight_[current_frame]};
     if (frame.submit_fence != VK_NULL_HANDLE)
@@ -237,7 +237,7 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
             vkWaitForFences(*device_, 1, &frame.submit_fence, VK_TRUE, 0)};
         if (wait_result == VK_TIMEOUT)
         {
-            return false;
+            return std::nullopt;
         }
         check_result(wait_result);
 
@@ -273,7 +273,7 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
         0,
         acquire_semaphore,
         acquire_fence,
-        &image_index)};
+        &frame.image_index)};
     if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR ||
         acquire_result == VK_SUBOPTIMAL_KHR)
     {
@@ -311,13 +311,13 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
             throw std::system_error{make_error_code(result)};
         }
 
-        return false;
+        return std::nullopt;
     }
     check_result(acquire_result);
 
     if (swapchain_maintenance_1_enabled_)
     {
-        if (detail::swap_image_t& image{images_[image_index]};
+        if (detail::swap_image_t& image{images_[frame.image_index]};
             image.view == VK_NULL_HANDLE)
         {
             image.view = create_image_view(*device_,
@@ -329,20 +329,26 @@ bool vkrndr::swapchain_t::acquire_next_image(size_t const current_frame,
     }
     else
     {
-        associate_with_present_history(image_index, acquire_fence);
+        associate_with_present_history(frame.image_index, acquire_fence);
     }
 
     frame.submit_fence = submit_fence;
     frame.acquire_semaphore = acquire_semaphore;
     frame.present_semaphore = present_semaphore;
 
-    return true;
+    return std::make_optional<vkrndr::image_t>(
+        images_[frame.image_index].handle,
+        VK_NULL_HANDLE,
+        images_[frame.image_index].view,
+        image_format_,
+        VK_SAMPLE_COUNT_1_BIT,
+        1,
+        vkrndr::to_3d_extent(extent_));
 }
 
 void vkrndr::swapchain_t::submit_command_buffers(
     std::span<VkCommandBuffer const> command_buffers,
-    size_t const current_frame,
-    uint32_t const image_index)
+    size_t const current_frame)
 {
     auto& frame{frames_in_flight_[current_frame]};
 
@@ -366,7 +372,7 @@ void vkrndr::swapchain_t::submit_command_buffers(
         .pWaitSemaphores = &frame.present_semaphore,
         .swapchainCount = 1,
         .pSwapchains = &handle_,
-        .pImageIndices = &image_index};
+        .pImageIndices = &frame.image_index};
 
     VkFence present_fence{VK_NULL_HANDLE};
     VkSwapchainPresentFenceInfoKHR fence_info{
@@ -403,7 +409,7 @@ void vkrndr::swapchain_t::submit_command_buffers(
     swapchain_refresh_needed_ =
         result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR;
 
-    add_to_present_history(image_index, present_fence, frame);
+    add_to_present_history(frame.image_index, present_fence, frame);
     cleanup_present_history();
 
     if (result != VK_ERROR_OUT_OF_DATE_KHR)

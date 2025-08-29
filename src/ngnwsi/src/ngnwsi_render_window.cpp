@@ -56,26 +56,13 @@ std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
         swapchain_->recreate(current_frame_);
     }
 
-    if (!swapchain_->acquire_next_image(current_frame_, image_index_))
-    {
-        return std::nullopt;
-    }
-
-    return std::make_optional<vkrndr::image_t>(swapchain_->image(image_index_),
-        VK_NULL_HANDLE,
-        swapchain_->image_view(image_index_),
-        swapchain_->image_format(),
-        VK_SAMPLE_COUNT_1_BIT,
-        1,
-        vkrndr::to_3d_extent(swapchain_->extent()));
+    return swapchain_->acquire_next_image(current_frame_);
 }
 
 void ngnwsi::render_window_t::present(
     std::span<VkCommandBuffer const> const& command_buffers)
 {
-    swapchain_->submit_command_buffers(command_buffers,
-        current_frame_,
-        image_index_);
+    swapchain_->submit_command_buffers(command_buffers, current_frame_);
 
     current_frame_ = (current_frame_ + 1) % frames_in_flight_;
 }
