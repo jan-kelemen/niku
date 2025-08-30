@@ -56,6 +56,8 @@ namespace heatx
 
         void create_blas();
 
+        void create_tlas();
+
     private:
         vkrndr::rendering_context_t rendering_context_;
         std::unique_ptr<ngnwsi::render_window_t> render_window_;
@@ -66,8 +68,10 @@ namespace heatx
         vkrndr::buffer_t vertex_buffer_;
         vkrndr::buffer_t index_buffer_;
         vkrndr::buffer_t transform_buffer_;
+        vkrndr::buffer_t instance_buffer_;
 
         vkrndr::acceleration_structure_t blas_;
+        vkrndr::acceleration_structure_t tlas_;
     };
 } // namespace heatx
 #endif

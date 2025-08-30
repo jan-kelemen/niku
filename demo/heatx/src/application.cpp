@@ -325,13 +325,17 @@ void heatx::application_t::on_startup()
     on_resize(extent.width, extent.height);
 
     create_blas();
+    create_tlas();
 }
 
 void heatx::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device());
 
+    destroy(backend_->device(), tlas_);
     destroy(backend_->device(), blas_);
+
+    destroy(&backend_->device(), &instance_buffer_);
     destroy(&backend_->device(), &transform_buffer_);
     destroy(&backend_->device(), &index_buffer_);
     destroy(&backend_->device(), &vertex_buffer_);
@@ -538,4 +542,109 @@ void heatx::application_t::create_blas()
     destroy(rendering_context_.device.get(), &scratch_buffer);
 
     blas_.device_address = device_address(*rendering_context_.device, blas_);
+}
+
+void heatx::application_t::create_tlas()
+{
+    instance_buffer_ = vkrndr::create_buffer(*rendering_context_.device,
+        {
+            .size = sizeof(VkAccelerationStructureInstanceKHR),
+            .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        });
+
+    VkAccelerationStructureInstanceKHR const instance{
+        .transform = {1.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            1.0f,
+            0.0f},
+        .mask = 0xFF,
+        .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
+        .accelerationStructureReference = blas_.device_address,
+    };
+
+    VkAccelerationStructureGeometryKHR const acceleration_structure_geometry{
+        .sType = vku::GetSType<VkAccelerationStructureGeometryKHR>(),
+        .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
+        .geometry =
+            {
+                .instances =
+                    {
+                        .sType = vku::GetSType<
+                            VkAccelerationStructureGeometryInstancesDataKHR>(),
+                        .data =
+                            {
+                                .deviceAddress =
+                                    instance_buffer_.device_address,
+                            },
+                    },
+            },
+        .flags = VK_GEOMETRY_OPAQUE_BIT_KHR,
+    };
+
+    VkAccelerationStructureBuildGeometryInfoKHR
+        acceleration_structure_build_geometry{
+            .sType =
+                vku::GetSType<VkAccelerationStructureBuildGeometryInfoKHR>(),
+            .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
+            .flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR,
+            .geometryCount = 1,
+            .pGeometries = &acceleration_structure_geometry,
+        };
+
+    uint32_t const primitives{1};
+    auto acceleration_structure_build_sizes{
+        vku::InitStruct<VkAccelerationStructureBuildSizesInfoKHR>()};
+    vkGetAccelerationStructureBuildSizesKHR(*rendering_context_.device,
+        VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+        &acceleration_structure_build_geometry,
+        &primitives,
+        &acceleration_structure_build_sizes);
+
+    tlas_ = vkrndr::create_acceleration_structure(*rendering_context_.device,
+        VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
+        acceleration_structure_build_sizes);
+
+    vkrndr::buffer_t const scratch_buffer{
+        vkrndr::create_scratch_buffer(*rendering_context_.device,
+            acceleration_structure_build_sizes)};
+
+    acceleration_structure_build_geometry.mode =
+        VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    acceleration_structure_build_geometry.dstAccelerationStructure =
+        tlas_.handle;
+    acceleration_structure_build_geometry.scratchData.deviceAddress =
+        scratch_buffer.device_address;
+
+    VkAccelerationStructureBuildRangeInfoKHR const build_range_info{
+        .primitiveCount = primitives,
+        .primitiveOffset = 0,
+        .firstVertex = 0,
+        .transformOffset = 0};
+    auto const range_infos{std::to_array({&build_range_info})};
+
+    {
+        vkrndr::transient_operation_t transient{
+            backend_->request_transient_operation(false)};
+
+        VkCommandBuffer cb{transient.command_buffer()};
+
+        vkCmdBuildAccelerationStructuresKHR(cb,
+            1,
+            &acceleration_structure_build_geometry,
+            range_infos.data());
+    }
+    destroy(rendering_context_.device.get(), &scratch_buffer);
+
+    tlas_.device_address = device_address(*rendering_context_.device, tlas_);
 }
