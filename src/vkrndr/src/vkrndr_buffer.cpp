@@ -6,14 +6,27 @@
 
 #include <vma_impl.hpp>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 #include <bit>
 
-void vkrndr::destroy(device_t const* device, buffer_t* const buffer)
+void vkrndr::destroy(device_t const* device, buffer_t const* const buffer)
 {
     if (buffer)
     {
         vmaDestroyBuffer(device->allocator, buffer->buffer, buffer->allocation);
     }
+}
+
+VkDeviceAddress vkrndr::device_address(device_t const& device,
+    buffer_t const& buffer)
+{
+    VkBufferDeviceAddressInfo const da{
+        .sType = vku::GetSType<VkBufferDeviceAddressInfo>(),
+        .buffer = buffer.buffer,
+    };
+
+    return vkGetBufferDeviceAddress(device, &da);
 }
 
 vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
@@ -62,6 +75,11 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
         &rv.buffer,
         &rv.allocation,
         nullptr));
+
+    if (create_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+    {
+        rv.device_address = device_address(device, rv);
+    }
 
     return rv;
 }

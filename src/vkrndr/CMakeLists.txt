@@ -2,6 +2,7 @@ add_library(vkrndr)
 
 target_sources(vkrndr
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_acceleration_structure.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_backend.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_buffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_commands.hpp
@@ -27,6 +28,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_utility.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_window.hpp
     PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_acceleration_structure.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_backend.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_buffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_commands.cpp

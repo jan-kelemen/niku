@@ -21,9 +21,15 @@ namespace vkrndr
         VkBuffer buffer{VK_NULL_HANDLE};
         VkDeviceSize size{};
         VmaAllocation allocation{VK_NULL_HANDLE};
+        VkDeviceAddress device_address{};
+
+        [[nodiscard]] operator VkBuffer() const noexcept;
     };
 
-    void destroy(device_t const* device, buffer_t* buffer);
+    void destroy(device_t const* device, buffer_t const* buffer);
+
+    [[nodiscard]] VkDeviceAddress device_address(device_t const& device,
+        buffer_t const& buffer);
 
     struct [[nodiscard]] buffer_create_info_t final
     {
@@ -49,4 +55,6 @@ namespace vkrndr
         buffer_t const& buffer,
         std::string_view name);
 } // namespace vkrndr
+
+inline vkrndr::buffer_t::operator VkBuffer() const noexcept { return buffer; }
 #endif
