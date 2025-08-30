@@ -33,10 +33,25 @@ target_link_libraries(heatx
         project-options
 )
 
+add_dependencies(heatx heatx_shaders)
+
+add_custom_target(heatx_shaders
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/raygen.rgen
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/miss.rmiss
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/closesthit.rchit
+        ${CMAKE_CURRENT_BINARY_DIR}
+    DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/raygen.rgen
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/miss.rmiss
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/closesthit.rchit
+)
+
 set_property(TARGET heatx
     PROPERTY
         VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 set_target_properties(heatx PROPERTIES FOLDER "demo/heatx")
+set_target_properties(heatx_shaders PROPERTIES FOLDER "demo/heatx")
 

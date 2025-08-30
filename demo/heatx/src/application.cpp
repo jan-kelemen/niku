@@ -1,4 +1,5 @@
 #include <application.hpp>
+#include <config.hpp>
 
 #include <cppext_container.hpp>
 
@@ -7,8 +8,13 @@
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
+#include <vkglsl_shader_set.hpp>
+
 #include <vkrndr_backend.hpp>
 #include <vkrndr_commands.hpp>
+#include <vkrndr_cpu_pacing.hpp>
+#include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_error_code.hpp>
 #include <vkrndr_execution_port.hpp>
@@ -16,10 +22,14 @@
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
+#include <vkrndr_pipeline_layout_builder.hpp>
+#include <vkrndr_raytracing_pipeline_builder.hpp>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
 #include <imgui.h>
@@ -54,6 +64,31 @@
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <map>
 // IWYU pragma: no_include <string>
+
+namespace
+{
+    struct [[nodiscard]] uniform_data_t final
+    {
+        glm::mat4 inverse_view;
+        glm::mat4 inverse_projection;
+    };
+
+    [[nodiscard]] vkrndr::image_t create_ray_generation_storage_image(
+        vkrndr::backend_t const& backend,
+        VkExtent2D const extent,
+        VkFormat const format)
+    {
+        return vkrndr::create_image_and_view(backend.device(),
+            vkrndr::image_2d_create_info_t{.format = format,
+                .extent = extent,
+                .tiling = VK_IMAGE_TILING_OPTIMAL,
+                .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                    VK_IMAGE_USAGE_STORAGE_BIT,
+                .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
+            VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+} // namespace
 
 heatx::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
@@ -326,11 +361,142 @@ void heatx::application_t::on_startup()
 
     create_blas();
     create_tlas();
+
+    std::ranges::generate_n(std::back_inserter(uniform_buffers_),
+        backend_->frames_in_flight(),
+        [this]()
+        {
+            return vkrndr::create_buffer(backend_->device(),
+                {
+                    .size = sizeof(uniform_data_t),
+                    .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                });
+        });
+
+    std::array const layout_bindings{
+        VkDescriptorSetLayoutBinding{
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+        },
+        VkDescriptorSetLayoutBinding{
+            .binding = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+        },
+        VkDescriptorSetLayoutBinding{
+            .binding = 2,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+        },
+    };
+
+    if (std::expected<VkDescriptorSetLayout, VkResult> descriptor_layout{
+            vkrndr::create_descriptor_set_layout(backend_->device(),
+                layout_bindings)})
+    {
+        descriptor_layout_ = *descriptor_layout;
+    }
+    else
+    {
+        throw std::system_error{
+            vkrndr::make_error_code(descriptor_layout.error())};
+    }
+
+    vkrndr::raytracing_pipeline_builder_t pipeline_builder{backend_->device(),
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_descriptor_set_layout(descriptor_layout_)
+            .build()};
+
+    uint32_t raygen_stage{};
+    uint32_t miss_stage{};
+    uint32_t closest_hit_stage{};
+
+    std::array<vkrndr::shader_module_t, 3> mods;
+
+    auto it{std::begin(mods)};
+
+    vkglsl::shader_set_t shader_set{heatx::enable_shader_debug_symbols,
+        heatx::enable_shader_optimization};
+    for (auto const& [path, stage] :
+        {std::make_pair("raygen.rgen", VK_SHADER_STAGE_RAYGEN_BIT_KHR),
+            std::make_pair("miss.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR),
+            std::make_pair("closesthit.rchit",
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)})
+    {
+        auto& stage_idx{[&raygen_stage, &miss_stage, &closest_hit_stage](
+                            VkShaderStageFlagBits const s) -> uint32_t&
+            {
+                if (s == VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+                {
+                    return raygen_stage;
+                }
+                else if (s == VK_SHADER_STAGE_MISS_BIT_KHR)
+                {
+                    return miss_stage;
+                }
+                return closest_hit_stage;
+            }(stage)};
+
+        if (std::expected<vkrndr::shader_module_t, std::error_code>
+                shader_module{vkglsl::add_shader_module_from_path(shader_set,
+                    backend_->device(),
+                    stage,
+                    path)})
+        {
+            *it = *std::move(shader_module);
+
+            pipeline_builder.add_shader(vkrndr::as_pipeline_shader(*it),
+                stage_idx);
+
+            ++it;
+        }
+        else
+        {
+            spdlog::error("Shader stage {} not loaded {}",
+                std::to_underlying(stage),
+                shader_module.error().message());
+            throw std::system_error{shader_module.error()};
+        }
+    }
+
+    pipeline_builder.add_group(
+        vkrndr::general_shader(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+            raygen_stage));
+    pipeline_builder.add_group(
+        vkrndr::general_shader(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+            miss_stage));
+    pipeline_builder.add_group(vkrndr::closest_hit_shader(
+        VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+        closest_hit_stage));
+
+    pipeline_ = pipeline_builder.build();
+
+    for (auto const& shd : mods)
+    {
+        destroy(&backend_->device(), &shd);
+    }
 }
 
 void heatx::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device());
+
+    destroy(&backend_->device(), &pipeline_);
+
+    vkDestroyDescriptorSetLayout(backend_->device(),
+        descriptor_layout_,
+        nullptr);
+
+    for (vkrndr::buffer_t const& buffer : uniform_buffers_)
+    {
+        destroy(&backend_->device(), &buffer);
+    }
+
+    destroy(&backend_->device(), &ray_generation_storage_);
 
     destroy(backend_->device(), tlas_);
     destroy(backend_->device(), blas_);
@@ -363,6 +529,22 @@ void heatx::application_t::on_resize(uint32_t const width,
     {
         return;
     }
+
+    vkrndr::frame_in_flight_t& in_flight{render_window_->frame_in_flight()};
+    std::function<void(std::function<void()>)> deletion_queue_insert{
+        [&in_flight](std::function<void()> cb)
+        { in_flight.cleanup.push_back(std::move(cb)); }};
+
+    deletion_queue_insert([device = &backend_->device(),
+                              image = std::move(ray_generation_storage_)]()
+        { destroy(device, &image); });
+
+    ray_generation_storage_ = create_ray_generation_storage_image(*backend_,
+        {width, height},
+        render_window_->swapchain().image_format());
+    VKRNDR_IF_DEBUG_UTILS(object_name(backend_->device(),
+        ray_generation_storage_,
+        "Ray Generation Storage"));
 }
 
 void heatx::application_t::create_blas()

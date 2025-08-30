@@ -3,9 +3,12 @@
 
 #include <ngnwsi_application.hpp>
 
+#include <vkglsl_guard.hpp>
+
 #include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_pipeline.hpp>
 
 #include <SDL3/SDL_events.h>
 
@@ -59,6 +62,8 @@ namespace heatx
         void create_tlas();
 
     private:
+        vkglsl::guard_t guard_;
+
         vkrndr::rendering_context_t rendering_context_;
         std::unique_ptr<ngnwsi::render_window_t> render_window_;
 
@@ -72,6 +77,12 @@ namespace heatx
 
         vkrndr::acceleration_structure_t blas_;
         vkrndr::acceleration_structure_t tlas_;
+
+        vkrndr::image_t ray_generation_storage_;
+        std::vector<vkrndr::buffer_t> uniform_buffers_;
+
+        VkDescriptorSetLayout descriptor_layout_;
+        vkrndr::pipeline_t pipeline_;
     };
 } // namespace heatx
 #endif
