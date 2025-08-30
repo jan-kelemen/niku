@@ -23,7 +23,7 @@ namespace vkrndr
         std::string entry_point;
     };
 
-    void destroy(device_t const* device, shader_module_t* shader_module);
+    void destroy(device_t const* device, shader_module_t const* shader_module);
 
     shader_module_t create_shader_module(device_t const& device,
         std::filesystem::path const& path,

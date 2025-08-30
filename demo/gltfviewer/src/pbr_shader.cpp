@@ -10,7 +10,9 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_graphics_pipeline_builder.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_shader_module.hpp>
 
 #include <volk.h>
@@ -139,7 +141,7 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
     }
 
     double_sided_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(materials_layout)
@@ -170,7 +172,7 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
     }
 
     culling_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             double_sided_pipeline_.layout}
             .add_shader(as_pipeline_shader(vertex_shader_))
             .add_shader(as_pipeline_shader(fragment_shader_))

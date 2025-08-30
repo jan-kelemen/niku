@@ -15,8 +15,10 @@
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_graphics_pipeline_builder.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -383,7 +385,7 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
     reveal_color_blending.alphaBlendOp = VK_BLEND_OP_ADD;
 
     pbr_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(materials_layout)
@@ -461,7 +463,7 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
     composition_color_blending.alphaBlendOp = VK_BLEND_OP_ADD;
 
     composition_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(descriptor_set_layout_)
                 .build()}

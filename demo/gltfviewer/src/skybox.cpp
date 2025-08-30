@@ -14,9 +14,11 @@
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_graphics_pipeline_builder.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -507,7 +509,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         vkrndr::combined_sampler_descriptor(skybox_sampler_, cubemap_));
 
     skybox_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(environment_layout)
                 .add_descriptor_set_layout(skybox_descriptor_layout_)
@@ -666,7 +668,7 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
         { destroy(&backend_->device(), shd); }};
 
     auto pipeline =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(layout)
                 .add_push_constants<cubemap_push_constants_t>(
@@ -710,7 +712,7 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
         { destroy(&backend_->device(), shd); }};
 
     auto pipeline =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(layout)
                 .add_descriptor_set_layout(skybox_descriptor_layout_)
@@ -777,7 +779,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
         .pData = &spec};
 
     auto pipeline =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(layout)
                 .add_descriptor_set_layout(skybox_descriptor_layout_)
@@ -945,7 +947,7 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
         .pData = &spec};
 
     auto pipeline =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}.build()}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(

@@ -7,7 +7,9 @@
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
+#include <vkrndr_graphics_pipeline_builder.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_shader_module.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -49,7 +51,7 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
         [this, shd = &fragment_shader.value()]()
         { destroy(&backend_->device(), shd); }};
 
-    pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
+    pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(frame_info_layout)
             .add_descriptor_set_layout(materials_layout)

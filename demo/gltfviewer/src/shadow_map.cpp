@@ -14,8 +14,10 @@
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_formats.hpp>
+#include <vkrndr_graphics_pipeline_builder.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -308,7 +310,7 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
         destroy(&backend_->device(), &depth_pipeline_);
     }
 
-    depth_pipeline_ = vkrndr::pipeline_builder_t{backend_->device(),
+    depth_pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(environment_layout)
             .add_descriptor_set_layout(materials_layout)

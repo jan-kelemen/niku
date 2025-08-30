@@ -20,9 +20,11 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_graphics_pipeline_builder.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -325,7 +327,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
     };
 
     text_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(text_descriptor_layout_)
                 .add_push_constants<glm::mat4>(

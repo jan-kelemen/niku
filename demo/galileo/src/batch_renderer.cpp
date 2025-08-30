@@ -8,8 +8,10 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_graphics_pipeline_builder.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_shader_module.hpp>
 
 #include <vma_impl.hpp>
@@ -107,7 +109,7 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
     };
 
     triangle_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(frame_info_layout)
                 .build()}
@@ -121,7 +123,7 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
             .build();
 
     line_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             triangle_pipeline_.layout}
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
             .with_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
@@ -135,7 +137,7 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
             .build();
 
     point_pipeline_ =
-        vkrndr::pipeline_builder_t{backend_->device(),
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
             triangle_pipeline_.layout}
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
             .add_shader(as_pipeline_shader(*vertex_shader))

@@ -6,6 +6,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_backend.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_buffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_commands.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_compute_pipeline_builder.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_cpu_pacing.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_cubemap.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_debug_utils.hpp
@@ -15,11 +16,14 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_execution_port.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_features.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_formats.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_graphics_pipeline_builder.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_image.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_instance.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_library_handle.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline_layout_builder.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_raytracing_pipeline_builder.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_shader_module.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_swapchain.hpp
@@ -32,6 +36,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_backend.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_buffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_commands.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_compute_pipeline_builder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_cubemap.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_cpu_pacing.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_debug_utils.cpp
@@ -41,11 +46,14 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_execution_port.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_features.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_formats.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_graphics_pipeline_builder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_image.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_instance.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_library_handle.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_memory.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline_layout_builder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_raytracing_pipeline_builder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_shader_module.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swapchain.cpp

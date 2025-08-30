@@ -35,7 +35,7 @@ namespace
 } // namespace
 
 void vkrndr::destroy(device_t const* const device,
-    shader_module_t* const shader_module)
+    shader_module_t const* const shader_module)
 {
     if (device)
     {
