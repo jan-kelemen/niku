@@ -160,7 +160,11 @@ bool reshed::editor_window_t::handle_event(SDL_Event const& event)
         uint32_t const height{cppext::narrow<uint32_t>(
             cppext::narrow<uint32_t>(event.window.data2))};
 
-        render_window_->resize(width, height);
+        if (!render_window_->resize(width, height))
+        {
+            return true;
+        }
+
         editor_->resize(width, height);
     }
 

@@ -64,8 +64,7 @@ namespace ngnwsi
 
         [[nodiscard]] VkSurfaceKHR surface() const override;
 
-        [[nodiscard]] VkExtent2D swap_extent(
-            VkSurfaceCapabilitiesKHR const& capabilities) const override;
+        [[nodiscard]] VkExtent2D swap_extent() const override;
 
     public: // Operators
         sdl_window_t& operator=(sdl_window_t const&) = delete;

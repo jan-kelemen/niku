@@ -21,8 +21,7 @@ namespace vkrndr
 
         [[nodiscard]] virtual VkSurfaceKHR surface() const = 0;
 
-        [[nodiscard]] virtual VkExtent2D swap_extent(
-            VkSurfaceCapabilitiesKHR const& capabilities) const = 0;
+        [[nodiscard]] virtual VkExtent2D swap_extent() const = 0;
     };
 } // namespace vkrndr
 

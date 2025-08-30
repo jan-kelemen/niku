@@ -55,7 +55,8 @@ vkrndr::frame_in_flight_t& ngnwsi::render_window_t::frame_in_flight()
 
 std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
 {
-    if (window_.is_minimized())
+    if (VkExtent2D const extent{window_.swap_extent()};
+        window_.is_minimized() || extent.height == 0 || extent.width == 0)
     {
         return std::nullopt;
     }
@@ -93,10 +94,16 @@ void ngnwsi::render_window_t::present(
     pacing_->end_frame();
 }
 
-void ngnwsi::render_window_t::resize([[maybe_unused]] uint32_t const width,
+bool ngnwsi::render_window_t::resize([[maybe_unused]] uint32_t const width,
     [[maybe_unused]] uint32_t const height)
 {
+    if (width == 0 || height == 0)
+    {
+        return false;
+    }
+
     spdlog::info("Recreating swapchain due to resize");
     vkrndr::frame_in_flight_t const& current{pacing_->current()};
     swapchain_->recreate(current.index);
+    return true;
 }

@@ -1032,7 +1032,10 @@ void galileo::application_t::on_shutdown()
 void galileo::application_t::on_resize(uint32_t const width,
     uint32_t const height)
 {
-    render_window_->resize(width, height);
+    if (!render_window_->resize(width, height))
+    {
+        return;
+    }
 
     vkrndr::frame_in_flight_t& in_flight{render_window_->frame_in_flight()};
     std::function<void(std::function<void()>)> deletion_queue_insert{

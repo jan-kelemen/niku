@@ -1,5 +1,7 @@
 #include <ngnwsi_sdl_window.hpp>
 
+#include <vkrndr_utility.hpp>
+
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_hints.h>
 #include <SDL3/SDL_init.h>
@@ -9,7 +11,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include <algorithm>
 #include <limits>
 #include <stdexcept>
 
@@ -91,30 +92,13 @@ void ngnwsi::sdl_window_t::destroy_surface(VkInstance instance)
 
 VkSurfaceKHR ngnwsi::sdl_window_t::surface() const { return surface_; }
 
-VkExtent2D ngnwsi::sdl_window_t::swap_extent(
-    VkSurfaceCapabilitiesKHR const& capabilities) const
+VkExtent2D ngnwsi::sdl_window_t::swap_extent() const
 {
-    if (capabilities.currentExtent.width !=
-        std::numeric_limits<uint32_t>::max())
-    {
-        return capabilities.currentExtent;
-    }
-
     int width{};
     int height{};
     SDL_GetWindowSize(window_, &width, &height);
 
-    VkExtent2D actual_extent = {static_cast<uint32_t>(width),
-        static_cast<uint32_t>(height)};
-
-    actual_extent.width = std::clamp(actual_extent.width,
-        capabilities.minImageExtent.width,
-        capabilities.maxImageExtent.width);
-    actual_extent.height = std::clamp(actual_extent.height,
-        capabilities.minImageExtent.height,
-        capabilities.maxImageExtent.height);
-
-    return actual_extent;
+    return vkrndr::to_2d_extent(width, height);
 }
 
 ngnwsi::sdl_text_input_guard_t::sdl_text_input_guard_t(

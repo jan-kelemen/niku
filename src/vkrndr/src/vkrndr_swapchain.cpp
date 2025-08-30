@@ -436,7 +436,23 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated,
     }
 
     image_format_ = surface_format.format;
-    extent_ = window_->swap_extent(swap_details.capabilities);
+
+    if (swap_details.capabilities.currentExtent.width !=
+        std::numeric_limits<uint32_t>::max())
+    {
+        extent_ = swap_details.capabilities.currentExtent;
+    }
+    else
+    {
+        VkExtent2D const window_extent{window_->swap_extent()};
+        extent_.width = std::clamp(window_extent.width,
+            swap_details.capabilities.minImageExtent.width,
+            swap_details.capabilities.maxImageExtent.width);
+        extent_.height = std::clamp(window_extent.height,
+            swap_details.capabilities.minImageExtent.height,
+            swap_details.capabilities.maxImageExtent.height);
+    }
+
     min_image_count_ = swap_details.capabilities.minImageCount;
 
     current_present_mode_ = chosen_present_mode;
