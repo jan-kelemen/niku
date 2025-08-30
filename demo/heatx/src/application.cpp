@@ -510,17 +510,23 @@ void heatx::application_t::create_blas()
         }
         vkrndr::unmap_memory(*rendering_context_.device, &map);
 
-        auto const buffer_barriers{std::to_array({
-            vkrndr::on_stage(vkrndr::buffer_barrier(vertex_buffer_),
-                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
-            vkrndr::on_stage(vkrndr::buffer_barrier(index_buffer_),
-                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
-            vkrndr::on_stage(vkrndr::buffer_barrier(transform_buffer_),
-                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+        auto buffer_barriers{std::to_array({
+            vkrndr::buffer_barrier(vertex_buffer_),
+            vkrndr::buffer_barrier(index_buffer_),
+            vkrndr::buffer_barrier(transform_buffer_),
         })};
+        std::ranges::transform(buffer_barriers,
+            std::begin(buffer_barriers),
+            [](auto const& barrier)
+            {
+                return vkrndr::with_access(
+                    vkrndr::on_stage(barrier,
+                        VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
+                        VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_READ_BIT);
+            });
+
         vkrndr::wait_for(cb, {}, buffer_barriers, {});
 
         vkCmdBuildAccelerationStructuresKHR(cb,
