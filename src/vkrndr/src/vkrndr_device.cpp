@@ -276,9 +276,6 @@ std::expected<vkrndr::device_ptr_t, std::error_code> vkrndr::create_device(
     physical_device_features_t const& features,
     std::span<queue_family_t const> const& queue_families)
 {
-    std::vector<char const*> effective_extensions{std::cbegin(extensions),
-        std::cend(extensions)};
-
     feature_flags_t required_flags;
     add_required_feature_flags(required_flags);
 
@@ -286,10 +283,27 @@ std::expected<vkrndr::device_ptr_t, std::error_code> vkrndr::create_device(
     set_feature_flags_on_chain(effective_features, required_flags);
     link_required_feature_chain(effective_features);
 
+    return create_device(instance,
+        extensions,
+        features,
+        effective_features,
+        queue_families);
+}
+
+std::expected<vkrndr::device_ptr_t, std::error_code> vkrndr::create_device(
+    instance_t const& instance,
+    std::span<char const* const> const& extensions,
+    physical_device_features_t const& features,
+    feature_chain_t& feature_chain,
+    std::span<queue_family_t const> const& queue_families)
+{
+    std::vector<char const*> effective_extensions{std::cbegin(extensions),
+        std::cend(extensions)};
+
     if (enable_extension_for_device(
             VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
             features,
-            effective_features))
+            feature_chain))
     {
         effective_extensions.push_back(
             VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
@@ -297,20 +311,20 @@ std::expected<vkrndr::device_ptr_t, std::error_code> vkrndr::create_device(
 
     if (enable_extension_for_device(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
             features,
-            effective_features))
+            feature_chain))
     {
         effective_extensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
     }
 
     if (enable_extension_for_device(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
             features,
-            effective_features))
+            feature_chain))
     {
         effective_extensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
     }
 
     device_create_info_t const device_create_info{
-        .chain = &effective_features.device_10_features,
+        .chain = &feature_chain.device_10_features,
         .device = features.device,
         .extensions = effective_extensions,
         .queues = queue_families};
@@ -325,6 +339,18 @@ vkrndr::pick_best_physical_device(instance_t const& instance,
     feature_flags_t required_flags;
     add_required_feature_flags(required_flags);
 
+    return pick_best_physical_device(instance,
+        extensions,
+        required_flags,
+        surface);
+}
+
+std::optional<vkrndr::physical_device_features_t>
+vkrndr::pick_best_physical_device(instance_t const& instance,
+    std::span<char const* const> const& extensions,
+    feature_flags_t const& required_flags,
+    VkSurfaceKHR surface)
+{
     auto physical_devices{
         filter_physical_devices(instance, extensions, required_flags, surface)};
     auto physical_device_it{pick_device_by_type(physical_devices)};

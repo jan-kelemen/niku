@@ -38,6 +38,16 @@ namespace vkrndr
         VkPhysicalDeviceMemoryPriorityFeaturesEXT memory_priority_features{
             .sType =
                 vku::GetSType<VkPhysicalDeviceMemoryPriorityFeaturesEXT>()};
+
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR
+            acceleration_structure_features{
+                .sType = vku::GetSType<
+                    VkPhysicalDeviceAccelerationStructureFeaturesKHR>()};
+
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR
+            ray_tracing_pipeline_features{
+                .sType = vku::GetSType<
+                    VkPhysicalDeviceRayTracingPipelineFeaturesKHR>()};
     };
 
     void link_required_feature_chain(feature_chain_t& chain);
@@ -66,6 +76,13 @@ namespace vkrndr
 
         std::vector<VkBool32 VkPhysicalDeviceMemoryBudgetPropertiesEXT::*>
             memory_budget_flags;
+
+        std::vector<
+            VkBool32 VkPhysicalDeviceAccelerationStructureFeaturesKHR::*>
+            acceleration_structure_flags;
+
+        std::vector<VkBool32 VkPhysicalDeviceRayTracingPipelineFeaturesKHR::*>
+            ray_tracing_pipeline_flags;
     };
 
     void add_required_feature_flags(feature_flags_t& flags);

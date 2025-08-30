@@ -95,17 +95,56 @@ heatx::application_t::application_t(bool const debug)
                 [this]() -> std::expected<vkrndr::device_ptr_t, std::error_code>
                 {
                     std::array const device_extensions{
-                        VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+                        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+                        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+                        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME};
+
+                    vkrndr::feature_flags_t feature_flags;
+                    vkrndr::add_required_feature_flags(feature_flags);
+                    feature_flags.acceleration_structure_flags.push_back(
+                        &VkPhysicalDeviceAccelerationStructureFeaturesKHR::
+                            accelerationStructure);
+                    feature_flags.ray_tracing_pipeline_flags.push_back(
+                        &VkPhysicalDeviceRayTracingPipelineFeaturesKHR::
+                            rayTracingPipeline);
 
                     std::optional<vkrndr::physical_device_features_t> const
                         physical_device{pick_best_physical_device(
                             *rendering_context_.instance,
                             device_extensions,
+                            feature_flags,
                             render_window_->create_surface(
                                 *rendering_context_.instance))};
                     if (!physical_device)
                     {
                         spdlog::error("No suitable physical device");
+                        return std::unexpected{vkrndr::make_error_code(
+                            VK_ERROR_INITIALIZATION_FAILED)};
+                    }
+
+                    vkrndr::feature_chain_t effective_features;
+                    set_feature_flags_on_chain(effective_features,
+                        feature_flags);
+                    link_required_feature_chain(effective_features);
+
+                    if (!vkrndr::enable_extension_for_device(
+                            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+                            *physical_device,
+                            effective_features))
+                    {
+                        spdlog::error("Extension {} not available",
+                            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+                        return std::unexpected{vkrndr::make_error_code(
+                            VK_ERROR_INITIALIZATION_FAILED)};
+                    }
+                    if (!vkrndr::enable_extension_for_device(
+                            VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+                            *physical_device,
+                            effective_features))
+                    {
+                        spdlog::error("Extension {} not available",
+                            VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
                         return std::unexpected{vkrndr::make_error_code(
                             VK_ERROR_INITIALIZATION_FAILED)};
                     }
@@ -129,6 +168,7 @@ heatx::application_t::application_t(bool const debug)
                     return create_device(*rendering_context_.instance,
                         device_extensions,
                         *physical_device,
+                        effective_features,
                         cppext::as_span(*queue_with_present));
                 })
             .transform(

@@ -2,6 +2,8 @@
 
 #include <vkrndr_utility.hpp>
 
+#include <cppext_container.hpp>
+
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
@@ -127,6 +129,10 @@ void vkrndr::link_optional_feature_chain(feature_chain_t& chain)
     chain.device_13_features.pNext = &chain.swapchain_maintenance_1_features;
     chain.swapchain_maintenance_1_features.pNext =
         &chain.memory_priority_features;
+    chain.memory_priority_features.pNext =
+        &chain.acceleration_structure_features;
+    chain.acceleration_structure_features.pNext =
+        &chain.ray_tracing_pipeline_features;
 }
 
 void vkrndr::add_required_feature_flags(feature_flags_t& flags)
@@ -176,10 +182,27 @@ void vkrndr::set_feature_flags_on_chain(feature_chain_t& chain,
             [&instance](auto const value) { instance.*value = VK_TRUE; });
     };
 
+    auto const set_optional_flags =
+        [&set_flags](auto&& instance, auto const& flags)
+    {
+        if (flags)
+        {
+            set_flags(instance, cppext::as_span(*flags));
+        }
+    };
+
     set_flags(chain.device_10_features.features, flags.device_10_flags);
     set_flags(chain.device_11_features, flags.device_11_flags);
     set_flags(chain.device_12_features, flags.device_12_flags);
     set_flags(chain.device_13_features, flags.device_13_flags);
+    set_optional_flags(chain.swapchain_maintenance_1_features,
+        flags.swapchain_maintenance_1_flags);
+    set_optional_flags(chain.memory_priority_features,
+        flags.memory_priority_flags);
+    set_flags(chain.acceleration_structure_features,
+        flags.acceleration_structure_flags);
+    set_flags(chain.ray_tracing_pipeline_features,
+        flags.ray_tracing_pipeline_flags);
 }
 
 bool vkrndr::check_feature_flags(feature_chain_t const& chain,
@@ -209,6 +232,32 @@ bool vkrndr::check_feature_flags(feature_chain_t const& chain,
     }
 
     if (!all_true(chain.device_13_features, flags.device_13_flags))
+    {
+        return false;
+    }
+
+    if (flags.swapchain_maintenance_1_flags.has_value() &&
+        !all_true(chain.swapchain_maintenance_1_features,
+            cppext::as_span(*flags.swapchain_maintenance_1_flags)))
+    {
+        return false;
+    }
+
+    if (flags.memory_priority_flags.has_value() &&
+        !all_true(chain.memory_priority_features,
+            cppext::as_span(*flags.memory_priority_flags)))
+    {
+        return false;
+    }
+
+    if (!all_true(chain.acceleration_structure_features,
+            flags.acceleration_structure_flags))
+    {
+        return false;
+    }
+
+    if (!all_true(chain.ray_tracing_pipeline_features,
+            flags.ray_tracing_pipeline_flags))
     {
         return false;
     }
@@ -295,6 +344,10 @@ bool vkrndr::enable_extension_for_device(char const* const extension_name,
         VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME};
     static constexpr std::string_view memory_budget{
         VK_EXT_MEMORY_BUDGET_EXTENSION_NAME};
+    static constexpr std::string_view acceleration_structure{
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME};
+    static constexpr std::string_view ray_tracing_pipeline{
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME};
 
     std::string_view const name{extension_name};
     if (!std::ranges::contains(device.extensions,
@@ -337,6 +390,55 @@ bool vkrndr::enable_extension_for_device(char const* const extension_name,
 
     if (name == memory_budget)
     {
+        return true;
+    }
+
+    if (name == acceleration_structure)
+    {
+        auto& chain_features{chain.acceleration_structure_features};
+        auto const& device_features{
+            device.features.acceleration_structure_features};
+
+        if (device_features.accelerationStructure != VK_TRUE)
+        {
+            return false;
+        }
+
+        chain_features.accelerationStructure = VK_TRUE;
+        chain_features.accelerationStructureIndirectBuild =
+            device_features.accelerationStructureIndirectBuild;
+        chain_features.accelerationStructureHostCommands =
+            device_features.accelerationStructureHostCommands;
+        chain_features.descriptorBindingAccelerationStructureUpdateAfterBind =
+            device_features
+                .descriptorBindingAccelerationStructureUpdateAfterBind;
+
+        chain_features.pNext =
+            std::exchange(chain.device_13_features.pNext, &chain_features);
+
+        return true;
+    }
+
+    if (name == ray_tracing_pipeline)
+    {
+        auto& chain_features{chain.ray_tracing_pipeline_features};
+        auto const& device_features{
+            device.features.ray_tracing_pipeline_features};
+
+        if (device_features.rayTracingPipeline != VK_TRUE)
+        {
+            return false;
+        }
+
+        chain_features.rayTracingPipeline = VK_TRUE;
+        chain_features.rayTracingPipelineTraceRaysIndirect =
+            device_features.rayTracingPipelineTraceRaysIndirect;
+        chain_features.rayTraversalPrimitiveCulling =
+            device_features.rayTraversalPrimitiveCulling;
+
+        chain_features.pNext =
+            std::exchange(chain.device_13_features.pNext, &chain_features);
+
         return true;
     }
 
