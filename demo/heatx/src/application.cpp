@@ -298,7 +298,7 @@ void heatx::application_t::draw()
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                 VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT),
-            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
 
