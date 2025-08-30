@@ -3,7 +3,9 @@
 
 #include <ngnwsi_application.hpp>
 
+#include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_backend.hpp>
+#include <vkrndr_buffer.hpp>
 
 #include <SDL3/SDL_events.h>
 
@@ -52,12 +54,20 @@ namespace heatx
     private:
         void on_resize(uint32_t width, uint32_t height);
 
+        void create_blas();
+
     private:
         vkrndr::rendering_context_t rendering_context_;
         std::unique_ptr<ngnwsi::render_window_t> render_window_;
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
+
+        vkrndr::buffer_t vertex_buffer_;
+        vkrndr::buffer_t index_buffer_;
+        vkrndr::buffer_t transform_buffer_;
+
+        vkrndr::acceleration_structure_t blas_;
     };
 } // namespace heatx
 #endif

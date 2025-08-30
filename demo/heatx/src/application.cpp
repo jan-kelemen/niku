@@ -15,13 +15,18 @@
 #include <vkrndr_features.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
+#include <vkrndr_memory.hpp>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include <glm/vec3.hpp>
+
 #include <imgui.h>
 
 #include <volk.h>
+
+#include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_video.h>
@@ -318,11 +323,18 @@ void heatx::application_t::on_startup()
 {
     auto const extent{render_window_->swapchain().extent()};
     on_resize(extent.width, extent.height);
+
+    create_blas();
 }
 
 void heatx::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device());
+
+    destroy(backend_->device(), blas_);
+    destroy(&backend_->device(), &transform_buffer_);
+    destroy(&backend_->device(), &index_buffer_);
+    destroy(&backend_->device(), &vertex_buffer_);
 
     imgui_.reset();
 
@@ -347,4 +359,177 @@ void heatx::application_t::on_resize(uint32_t const width,
     {
         return;
     }
+}
+
+void heatx::application_t::create_blas()
+{
+    vertex_buffer_ = vkrndr::create_buffer(*rendering_context_.device,
+        {
+            .size = sizeof(glm::vec3) * 3,
+            .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        });
+
+    index_buffer_ = vkrndr::create_buffer(*rendering_context_.device,
+        {
+            .size = sizeof(uint32_t) * 3,
+            .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        });
+
+    transform_buffer_ = vkrndr::create_buffer(*rendering_context_.device,
+        {
+            .size = sizeof(VkTransformMatrixKHR),
+            .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        });
+
+    VkAccelerationStructureGeometryKHR const acceleration_structure_geometry{
+        .sType = vku::GetSType<VkAccelerationStructureGeometryKHR>(),
+        .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
+        .geometry =
+            {.triangles =
+                    {
+                        .sType = vku::GetSType<
+                            VkAccelerationStructureGeometryTrianglesDataKHR>(),
+                        .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
+                        .vertexData = vertex_buffer_.device_address,
+                        .vertexStride = sizeof(glm::vec3),
+                        .maxVertex = 2,
+                        .indexType = VK_INDEX_TYPE_UINT32,
+                        .indexData = index_buffer_.device_address,
+                        .transformData = transform_buffer_.device_address,
+                    }},
+        .flags = VK_GEOMETRY_OPAQUE_BIT_KHR,
+    };
+
+    VkAccelerationStructureBuildGeometryInfoKHR
+        acceleration_structure_build_geometry{
+            .sType =
+                vku::GetSType<VkAccelerationStructureBuildGeometryInfoKHR>(),
+            .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
+            .flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR,
+            .geometryCount = 1,
+            .pGeometries = &acceleration_structure_geometry,
+        };
+
+    uint32_t const triangles{1};
+    auto acceleration_structure_build_sizes{
+        vku::InitStruct<VkAccelerationStructureBuildSizesInfoKHR>()};
+    vkGetAccelerationStructureBuildSizesKHR(*rendering_context_.device,
+        VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+        &acceleration_structure_build_geometry,
+        &triangles,
+        &acceleration_structure_build_sizes);
+
+    blas_ = vkrndr::create_acceleration_structure(*rendering_context_.device,
+        VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
+        acceleration_structure_build_sizes);
+
+    vkrndr::buffer_t const scratch_buffer{
+        vkrndr::create_scratch_buffer(*rendering_context_.device,
+            acceleration_structure_build_sizes)};
+
+    acceleration_structure_build_geometry.mode =
+        VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    acceleration_structure_build_geometry.dstAccelerationStructure =
+        blas_.handle;
+    acceleration_structure_build_geometry.scratchData.deviceAddress =
+        scratch_buffer.device_address;
+
+    VkAccelerationStructureBuildRangeInfoKHR const build_range_info{
+        .primitiveCount = triangles,
+        .primitiveOffset = 0,
+        .firstVertex = 0,
+        .transformOffset = 0};
+    auto const range_infos{std::to_array({&build_range_info})};
+
+    vkrndr::buffer_t const staging{
+        vkrndr::create_staging_buffer(*rendering_context_.device,
+            vertex_buffer_.size + index_buffer_.size + transform_buffer_.size)};
+    {
+        vkrndr::transient_operation_t transient{
+            backend_->request_transient_operation(false)};
+
+        VkCommandBuffer cb{transient.command_buffer()};
+
+        vkrndr::mapped_memory_t map{
+            vkrndr::map_memory(*rendering_context_.device, staging)};
+        {
+            glm::vec3* const vertices{map.as<glm::vec3>()};
+            vertices[0] = {1.0f, 1.0f, 0.0f};
+            vertices[1] = {-1.0f, 1.0f, 0.0f};
+            vertices[2] = {0.0f, -1.0f, 0.0f};
+
+            VkBufferCopy const copy_vertex{
+                .srcOffset = 0,
+                .dstOffset = 0,
+                .size = vertex_buffer_.size,
+            };
+            vkCmdCopyBuffer(cb, staging, vertex_buffer_, 1, &copy_vertex);
+        }
+
+        {
+            uint32_t* const indices{map.as<uint32_t>(vertex_buffer_.size)};
+            indices[0] = 0;
+            indices[1] = 1;
+            indices[2] = 2;
+
+            VkBufferCopy const copy_index{
+                .srcOffset = vertex_buffer_.size,
+                .dstOffset = 0,
+                .size = index_buffer_.size,
+            };
+            vkCmdCopyBuffer(cb, staging, index_buffer_, 1, &copy_index);
+        }
+
+        {
+            VkTransformMatrixKHR* const transforms{map.as<VkTransformMatrixKHR>(
+                vertex_buffer_.size + index_buffer_.size)};
+            // clang-format off
+            *transforms = 
+            {
+                1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 1.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0f, 0.0f,
+            };
+            // clang-format on
+
+            VkBufferCopy const copy_transform{
+                .srcOffset = vertex_buffer_.size + index_buffer_.size,
+                .dstOffset = 0,
+                .size = transform_buffer_.size,
+            };
+            vkCmdCopyBuffer(cb, staging, transform_buffer_, 1, &copy_transform);
+        }
+        vkrndr::unmap_memory(*rendering_context_.device, &map);
+
+        auto const buffer_barriers{std::to_array({
+            vkrndr::on_stage(vkrndr::buffer_barrier(vertex_buffer_),
+                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+            vkrndr::on_stage(vkrndr::buffer_barrier(index_buffer_),
+                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+            vkrndr::on_stage(vkrndr::buffer_barrier(transform_buffer_),
+                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+        })};
+        vkrndr::wait_for(cb, {}, buffer_barriers, {});
+
+        vkCmdBuildAccelerationStructuresKHR(cb,
+            1,
+            &acceleration_structure_build_geometry,
+            range_infos.data());
+    }
+    destroy(rendering_context_.device.get(), &staging);
+    destroy(rendering_context_.device.get(), &scratch_buffer);
+
+    blas_.device_address = device_address(*rendering_context_.device, blas_);
 }
