@@ -248,7 +248,8 @@ heatx::application_t::application_t(bool const debug)
                                 .preferred_format = VK_FORMAT_B8G8R8A8_UNORM,
                                 .image_flags =
                                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                    VK_IMAGE_USAGE_STORAGE_BIT,
+                                    VK_IMAGE_USAGE_STORAGE_BIT |
+                                    VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                                 .preferred_present_mode =
                                     VK_PRESENT_MODE_FIFO_KHR,
                                 .present_queue = &present_queue,
@@ -316,6 +317,8 @@ void heatx::application_t::draw()
         return;
     }
 
+    vkrndr::frame_in_flight_t const& frame{render_window_->frame_in_flight()};
+
     backend_->begin_frame();
 
     imgui_->begin_frame();
@@ -336,14 +339,106 @@ void heatx::application_t::draw()
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     {
+        uint32_t const aligned_handle_size{cppext::aligned_size(
+            raytracing_pipeline_properties_.shaderGroupHandleSize,
+            raytracing_pipeline_properties_.shaderGroupHandleAlignment)};
+
+        vkrndr::bind_pipeline(command_buffer,
+            pipeline_,
+            0,
+            cppext::as_span(descriptor_sets_[frame.index]));
+
+        std::array const binding_table_entries{
+            VkStridedDeviceAddressRegionKHR{
+                .deviceAddress = raygen_binding_table_.device_address,
+                .stride = aligned_handle_size,
+                .size = aligned_handle_size,
+            },
+            VkStridedDeviceAddressRegionKHR{
+                .deviceAddress = miss_binding_table_.device_address,
+                .stride = aligned_handle_size,
+                .size = aligned_handle_size,
+            },
+            VkStridedDeviceAddressRegionKHR{
+                .deviceAddress = hit_binding_table_.device_address,
+                .stride = aligned_handle_size,
+                .size = aligned_handle_size,
+            },
+        };
+        VkStridedDeviceAddressRegionKHR callable_entry{};
+
+        vkCmdTraceRaysKHR(command_buffer,
+            &binding_table_entries[0],
+            &binding_table_entries[1],
+            &binding_table_entries[2],
+            &callable_entry,
+            target_image->extent.width,
+            target_image->extent.height,
+            1);
+    }
+
+    {
+        std::array const image_barriers{
+            vkrndr::with_access(
+                vkrndr::with_layout(
+                    vkrndr::on_stage(vkrndr::image_barrier(*target_image),
+                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_2_TRANSFER_BIT),
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL),
+                VK_ACCESS_2_NONE,
+                VK_ACCESS_2_TRANSFER_WRITE_BIT),
+            vkrndr::with_access(
+                vkrndr::with_layout(
+                    vkrndr::on_stage(
+                        vkrndr::image_barrier(ray_generation_storage_),
+                        VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+                        VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR),
+                    VK_IMAGE_LAYOUT_GENERAL,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+                VK_ACCESS_2_TRANSFER_READ_BIT)};
+
+        vkrndr::wait_for(command_buffer, {}, {}, image_barriers);
+
+        VkImageCopy const region{
+            .srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+            .dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+            .extent = target_image->extent,
+        };
+
+        vkCmdCopyImage(command_buffer,
+            ray_generation_storage_,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            *target_image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region);
+
+        VkImageMemoryBarrier2 const revert_storage_barrier{vkrndr::with_access(
+            vkrndr::with_layout(
+                vkrndr::on_stage(vkrndr::image_barrier(ray_generation_storage_),
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR),
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_GENERAL),
+            VK_ACCESS_2_TRANSFER_READ_BIT,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
+        vkrndr::wait_for(command_buffer,
+            {},
+            {},
+            cppext::as_span(revert_storage_barrier));
+    }
+
+    {
         auto const barrier{vkrndr::with_layout(
             vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::image_barrier(*target_image),
-                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_TRANSFER_WRITE_BIT,
                 VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT),
-            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
 
@@ -563,6 +658,19 @@ void heatx::application_t::on_resize(uint32_t const width,
     VKRNDR_IF_DEBUG_UTILS(object_name(backend_->device(),
         ray_generation_storage_,
         "Ray Generation Storage"));
+
+    {
+        vkrndr::transient_operation_t op{
+            backend_->request_transient_operation(false)};
+
+        VkImageMemoryBarrier2 const barrier{vkrndr::with_access(
+            vkrndr::to_layout(vkrndr::image_barrier(ray_generation_storage_),
+                VK_IMAGE_LAYOUT_GENERAL),
+            VK_ACCESS_2_NONE,
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
+
+        vkrndr::wait_for(op.command_buffer(), {}, {}, cppext::as_span(barrier));
+    }
 }
 
 void heatx::application_t::create_blas()
@@ -903,7 +1011,7 @@ void heatx::application_t::create_shader_binding_table()
     {
         vkrndr::mapped_memory_t map{
             vkrndr::map_memory(*rendering_context_.device,
-                raygen_binding_table_)};
+                miss_binding_table_)};
 
         memcpy(map.as<std::byte>(),
             handle_storage.data() + aligned_handle_size,
@@ -915,8 +1023,7 @@ void heatx::application_t::create_shader_binding_table()
     hit_binding_table_ = create_binding_table_buffer();
     {
         vkrndr::mapped_memory_t map{
-            vkrndr::map_memory(*rendering_context_.device,
-                raygen_binding_table_)};
+            vkrndr::map_memory(*rendering_context_.device, hit_binding_table_)};
 
         memcpy(map.as<std::byte>(),
             handle_storage.data() + aligned_handle_size * 2,

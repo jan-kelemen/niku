@@ -27,6 +27,8 @@ namespace vkrndr
         VkSampleCountFlags sample_count{};
         uint32_t mip_levels{};
         VkExtent3D extent{};
+
+        [[nodiscard]] operator VkImage() const noexcept;
     };
 
     void destroy(device_t const* device, image_t const* image);
@@ -203,4 +205,5 @@ namespace vkrndr
         std::string_view name);
 } // namespace vkrndr
 
+inline vkrndr::image_t::operator VkImage() const noexcept { return image; }
 #endif

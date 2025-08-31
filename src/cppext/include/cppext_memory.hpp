@@ -25,8 +25,7 @@ namespace cppext
 template<typename T>
 constexpr T cppext::aligned_size(T const value, T const alignment)
 {
-    // https://stackoverflow.com/a/23928177
-    return (value + alignment - 1) - value % alignment;
+    return (value + alignment - 1) & ~(alignment - 1);
 }
 
 #endif

@@ -85,7 +85,7 @@ namespace heatx
         vkrndr::image_t ray_generation_storage_;
         std::vector<vkrndr::buffer_t> uniform_buffers_;
 
-        VkDescriptorSetLayout descriptor_layout_;
+        VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
         vkrndr::pipeline_t pipeline_;
 
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR
