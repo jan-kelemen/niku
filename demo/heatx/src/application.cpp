@@ -2,6 +2,7 @@
 #include <config.hpp>
 
 #include <cppext_container.hpp>
+#include <cppext_memory.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
@@ -264,6 +265,10 @@ heatx::application_t::application_t(bool const debug)
     {
         throw std::system_error{create_result.error()};
     }
+
+    raytracing_pipeline_properties_ = vkrndr::get_device_properties<
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR>(
+        *rendering_context_.device);
 }
 
 heatx::application_t::~application_t() = default;
@@ -479,11 +484,24 @@ void heatx::application_t::on_startup()
     {
         destroy(&backend_->device(), &shd);
     }
+
+    create_shader_binding_table();
+
+    create_descriptors();
 }
 
 void heatx::application_t::on_shutdown()
 {
     vkDeviceWaitIdle(backend_->device());
+
+    vkrndr::free_descriptor_sets(backend_->device(),
+        descriptor_pool_,
+        descriptor_sets_);
+    vkrndr::destroy_descriptor_pool(backend_->device(), descriptor_pool_);
+
+    destroy(&backend_->device(), &hit_binding_table_);
+    destroy(&backend_->device(), &miss_binding_table_);
+    destroy(&backend_->device(), &raygen_binding_table_);
 
     destroy(&backend_->device(), &pipeline_);
 
@@ -829,4 +847,174 @@ void heatx::application_t::create_tlas()
     destroy(rendering_context_.device.get(), &scratch_buffer);
 
     tlas_.device_address = device_address(*rendering_context_.device, tlas_);
+}
+
+void heatx::application_t::create_shader_binding_table()
+{
+    uint32_t const handle_size{
+        raytracing_pipeline_properties_.shaderGroupHandleSize};
+    uint32_t const aligned_handle_size{cppext::aligned_size(
+        raytracing_pipeline_properties_.shaderGroupHandleSize,
+        raytracing_pipeline_properties_.shaderGroupHandleAlignment)};
+    uint32_t const group_count{3};
+    uint32_t const binding_table_size{group_count * aligned_handle_size};
+
+    std::vector<std::byte> handle_storage;
+    handle_storage.resize(binding_table_size);
+    if (VkResult const result{
+            vkGetRayTracingShaderGroupHandlesKHR(*rendering_context_.device,
+                pipeline_,
+                0,
+                group_count,
+                binding_table_size,
+                handle_storage.data())};
+        !vkrndr::is_success_result(result))
+    {
+        throw std::system_error{vkrndr::make_error_code(result)};
+    }
+
+    auto const create_binding_table_buffer = [this, handle_size]()
+    {
+        return vkrndr::create_buffer(*rendering_context_.device,
+            {
+                .size = handle_size,
+                .usage = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            });
+    };
+
+    raygen_binding_table_ = create_binding_table_buffer();
+    {
+        vkrndr::mapped_memory_t map{
+            vkrndr::map_memory(*rendering_context_.device,
+                raygen_binding_table_)};
+
+        memcpy(map.as<std::byte>(), handle_storage.data(), handle_size);
+
+        vkrndr::unmap_memory(*rendering_context_.device, &map);
+    }
+
+    miss_binding_table_ = create_binding_table_buffer();
+    {
+        vkrndr::mapped_memory_t map{
+            vkrndr::map_memory(*rendering_context_.device,
+                raygen_binding_table_)};
+
+        memcpy(map.as<std::byte>(),
+            handle_storage.data() + aligned_handle_size,
+            handle_size);
+
+        vkrndr::unmap_memory(*rendering_context_.device, &map);
+    }
+
+    hit_binding_table_ = create_binding_table_buffer();
+    {
+        vkrndr::mapped_memory_t map{
+            vkrndr::map_memory(*rendering_context_.device,
+                raygen_binding_table_)};
+
+        memcpy(map.as<std::byte>(),
+            handle_storage.data() + aligned_handle_size * 2,
+            handle_size);
+
+        vkrndr::unmap_memory(*rendering_context_.device, &map);
+    }
+}
+
+void heatx::application_t::create_descriptors()
+{
+    std::array const pool_sizes{
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+            .descriptorCount = backend_->frames_in_flight(),
+        },
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            .descriptorCount = backend_->frames_in_flight(),
+        },
+        VkDescriptorPoolSize{
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = backend_->frames_in_flight(),
+        },
+    };
+
+    if (std::expected<VkDescriptorPool, VkResult> pool{
+            vkrndr::create_descriptor_pool(backend_->device(),
+                pool_sizes,
+                backend_->frames_in_flight())})
+    {
+        descriptor_pool_ = *pool;
+    }
+    else
+    {
+        throw std::system_error{vkrndr::make_error_code(pool.error())};
+    }
+
+    descriptor_sets_.resize(backend_->frames_in_flight());
+    for (uint32_t i{}; i != backend_->frames_in_flight(); ++i)
+    {
+        if (VkResult const result{
+                vkrndr::allocate_descriptor_sets(backend_->device(),
+                    descriptor_pool_,
+                    cppext::as_span(descriptor_layout_),
+                    cppext::as_span(descriptor_sets_[i]))};
+            !vkrndr::is_success_result(result))
+        {
+            throw std::system_error{vkrndr::make_error_code(result)};
+        }
+
+        VkWriteDescriptorSetAccelerationStructureKHR const
+            acceleration_structure_info{
+                .sType = vku::GetSType<
+                    VkWriteDescriptorSetAccelerationStructureKHR>(),
+                .accelerationStructureCount = 1,
+                .pAccelerationStructures = &tlas_.handle};
+
+        VkWriteDescriptorSet const acceleration_structure_write{
+            .sType = vku::GetSType<VkWriteDescriptorSet>(),
+            .pNext = &acceleration_structure_info,
+            .dstSet = descriptor_sets_[i],
+            .dstBinding = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+        };
+
+        VkDescriptorImageInfo const storage_image_info{
+            vkrndr::storage_image_descriptor(ray_generation_storage_)};
+
+        VkWriteDescriptorSet const storage_image_write_write{
+            .sType = vku::GetSType<VkWriteDescriptorSet>(),
+            .dstSet = descriptor_sets_[i],
+            .dstBinding = 1,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            .pImageInfo = &storage_image_info,
+        };
+
+        VkDescriptorBufferInfo const uniform_buffer_info{
+            vkrndr::buffer_descriptor(uniform_buffers_[i])};
+
+        VkWriteDescriptorSet const uniform_buffer_write{
+            .sType = vku::GetSType<VkWriteDescriptorSet>(),
+            .dstSet = descriptor_sets_[i],
+            .dstBinding = 2,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pBufferInfo = &uniform_buffer_info,
+        };
+
+        std::array const descriptor_writes{acceleration_structure_write,
+            storage_image_write_write,
+            uniform_buffer_write};
+        vkUpdateDescriptorSets(backend_->device(),
+            vkrndr::count_cast(descriptor_writes.size()),
+            descriptor_writes.data(),
+            0,
+            nullptr);
+    }
 }

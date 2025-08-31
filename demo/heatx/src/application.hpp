@@ -61,6 +61,10 @@ namespace heatx
 
         void create_tlas();
 
+        void create_shader_binding_table();
+
+        void create_descriptors();
+
     private:
         vkglsl::guard_t guard_;
 
@@ -83,6 +87,16 @@ namespace heatx
 
         VkDescriptorSetLayout descriptor_layout_;
         vkrndr::pipeline_t pipeline_;
+
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR
+            raytracing_pipeline_properties_{};
+
+        vkrndr::buffer_t raygen_binding_table_;
+        vkrndr::buffer_t miss_binding_table_;
+        vkrndr::buffer_t hit_binding_table_;
+
+        VkDescriptorPool descriptor_pool_{VK_NULL_HANDLE};
+        std::vector<VkDescriptorSet> descriptor_sets_;
     };
 } // namespace heatx
 #endif
