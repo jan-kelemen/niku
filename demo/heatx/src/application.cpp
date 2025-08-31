@@ -9,6 +9,9 @@
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
+#include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
+
 #include <vkglsl_shader_set.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -30,6 +33,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
@@ -96,8 +100,8 @@ heatx::application_t::application_t(bool const debug)
           .init_subsystems = {.video = true, .debug = debug}}}
     , render_window_{std::make_unique<ngnwsi::render_window_t>("heatx",
           SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
-          512,
-          512)}
+          1280,
+          720)}
 {
     auto const create_result{vkrndr::initialize()
             .and_then(
@@ -462,15 +466,41 @@ void heatx::application_t::on_startup()
     create_blas();
     create_tlas();
 
+    glm::mat4 view{{1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 2.5f}};
+
+    glm::mat4 projection{{1.02f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 0.577f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, -10.0f},
+        {0.0f, 0.0f, -1.0f, 10.0f}};
+
     std::ranges::generate_n(std::back_inserter(uniform_buffers_),
         backend_->frames_in_flight(),
-        [this]()
+        [this, &view, &projection]()
         {
-            return vkrndr::create_buffer(backend_->device(),
+            vkrndr::buffer_t rv{vkrndr::create_buffer(backend_->device(),
                 {
                     .size = sizeof(uniform_data_t),
                     .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                });
+                    .allocation_flags =
+                        VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                    .required_memory_flags =
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                })};
+
+            vkrndr::mapped_memory_t map{
+                vkrndr::map_memory(backend_->device(), rv)};
+
+            map.as<uniform_data_t>()->inverse_projection = projection;
+            map.as<uniform_data_t>()->inverse_view = view;
+
+            vkrndr::unmap_memory(backend_->device(), &map);
+
+            return rv;
         });
 
     std::array const layout_bindings{
@@ -713,7 +743,7 @@ void heatx::application_t::create_blas()
                         .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
                         .vertexData = vertex_buffer_.device_address,
                         .vertexStride = sizeof(glm::vec3),
-                        .maxVertex = 2,
+                        .maxVertex = 3,
                         .indexType = VK_INDEX_TYPE_UINT32,
                         .indexData = index_buffer_.device_address,
                         .transformData = transform_buffer_.device_address,
@@ -860,26 +890,39 @@ void heatx::application_t::create_tlas()
             .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            .allocation_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         });
+    {
+        VkAccelerationStructureInstanceKHR const instance{
+            .transform = {1.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                1.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                1.0f,
+                0.0f},
+            .mask = 0xFF,
+            .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
+            .accelerationStructureReference = blas_.device_address,
+        };
 
-    VkAccelerationStructureInstanceKHR const instance{
-        .transform = {1.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            1.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            1.0f,
-            0.0f},
-        .mask = 0xFF,
-        .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
-        .accelerationStructureReference = blas_.device_address,
-    };
+        vkrndr::mapped_memory_t map{
+            vkrndr::map_memory(backend_->device(), instance_buffer_)};
+
+        memcpy(map.as<VkAccelerationStructureInstanceKHR>(),
+            &instance,
+            sizeof(instance));
+
+        vkrndr::unmap_memory(backend_->device(), &map);
+    }
 
     VkAccelerationStructureGeometryKHR const acceleration_structure_geometry{
         .sType = vku::GetSType<VkAccelerationStructureGeometryKHR>(),
