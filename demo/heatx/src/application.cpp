@@ -466,15 +466,12 @@ void heatx::application_t::on_startup()
     create_blas();
     create_tlas();
 
-    glm::mat4 view{{1.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 2.5f}};
+    glm::mat4 view = glm::lookAtRH(glm::vec3{0.0f, 0.0f, -5.0f},
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f});
 
-    glm::mat4 projection{{1.02f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 0.577f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, -10.0f},
-        {0.0f, 0.0f, -1.0f, 10.0f}};
+    glm::mat4 projection =
+        glm::perspectiveRH_ZO(1.047198f, 1280.0f / 720, 0.1f, 1000.0f);
 
     std::ranges::generate_n(std::back_inserter(uniform_buffers_),
         backend_->frames_in_flight(),
@@ -694,8 +691,11 @@ void heatx::application_t::on_resize(uint32_t const width,
             backend_->request_transient_operation(false)};
 
         VkImageMemoryBarrier2 const barrier{vkrndr::with_access(
-            vkrndr::to_layout(vkrndr::image_barrier(ray_generation_storage_),
-                VK_IMAGE_LAYOUT_GENERAL),
+            vkrndr::on_stage(vkrndr::to_layout(
+                                 vkrndr::image_barrier(ray_generation_storage_),
+                                 VK_IMAGE_LAYOUT_GENERAL),
+                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT),
             VK_ACCESS_2_NONE,
             VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
 
@@ -875,6 +875,15 @@ void heatx::application_t::create_blas()
             1,
             &acceleration_structure_build_geometry,
             range_infos.data());
+
+        auto build_wait{vkrndr::with_access(
+            vkrndr::on_stage(vkrndr::buffer_barrier(blas_.buffer),
+                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+            VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+            VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR)};
+
+        vkrndr::wait_for(cb, {}, cppext::as_span(build_wait), {});
     }
     destroy(rendering_context_.device.get(), &staging);
     destroy(rendering_context_.device.get(), &scratch_buffer);
@@ -994,6 +1003,15 @@ void heatx::application_t::create_tlas()
             1,
             &acceleration_structure_build_geometry,
             range_infos.data());
+
+        auto build_wait{vkrndr::with_access(
+            vkrndr::on_stage(vkrndr::buffer_barrier(tlas_.buffer),
+                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT),
+            VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+            VK_ACCESS_2_NONE)};
+
+        vkrndr::wait_for(cb, {}, cppext::as_span(build_wait), {});
     }
     destroy(rendering_context_.device.get(), &scratch_buffer);
 
