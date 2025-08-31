@@ -17,6 +17,16 @@ namespace cppext
 
     template<typename T>
     using unique_ptr_with_deleter_t = std::unique_ptr<T, void (*)(T*)>;
+
+    template<typename T>
+    [[nodiscard]] constexpr T aligned_size(T value, T alignment);
 } // namespace cppext
+
+template<typename T>
+constexpr T cppext::aligned_size(T const value, T const alignment)
+{
+    // https://stackoverflow.com/a/23928177
+    return (value + alignment - 1) - value % alignment;
+}
 
 #endif
