@@ -127,6 +127,23 @@ namespace vkrndr
     [[nodiscard]] bool enable_extension_for_device(char const* extension_name,
         physical_device_features_t const& device,
         vkrndr::feature_chain_t& chain);
+
+    template<typename T>
+    [[nodiscard]] T get_device_properties(VkPhysicalDevice device);
 } // namespace vkrndr
+
+template<typename T>
+T vkrndr::get_device_properties(VkPhysicalDevice const device)
+{
+    T rv{.sType = vku::GetSType<T>()};
+
+    VkPhysicalDeviceProperties2 props{
+        .sType = vku::GetSType<VkPhysicalDeviceProperties2>(),
+        .pNext = &rv};
+
+    vkGetPhysicalDeviceProperties2(device, &props);
+
+    return rv;
+}
 
 #endif

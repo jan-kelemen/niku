@@ -22,6 +22,8 @@ namespace vkrndr
         std::shared_ptr<VkPipelineLayout> layout;
         VkPipeline pipeline{VK_NULL_HANDLE};
         VkPipelineBindPoint type{VK_PIPELINE_BIND_POINT_GRAPHICS};
+
+        [[nodiscard]] operator VkPipeline() const noexcept;
     };
 
     void bind_pipeline(VkCommandBuffer command_buffer,
@@ -43,4 +45,8 @@ namespace vkrndr
         std::string_view name);
 } // namespace vkrndr
 
+inline vkrndr::pipeline_t::operator VkPipeline() const noexcept
+{
+    return pipeline;
+}
 #endif
