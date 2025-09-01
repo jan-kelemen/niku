@@ -107,7 +107,7 @@ vkrndr::pipeline_t vkrndr::graphics_pipeline_builder_t::build()
         1,
         &create_info,
         nullptr,
-        &rv.pipeline));
+        &rv.handle));
 
     return rv;
 }

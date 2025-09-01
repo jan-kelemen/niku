@@ -13,7 +13,7 @@
 void vkrndr::destroy(device_t const& device, image_t const& image)
 {
     vkDestroyImageView(device, image.view, nullptr);
-    vmaDestroyImage(device.allocator, image.image, image.allocation);
+    vmaDestroyImage(device.allocator, image, image.allocation);
 }
 
 vkrndr::image_t vkrndr::create_image(device_t const& device,
@@ -67,7 +67,7 @@ vkrndr::image_t vkrndr::create_image(device_t const& device,
     check_result(vmaCreateImage(device.allocator,
         &image_info,
         &vma_info,
-        &rv.image,
+        &rv.handle,
         &rv.allocation,
         nullptr));
 
@@ -106,7 +106,7 @@ vkrndr::image_t vkrndr::create_image_and_view(device_t const& device,
     boost::scope::scope_exit rollback{[&device, &rv] { destroy(device, rv); }};
 
     rv.view = create_image_view(device,
-        rv.image,
+        rv.handle,
         create_info.format,
         aspect_flags,
         create_info.mip_levels);
@@ -122,6 +122,6 @@ void vkrndr::object_name(device_t const& device,
 {
     object_name(device,
         VK_OBJECT_TYPE_IMAGE,
-        std::bit_cast<uint64_t>(image.image),
+        std::bit_cast<uint64_t>(image.handle),
         name);
 }

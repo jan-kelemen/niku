@@ -25,7 +25,7 @@ vkrndr::pipeline_layout_t vkrndr::pipeline_layout_builder_t::build()
     check_result(vkCreatePipelineLayout(*device_,
         &pipeline_layout_info,
         nullptr,
-        &rv.layout));
+        &rv.handle));
 
     return rv;
 }

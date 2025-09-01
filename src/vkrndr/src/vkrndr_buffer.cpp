@@ -12,7 +12,7 @@
 
 void vkrndr::destroy(device_t const& device, buffer_t const& buffer)
 {
-    vmaDestroyBuffer(device.allocator, buffer.buffer, buffer.allocation);
+    vmaDestroyBuffer(device.allocator, buffer, buffer.allocation);
 }
 
 VkDeviceAddress vkrndr::device_address(device_t const& device,
@@ -20,7 +20,7 @@ VkDeviceAddress vkrndr::device_address(device_t const& device,
 {
     VkBufferDeviceAddressInfo const da{
         .sType = vku::GetSType<VkBufferDeviceAddressInfo>(),
-        .buffer = buffer.buffer,
+        .buffer = buffer,
     };
 
     return vkGetBufferDeviceAddress(device, &da);
@@ -29,15 +29,15 @@ VkDeviceAddress vkrndr::device_address(device_t const& device,
 vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
     buffer_create_info_t const& create_info)
 {
-    buffer_t rv{};
-    rv.size = create_info.size;
+    buffer_t rv{.size = create_info.size};
 
-    VkBufferCreateInfo buffer_info{};
-    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_info.pNext = create_info.chain;
-    buffer_info.flags = create_info.buffer_flags;
-    buffer_info.size = create_info.size;
-    buffer_info.usage = create_info.usage;
+    VkBufferCreateInfo buffer_info{
+        .sType = vku::GetSType<VkBufferCreateInfo>(),
+        .pNext = create_info.chain,
+        .flags = create_info.buffer_flags,
+        .size = create_info.size,
+        .usage = create_info.usage,
+    };
     if (!create_info.sharing_queue_families.empty())
     {
         buffer_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -47,9 +47,13 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
             create_info.sharing_queue_families.data();
     }
 
-    VmaAllocationCreateInfo vma_info{};
-    vma_info.flags = create_info.allocation_flags;
-    vma_info.usage = VMA_MEMORY_USAGE_AUTO;
+    VmaAllocationCreateInfo vma_info{.flags = create_info.allocation_flags,
+        .usage = VMA_MEMORY_USAGE_AUTO,
+        .requiredFlags = create_info.required_memory_flags,
+        .preferredFlags = create_info.preferred_memory_flags,
+        .memoryTypeBits = create_info.memory_type_bits,
+        .pool = create_info.pool,
+        .priority = create_info.priority};
     if (create_info.required_memory_flags &
         VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
     {
@@ -60,16 +64,11 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
     {
         vma_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     }
-    vma_info.requiredFlags = create_info.required_memory_flags;
-    vma_info.preferredFlags = create_info.preferred_memory_flags;
-    vma_info.memoryTypeBits = create_info.memory_type_bits;
-    vma_info.pool = create_info.pool;
-    vma_info.priority = create_info.priority;
 
     check_result(vmaCreateBuffer(device.allocator,
         &buffer_info,
         &vma_info,
-        &rv.buffer,
+        &rv.handle,
         &rv.allocation,
         nullptr));
 
@@ -99,6 +98,6 @@ void vkrndr::object_name(device_t const& device,
 {
     object_name(device,
         VK_OBJECT_TYPE_BUFFER,
-        std::bit_cast<uint64_t>(buffer.buffer),
+        std::bit_cast<uint64_t>(buffer.handle),
         name);
 }

@@ -233,7 +233,7 @@ void gltfviewer::pyramid_blur_t::downsample_pass(uint32_t const levels,
 
     for (uint32_t mip{}; mip != levels; ++mip)
     {
-        transition_mip(pyramid_image_.image,
+        transition_mip(pyramid_image_,
             command_buffer,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -244,7 +244,7 @@ void gltfviewer::pyramid_blur_t::downsample_pass(uint32_t const levels,
                 VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
             mip);
 
-        transition_mip(pyramid_image_.image,
+        transition_mip(pyramid_image_,
             command_buffer,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -285,7 +285,7 @@ void gltfviewer::pyramid_blur_t::upsample_pass(uint32_t const levels,
     for (uint32_t const mip :
         std::views::iota(uint32_t{0}, levels) | std::views::reverse)
     {
-        transition_mip(pyramid_image_.image,
+        transition_mip(pyramid_image_,
             command_buffer,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -296,7 +296,7 @@ void gltfviewer::pyramid_blur_t::upsample_pass(uint32_t const levels,
                 VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
             mip + 1);
 
-        transition_mip(pyramid_image_.image,
+        transition_mip(pyramid_image_,
             command_buffer,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -359,7 +359,7 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
     for (uint32_t i{}; i != pyramid_image_.mip_levels; ++i)
     {
         mip_views_[i] = vkrndr::create_image_view(backend_->device(),
-            pyramid_image_.image,
+            pyramid_image_,
             pyramid_image_.format,
             VK_IMAGE_ASPECT_COLOR_BIT,
             1,

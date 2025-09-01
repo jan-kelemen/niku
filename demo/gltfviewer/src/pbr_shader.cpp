@@ -47,12 +47,7 @@ gltfviewer::pbr_shader_t::~pbr_shader_t()
 
 VkPipelineLayout gltfviewer::pbr_shader_t::pipeline_layout() const
 {
-    if (double_sided_pipeline_.pipeline)
-    {
-        return double_sided_pipeline_.layout;
-    }
-
-    return VK_NULL_HANDLE;
+    return pipeline_layout_;
 }
 
 void gltfviewer::pbr_shader_t::draw(scene_graph_t const& graph,

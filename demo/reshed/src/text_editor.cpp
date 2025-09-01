@@ -544,7 +544,7 @@ void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
 
 VkPipelineLayout reshed::text_editor_t::pipeline_layout() const
 {
-    return text_pipeline_.pipeline ? text_pipeline_.layout : VK_NULL_HANDLE;
+    return text_pipeline_layout_;
 }
 
 void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
@@ -684,7 +684,7 @@ void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)
     vkCmdBindVertexBuffers(command_buffer,
         0,
         1,
-        &frame_data_->vertex_buffer.buffer,
+        &frame_data_->vertex_buffer.handle,
         &zero_offset);
 
     vkCmdPushConstants(command_buffer,

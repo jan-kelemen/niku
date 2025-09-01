@@ -52,9 +52,9 @@ namespace vkrndr
         ~device_t();
 
     public:
-        [[nodiscard]] operator VkPhysicalDevice() const noexcept;
+        [[nodiscard]] constexpr operator VkPhysicalDevice() const noexcept;
 
-        [[nodiscard]] operator VkDevice() const noexcept;
+        [[nodiscard]] constexpr operator VkDevice() const noexcept;
 
         device_t& operator=(device_t const&) = delete;
 
@@ -91,12 +91,12 @@ namespace vkrndr
         VkSurfaceKHR surface);
 } // namespace vkrndr
 
-inline vkrndr::device_t::operator VkDevice() const noexcept
+inline constexpr vkrndr::device_t::operator VkDevice() const noexcept
 {
     return logical_device;
 }
 
-inline vkrndr::device_t::operator VkPhysicalDevice() const noexcept
+inline constexpr vkrndr::device_t::operator VkPhysicalDevice() const noexcept
 {
     return physical_device;
 }

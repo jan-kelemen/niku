@@ -205,8 +205,7 @@ void reshed::editor_window_t::draw()
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
-    vkrndr::wait_for_color_attachment_write(target_image->image,
-        command_buffer);
+    vkrndr::wait_for_color_attachment_write(*target_image, command_buffer);
 
     VkViewport const viewport{.x = 0.0f,
         .y = cppext::as_fp(target_image->extent.height),
@@ -244,7 +243,7 @@ void reshed::editor_window_t::draw()
 
     imgui_layer_->render(command_buffer, *target_image);
 
-    vkrndr::transition_to_present_layout(target_image->image, command_buffer);
+    vkrndr::transition_to_present_layout(*target_image, command_buffer);
 
     render_window_->present(backend_->present_buffers());
 

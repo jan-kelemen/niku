@@ -18,7 +18,8 @@ namespace vkrndr
         vkrndr::buffer_t buffer;
         VkDeviceAddress device_address{};
 
-        [[nodiscard]] operator VkAccelerationStructureKHR() const noexcept;
+        [[nodiscard]] constexpr
+        operator VkAccelerationStructureKHR() const noexcept;
     };
 
     void destroy(device_t const& device,
@@ -39,8 +40,8 @@ namespace vkrndr
         VkAccelerationStructureBuildSizesInfoKHR const& info);
 } // namespace vkrndr
 
-inline vkrndr::acceleration_structure_t::operator VkAccelerationStructureKHR()
-    const noexcept
+inline constexpr vkrndr::acceleration_structure_t::
+operator VkAccelerationStructureKHR() const noexcept
 {
     return handle;
 }

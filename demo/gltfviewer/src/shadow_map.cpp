@@ -209,12 +209,7 @@ gltfviewer::shadow_map_t::~shadow_map_t()
 
 VkPipelineLayout gltfviewer::shadow_map_t::pipeline_layout() const
 {
-    if (depth_pipeline_.pipeline)
-    {
-        return depth_pipeline_.layout;
-    }
-
-    return VK_NULL_HANDLE;
+    return depth_pipeline_layout_;
 }
 
 VkDescriptorSetLayout gltfviewer::shadow_map_t::descriptor_layout() const
@@ -306,7 +301,7 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
         vertex_write_time_ = wt;
     }
 
-    if (depth_pipeline_.pipeline != VK_NULL_HANDLE)
+    if (depth_pipeline_.handle != VK_NULL_HANDLE)
     {
         destroy(backend_->device(), depth_pipeline_);
         destroy(backend_->device(), depth_pipeline_layout_);

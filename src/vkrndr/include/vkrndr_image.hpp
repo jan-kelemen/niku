@@ -20,7 +20,7 @@ namespace vkrndr
 {
     struct [[nodiscard]] image_t final
     {
-        VkImage image{VK_NULL_HANDLE};
+        VkImage handle{VK_NULL_HANDLE};
         VmaAllocation allocation{VK_NULL_HANDLE};
         VkImageView view{VK_NULL_HANDLE};
         VkFormat format{};
@@ -28,7 +28,7 @@ namespace vkrndr
         uint32_t mip_levels{};
         VkExtent3D extent{};
 
-        [[nodiscard]] operator VkImage() const noexcept;
+        [[nodiscard]] constexpr operator VkImage() const noexcept;
     };
 
     void destroy(device_t const& device, image_t const& image);
@@ -196,7 +196,7 @@ namespace vkrndr
         vkrndr::image_t const& image,
         VkImageAspectFlags const aspect = VK_IMAGE_ASPECT_COLOR_BIT)
     {
-        return image_barrier(image.image,
+        return image_barrier(image,
             whole_resource(aspect, image.mip_levels, 1));
     }
 
@@ -205,5 +205,8 @@ namespace vkrndr
         std::string_view name);
 } // namespace vkrndr
 
-inline vkrndr::image_t::operator VkImage() const noexcept { return image; }
+inline constexpr vkrndr::image_t::operator VkImage() const noexcept
+{
+    return handle;
+}
 #endif

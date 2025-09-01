@@ -796,7 +796,7 @@ void galileo::application_t::draw()
         imgui_->render(command_buffer, *target_image);
     }
 
-    vkrndr::transition_to_present_layout(target_image->image, command_buffer);
+    vkrndr::transition_to_present_layout(*target_image, command_buffer);
 
     render_window_->present(backend_->present_buffers());
 

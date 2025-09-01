@@ -254,7 +254,7 @@ void galileo::batch_renderer_t::draw(VkCommandBuffer command_buffer)
             vkCmdBindVertexBuffers(command_buffer,
                 0,
                 1,
-                &buffer.buffer.buffer,
+                &buffer.buffer.handle,
                 &zero_offset);
 
             vkCmdDraw(command_buffer, buffer.size, 1, 0, 0);

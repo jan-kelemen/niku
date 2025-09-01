@@ -175,12 +175,7 @@ gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
 
 VkPipelineLayout gltfviewer::weighted_oit_shader_t::pipeline_layout() const
 {
-    if (pbr_pipeline_.pipeline)
-    {
-        return pbr_pipeline_.layout;
-    }
-
-    return VK_NULL_HANDLE;
+    return pbr_pipeline_layout_;
 }
 
 void gltfviewer::weighted_oit_shader_t::draw(scene_graph_t const& graph,
@@ -198,10 +193,9 @@ void gltfviewer::weighted_oit_shader_t::draw(scene_graph_t const& graph,
             [[maybe_unused]] vkrndr::command_buffer_scope_t const
                 geometry_pass_scope{command_buffer, "Geometry"});
 
-        vkrndr::wait_for_color_attachment_write(accumulation_image_.image,
+        vkrndr::wait_for_color_attachment_write(accumulation_image_,
             command_buffer);
-        vkrndr::wait_for_color_attachment_write(reveal_image_.image,
-            command_buffer);
+        vkrndr::wait_for_color_attachment_write(reveal_image_, command_buffer);
 
         vkrndr::render_pass_t color_render_pass;
         color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -356,7 +350,7 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
-    if (pbr_pipeline_.pipeline != VK_NULL_HANDLE)
+    if (pbr_pipeline_.handle != VK_NULL_HANDLE)
     {
         destroy(backend_->device(), pbr_pipeline_);
         destroy(backend_->device(), pbr_pipeline_layout_);
@@ -416,7 +410,7 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), pbr_pipeline_, "Transparent Pipeline"));
 
-    if (composition_pipeline_.pipeline != VK_NULL_HANDLE)
+    if (composition_pipeline_.handle != VK_NULL_HANDLE)
     {
         destroy(backend_->device(), composition_pipeline_);
         destroy(backend_->device(), composition_pipeline_layout_);

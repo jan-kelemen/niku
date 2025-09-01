@@ -57,7 +57,7 @@ vkrndr::acceleration_structure_t vkrndr::create_acceleration_structure(
 
     VkAccelerationStructureCreateInfoKHR const create_info{
         .sType = vku::GetSType<VkAccelerationStructureCreateInfoKHR>(),
-        .buffer = rv.buffer.buffer,
+        .buffer = rv.buffer,
         .size = info.accelerationStructureSize,
         .type = type,
     };

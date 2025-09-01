@@ -365,8 +365,8 @@ void galileo::scene_graph_t::bind_on(VkCommandBuffer command_buffer,
         0,
         nullptr);
 
-    std::array<VkBuffer, 2> const vertex_buffers{vertex_buffer_.buffer,
-        frame_data_->instance_vertex_buffer.buffer};
+    std::array<VkBuffer, 2> const vertex_buffers{vertex_buffer_,
+        frame_data_->instance_vertex_buffer};
     std::array<VkDeviceSize, 2> const vertex_offsets{0, 0};
 
     vkCmdBindVertexBuffers(command_buffer,
@@ -376,7 +376,7 @@ void galileo::scene_graph_t::bind_on(VkCommandBuffer command_buffer,
         vertex_offsets.data());
 
     vkCmdBindIndexBuffer(command_buffer,
-        index_buffer_.buffer,
+        index_buffer_,
         0,
         VK_INDEX_TYPE_UINT32);
 }

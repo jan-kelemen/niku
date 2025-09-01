@@ -46,12 +46,7 @@ gltfviewer::depth_pass_shader_t::~depth_pass_shader_t()
 
 VkPipelineLayout gltfviewer::depth_pass_shader_t::pipeline_layout() const
 {
-    if (depth_pipeline_.pipeline)
-    {
-        return depth_pipeline_.layout;
-    }
-
-    return VK_NULL_HANDLE;
+    return pipeline_layout_;
 }
 
 void gltfviewer::depth_pass_shader_t::draw(scene_graph_t const& graph,

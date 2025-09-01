@@ -40,12 +40,12 @@ void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,
             nullptr);
     }
 
-    vkCmdBindPipeline(command_buffer, pipeline.type, pipeline.pipeline);
+    vkCmdBindPipeline(command_buffer, pipeline.type, pipeline);
 }
 
 void vkrndr::destroy(device_t const& device, pipeline_t const& pipeline)
 {
-    vkDestroyPipeline(device, pipeline.pipeline, nullptr);
+    vkDestroyPipeline(device, pipeline, nullptr);
 }
 
 void vkrndr::object_name(device_t const& device,
@@ -54,6 +54,6 @@ void vkrndr::object_name(device_t const& device,
 {
     object_name(device,
         VK_OBJECT_TYPE_PIPELINE,
-        std::bit_cast<uint64_t>(pipeline.pipeline),
+        std::bit_cast<uint64_t>(pipeline.handle),
         name);
 }

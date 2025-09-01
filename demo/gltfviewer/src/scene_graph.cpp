@@ -296,14 +296,14 @@ void gltfviewer::scene_graph_t::bind_on(VkCommandBuffer command_buffer,
         vkCmdBindVertexBuffers(command_buffer,
             0,
             1,
-            &vertex_buffer_.buffer,
+            &vertex_buffer_.handle,
             &zero_offset);
     }
 
     if (index_count_)
     {
         vkCmdBindIndexBuffer(command_buffer,
-            index_buffer_.buffer,
+            index_buffer_,
             0,
             VK_INDEX_TYPE_UINT32);
     }

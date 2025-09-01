@@ -60,7 +60,7 @@ namespace vkrndr
         VkDeviceSize const offset = 0,
         VkDeviceSize const range = VK_WHOLE_SIZE)
     {
-        return {buffer.buffer, offset, range};
+        return {buffer, offset, range};
     }
 
     [[nodiscard]] constexpr VkDescriptorImageInfo sampled_image_descriptor(

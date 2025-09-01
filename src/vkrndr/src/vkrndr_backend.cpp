@@ -236,16 +236,16 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
     {
         auto transient{request_transient_operation(false)};
         VkCommandBuffer cb{transient.command_buffer()};
-        wait_for_transfer_write(image.image, cb, mip_levels);
-        copy_buffer_to_image(cb, source.buffer, image.image, extent);
+        wait_for_transfer_write(image, cb, mip_levels);
+        copy_buffer_to_image(cb, source, image, extent);
         if (mip_levels == 1)
         {
-            wait_for_transfer_write_completed(image.image, cb, mip_levels);
+            wait_for_transfer_write_completed(image, cb, mip_levels);
         }
         else
         {
             generate_mipmaps(*context_.device,
-                image.image,
+                image,
                 cb,
                 format,
                 extent,
@@ -261,7 +261,7 @@ void vkrndr::backend_t::transfer_buffer(buffer_t const& source,
 {
     auto transient{request_transient_operation(false)};
     copy_buffer_to_buffer(transient.command_buffer(),
-        source.buffer,
+        source,
         source.size,
-        target.buffer);
+        target);
 }

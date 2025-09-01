@@ -19,9 +19,9 @@ namespace vkrndr
 {
     struct [[nodiscard]] pipeline_layout_t final
     {
-        VkPipelineLayout layout{VK_NULL_HANDLE};
+        VkPipelineLayout handle{VK_NULL_HANDLE};
 
-        [[nodiscard]] operator VkPipelineLayout() const noexcept;
+        [[nodiscard]] constexpr operator VkPipelineLayout() const noexcept;
     };
 
     void destroy(device_t const& device, pipeline_layout_t const& layout);
@@ -29,10 +29,10 @@ namespace vkrndr
     struct [[nodiscard]] pipeline_t final
     {
         pipeline_layout_t layout;
-        VkPipeline pipeline{VK_NULL_HANDLE};
+        VkPipeline handle{VK_NULL_HANDLE};
         VkPipelineBindPoint type{VK_PIPELINE_BIND_POINT_GRAPHICS};
 
-        [[nodiscard]] operator VkPipeline() const noexcept;
+        [[nodiscard]] constexpr operator VkPipeline() const noexcept;
     };
 
     void destroy(device_t const& device, pipeline_t const& pipeline);
@@ -50,14 +50,15 @@ namespace vkrndr
         std::string_view name);
 } // namespace vkrndr
 
-inline vkrndr::pipeline_t::operator VkPipeline() const noexcept
+inline constexpr vkrndr::pipeline_t::operator VkPipeline() const noexcept
 {
-    return pipeline;
+    return handle;
 }
 
-inline vkrndr::pipeline_layout_t::operator VkPipelineLayout() const noexcept
+inline constexpr vkrndr::pipeline_layout_t::operator VkPipelineLayout()
+    const noexcept
 {
-    return layout;
+    return handle;
 }
 
 inline void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,

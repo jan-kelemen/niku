@@ -595,11 +595,11 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer)
     vkCmdBindVertexBuffers(command_buffer,
         0,
         1,
-        &cubemap_vertex_buffer_.buffer,
+        &cubemap_vertex_buffer_.handle,
         &zero_offset);
 
     vkCmdBindIndexBuffer(command_buffer,
-        cubemap_index_buffer_.buffer,
+        cubemap_index_buffer_,
         0,
         VK_INDEX_TYPE_UINT32);
 
@@ -825,11 +825,11 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
         vkCmdBindVertexBuffers(command_buffer,
             0,
             1,
-            &cubemap_vertex_buffer_.buffer,
+            &cubemap_vertex_buffer_.handle,
             &zero_offset);
 
         vkCmdBindIndexBuffer(command_buffer,
-            cubemap_index_buffer_.buffer,
+            cubemap_index_buffer_,
             0,
             VK_INDEX_TYPE_UINT32);
 
@@ -984,8 +984,7 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
 
         bind_pipeline(command_buffer, pipeline);
 
-        vkrndr::wait_for_color_attachment_write(brdf_lookup_.image,
-            command_buffer);
+        vkrndr::wait_for_color_attachment_write(brdf_lookup_, command_buffer);
 
         {
             vkrndr::render_pass_t color_render_pass;
@@ -1039,11 +1038,11 @@ void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
     vkCmdBindVertexBuffers(command_buffer,
         0,
         1,
-        &cubemap_vertex_buffer_.buffer,
+        &cubemap_vertex_buffer_.handle,
         &zero_offset);
 
     vkCmdBindIndexBuffer(command_buffer,
-        cubemap_index_buffer_.buffer,
+        cubemap_index_buffer_,
         0,
         VK_INDEX_TYPE_UINT32);
 

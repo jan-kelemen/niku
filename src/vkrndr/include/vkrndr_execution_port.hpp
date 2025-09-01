@@ -53,7 +53,7 @@ namespace vkrndr
         void wait_idle();
 
     public:
-        [[nodiscard]] operator VkQueue() const noexcept;
+        [[nodiscard]] constexpr operator VkQueue() const noexcept;
 
         execution_port_t& operator=(execution_port_t const&) = default;
 
@@ -67,7 +67,7 @@ namespace vkrndr
     };
 } // namespace vkrndr
 
-inline vkrndr::execution_port_t::operator VkQueue() const noexcept
+inline constexpr vkrndr::execution_port_t::operator VkQueue() const noexcept
 {
     return queue_;
 }

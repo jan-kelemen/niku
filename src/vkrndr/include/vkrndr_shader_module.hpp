@@ -21,6 +21,8 @@ namespace vkrndr
         VkShaderModule handle{VK_NULL_HANDLE};
         VkShaderStageFlagBits stage{};
         std::string entry_point;
+
+        [[nodiscard]] constexpr operator VkShaderModule() const noexcept;
     };
 
     void destroy(device_t const& device, shader_module_t const& shader_module);
@@ -43,5 +45,11 @@ namespace vkrndr
         shader_module_t const& shader_module,
         std::string_view name);
 } // namespace vkrndr
+
+inline constexpr vkrndr::shader_module_t::operator VkShaderModule()
+    const noexcept
+{
+    return handle;
+}
 
 #endif
