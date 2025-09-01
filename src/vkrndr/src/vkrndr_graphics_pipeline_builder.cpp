@@ -3,85 +3,76 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 #include <cassert>
 
 vkrndr::graphics_pipeline_builder_t::graphics_pipeline_builder_t(
     device_t const& device,
-    std::shared_ptr<VkPipelineLayout> pipeline_layout)
+    pipeline_layout_t const& layout)
     : device_{&device}
-    , pipeline_layout_{std::move(pipeline_layout)}
+    , layout_{&layout}
     , dynamic_states_{{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR}}
 {
 }
 
-vkrndr::graphics_pipeline_builder_t::~graphics_pipeline_builder_t()
-{
-    cleanup();
-}
-
 vkrndr::pipeline_t vkrndr::graphics_pipeline_builder_t::build()
 {
-    VkPipelineVertexInputStateCreateInfo vertex_input_info{};
-    vertex_input_info.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_info.vertexBindingDescriptionCount =
-        count_cast(vertex_input_binding_.size());
-    vertex_input_info.pVertexBindingDescriptions = vertex_input_binding_.data();
-    vertex_input_info.vertexAttributeDescriptionCount =
-        count_cast(vertex_input_attributes_.size());
-    vertex_input_info.pVertexAttributeDescriptions =
-        vertex_input_attributes_.data();
+    VkPipelineVertexInputStateCreateInfo const vertex_input_info{
+        .sType = vku::GetSType<VkPipelineVertexInputStateCreateInfo>(),
+        .vertexBindingDescriptionCount =
+            count_cast(vertex_input_binding_.size()),
+        .pVertexBindingDescriptions = vertex_input_binding_.data(),
+        .vertexAttributeDescriptionCount =
+            count_cast(vertex_input_attributes_.size()),
+        .pVertexAttributeDescriptions = vertex_input_attributes_.data(),
+    };
 
-    VkPipelineInputAssemblyStateCreateInfo input_assembly{};
-    input_assembly.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    input_assembly.topology = primitive_topology_;
-    input_assembly.primitiveRestartEnable = VK_FALSE;
+    VkPipelineInputAssemblyStateCreateInfo const input_assembly{
+        .sType = vku::GetSType<VkPipelineInputAssemblyStateCreateInfo>(),
+        .topology = primitive_topology_,
+    };
 
-    VkPipelineViewportStateCreateInfo viewport_state{};
-    viewport_state.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewport_state.viewportCount = 1;
-    viewport_state.scissorCount = 1;
+    VkPipelineViewportStateCreateInfo const viewport_state{
+        .sType = vku::GetSType<VkPipelineViewportStateCreateInfo>(),
+        .viewportCount = 1,
+        .scissorCount = 1,
+    };
 
-    VkPipelineRasterizationStateCreateInfo rasterizer{};
-    rasterizer.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.cullMode = cull_mode_;
-    rasterizer.frontFace = front_face_;
-    rasterizer.depthBiasEnable = VK_FALSE;
-    rasterizer.lineWidth = 1.0f;
+    VkPipelineRasterizationStateCreateInfo const rasterizer{
+        .sType = vku::GetSType<VkPipelineRasterizationStateCreateInfo>(),
+        .polygonMode = VK_POLYGON_MODE_FILL,
+        .cullMode = cull_mode_,
+        .frontFace = front_face_,
+        .lineWidth = 1.0f,
+    };
 
-    VkPipelineMultisampleStateCreateInfo multisampling{};
-    multisampling.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_TRUE;
-    multisampling.minSampleShading = .2f;
-    multisampling.rasterizationSamples = rasterization_samples_;
+    VkPipelineMultisampleStateCreateInfo const multisampling{
+        .sType = vku::GetSType<VkPipelineMultisampleStateCreateInfo>(),
+        .rasterizationSamples = rasterization_samples_,
+        .sampleShadingEnable = VK_TRUE,
+        .minSampleShading = .2f,
+    };
 
-    VkPipelineColorBlendStateCreateInfo color_blending{};
-    color_blending.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    color_blending.logicOpEnable = VK_FALSE;
-    color_blending.logicOp = VK_LOGIC_OP_COPY;
-    color_blending.attachmentCount = count_cast(color_blending_.size());
-    color_blending.pAttachments = color_blending_.data();
-    std::ranges::fill(color_blending.blendConstants, 0.0f);
+    VkPipelineColorBlendStateCreateInfo const color_blending{
+        .sType = vku::GetSType<VkPipelineColorBlendStateCreateInfo>(),
+        .logicOp = VK_LOGIC_OP_COPY,
+        .attachmentCount = count_cast(color_blending_.size()),
+        .pAttachments = color_blending_.data(),
+        .blendConstants = {0.0f, 0.0f, 0.0f, 0.0f},
+    };
 
-    VkPipelineDynamicStateCreateInfo dynamic_state{};
-    dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-    dynamic_state.dynamicStateCount = count_cast(dynamic_states_.size()),
-    dynamic_state.pDynamicStates = dynamic_states_.data();
+    VkPipelineDynamicStateCreateInfo const dynamic_state{
+        .sType = vku::GetSType<VkPipelineDynamicStateCreateInfo>(),
+        .dynamicStateCount = count_cast(dynamic_states_.size()),
+        .pDynamicStates = dynamic_states_.data(),
+    };
 
-    VkPipelineRenderingCreateInfo rendering_create_info{};
-    rendering_create_info.sType =
-        VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-    rendering_create_info.colorAttachmentCount =
-        count_cast(color_attachments_.size());
-    rendering_create_info.pColorAttachmentFormats = color_attachments_.data();
+    VkPipelineRenderingCreateInfo rendering_create_info{
+        .sType = vku::GetSType<VkPipelineRenderingCreateInfo>(),
+        .colorAttachmentCount = count_cast(color_attachments_.size()),
+        .pColorAttachmentFormats = color_attachments_.data(),
+    };
     if (depth_stencil_)
     {
         rendering_create_info.depthAttachmentFormat = depth_format_;
@@ -91,39 +82,32 @@ vkrndr::pipeline_t vkrndr::graphics_pipeline_builder_t::build()
         }
     }
 
-    VkGraphicsPipelineCreateInfo create_info{};
-    create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    create_info.pVertexInputState = &vertex_input_info;
-    create_info.pInputAssemblyState = &input_assembly;
-    if (tesselation_)
-    {
-        create_info.pTessellationState = &tesselation_.value();
-    }
-    create_info.pRasterizationState = &rasterizer;
-    create_info.pColorBlendState = &color_blending;
-    create_info.pMultisampleState = &multisampling;
-    create_info.pViewportState = &viewport_state;
-    create_info.pDynamicState = &dynamic_state;
-    if (depth_stencil_)
-    {
-        create_info.pDepthStencilState = &depth_stencil_.value();
-    }
-    create_info.stageCount = count_cast(shaders_.size());
-    create_info.pStages = shaders_.data();
-    create_info.layout = *pipeline_layout_;
-    create_info.pNext = &rendering_create_info;
+    VkGraphicsPipelineCreateInfo const create_info{
+        .sType = vku::GetSType<VkGraphicsPipelineCreateInfo>(),
+        .pNext = &rendering_create_info,
+        .stageCount = count_cast(shaders_.size()),
+        .pStages = shaders_.data(),
+        .pVertexInputState = &vertex_input_info,
+        .pInputAssemblyState = &input_assembly,
+        .pTessellationState =
+            tesselation_ ? &tesselation_.value() : VK_NULL_HANDLE,
+        .pViewportState = &viewport_state,
+        .pRasterizationState = &rasterizer,
+        .pMultisampleState = &multisampling,
+        .pDepthStencilState =
+            depth_stencil_ ? &depth_stencil_.value() : VK_NULL_HANDLE,
+        .pColorBlendState = &color_blending,
+        .pDynamicState = &dynamic_state,
+        .layout = *layout_,
+    };
 
-    VkPipeline pipeline; // NOLINT
+    pipeline_t rv{*layout_, VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_GRAPHICS};
     check_result(vkCreateGraphicsPipelines(*device_,
         VK_NULL_HANDLE,
         1,
         &create_info,
         nullptr,
-        &pipeline));
-
-    pipeline_t rv{pipeline_layout_, pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS};
-
-    cleanup();
+        &rv.pipeline));
 
     return rv;
 }
@@ -216,11 +200,7 @@ vkrndr::graphics_pipeline_builder_t::with_depth_test(
 
     VkPipelineDepthStencilStateCreateInfo depth_stencil{
         depth_stencil_.value_or(VkPipelineDepthStencilStateCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-            .depthBoundsTestEnable = VK_FALSE,
-            .stencilTestEnable = VK_FALSE,
-            .front = {},
-            .back = {},
+            .sType = vku::GetSType<VkPipelineDepthStencilStateCreateInfo>(),
             .minDepthBounds = 0.0f,
             .maxDepthBounds = 1.0f,
         })};
@@ -238,9 +218,10 @@ vkrndr::graphics_pipeline_builder_t::with_depth_test(
 }
 
 vkrndr::graphics_pipeline_builder_t&
-vkrndr::graphics_pipeline_builder_t::with_stencil_test(VkFormat depth_format,
-    VkStencilOpState front,
-    VkStencilOpState back)
+vkrndr::graphics_pipeline_builder_t::with_stencil_test(
+    VkFormat const depth_format,
+    VkStencilOpState const front,
+    VkStencilOpState const back)
 {
     assert(
         depth_format_ == VK_FORMAT_UNDEFINED || depth_format_ == depth_format);
@@ -249,14 +230,8 @@ vkrndr::graphics_pipeline_builder_t::with_stencil_test(VkFormat depth_format,
 
     VkPipelineDepthStencilStateCreateInfo depth_stencil{
         depth_stencil_.value_or(VkPipelineDepthStencilStateCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-            .depthTestEnable = VK_FALSE,
-            .depthWriteEnable = VK_FALSE,
+            .sType = vku::GetSType<VkPipelineDepthStencilStateCreateInfo>(),
             .depthCompareOp = VK_COMPARE_OP_LESS,
-            .depthBoundsTestEnable = VK_FALSE,
-            .stencilTestEnable = VK_FALSE,
-            .front = {},
-            .back = {},
             .minDepthBounds = 0.0f,
             .maxDepthBounds = 1.0f,
         })};
@@ -274,11 +249,12 @@ vkrndr::graphics_pipeline_builder_t::with_stencil_test(VkFormat depth_format,
 
 vkrndr::graphics_pipeline_builder_t&
 vkrndr::graphics_pipeline_builder_t::with_tesselation_patch_points(
-    uint32_t points)
+    uint32_t const points)
 {
-    tesselation_ = VkPipelineTessellationStateCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
-        .patchControlPoints = points};
+    tesselation_ = {
+        .sType = vku::GetSType<VkPipelineTessellationStateCreateInfo>(),
+        .patchControlPoints = points,
+    };
 
     return *this;
 }
@@ -291,12 +267,4 @@ vkrndr::graphics_pipeline_builder_t::with_dynamic_state(VkDynamicState state)
         dynamic_states_.push_back(state);
     }
     return *this;
-}
-
-void vkrndr::graphics_pipeline_builder_t::cleanup()
-{
-    vertex_input_attributes_.clear();
-    vertex_input_binding_.clear();
-    shaders_.clear();
-    pipeline_layout_.reset();
 }

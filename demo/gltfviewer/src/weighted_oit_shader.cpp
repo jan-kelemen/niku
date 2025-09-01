@@ -153,8 +153,10 @@ gltfviewer::weighted_oit_shader_t::weighted_oit_shader_t(
 
 gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
 {
-    destroy(&backend_->device(), &composition_pipeline_);
-    destroy(&backend_->device(), &pbr_pipeline_);
+    destroy(backend_->device(), composition_pipeline_);
+    destroy(backend_->device(), composition_pipeline_layout_);
+    destroy(backend_->device(), pbr_pipeline_);
+    destroy(backend_->device(), pbr_pipeline_layout_);
 
     vkDestroySampler(backend_->device(), reveal_sampler_, nullptr);
     vkDestroySampler(backend_->device(), accumulation_sampler_, nullptr);
@@ -175,7 +177,7 @@ VkPipelineLayout gltfviewer::weighted_oit_shader_t::pipeline_layout() const
 {
     if (pbr_pipeline_.pipeline)
     {
-        return *pbr_pipeline_.layout;
+        return pbr_pipeline_.layout;
     }
 
     return VK_NULL_HANDLE;
@@ -225,7 +227,7 @@ void gltfviewer::weighted_oit_shader_t::draw(scene_graph_t const& graph,
 
         graph.traverse(ngnast::alpha_mode_t::blend,
             command_buffer,
-            *pbr_pipeline_.layout,
+            pbr_pipeline_.layout,
             switch_pipeline);
     }
 
@@ -354,9 +356,10 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
-    if (composition_pipeline_.pipeline != VK_NULL_HANDLE)
+    if (pbr_pipeline_.pipeline != VK_NULL_HANDLE)
     {
-        destroy(&backend_->device(), &pbr_pipeline_);
+        destroy(backend_->device(), pbr_pipeline_);
+        destroy(backend_->device(), pbr_pipeline_layout_);
     }
 
     VkPipelineColorBlendAttachmentState accumulation_color_blending{};
@@ -384,19 +387,21 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
         VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     reveal_color_blending.alphaBlendOp = VK_BLEND_OP_ADD;
 
-    pbr_pipeline_ =
-        vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(environment_layout)
-                .add_descriptor_set_layout(materials_layout)
-                .add_descriptor_set_layout(graph.descriptor_layout())
-                .add_descriptor_set_layout(shadow_layout)
-                .add_push_constants(VkPushConstantRange{
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+    pbr_pipeline_layout_ =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_descriptor_set_layout(environment_layout)
+            .add_descriptor_set_layout(materials_layout)
+            .add_descriptor_set_layout(graph.descriptor_layout())
+            .add_descriptor_set_layout(shadow_layout)
+            .add_push_constants(
+                VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                         VK_SHADER_STAGE_FRAGMENT_BIT,
                     .offset = 0,
                     .size = 16})
-                .build()}
+            .build();
+    pbr_pipeline_ =
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
+            pbr_pipeline_layout_}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -413,7 +418,8 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
 
     if (composition_pipeline_.pipeline != VK_NULL_HANDLE)
     {
-        destroy(&backend_->device(), &composition_pipeline_);
+        destroy(backend_->device(), composition_pipeline_);
+        destroy(backend_->device(), composition_pipeline_layout_);
     }
 
     vkglsl::shader_set_t composition_shader_set{true, false};
@@ -462,11 +468,13 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
     composition_color_blending.dstAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     composition_color_blending.alphaBlendOp = VK_BLEND_OP_ADD;
 
+    composition_pipeline_layout_ =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_descriptor_set_layout(descriptor_set_layout_)
+            .build();
     composition_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(descriptor_set_layout_)
-                .build()}
+            composition_pipeline_layout_}
             .add_shader(as_pipeline_shader(*composition_vertex_shader))
             .add_shader(as_pipeline_shader(*composition_fragment_shader,
                 &fragment_specialization))

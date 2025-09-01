@@ -68,7 +68,9 @@ namespace gltfviewer
         VkSampler accumulation_sampler_;
         VkSampler reveal_sampler_;
 
+        vkrndr::pipeline_layout_t pbr_pipeline_layout_;
         vkrndr::pipeline_t pbr_pipeline_;
+        vkrndr::pipeline_layout_t composition_pipeline_layout_;
         vkrndr::pipeline_t composition_pipeline_;
     };
 } // namespace gltfviewer

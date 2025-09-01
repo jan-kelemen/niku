@@ -91,7 +91,7 @@ VkPipelineShaderStageCreateInfo vkrndr::as_pipeline_shader(
 
 void vkrndr::object_name(device_t const& device,
     shader_module_t const& shader_module,
-    std::string_view name)
+    std::string_view const name)
 {
     object_name(device,
         VK_OBJECT_TYPE_SHADER_MODULE,

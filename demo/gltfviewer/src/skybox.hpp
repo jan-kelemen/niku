@@ -85,6 +85,7 @@ namespace gltfviewer
         VkSampler skybox_sampler_{VK_NULL_HANDLE};
         VkDescriptorSetLayout skybox_descriptor_layout_{VK_NULL_HANDLE};
         VkDescriptorSet skybox_descriptor_{VK_NULL_HANDLE};
+        vkrndr::pipeline_layout_t skybox_pipeline_layout_;
         vkrndr::pipeline_t skybox_pipeline_;
     };
 } // namespace gltfviewer

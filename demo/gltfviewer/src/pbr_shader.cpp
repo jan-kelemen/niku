@@ -38,8 +38,9 @@ gltfviewer::pbr_shader_t::pbr_shader_t(vkrndr::backend_t& backend)
 
 gltfviewer::pbr_shader_t::~pbr_shader_t()
 {
-    destroy(&backend_->device(), &culling_pipeline_);
-    destroy(&backend_->device(), &double_sided_pipeline_);
+    destroy(backend_->device(), culling_pipeline_);
+    destroy(backend_->device(), double_sided_pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
     destroy(backend_->device(), fragment_shader_);
     destroy(backend_->device(), vertex_shader_);
 }
@@ -48,7 +49,7 @@ VkPipelineLayout gltfviewer::pbr_shader_t::pipeline_layout() const
 {
     if (double_sided_pipeline_.pipeline)
     {
-        return *double_sided_pipeline_.layout;
+        return double_sided_pipeline_.layout;
     }
 
     return VK_NULL_HANDLE;
@@ -80,7 +81,7 @@ void gltfviewer::pbr_shader_t::draw(scene_graph_t const& graph,
                        std::to_underlying(ngnast::alpha_mode_t::opaque) |
                        std::to_underlying(ngnast::alpha_mode_t::mask)),
         command_buffer,
-        *double_sided_pipeline_.layout,
+        double_sided_pipeline_.layout,
         switch_pipeline);
 }
 
@@ -135,24 +136,25 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
         fragment_write_time_ = wt;
     }
 
-    if (double_sided_pipeline_.pipeline != VK_NULL_HANDLE)
-    {
-        destroy(&backend_->device(), &double_sided_pipeline_);
-    }
+    destroy(backend_->device(), double_sided_pipeline_);
+    destroy(backend_->device(), culling_pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
+
+    pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                           .add_descriptor_set_layout(environment_layout)
+                           .add_descriptor_set_layout(materials_layout)
+                           .add_descriptor_set_layout(graph.descriptor_layout())
+                           .add_descriptor_set_layout(shadow_layout)
+                           .add_push_constants(VkPushConstantRange{
+                               .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                   VK_SHADER_STAGE_FRAGMENT_BIT,
+                               .offset = 0,
+                               .size = 16})
+                           .build();
 
     double_sided_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(environment_layout)
-                .add_descriptor_set_layout(materials_layout)
-                .add_descriptor_set_layout(graph.descriptor_layout())
-                .add_descriptor_set_layout(shadow_layout)
-                .add_push_constants(VkPushConstantRange{
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                        VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .offset = 0,
-                    .size = 16})
-                .build()}
+            pipeline_layout_}
             .add_shader(as_pipeline_shader(vertex_shader_))
             .add_shader(as_pipeline_shader(fragment_shader_))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
@@ -166,14 +168,9 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
         double_sided_pipeline_,
         "Double Sided Pipeline"));
 
-    if (culling_pipeline_.pipeline != VK_NULL_HANDLE)
-    {
-        destroy(&backend_->device(), &culling_pipeline_);
-    }
-
     culling_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            double_sided_pipeline_.layout}
+            pipeline_layout_}
             .add_shader(as_pipeline_shader(vertex_shader_))
             .add_shader(as_pipeline_shader(fragment_shader_))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)

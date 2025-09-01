@@ -19,9 +19,9 @@ namespace vkrndr
 {
     class [[nodiscard]] graphics_pipeline_builder_t final
     {
-    public: // Construction
+    public:
         graphics_pipeline_builder_t(device_t const& device,
-            std::shared_ptr<VkPipelineLayout> pipeline_layout);
+            pipeline_layout_t const& layout);
 
         graphics_pipeline_builder_t(
             graphics_pipeline_builder_t const&) = default;
@@ -29,11 +29,11 @@ namespace vkrndr
         graphics_pipeline_builder_t(
             graphics_pipeline_builder_t&&) noexcept = default;
 
-    public: // Destruction
-        ~graphics_pipeline_builder_t();
+    public:
+        ~graphics_pipeline_builder_t() = default;
 
-    public: // Interface
-        [[nodiscard]] pipeline_t build();
+    public:
+        pipeline_t build();
 
         graphics_pipeline_builder_t& add_shader(
             VkPipelineShaderStageCreateInfo shader);
@@ -70,19 +70,16 @@ namespace vkrndr
 
         graphics_pipeline_builder_t& with_dynamic_state(VkDynamicState state);
 
-    public: // Operators
+    public:
         graphics_pipeline_builder_t& operator=(
             graphics_pipeline_builder_t const&) = default;
 
         graphics_pipeline_builder_t& operator=(
             graphics_pipeline_builder_t&&) noexcept = default;
 
-    private: // Helpers
-        void cleanup();
-
-    private: // Data
+    private:
         device_t const* device_{};
-        std::shared_ptr<VkPipelineLayout> pipeline_layout_;
+        pipeline_layout_t const* layout_;
         VkPrimitiveTopology primitive_topology_{
             VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
         std::vector<VkFormat> color_attachments_;

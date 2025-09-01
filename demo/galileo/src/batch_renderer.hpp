@@ -87,6 +87,7 @@ namespace galileo
     private:
         vkrndr::backend_t* backend_;
 
+        vkrndr::pipeline_layout_t pipeline_layout_;
         vkrndr::pipeline_t triangle_pipeline_;
         vkrndr::pipeline_t line_pipeline_;
         vkrndr::pipeline_t point_pipeline_;

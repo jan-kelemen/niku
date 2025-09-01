@@ -112,6 +112,7 @@ namespace reshed
         VkDescriptorSetLayout text_descriptor_layout_;
         VkDescriptorSet text_descriptor_{VK_NULL_HANDLE};
 
+        vkrndr::pipeline_layout_t text_pipeline_layout_;
         vkrndr::pipeline_t text_pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;

@@ -54,6 +54,7 @@ namespace gltfviewer
         std::filesystem::file_time_type vertex_write_time_;
         vkrndr::shader_module_t vertex_shader_;
 
+        vkrndr::pipeline_layout_t pipeline_layout_;
         vkrndr::pipeline_t depth_pipeline_;
     };
 } // namespace gltfviewer

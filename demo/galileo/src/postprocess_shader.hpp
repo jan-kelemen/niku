@@ -62,7 +62,9 @@ namespace galileo
             VK_NULL_HANDLE};
         VkDescriptorSetLayout fxaa_descriptor_set_layout_{VK_NULL_HANDLE};
 
+        vkrndr::pipeline_layout_t tone_mapping_pipeline_layout_;
         vkrndr::pipeline_t tone_mapping_pipeline_;
+        vkrndr::pipeline_layout_t fxaa_pipeline_layout_;
         vkrndr::pipeline_t fxaa_pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;

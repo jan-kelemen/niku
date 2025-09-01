@@ -18,16 +18,21 @@
 // IWYU pragma: no_include <type_traits>
 // IWYU pragma: no_include <functional>
 
+void vkrndr::destroy(device_t const& device, pipeline_layout_t const& layout)
+{
+    vkDestroyPipelineLayout(device, layout, nullptr);
+}
+
 void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,
     pipeline_t const& pipeline,
     uint32_t const first_set,
-    std::span<VkDescriptorSet const> descriptor_sets)
+    std::span<VkDescriptorSet const> const& descriptor_sets)
 {
     if (!descriptor_sets.empty())
     {
         vkCmdBindDescriptorSets(command_buffer,
             pipeline.type,
-            *pipeline.layout,
+            pipeline.layout,
             first_set,
             count_cast(descriptor_sets.size()),
             descriptor_sets.data(),
@@ -38,22 +43,14 @@ void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,
     vkCmdBindPipeline(command_buffer, pipeline.type, pipeline.pipeline);
 }
 
-void vkrndr::destroy(device_t const* const device, pipeline_t* const pipeline)
+void vkrndr::destroy(device_t const& device, pipeline_t const& pipeline)
 {
-    if (pipeline)
-    {
-        vkDestroyPipeline(*device, pipeline->pipeline, nullptr);
-        if (pipeline->layout.use_count() == 1)
-        {
-            vkDestroyPipelineLayout(*device, *pipeline->layout, nullptr);
-        }
-        pipeline->layout.reset();
-    }
+    vkDestroyPipeline(device, pipeline.pipeline, nullptr);
 }
 
 void vkrndr::object_name(device_t const& device,
     pipeline_t const& pipeline,
-    std::string_view name)
+    std::string_view const name)
 {
     object_name(device,
         VK_OBJECT_TYPE_PIPELINE,

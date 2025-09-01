@@ -52,6 +52,7 @@ namespace gltfviewer
         VkSampler bilinear_sampler_;
 
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
+        vkrndr::pipeline_layout_t pipeline_layout_;
         vkrndr::pipeline_t pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;

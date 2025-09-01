@@ -54,6 +54,7 @@ namespace galileo
         VkDescriptorSetLayout descriptor_set_layout_;
         VkSampler sampler_;
 
+        vkrndr::pipeline_layout_t pipeline_layout_;
         vkrndr::pipeline_t pipeline_;
 
         cppext::cycled_buffer_t<frame_data_t> frame_data_;

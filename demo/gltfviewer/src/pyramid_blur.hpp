@@ -71,6 +71,7 @@ namespace gltfviewer
         std::vector<VkExtent2D> mip_extents_;
 
         VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
+        vkrndr::pipeline_layout_t pipeline_layout_;
         vkrndr::pipeline_t downsample_pipeline_;
         vkrndr::pipeline_t upsample_pipeline_;
 

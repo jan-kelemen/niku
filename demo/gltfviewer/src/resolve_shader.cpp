@@ -159,12 +159,13 @@ gltfviewer::resolve_shader_t::resolve_shader_t(vkrndr::backend_t& backend)
         .dataSize = sizeof(sample_specialization),
         .pData = &sample_count};
 
-    pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
-        vkrndr::pipeline_layout_builder_t{backend_->device()}
-            .add_descriptor_set_layout(descriptor_set_layout_)
-            .build()}
-                    .with_shader(as_pipeline_shader(*shader, &specialization))
-                    .build();
+    pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                           .add_descriptor_set_layout(descriptor_set_layout_)
+                           .build();
+    pipeline_ =
+        vkrndr::compute_pipeline_builder_t{backend_->device(), pipeline_layout_}
+            .with_shader(as_pipeline_shader(*shader, &specialization))
+            .build();
 
     for (auto& set : cppext::as_span(descriptor_sets_))
     {
@@ -179,7 +180,8 @@ gltfviewer::resolve_shader_t::~resolve_shader_t()
 {
     vkDestroySampler(backend_->device(), combined_sampler_, nullptr);
 
-    destroy(&backend_->device(), &pipeline_);
+    destroy(backend_->device(), pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
 
     free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),

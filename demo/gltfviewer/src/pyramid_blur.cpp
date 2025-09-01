@@ -180,9 +180,11 @@ gltfviewer::pyramid_blur_t::~pyramid_blur_t()
             cppext::as_span(data.descriptor_));
     }
 
-    destroy(&backend_->device(), &upsample_pipeline_);
+    destroy(backend_->device(), upsample_pipeline_);
 
-    destroy(&backend_->device(), &downsample_pipeline_);
+    destroy(backend_->device(), downsample_pipeline_);
+
+    destroy(backend_->device(), pipeline_layout_);
 
     vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
@@ -257,7 +259,7 @@ void gltfviewer::pyramid_blur_t::downsample_pass(uint32_t const levels,
                 glm::uvec2{mip_extents_[mip].width, mip_extents_[mip].height},
             .source_mip = mip};
         vkCmdPushConstants(command_buffer,
-            *downsample_pipeline_.layout,
+            downsample_pipeline_.layout,
             VK_SHADER_STAGE_COMPUTE_BIT,
             0,
             sizeof(pc),
@@ -310,7 +312,7 @@ void gltfviewer::pyramid_blur_t::upsample_pass(uint32_t const levels,
                 glm::uvec2{mip_extents_[mip].width, mip_extents_[mip].height},
             .source_mip = mip};
         vkCmdPushConstants(command_buffer,
-            *upsample_pipeline_.layout,
+            upsample_pipeline_.layout,
             VK_SHADER_STAGE_COMPUTE_BIT,
             0,
             sizeof(pc),
@@ -424,16 +426,21 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources(
     }
 
     deletion_queue_insert(
-        [device = &backend_->device(),
-            pipeline = std::move(downsample_pipeline_)]() mutable
-        { destroy(device, &pipeline); });
+        [&device = backend_->device(), layout = std::move(pipeline_layout_)]()
+        { destroy(device, layout); });
+
+    deletion_queue_insert([&device = backend_->device(),
+                              pipeline = std::move(downsample_pipeline_)]()
+        { destroy(device, pipeline); });
+
+    pipeline_layout_ =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_push_constants<push_constants_t>(VK_SHADER_STAGE_COMPUTE_BIT)
+            .add_descriptor_set_layout(descriptor_layout_)
+            .build();
+
     downsample_pipeline_ =
-        vkrndr::compute_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_push_constants<push_constants_t>(
-                    VK_SHADER_STAGE_COMPUTE_BIT)
-                .add_descriptor_set_layout(descriptor_layout_)
-                .build()}
+        vkrndr::compute_pipeline_builder_t{backend_->device(), pipeline_layout_}
             .with_shader(as_pipeline_shader(*shader))
             .build();
 }
@@ -452,12 +459,11 @@ void gltfviewer::pyramid_blur_t::create_upsample_resources(
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
         [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
-    deletion_queue_insert(
-        [device = &backend_->device(),
-            pipeline = std::move(upsample_pipeline_)]() mutable
-        { destroy(device, &pipeline); });
-    upsample_pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
-        downsample_pipeline_.layout}
-                             .with_shader(as_pipeline_shader(*shader))
-                             .build();
+    deletion_queue_insert([&device = backend_->device(),
+                              pipeline = std::move(upsample_pipeline_)]()
+        { destroy(device, pipeline); });
+    upsample_pipeline_ =
+        vkrndr::compute_pipeline_builder_t{backend_->device(), pipeline_layout_}
+            .with_shader(as_pipeline_shader(*shader))
+            .build();
 }

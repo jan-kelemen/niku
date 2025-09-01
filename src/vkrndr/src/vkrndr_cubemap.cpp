@@ -149,7 +149,7 @@ std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
 
 void vkrndr::object_name(device_t const& device,
     cubemap_t const& cubemap,
-    std::string_view name)
+    std::string_view const name)
 {
     object_name(device,
         VK_OBJECT_TYPE_IMAGE,

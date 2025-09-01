@@ -95,7 +95,7 @@ vkrndr::buffer_t vkrndr::create_staging_buffer(device_t const& device,
 
 void vkrndr::object_name(device_t const& device,
     buffer_t const& buffer,
-    std::string_view name)
+    std::string_view const name)
 {
     object_name(device,
         VK_OBJECT_TYPE_BUFFER,

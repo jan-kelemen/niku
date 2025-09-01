@@ -39,7 +39,8 @@ gltfviewer::depth_pass_shader_t::depth_pass_shader_t(vkrndr::backend_t& backend)
 
 gltfviewer::depth_pass_shader_t::~depth_pass_shader_t()
 {
-    destroy(&backend_->device(), &depth_pipeline_);
+    destroy(backend_->device(), depth_pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
     destroy(backend_->device(), vertex_shader_);
 }
 
@@ -47,7 +48,7 @@ VkPipelineLayout gltfviewer::depth_pass_shader_t::pipeline_layout() const
 {
     if (depth_pipeline_.pipeline)
     {
-        return *depth_pipeline_.layout;
+        return depth_pipeline_.layout;
     }
 
     return VK_NULL_HANDLE;
@@ -65,7 +66,7 @@ void gltfviewer::depth_pass_shader_t::draw(scene_graph_t const& graph,
 
     graph.traverse(ngnast::alpha_mode_t::opaque,
         command_buffer,
-        *depth_pipeline_.layout,
+        depth_pipeline_.layout,
         []([[maybe_unused]] ngnast::alpha_mode_t const mode,
             [[maybe_unused]] bool const double_sided) { });
 }
@@ -102,31 +103,31 @@ void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
         vertex_write_time_ = wt;
     }
 
-    if (depth_pipeline_.pipeline != VK_NULL_HANDLE)
-    {
-        destroy(&backend_->device(), &depth_pipeline_);
-    }
+    destroy(backend_->device(), depth_pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
 
-    depth_pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),
-        vkrndr::pipeline_layout_builder_t{backend_->device()}
-            .add_descriptor_set_layout(environment_layout)
-            .add_descriptor_set_layout(materials_layout)
-            .add_descriptor_set_layout(graph.descriptor_layout())
-            .add_push_constants(
-                VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                        VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .offset = 0,
-                    .size = 16})
-            .build()}
-                          .add_shader(as_pipeline_shader(vertex_shader_))
-                          .with_rasterization_samples(
-                              backend_->device().max_msaa_samples)
-                          .with_depth_test(depth_buffer_format)
-                          .add_vertex_input(graph.binding_description(),
-                              graph.attribute_description())
-                          .with_culling(VK_CULL_MODE_BACK_BIT,
-                              VK_FRONT_FACE_COUNTER_CLOCKWISE)
-                          .build();
+    pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                           .add_descriptor_set_layout(environment_layout)
+                           .add_descriptor_set_layout(materials_layout)
+                           .add_descriptor_set_layout(graph.descriptor_layout())
+                           .add_push_constants(VkPushConstantRange{
+                               .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                   VK_SHADER_STAGE_FRAGMENT_BIT,
+                               .offset = 0,
+                               .size = 16})
+                           .build();
+
+    depth_pipeline_ =
+        vkrndr::graphics_pipeline_builder_t{backend_->device(),
+            pipeline_layout_}
+            .add_shader(as_pipeline_shader(vertex_shader_))
+            .with_rasterization_samples(backend_->device().max_msaa_samples)
+            .with_depth_test(depth_buffer_format)
+            .add_vertex_input(graph.binding_description(),
+                graph.attribute_description())
+            .with_culling(VK_CULL_MODE_BACK_BIT,
+                VK_FRONT_FACE_COUNTER_CLOCKWISE)
+            .build();
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_pipeline_, "Depth Pipeline"));
 }

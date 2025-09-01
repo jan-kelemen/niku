@@ -155,12 +155,14 @@ galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
             assert(false);
         }
 
+        tone_mapping_pipeline_layout_ =
+            vkrndr::pipeline_layout_builder_t{backend_->device()}
+                .add_descriptor_set_layout(tone_mapping_descriptor_set_layout_)
+                .build();
+
         tone_mapping_pipeline_ =
             vkrndr::compute_pipeline_builder_t{backend_->device(),
-                vkrndr::pipeline_layout_builder_t{backend_->device()}
-                    .add_descriptor_set_layout(
-                        tone_mapping_descriptor_set_layout_)
-                    .build()}
+                tone_mapping_pipeline_layout_}
                 .with_shader(as_pipeline_shader(*shader))
                 .build();
     }
@@ -188,10 +190,13 @@ galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
             assert(false);
         }
 
-        fxaa_pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
+        fxaa_pipeline_layout_ =
             vkrndr::pipeline_layout_builder_t{backend_->device()}
                 .add_descriptor_set_layout(fxaa_descriptor_set_layout_)
-                .build()}
+                .build();
+
+        fxaa_pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
+            fxaa_pipeline_layout_}
                              .with_shader(as_pipeline_shader(*shader))
                              .build();
     }
@@ -223,9 +228,11 @@ galileo::postprocess_shader_t::~postprocess_shader_t()
             cppext::as_span(data.tone_mapping_descriptor_set));
     }
 
-    destroy(&backend_->device(), &fxaa_pipeline_);
+    destroy(backend_->device(), fxaa_pipeline_);
+    destroy(backend_->device(), fxaa_pipeline_layout_);
 
-    destroy(&backend_->device(), &tone_mapping_pipeline_);
+    destroy(backend_->device(), tone_mapping_pipeline_);
+    destroy(backend_->device(), tone_mapping_pipeline_layout_);
 
     vkDestroyDescriptorSetLayout(backend_->device(),
         fxaa_descriptor_set_layout_,

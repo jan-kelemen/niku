@@ -108,11 +108,13 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
             VK_COLOR_COMPONENT_A_BIT,
     };
 
+    pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                           .add_descriptor_set_layout(frame_info_layout)
+                           .build();
+
     triangle_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(frame_info_layout)
-                .build()}
+            pipeline_layout_}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT, alpha_blend)
@@ -124,7 +126,7 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
 
     line_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            triangle_pipeline_.layout}
+            pipeline_layout_}
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_LINE_LIST)
             .with_dynamic_state(VK_DYNAMIC_STATE_LINE_WIDTH)
             .add_shader(as_pipeline_shader(*vertex_shader))
@@ -138,7 +140,7 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
 
     point_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            triangle_pipeline_.layout}
+            pipeline_layout_}
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
@@ -152,9 +154,10 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
 
 galileo::batch_renderer_t::~batch_renderer_t()
 {
-    destroy(&backend_->device(), &point_pipeline_);
-    destroy(&backend_->device(), &line_pipeline_);
-    destroy(&backend_->device(), &triangle_pipeline_);
+    destroy(backend_->device(), point_pipeline_);
+    destroy(backend_->device(), line_pipeline_);
+    destroy(backend_->device(), triangle_pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
 
     for (auto& data : cppext::as_span(frame_data_))
     {
@@ -231,7 +234,7 @@ void galileo::batch_renderer_t::begin_frame()
 
 VkPipelineLayout galileo::batch_renderer_t::pipeline_layout() const
 {
-    return *triangle_pipeline_.layout;
+    return triangle_pipeline_.layout;
 }
 
 void galileo::batch_renderer_t::draw(VkCommandBuffer command_buffer)

@@ -51,12 +51,14 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
+    pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                           .add_descriptor_set_layout(frame_info_layout)
+                           .add_descriptor_set_layout(materials_layout)
+                           .add_descriptor_set_layout(graph_layout)
+                           .build();
+
     pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),
-        vkrndr::pipeline_layout_builder_t{backend_->device()}
-            .add_descriptor_set_layout(frame_info_layout)
-            .add_descriptor_set_layout(materials_layout)
-            .add_descriptor_set_layout(graph_layout)
-            .build()}
+        pipeline_layout_}
                     .add_shader(as_pipeline_shader(*vertex_shader))
                     .add_shader(as_pipeline_shader(*fragment_shader))
                     .add_color_attachment(gbuffer_t::position_format)
@@ -72,12 +74,13 @@ galileo::gbuffer_shader_t::gbuffer_shader_t(vkrndr::backend_t& backend,
 
 galileo::gbuffer_shader_t::~gbuffer_shader_t()
 {
-    destroy(&backend_->device(), &pipeline_);
+    destroy(backend_->device(), pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
 }
 
 VkPipelineLayout galileo::gbuffer_shader_t::pipeline_layout() const
 {
-    return *pipeline_.layout;
+    return pipeline_.layout;
 }
 
 void galileo::gbuffer_shader_t::draw(scene_graph_t& graph,

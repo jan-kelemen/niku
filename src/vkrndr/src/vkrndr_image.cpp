@@ -118,7 +118,7 @@ vkrndr::image_t vkrndr::create_image_and_view(device_t const& device,
 
 void vkrndr::object_name(device_t const& device,
     image_t const& image,
-    std::string_view name)
+    std::string_view const name)
 {
     object_name(device,
         VK_OBJECT_TYPE_IMAGE,

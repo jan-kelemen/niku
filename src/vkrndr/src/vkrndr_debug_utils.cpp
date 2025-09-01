@@ -81,7 +81,7 @@ void vkrndr::debug_label(VkCommandBuffer command_buffer,
 void vkrndr::object_name(VkDevice const device,
     VkObjectType const type,
     uint64_t const handle,
-    std::string_view name)
+    std::string_view const name)
 {
     if (!vkSetDebugUtilsObjectNameEXT)
     {

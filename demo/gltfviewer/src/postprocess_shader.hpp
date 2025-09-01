@@ -45,6 +45,7 @@ namespace gltfviewer
         VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};
         cppext::cycled_buffer_t<VkDescriptorSet> descriptor_sets_;
 
+        vkrndr::pipeline_layout_t pipeline_layout_;
         vkrndr::pipeline_t pipeline_;
     };
 } // namespace gltfviewer

@@ -3,30 +3,31 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 vkrndr::compute_pipeline_builder_t::compute_pipeline_builder_t(
     device_t const& device,
-    std::shared_ptr<VkPipelineLayout> pipeline_layout)
+    pipeline_layout_t const& layout)
     : device_{&device}
-    , pipeline_layout_{std::move(pipeline_layout)}
+    , layout_{&layout}
 {
 }
 
 vkrndr::pipeline_t vkrndr::compute_pipeline_builder_t::build()
 {
-    VkComputePipelineCreateInfo create_info{};
-    create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    create_info.layout = *pipeline_layout_;
-    create_info.stage = shader_;
+    VkComputePipelineCreateInfo const create_info{
+        .sType = vku::GetSType<VkComputePipelineCreateInfo>(),
+        .stage = shader_,
+        .layout = *layout_,
+    };
 
-    VkPipeline pipeline; // NOLINT
+    pipeline_t rv{*layout_, VK_NULL_HANDLE, VK_PIPELINE_BIND_POINT_COMPUTE};
     check_result(vkCreateComputePipelines(*device_,
         nullptr,
         1,
         &create_info,
         nullptr,
-        &pipeline));
-
-    pipeline_t rv{pipeline_layout_, pipeline, VK_PIPELINE_BIND_POINT_COMPUTE};
+        &rv.pipeline));
 
     return rv;
 }

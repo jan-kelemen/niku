@@ -18,23 +18,23 @@ namespace vkrndr
     {
     public:
         compute_pipeline_builder_t(device_t const& device,
-            std::shared_ptr<VkPipelineLayout> pipeline_layout);
+            pipeline_layout_t const& layout);
 
         compute_pipeline_builder_t(compute_pipeline_builder_t const&) = default;
 
         compute_pipeline_builder_t(
             compute_pipeline_builder_t&&) noexcept = default;
 
-    public: // Destruction
+    public:
         ~compute_pipeline_builder_t() = default;
 
-    public: // Interface
-        [[nodiscard]] pipeline_t build();
+    public:
+        pipeline_t build();
 
         compute_pipeline_builder_t& with_shader(
             VkPipelineShaderStageCreateInfo const& shader);
 
-    public: // Operators
+    public:
         compute_pipeline_builder_t& operator=(
             compute_pipeline_builder_t const&) = default;
 
@@ -43,7 +43,7 @@ namespace vkrndr
 
     private: // Data
         device_t const* device_{};
-        std::shared_ptr<VkPipelineLayout> pipeline_layout_;
+        pipeline_layout_t const* layout_{};
         VkPipelineShaderStageCreateInfo shader_{};
     };
 } // namespace vkrndr

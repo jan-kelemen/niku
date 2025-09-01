@@ -57,6 +57,7 @@ namespace gltfviewer
         std::filesystem::file_time_type fragment_write_time_;
         vkrndr::shader_module_t fragment_shader_;
 
+        vkrndr::pipeline_layout_t pipeline_layout_;
         vkrndr::pipeline_t double_sided_pipeline_;
         vkrndr::pipeline_t culling_pipeline_;
     };

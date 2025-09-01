@@ -111,13 +111,16 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         assert(false);
     }
 
-    pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
+    pipeline_layout_ =
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(descriptor_set_layout_)
             .add_push_constants<push_constants_t>(VK_SHADER_STAGE_COMPUTE_BIT)
-            .build()}
-                    .with_shader(as_pipeline_shader(*shader))
-                    .build();
+            .build();
+
+    pipeline_ =
+        vkrndr::compute_pipeline_builder_t{backend_->device(), pipeline_layout_}
+            .with_shader(as_pipeline_shader(*shader))
+            .build();
 
     for (auto& set : cppext::as_span(descriptor_sets_))
     {
@@ -130,7 +133,8 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
 
 gltfviewer::postprocess_shader_t::~postprocess_shader_t()
 {
-    destroy(&backend_->device(), &pipeline_);
+    destroy(backend_->device(), pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
 
     free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
@@ -162,7 +166,7 @@ void gltfviewer::postprocess_shader_t::draw(bool const color_conversion,
         .color_conversion = static_cast<uint32_t>(color_conversion),
         .tone_mapping = static_cast<uint32_t>(tone_mapping)};
     vkCmdPushConstants(command_buffer,
-        *pipeline_.layout,
+        pipeline_.layout,
         VK_SHADER_STAGE_COMPUTE_BIT,
         0,
         sizeof(push_constants_t),

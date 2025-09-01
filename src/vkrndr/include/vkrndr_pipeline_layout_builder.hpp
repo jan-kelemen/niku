@@ -1,9 +1,10 @@
 #ifndef VKRNDR_PIPELINE_LAYOUT_BUILDER_INCLUDED
 #define VKRNDR_PIPELINE_LAYOUT_BUILDER_INCLUDED
 
+#include <vkrndr_pipeline.hpp>
+
 #include <volk.h>
 
-#include <memory>
 #include <vector>
 
 namespace vkrndr
@@ -27,7 +28,7 @@ namespace vkrndr
         ~pipeline_layout_builder_t() = default;
 
     public:
-        [[nodiscard]] std::shared_ptr<VkPipelineLayout> build();
+        pipeline_layout_t build();
 
         pipeline_layout_builder_t& add_descriptor_set_layout(
             VkDescriptorSetLayout descriptor_set_layout);
@@ -51,17 +52,17 @@ namespace vkrndr
         std::vector<VkDescriptorSetLayout> descriptor_set_layouts_;
         std::vector<VkPushConstantRange> push_constants_;
     };
-
-    template<typename T>
-    pipeline_layout_builder_t& pipeline_layout_builder_t::add_push_constants(
-        VkShaderStageFlags const stage_flags,
-        uint32_t const offset)
-    {
-        // cppcheck-suppress-begin returnTempReference
-        return add_push_constants(
-            {.stageFlags = stage_flags, .offset = offset, .size = sizeof(T)});
-        // cppcheck-suppress-end returnTempReference
-    }
 } // namespace vkrndr
 
+template<typename T>
+vkrndr::pipeline_layout_builder_t&
+vkrndr::pipeline_layout_builder_t::add_push_constants(
+    VkShaderStageFlags const stage_flags,
+    uint32_t const offset)
+{
+    // cppcheck-suppress-begin returnTempReference
+    return add_push_constants(
+        {.stageFlags = stage_flags, .offset = offset, .size = sizeof(T)});
+    // cppcheck-suppress-end returnTempReference
+}
 #endif

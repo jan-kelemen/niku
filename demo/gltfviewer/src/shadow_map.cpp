@@ -190,7 +190,8 @@ gltfviewer::shadow_map_t::shadow_map_t(vkrndr::backend_t& backend)
 
 gltfviewer::shadow_map_t::~shadow_map_t()
 {
-    destroy(&backend_->device(), &depth_pipeline_);
+    destroy(backend_->device(), depth_pipeline_);
+    destroy(backend_->device(), depth_pipeline_layout_);
 
     free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
@@ -210,7 +211,7 @@ VkPipelineLayout gltfviewer::shadow_map_t::pipeline_layout() const
 {
     if (depth_pipeline_.pipeline)
     {
-        return *depth_pipeline_.layout;
+        return depth_pipeline_.layout;
     }
 
     return VK_NULL_HANDLE;
@@ -242,7 +243,7 @@ void gltfviewer::shadow_map_t::draw(scene_graph_t const& graph,
 
     graph.traverse(ngnast::alpha_mode_t::opaque,
         command_buffer,
-        *depth_pipeline_.layout,
+        depth_pipeline_.layout,
         []([[maybe_unused]] ngnast::alpha_mode_t const mode,
             [[maybe_unused]] bool const double_sided) { });
 
@@ -307,10 +308,11 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
 
     if (depth_pipeline_.pipeline != VK_NULL_HANDLE)
     {
-        destroy(&backend_->device(), &depth_pipeline_);
+        destroy(backend_->device(), depth_pipeline_);
+        destroy(backend_->device(), depth_pipeline_layout_);
     }
 
-    depth_pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),
+    depth_pipeline_layout_ =
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(environment_layout)
             .add_descriptor_set_layout(materials_layout)
@@ -320,7 +322,10 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
                         VK_SHADER_STAGE_FRAGMENT_BIT,
                     .offset = 0,
                     .size = 16})
-            .build()}
+            .build();
+
+    depth_pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),
+        depth_pipeline_layout_}
                           .add_shader(as_pipeline_shader(vertex_shader_))
                           .with_depth_test(depth_buffer_format)
                           .add_vertex_input(graph.binding_description(),

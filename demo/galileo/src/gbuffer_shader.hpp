@@ -46,6 +46,7 @@ namespace galileo
     private:
         vkrndr::backend_t* backend_;
 
+        vkrndr::pipeline_layout_t pipeline_layout_;
         vkrndr::pipeline_t pipeline_;
     };
 } // namespace galileo

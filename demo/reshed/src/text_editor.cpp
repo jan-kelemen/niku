@@ -326,13 +326,16 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
             VK_COLOR_COMPONENT_A_BIT,
     };
 
+    text_pipeline_layout_ =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_descriptor_set_layout(text_descriptor_layout_)
+            .add_push_constants<glm::mat4>(
+                VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
+            .build();
+
     text_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(text_descriptor_layout_)
-                .add_push_constants<glm::mat4>(
-                    VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT)
-                .build()}
+            text_pipeline_layout_}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*tesselation_control_shader))
             .add_shader(as_pipeline_shader(*tesselation_evaluation_shader))
@@ -392,7 +395,8 @@ reshed::text_editor_t::~text_editor_t()
         vkrndr::destroy(backend_->device(), data.vertex_buffer);
     }
 
-    destroy(&backend_->device(), &text_pipeline_);
+    destroy(backend_->device(), text_pipeline_);
+    destroy(backend_->device(), text_pipeline_layout_);
 
     vkDestroyDescriptorSetLayout(backend_->device(),
         text_descriptor_layout_,
@@ -540,7 +544,7 @@ void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
 
 VkPipelineLayout reshed::text_editor_t::pipeline_layout() const
 {
-    return text_pipeline_.pipeline ? *text_pipeline_.layout : VK_NULL_HANDLE;
+    return text_pipeline_.pipeline ? text_pipeline_.layout : VK_NULL_HANDLE;
 }
 
 void reshed::text_editor_t::draw(VkCommandBuffer command_buffer)

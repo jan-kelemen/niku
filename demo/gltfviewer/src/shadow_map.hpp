@@ -67,6 +67,7 @@ namespace gltfviewer
         VkDescriptorSetLayout descriptor_layout_;
         VkDescriptorSet descriptor_{VK_NULL_HANDLE};
 
+        vkrndr::pipeline_layout_t depth_pipeline_layout_;
         vkrndr::pipeline_t depth_pipeline_;
     };
 } // namespace gltfviewer

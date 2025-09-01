@@ -171,11 +171,13 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
+    pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                           .add_descriptor_set_layout(frame_info_layout)
+                           .add_descriptor_set_layout(descriptor_set_layout_)
+                           .build();
+
     pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),
-        vkrndr::pipeline_layout_builder_t{backend_->device()}
-            .add_descriptor_set_layout(frame_info_layout)
-            .add_descriptor_set_layout(descriptor_set_layout_)
-            .build()}
+        pipeline_layout_}
                     .add_shader(as_pipeline_shader(*vertex_shader))
                     .add_shader(as_pipeline_shader(*fragment_shader))
                     .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
@@ -201,7 +203,8 @@ galileo::deferred_shader_t::~deferred_shader_t()
             cppext::as_span(data.descriptor_set));
     }
 
-    destroy(&backend_->device(), &pipeline_);
+    destroy(backend_->device(), pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
 
     vkDestroySampler(backend_->device(), sampler_, nullptr);
 
@@ -212,7 +215,7 @@ galileo::deferred_shader_t::~deferred_shader_t()
 
 VkPipelineLayout galileo::deferred_shader_t::pipeline_layout() const
 {
-    return *pipeline_.layout;
+    return pipeline_.layout;
 }
 
 void galileo::deferred_shader_t::draw(VkCommandBuffer command_buffer,
@@ -227,7 +230,7 @@ void galileo::deferred_shader_t::draw(VkCommandBuffer command_buffer,
 
     vkCmdBindDescriptorSets(command_buffer,
         pipeline_.type,
-        *pipeline_.layout,
+        pipeline_.layout,
         1,
         1,
         &frame_data_->descriptor_set,

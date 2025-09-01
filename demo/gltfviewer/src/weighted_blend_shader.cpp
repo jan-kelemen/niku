@@ -126,13 +126,15 @@ gltfviewer::weighted_blend_shader_t::weighted_blend_shader_t(
     assert(layout);
     descriptor_layout_ = *layout;
 
-    pipeline_ = vkrndr::compute_pipeline_builder_t{backend_->device(),
+    pipeline_layout_ =
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_push_constants<push_constants_t>(VK_SHADER_STAGE_COMPUTE_BIT)
             .add_descriptor_set_layout(descriptor_layout_)
-            .build()}
-                    .with_shader(as_pipeline_shader(*shader))
-                    .build();
+            .build();
+    pipeline_ =
+        vkrndr::compute_pipeline_builder_t{backend_->device(), pipeline_layout_}
+            .with_shader(as_pipeline_shader(*shader))
+            .build();
 
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {
@@ -152,7 +154,8 @@ gltfviewer::weighted_blend_shader_t::~weighted_blend_shader_t()
             cppext::as_span(data.descriptor_));
     }
 
-    destroy(&backend_->device(), &pipeline_);
+    destroy(backend_->device(), pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
 
     vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,
@@ -187,7 +190,7 @@ void gltfviewer::weighted_blend_shader_t::draw(float const bias,
 
     push_constants_t pc{.weight = bias};
     vkCmdPushConstants(command_buffer,
-        *pipeline_.layout,
+        pipeline_.layout,
         VK_SHADER_STAGE_COMPUTE_BIT,
         0,
         sizeof(pc),

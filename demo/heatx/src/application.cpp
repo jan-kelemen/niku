@@ -533,10 +533,12 @@ void heatx::application_t::on_startup()
     auto const extent{render_window_->swapchain().extent()};
     on_resize(extent.width, extent.height);
 
+    pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                           .add_descriptor_set_layout(descriptor_layout_)
+                           .build();
+
     vkrndr::raytracing_pipeline_builder_t pipeline_builder{backend_->device(),
-        vkrndr::pipeline_layout_builder_t{backend_->device()}
-            .add_descriptor_set_layout(descriptor_layout_)
-            .build()};
+        pipeline_layout_};
 
     uint32_t raygen_stage{};
     uint32_t miss_stage{};
@@ -623,7 +625,8 @@ void heatx::application_t::on_shutdown()
     destroy(backend_->device(), miss_binding_table_);
     destroy(backend_->device(), raygen_binding_table_);
 
-    destroy(&backend_->device(), &pipeline_);
+    destroy(backend_->device(), pipeline_);
+    destroy(backend_->device(), pipeline_layout_);
 
     vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_layout_,

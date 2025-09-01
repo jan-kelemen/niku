@@ -7,15 +7,10 @@
 
 vkrndr::raytracing_pipeline_builder_t::raytracing_pipeline_builder_t(
     device_t const& device,
-    std::shared_ptr<VkPipelineLayout> pipeline_layout)
+    pipeline_layout_t const& layout)
     : device_{&device}
-    , pipeline_layout_{std::move(pipeline_layout)}
+    , layout_{&layout}
 {
-}
-
-vkrndr::raytracing_pipeline_builder_t::~raytracing_pipeline_builder_t()
-{
-    cleanup();
 }
 
 vkrndr::pipeline_t vkrndr::raytracing_pipeline_builder_t::build()
@@ -27,23 +22,19 @@ vkrndr::pipeline_t vkrndr::raytracing_pipeline_builder_t::build()
         .groupCount = count_cast(groups_.size()),
         .pGroups = groups_.data(),
         .maxPipelineRayRecursionDepth = recursion_depth_,
-        .layout = *pipeline_layout_,
+        .layout = *layout_,
     };
 
-    VkPipeline pipeline; // NOLINT
+    pipeline_t rv{*layout_,
+        VK_NULL_HANDLE,
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR};
     check_result(vkCreateRayTracingPipelinesKHR(*device_,
         VK_NULL_HANDLE,
         VK_NULL_HANDLE,
         1,
         &create_info,
         nullptr,
-        &pipeline));
-
-    pipeline_t rv{pipeline_layout_,
-        pipeline,
-        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR};
-
-    cleanup();
+        &rv.pipeline));
 
     return rv;
 }
@@ -76,13 +67,6 @@ vkrndr::raytracing_pipeline_builder_t::with_recursion_depth(
     recursion_depth_ = depth;
 
     return *this;
-}
-
-void vkrndr::raytracing_pipeline_builder_t::cleanup()
-{
-    groups_.clear();
-    stages_.clear();
-    pipeline_layout_.reset();
 }
 
 VkRayTracingShaderGroupCreateInfoKHR vkrndr::general_shader(

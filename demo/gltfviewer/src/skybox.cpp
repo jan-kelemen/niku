@@ -265,7 +265,8 @@ gltfviewer::skybox_t::~skybox_t()
 
     destroy(backend_->device(), irradiance_cubemap_);
 
-    destroy(&backend_->device(), &skybox_pipeline_);
+    destroy(backend_->device(), skybox_pipeline_);
+    destroy(backend_->device(), skybox_pipeline_layout_);
 
     free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
@@ -508,12 +509,15 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
         skybox_descriptor_,
         vkrndr::combined_sampler_descriptor(skybox_sampler_, cubemap_));
 
+    skybox_pipeline_layout_ =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_descriptor_set_layout(environment_layout)
+            .add_descriptor_set_layout(skybox_descriptor_layout_)
+            .build();
+
     skybox_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(environment_layout)
-                .add_descriptor_set_layout(skybox_descriptor_layout_)
-                .build()}
+            skybox_pipeline_layout_}
             .add_shader(as_pipeline_shader(*skybox_vertex_shader))
             .add_shader(as_pipeline_shader(*skybox_fragment_shader))
             .add_color_attachment(VK_FORMAT_R16G16B16A16_SFLOAT)
@@ -601,7 +605,7 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer)
 
     vkCmdBindDescriptorSets(command_buffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        *skybox_pipeline_.layout,
+        skybox_pipeline_.layout,
         1,
         1,
         &skybox_descriptor_,
@@ -618,7 +622,7 @@ void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer)
 
 VkPipelineLayout gltfviewer::skybox_t::pipeline_layout() const
 {
-    return *skybox_pipeline_.layout;
+    return skybox_pipeline_.layout;
 }
 
 VkDescriptorImageInfo gltfviewer::skybox_t::irradiance_info() const
@@ -667,13 +671,13 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
+    auto pipeline_layout = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                               .add_descriptor_set_layout(layout)
+                               .add_push_constants<cubemap_push_constants_t>(
+                                   VK_SHADER_STAGE_VERTEX_BIT)
+                               .build();
     auto pipeline =
-        vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(layout)
-                .add_push_constants<cubemap_push_constants_t>(
-                    VK_SHADER_STAGE_VERTEX_BIT)
-                .build()}
+        vkrndr::graphics_pipeline_builder_t{backend_->device(), pipeline_layout}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(cubemap_.format)
@@ -684,7 +688,8 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
 
     render_to_cubemap(pipeline, cppext::as_span(descriptor_set), cubemap_);
 
-    destroy(&backend_->device(), &pipeline);
+    destroy(backend_->device(), pipeline);
+    destroy(backend_->device(), pipeline_layout);
 }
 
 void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
@@ -711,14 +716,15 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
+    auto pipeline_layout =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_descriptor_set_layout(layout)
+            .add_descriptor_set_layout(skybox_descriptor_layout_)
+            .add_push_constants<cubemap_push_constants_t>(
+                VK_SHADER_STAGE_VERTEX_BIT)
+            .build();
     auto pipeline =
-        vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(layout)
-                .add_descriptor_set_layout(skybox_descriptor_layout_)
-                .add_push_constants<cubemap_push_constants_t>(
-                    VK_SHADER_STAGE_VERTEX_BIT)
-                .build()}
+        vkrndr::graphics_pipeline_builder_t{backend_->device(), pipeline_layout}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(as_pipeline_shader(*fragment_shader))
             .add_color_attachment(irradiance_cubemap_.format)
@@ -727,11 +733,12 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
 
-    std::array descriptors{descriptor_set, skybox_descriptor_};
+    std::array const descriptors{descriptor_set, skybox_descriptor_};
 
     render_to_cubemap(pipeline, descriptors, irradiance_cubemap_);
 
-    destroy(&backend_->device(), &pipeline);
+    destroy(backend_->device(), pipeline);
+    destroy(backend_->device(), pipeline_layout);
 }
 
 void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
@@ -778,14 +785,16 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
         .dataSize = sizeof(specialization_t),
         .pData = &spec};
 
+    auto pipeline_layout =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_descriptor_set_layout(layout)
+            .add_descriptor_set_layout(skybox_descriptor_layout_)
+            .add_push_constants<cubemap_push_constants_t>(
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+            .build();
+
     auto pipeline =
-        vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}
-                .add_descriptor_set_layout(layout)
-                .add_descriptor_set_layout(skybox_descriptor_layout_)
-                .add_push_constants<cubemap_push_constants_t>(
-                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-                .build()}
+        vkrndr::graphics_pipeline_builder_t{backend_->device(), pipeline_layout}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(
                 as_pipeline_shader(*fragment_shader, &fragment_specialization))
@@ -866,7 +875,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
                         cppext::as_fp(prefilter_cubemap_.mip_levels - 1)};
 
                 vkCmdPushConstants(command_buffer,
-                    *pipeline.layout,
+                    pipeline.layout,
                     VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                     0,
                     sizeof(cubemap_push_constants_t),
@@ -904,7 +913,8 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
         vkDestroyImageView(backend_->device(), view, nullptr);
     }
 
-    destroy(&backend_->device(), &pipeline);
+    destroy(backend_->device(), pipeline);
+    destroy(backend_->device(), pipeline_layout);
 }
 
 void gltfviewer::skybox_t::generate_brdf_lookup()
@@ -946,9 +956,10 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
         .dataSize = sizeof(specialization_t),
         .pData = &spec};
 
+    auto pipeline_layout =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}.build();
     auto pipeline =
-        vkrndr::graphics_pipeline_builder_t{backend_->device(),
-            vkrndr::pipeline_layout_builder_t{backend_->device()}.build()}
+        vkrndr::graphics_pipeline_builder_t{backend_->device(), pipeline_layout}
             .add_shader(as_pipeline_shader(*vertex_shader))
             .add_shader(
                 as_pipeline_shader(*fragment_shader, &fragment_specialization))
@@ -1002,7 +1013,8 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
         }
     }
 
-    destroy(&backend_->device(), &pipeline);
+    destroy(backend_->device(), pipeline);
+    destroy(backend_->device(), pipeline_layout);
 }
 
 void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
@@ -1051,7 +1063,7 @@ void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
     {
         cubemap_push_constants_t pc{.direction = i, .roughness = 0.0f};
         vkCmdPushConstants(command_buffer,
-            *pipeline.layout,
+            pipeline.layout,
             VK_SHADER_STAGE_VERTEX_BIT,
             0,
             sizeof(cubemap_push_constants_t),

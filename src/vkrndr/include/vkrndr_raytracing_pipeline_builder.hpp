@@ -18,7 +18,7 @@ namespace vkrndr
     {
     public:
         raytracing_pipeline_builder_t(device_t const& device,
-            std::shared_ptr<VkPipelineLayout> pipeline_layout);
+            pipeline_layout_t const& layout);
 
         raytracing_pipeline_builder_t(
             raytracing_pipeline_builder_t const&) = default;
@@ -27,10 +27,10 @@ namespace vkrndr
             raytracing_pipeline_builder_t&&) noexcept = default;
 
     public:
-        ~raytracing_pipeline_builder_t();
+        ~raytracing_pipeline_builder_t() = default;
 
     public:
-        [[nodiscard]] pipeline_t build();
+        pipeline_t build();
 
         raytracing_pipeline_builder_t& add_shader(
             VkPipelineShaderStageCreateInfo const& shader,
@@ -49,11 +49,8 @@ namespace vkrndr
             raytracing_pipeline_builder_t&&) noexcept = default;
 
     private:
-        void cleanup();
-
-    private:
         device_t const* device_{};
-        std::shared_ptr<VkPipelineLayout> pipeline_layout_;
+        pipeline_layout_t const* layout_{};
         uint32_t recursion_depth_{1};
         std::vector<VkPipelineShaderStageCreateInfo> stages_;
         std::vector<VkRayTracingShaderGroupCreateInfoKHR> groups_;
