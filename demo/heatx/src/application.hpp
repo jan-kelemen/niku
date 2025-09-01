@@ -65,6 +65,10 @@ namespace heatx
 
         void create_descriptors();
 
+        void allocate_descriptors();
+
+        void update_descriptors();
+
     private:
         vkglsl::guard_t guard_;
 

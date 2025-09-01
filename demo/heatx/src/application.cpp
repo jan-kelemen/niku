@@ -460,9 +460,6 @@ void heatx::application_t::end_frame() { }
 
 void heatx::application_t::on_startup()
 {
-    auto const extent{render_window_->swapchain().extent()};
-    on_resize(extent.width, extent.height);
-
     create_blas();
     create_tlas();
 
@@ -532,6 +529,9 @@ void heatx::application_t::on_startup()
         throw std::system_error{
             vkrndr::make_error_code(descriptor_layout.error())};
     }
+
+    auto const extent{render_window_->swapchain().extent()};
+    on_resize(extent.width, extent.height);
 
     vkrndr::raytracing_pipeline_builder_t pipeline_builder{backend_->device(),
         vkrndr::pipeline_layout_builder_t{backend_->device()}
@@ -608,8 +608,6 @@ void heatx::application_t::on_startup()
     }
 
     create_shader_binding_table();
-
-    create_descriptors();
 }
 
 void heatx::application_t::on_shutdown()
@@ -700,6 +698,22 @@ void heatx::application_t::on_resize(uint32_t const width,
             VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
 
         vkrndr::wait_for(op.command_buffer(), {}, {}, cppext::as_span(barrier));
+    }
+
+    deletion_queue_insert([device = &backend_->device(),
+                              pool = descriptor_pool_,
+                              sets = std::move(descriptor_sets_)]()
+        { vkrndr::free_descriptor_sets(*device, pool, sets); });
+
+    if (descriptor_pool_ == VK_NULL_HANDLE)
+    {
+        create_descriptors();
+    }
+    else
+    {
+        allocate_descriptors();
+
+        update_descriptors();
     }
 }
 
@@ -1112,9 +1126,7 @@ void heatx::application_t::create_descriptors()
     };
 
     if (std::expected<VkDescriptorPool, VkResult> pool{
-            vkrndr::create_descriptor_pool(backend_->device(),
-                pool_sizes,
-                backend_->frames_in_flight())})
+            vkrndr::create_descriptor_pool(backend_->device(), pool_sizes, 10)})
     {
         descriptor_pool_ = *pool;
     }
@@ -1122,6 +1134,15 @@ void heatx::application_t::create_descriptors()
     {
         throw std::system_error{vkrndr::make_error_code(pool.error())};
     }
+
+    allocate_descriptors();
+
+    update_descriptors();
+}
+
+void heatx::application_t::allocate_descriptors()
+{
+    descriptor_sets_ = {};
 
     descriptor_sets_.resize(backend_->frames_in_flight());
     for (uint32_t i{}; i != backend_->frames_in_flight(); ++i)
@@ -1135,7 +1156,13 @@ void heatx::application_t::create_descriptors()
         {
             throw std::system_error{vkrndr::make_error_code(result)};
         }
+    }
+}
 
+void heatx::application_t::update_descriptors()
+{
+    for (uint32_t i{}; i != backend_->frames_in_flight(); ++i)
+    {
         VkWriteDescriptorSetAccelerationStructureKHR const
             acceleration_structure_info{
                 .sType = vku::GetSType<
