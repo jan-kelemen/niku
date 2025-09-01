@@ -889,15 +889,6 @@ void heatx::application_t::create_blas()
             1,
             &acceleration_structure_build_geometry,
             range_infos.data());
-
-        auto build_wait{vkrndr::with_access(
-            vkrndr::on_stage(vkrndr::buffer_barrier(blas_.buffer),
-                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
-            VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
-            VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR)};
-
-        vkrndr::wait_for(cb, {}, cppext::as_span(build_wait), {});
     }
     destroy(rendering_context_.device.get(), &staging);
     destroy(rendering_context_.device.get(), &scratch_buffer);
@@ -913,39 +904,8 @@ void heatx::application_t::create_tlas()
             .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            .allocation_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-            .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         });
-    {
-        VkAccelerationStructureInstanceKHR const instance{
-            .transform = {1.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                1.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                0.0f,
-                1.0f,
-                0.0f},
-            .mask = 0xFF,
-            .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
-            .accelerationStructureReference = blas_.device_address,
-        };
-
-        vkrndr::mapped_memory_t map{
-            vkrndr::map_memory(backend_->device(), instance_buffer_)};
-
-        memcpy(map.as<VkAccelerationStructureInstanceKHR>(),
-            &instance,
-            sizeof(instance));
-
-        vkrndr::unmap_memory(backend_->device(), &map);
-    }
 
     VkAccelerationStructureGeometryKHR const acceleration_structure_geometry{
         .sType = vku::GetSType<VkAccelerationStructureGeometryKHR>(),
@@ -1007,26 +967,58 @@ void heatx::application_t::create_tlas()
         .transformOffset = 0};
     auto const range_infos{std::to_array({&build_range_info})};
 
+    vkrndr::buffer_t const staging{
+        vkrndr::create_staging_buffer(backend_->device(),
+            instance_buffer_.size)};
     {
         vkrndr::transient_operation_t transient{
             backend_->request_transient_operation(false)};
 
         VkCommandBuffer cb{transient.command_buffer()};
 
+        {
+            vkrndr::mapped_memory_t map{
+                vkrndr::map_memory(backend_->device(), staging)};
+
+            // clang-format off
+            *map.as<VkAccelerationStructureInstanceKHR>() = {
+                .transform = 
+                {
+                    1.0f, 0.0f, 0.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f, 0.0f,
+                    0.0f, 0.0f, 1.0f, 0.0f,
+                },
+                .mask = 0xFF,
+                .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
+                .accelerationStructureReference = blas_.device_address,
+            };
+            // clang-format on
+
+            vkrndr::unmap_memory(backend_->device(), &map);
+
+            VkBufferCopy const copy_transform{
+                .srcOffset = 0,
+                .dstOffset = 0,
+                .size = instance_buffer_.size,
+            };
+            vkCmdCopyBuffer(cb, staging, instance_buffer_, 1, &copy_transform);
+        }
+
+        VkBufferMemoryBarrier2 const buffer_barrier{vkrndr::with_access(
+            vkrndr::on_stage(vkrndr::buffer_barrier(instance_buffer_),
+                VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
+                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            VK_ACCESS_2_SHADER_READ_BIT)};
+
+        vkrndr::wait_for(cb, {}, cppext::as_span(buffer_barrier), {});
+
         vkCmdBuildAccelerationStructuresKHR(cb,
             1,
             &acceleration_structure_build_geometry,
             range_infos.data());
-
-        auto build_wait{vkrndr::with_access(
-            vkrndr::on_stage(vkrndr::buffer_barrier(tlas_.buffer),
-                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-                VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT),
-            VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
-            VK_ACCESS_2_NONE)};
-
-        vkrndr::wait_for(cb, {}, cppext::as_span(build_wait), {});
     }
+    destroy(rendering_context_.device.get(), &staging);
     destroy(rendering_context_.device.get(), &scratch_buffer);
 
     tlas_.device_address = device_address(*rendering_context_.device, tlas_);
