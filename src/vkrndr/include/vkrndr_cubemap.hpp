@@ -35,7 +35,7 @@ namespace vkrndr
         VkExtent2D extent{};
     };
 
-    void destroy(device_t const* device, cubemap_t* cubemap);
+    void destroy(device_t const& device, cubemap_t const& cubemap);
 
     cubemap_t create_cubemap(device_t const& device,
         uint32_t dimension,

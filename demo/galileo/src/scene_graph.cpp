@@ -206,16 +206,16 @@ galileo::scene_graph_t::~scene_graph_t()
 
         vkrndr::unmap_memory(backend_->device(), &data.uniform_map);
 
-        vkrndr::destroy(&backend_->device(), &data.uniform);
+        vkrndr::destroy(backend_->device(), data.uniform);
 
         vkrndr::unmap_memory(backend_->device(), &data.instance_map);
 
-        vkrndr::destroy(&backend_->device(), &data.instance_vertex_buffer);
+        vkrndr::destroy(backend_->device(), data.instance_vertex_buffer);
     }
 
-    destroy(&backend_->device(), &index_buffer_);
+    destroy(backend_->device(), index_buffer_);
 
-    destroy(&backend_->device(), &vertex_buffer_);
+    destroy(backend_->device(), vertex_buffer_);
 
     vkDestroyDescriptorSetLayout(backend_->device(),
         descriptor_set_layout_,
@@ -236,7 +236,8 @@ void galileo::scene_graph_t::consume(ngnast::scene_model_t& model)
     auto transfer_result{
         ngnast::gpu::transfer_geometry(backend_->device(), model)};
     [[maybe_unused]] boost::scope::defer_guard const destroy_transfer{
-        [this, tr = &transfer_result]() { destroy(&backend_->device(), tr); }};
+        [this, &transfer_result]()
+        { destroy(backend_->device(), transfer_result); }};
 
     for (ngnast::mesh_t const& mesh : model.meshes)
     {
@@ -260,7 +261,7 @@ void galileo::scene_graph_t::consume(ngnast::scene_model_t& model)
         std::back_inserter(nodes_),
         to_render_node);
 
-    destroy(&backend_->device(), &vertex_buffer_);
+    destroy(backend_->device(), vertex_buffer_);
     vertex_buffer_ = vkrndr::create_buffer(backend_->device(),
         {.size = sizeof(graph_vertex_t) *
                 (transfer_result.vertex_buffer.size /
@@ -290,10 +291,10 @@ void galileo::scene_graph_t::consume(ngnast::scene_model_t& model)
         unmap_memory(backend_->device(), &staging_map);
 
         backend_->transfer_buffer(staging, vertex_buffer_);
-        destroy(&backend_->device(), &staging);
+        destroy(backend_->device(), staging);
     }
 
-    destroy(&backend_->device(), &index_buffer_);
+    destroy(backend_->device(), index_buffer_);
     index_buffer_ = vkrndr::create_buffer(backend_->device(),
         {.size = transfer_result.index_buffer.size,
             .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT |

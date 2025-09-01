@@ -257,7 +257,7 @@ namespace
 
         backend.transfer_buffer(staging_buffer, rv);
 
-        destroy(&backend.device(), &staging_buffer);
+        destroy(backend.device(), staging_buffer);
 
         return rv;
     }
@@ -291,7 +291,7 @@ galileo::materials_t::~materials_t()
 
     vkDestroySampler(backend_->device(), default_sampler_, nullptr);
 
-    destroy(&backend_->device(), &white_pixel_);
+    destroy(backend_->device(), white_pixel_);
 }
 
 VkDescriptorSetLayout galileo::materials_t::descriptor_set_layout() const
@@ -382,7 +382,7 @@ void galileo::materials_t::transfer_textures(ngnast::scene_model_t const& model)
 
 void galileo::materials_t::clear()
 {
-    destroy(&backend_->device(), &uniform_);
+    destroy(backend_->device(), uniform_);
     uniform_ = {};
 
     if (!samplers_.empty())
@@ -398,9 +398,9 @@ void galileo::materials_t::clear()
     if (!images_.empty())
     {
         images_.pop_back();
-        for (vkrndr::image_t& image : images_)
+        for (vkrndr::image_t const& image : images_)
         {
-            destroy(&backend_->device(), &image);
+            destroy(backend_->device(), image);
         }
         images_.clear();
     }

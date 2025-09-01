@@ -9,7 +9,7 @@ void vkrndr::destroy(device_t const& device,
     acceleration_structure_t const& structure)
 {
     vkDestroyAccelerationStructureKHR(device, structure.handle, nullptr);
-    destroy(&device, &structure.buffer);
+    destroy(device, structure.buffer);
 }
 
 VkDeviceAddress vkrndr::device_address(device_t const& device,

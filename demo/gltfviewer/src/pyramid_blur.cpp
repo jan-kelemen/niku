@@ -193,7 +193,7 @@ gltfviewer::pyramid_blur_t::~pyramid_blur_t()
         vkDestroyImageView(backend_->device(), view, nullptr);
     }
 
-    destroy(&backend_->device(), &pyramid_image_);
+    destroy(backend_->device(), pyramid_image_);
 
     vkDestroySampler(backend_->device(), bilinear_sampler_, nullptr);
 }
@@ -330,8 +330,8 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
     std::function<void(std::function<void()>)>& deletion_queue_insert)
 {
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(pyramid_image_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(pyramid_image_)]()
+        { destroy(device, image); });
     pyramid_image_ = vkrndr::create_image(backend_->device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R16G16B16A16_SFLOAT,
             .extent = vkrndr::to_2d_extent(width, height),
@@ -388,7 +388,7 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources(
         "pyramid_downsample.comp")};
     assert(shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-        [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
+        [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
     auto bindings{shader_set.descriptor_bindings(0)};
     assert(bindings);
@@ -450,7 +450,7 @@ void gltfviewer::pyramid_blur_t::create_upsample_resources(
         "pyramid_upsample.comp")};
     assert(shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-        [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
+        [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
     deletion_queue_insert(
         [device = &backend_->device(),

@@ -22,7 +22,7 @@ galileo::gbuffer_t::gbuffer_t(vkrndr::backend_t& backend) : backend_{&backend}
 {
 }
 
-galileo::gbuffer_t::~gbuffer_t() { destroy(&backend_->device(), &gbuffer_); }
+galileo::gbuffer_t::~gbuffer_t() { destroy(backend_->device(), gbuffer_); }
 
 vkrndr::image_t& galileo::gbuffer_t::position_image()
 {
@@ -48,7 +48,7 @@ void galileo::gbuffer_t::resize(uint32_t const width, uint32_t const height)
 {
     constexpr std::array formats{position_format, normal_format, albedo_format};
 
-    destroy(&backend_->device(), &gbuffer_);
+    destroy(backend_->device(), gbuffer_);
     gbuffer_ = ngngfx::create_gbuffer(backend_->device(),
         {.formats = formats,
             .extent = vkrndr::to_2d_extent(width, height),

@@ -114,9 +114,8 @@ namespace
         // Prepare staging buffer and the target bitmap image
         vkrndr::buffer_t staging_buffer{
             vkrndr::create_staging_buffer(backend.device(), all_bitmaps_size)};
-        boost::scope::defer_guard const rollback{
-            [&backend, staging_buffer]() mutable
-            { destroy(&backend.device(), &staging_buffer); }};
+        boost::scope::defer_guard const rollback{[&backend, staging_buffer]()
+            { destroy(backend.device(), staging_buffer); }};
         vkrndr::mapped_memory_t staging_map{
             vkrndr::map_memory(backend.device(), staging_buffer)};
 
@@ -131,8 +130,8 @@ namespace
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             VK_IMAGE_ASPECT_COLOR_BIT);
         boost::scope::scope_fail const rollback_bitmap{
-            [&backend, b = &new_bitmap_image]()
-            { destroy(&backend.device(), b); }};
+            [&backend, &new_bitmap_image]()
+            { destroy(backend.device(), new_bitmap_image); }};
 
         std::vector<VkBufferImageCopy> regions;
         regions.reserve(glyph_count);
@@ -255,16 +254,11 @@ size_t ngntxt::load_codepoints(vkrndr::backend_t& backend,
     return bitmap.bitmap_images.size() - 1;
 }
 
-void ngntxt::destroy(vkrndr::device_t const* const device,
-    font_bitmap_t* const bitmap)
+void ngntxt::destroy(vkrndr::device_t const& device,
+    font_bitmap_t const& bitmap)
 {
-    if (bitmap)
+    for (vkrndr::image_t const& bitmap_image : bitmap.bitmap_images)
     {
-        for (vkrndr::image_t& bitmap_image : bitmap->bitmap_images)
-        {
-            destroy(device, &bitmap_image);
-        }
-
-        bitmap->bitmap_images.clear();
+        destroy(device, bitmap_image);
     }
 }

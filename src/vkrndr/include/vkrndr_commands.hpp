@@ -16,12 +16,12 @@ namespace vkrndr
 namespace vkrndr
 {
     // Command pool
-    std::expected<VkCommandPool, VkResult> create_command_pool(
+    [[nodiscard]] std::expected<VkCommandPool, VkResult> create_command_pool(
         device_t const& device,
         uint32_t family,
         VkCommandPoolCreateFlags flags = 0);
 
-    VkResult allocate_command_buffers(device_t const& device,
+    [[nodiscard]] VkResult allocate_command_buffers(device_t const& device,
         VkCommandPool pool,
         bool primary,
         uint32_t count,
@@ -31,7 +31,7 @@ namespace vkrndr
         VkCommandPool pool,
         std::span<VkCommandBuffer const> const& buffers);
 
-    VkResult reset_command_pool(device_t const& device,
+    [[nodiscard]] VkResult reset_command_pool(device_t const& device,
         VkCommandPool pool,
         bool release_resources = false);
 

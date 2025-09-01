@@ -256,7 +256,7 @@ namespace
 
         backend.transfer_buffer(staging_buffer, rv);
 
-        destroy(&backend.device(), &staging_buffer);
+        destroy(backend.device(), staging_buffer);
 
         return rv;
     }
@@ -272,11 +272,11 @@ gltfviewer::materials_t::~materials_t()
 {
     clear();
 
-    destroy(&backend_->device(), &dummy_uniform_);
+    destroy(backend_->device(), dummy_uniform_);
 
     vkDestroySampler(backend_->device(), default_sampler_, nullptr);
 
-    destroy(&backend_->device(), &white_pixel_);
+    destroy(backend_->device(), white_pixel_);
 
     free_descriptor_sets(backend_->device(),
         backend_->descriptor_pool(),
@@ -423,7 +423,7 @@ void gltfviewer::materials_t::transfer_textures(
 
 void gltfviewer::materials_t::clear()
 {
-    destroy(&backend_->device(), &uniform_);
+    destroy(backend_->device(), uniform_);
     uniform_ = {};
 
     for (VkSampler sampler : samplers_)
@@ -432,9 +432,9 @@ void gltfviewer::materials_t::clear()
     }
     samplers_.clear();
 
-    for (vkrndr::image_t& image : images_)
+    for (vkrndr::image_t const& image : images_)
     {
-        destroy(&backend_->device(), &image);
+        destroy(backend_->device(), image);
     }
     images_.clear();
 

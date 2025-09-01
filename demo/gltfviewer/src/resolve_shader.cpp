@@ -137,7 +137,7 @@ gltfviewer::resolve_shader_t::resolve_shader_t(vkrndr::backend_t& backend)
         "resolve.comp")};
     assert(shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-        [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
+        [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
     if (auto const layout{
             descriptor_set_layout(shader_set, backend_->device(), 0)})

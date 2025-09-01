@@ -930,11 +930,11 @@ void gltfviewer::application_t::on_shutdown()
 
     environment_.reset();
 
-    destroy(&backend_->device(), &resolve_image_);
+    destroy(backend_->device(), resolve_image_);
 
-    destroy(&backend_->device(), &depth_buffer_);
+    destroy(backend_->device(), depth_buffer_);
 
-    destroy(&backend_->device(), &color_image_);
+    destroy(backend_->device(), color_image_);
 
     imgui_.reset();
 
@@ -966,22 +966,22 @@ void gltfviewer::application_t::on_resize(uint32_t const width,
         { in_flight.cleanup.push_back(std::move(cb)); }};
 
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(color_image_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(color_image_)]()
+        { destroy(device, image); });
     color_image_ = create_color_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), color_image_, "Offscreen Image"));
 
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(depth_buffer_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(depth_buffer_)]()
+        { destroy(device, image); });
     depth_buffer_ = create_depth_buffer(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_buffer_, "Depth Buffer"));
 
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(resolve_image_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(resolve_image_)]()
+        { destroy(device, image); });
     resolve_image_ = create_resolve_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), resolve_image_, "Resolve Image"));

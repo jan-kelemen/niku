@@ -167,8 +167,8 @@ gltfviewer::weighted_oit_shader_t::~weighted_oit_shader_t()
         descriptor_set_layout_,
         nullptr);
 
-    destroy(&backend_->device(), &reveal_image_);
-    destroy(&backend_->device(), &accumulation_image_);
+    destroy(backend_->device(), reveal_image_);
+    destroy(backend_->device(), accumulation_image_);
 }
 
 VkPipelineLayout gltfviewer::weighted_oit_shader_t::pipeline_layout() const
@@ -282,8 +282,8 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
     std::function<void(std::function<void()>)>& deletion_queue_insert)
 {
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(accumulation_image_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(accumulation_image_)]()
+        { destroy(device, image); });
     accumulation_image_ = create_image_and_view(backend_->device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R16G16B16A16_SFLOAT,
             .extent = vkrndr::to_2d_extent(width, height),
@@ -296,8 +296,8 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
         VK_IMAGE_ASPECT_COLOR_BIT);
 
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(reveal_image_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(reveal_image_)]()
+        { destroy(device, image); });
     reveal_image_ = create_image_and_view(backend_->device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R8_UNORM,
             .extent = vkrndr::to_2d_extent(width, height),
@@ -341,8 +341,8 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
         "pbr.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = vertex_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -351,8 +351,8 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
         std::array{"OIT"sv})};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = fragment_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     if (composition_pipeline_.pipeline != VK_NULL_HANDLE)
     {
@@ -424,8 +424,8 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
             "fullscreen.vert")};
     assert(composition_vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_cvtx{
-        [this, shd = &composition_vertex_shader.value()]
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = composition_vertex_shader.value()]
+        { destroy(backend_->device(), shd); }};
 
     auto composition_fragment_shader{
         vkglsl::add_shader_module_from_path(composition_shader_set,
@@ -434,8 +434,8 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
             "oit_composition.frag")};
     assert(composition_fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_cfrag{
-        [this, shd = &composition_fragment_shader.value()]
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = composition_fragment_shader.value()]
+        { destroy(backend_->device(), shd); }};
 
     auto const sample_count{cppext::narrow<uint32_t>(
         std::to_underlying(backend_->device().max_msaa_samples))};

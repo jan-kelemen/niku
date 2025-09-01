@@ -25,4 +25,4 @@ namespace vkrndr
     };
 } // namespace vkrndr
 
-#endif // !VKRNDR_VULKAN_WINDOW_INCLUDED
+#endif

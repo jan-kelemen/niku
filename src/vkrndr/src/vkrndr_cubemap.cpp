@@ -14,19 +14,16 @@
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 
-void vkrndr::destroy(device_t const* const device, cubemap_t* const cubemap)
+void vkrndr::destroy(device_t const& device, cubemap_t const& cubemap)
 {
-    if (cubemap)
+    vkDestroyImageView(device, cubemap.view, nullptr);
+
+    for (VkImageView const face_view : cubemap.face_views)
     {
-        vkDestroyImageView(*device, cubemap->view, nullptr);
-
-        for (VkImageView const face_view : cubemap->face_views)
-        {
-            vkDestroyImageView(*device, face_view, nullptr);
-        }
-
-        vmaDestroyImage(device->allocator, cubemap->image, cubemap->allocation);
+        vkDestroyImageView(device, face_view, nullptr);
     }
+
+    vmaDestroyImage(device.allocator, cubemap.image, cubemap.allocation);
 }
 
 vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
@@ -75,7 +72,7 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
         &rv.allocation,
         nullptr));
     boost::scope::scope_fail const rollback{
-        [&device, &rv]() { destroy(&device, &rv); }};
+        [&device, &rv]() { destroy(device, rv); }};
 
     VkImageViewCreateInfo view_info{};
     view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

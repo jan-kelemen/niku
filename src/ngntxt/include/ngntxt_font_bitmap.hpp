@@ -56,7 +56,7 @@ namespace ngntxt
         font_bitmap_t& bitmap,
         std::span<char32_t const> const& codepoints);
 
-    void destroy(vkrndr::device_t const* device, font_bitmap_t* bitmap);
+    void destroy(vkrndr::device_t const& device, font_bitmap_t const& bitmap);
 } // namespace ngntxt
 
 #endif

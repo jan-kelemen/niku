@@ -79,13 +79,13 @@ namespace vkrndr
         feature_chain_t& feature_chain,
         std::span<queue_family_t const> const& queue_families);
 
-    std::optional<physical_device_features_t> pick_best_physical_device(
-        instance_t const& instance,
+    [[nodiscard]] std::optional<physical_device_features_t>
+    pick_best_physical_device(instance_t const& instance,
         std::span<char const* const> const& extensions,
         VkSurfaceKHR surface);
 
-    std::optional<physical_device_features_t> pick_best_physical_device(
-        instance_t const& instance,
+    [[nodiscard]] std::optional<physical_device_features_t>
+    pick_best_physical_device(instance_t const& instance,
         std::span<char const* const> const& extensions,
         feature_flags_t const& required_flags,
         VkSurfaceKHR surface);

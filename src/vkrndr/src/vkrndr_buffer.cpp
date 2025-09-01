@@ -10,12 +10,9 @@
 
 #include <bit>
 
-void vkrndr::destroy(device_t const* device, buffer_t const* const buffer)
+void vkrndr::destroy(device_t const& device, buffer_t const& buffer)
 {
-    if (buffer)
-    {
-        vmaDestroyBuffer(device->allocator, buffer->buffer, buffer->allocation);
-    }
+    vmaDestroyBuffer(device.allocator, buffer.buffer, buffer.allocation);
 }
 
 VkDeviceAddress vkrndr::device_address(device_t const& device,

@@ -212,7 +212,7 @@ gltfviewer::environment_t::~environment_t()
             cppext::as_span(data.descriptor_set));
 
         unmap_memory(backend_->device(), &data.uniform_map);
-        destroy(&backend_->device(), &data.uniform);
+        destroy(backend_->device(), data.uniform);
     }
 
     vkDestroyDescriptorSetLayout(backend_->device(),

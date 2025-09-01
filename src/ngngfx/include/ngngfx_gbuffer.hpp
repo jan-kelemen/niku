@@ -48,6 +48,6 @@ namespace ngngfx
         gbuffer_create_info_t const& create_info,
         VkImageAspectFlags aspect_flags);
 
-    void destroy(vkrndr::device_t const* device, gbuffer_t* gbuffer);
+    void destroy(vkrndr::device_t const& device, gbuffer_t const& gbuffer);
 } // namespace ngngfx
 #endif

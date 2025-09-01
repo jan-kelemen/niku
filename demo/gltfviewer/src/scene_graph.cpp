@@ -219,7 +219,8 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
     auto transfer_result{
         ngnast::gpu::transfer_geometry(backend_->device(), model)};
     [[maybe_unused]] boost::scope::defer_guard const destroy_transfer{
-        [this, tr = &transfer_result]() { destroy(&backend_->device(), tr); }};
+        [this, &transfer_result]()
+        { destroy(backend_->device(), transfer_result); }};
 
     primitives_ = std::move(transfer_result.primitives);
 
@@ -443,19 +444,19 @@ void gltfviewer::scene_graph_t::clear()
         if (data.uniform_map.allocation)
         {
             unmap_memory(backend_->device(), &data.uniform_map);
-            destroy(&backend_->device(), &data.uniform);
+            destroy(backend_->device(), data.uniform);
         }
     }
 
     if (index_count_ != 0)
     {
-        destroy(&backend_->device(), &index_buffer_);
+        destroy(backend_->device(), index_buffer_);
         index_count_ = 0;
     }
 
     if (vertex_count_ != 0)
     {
-        destroy(&backend_->device(), &vertex_buffer_);
+        destroy(backend_->device(), vertex_buffer_);
         vertex_count_ = 0;
     }
 

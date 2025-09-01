@@ -142,8 +142,8 @@ galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
             "tone_mapping.comp")};
         assert(shader);
         [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-            [this, shd = &shader.value()]()
-            { destroy(&backend_->device(), shd); }};
+            [this, &shd = shader.value()]()
+            { destroy(backend_->device(), shd); }};
 
         if (auto const layout{
                 descriptor_set_layout(shader_set, backend_->device(), 0)})
@@ -175,8 +175,8 @@ galileo::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
             "fxaa.comp")};
         assert(shader);
         [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-            [this, shd = &shader.value()]()
-            { destroy(&backend_->device(), shd); }};
+            [this, &shd = shader.value()]()
+            { destroy(backend_->device(), shd); }};
 
         if (auto const layout{
                 descriptor_set_layout(shader_set, backend_->device(), 0)})
@@ -235,7 +235,7 @@ galileo::postprocess_shader_t::~postprocess_shader_t()
         tone_mapping_descriptor_set_layout_,
         nullptr);
 
-    destroy(&backend_->device(), &intermediate_image_);
+    destroy(backend_->device(), intermediate_image_);
 
     vkDestroySampler(backend_->device(), sampler_, nullptr);
 }
@@ -321,8 +321,8 @@ void galileo::postprocess_shader_t::resize(uint32_t width,
     std::function<void(std::function<void()>)>& deletion_queue_insert)
 {
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(intermediate_image_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(intermediate_image_)]()
+        { destroy(device, image); });
     intermediate_image_ = create_intermediate_image(*backend_,
         vkrndr::to_2d_extent(width, height));
 }

@@ -240,8 +240,8 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         "text.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = vertex_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto tesselation_control_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -249,8 +249,8 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         "text.tesc")};
     assert(tesselation_control_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_tesc{
-        [this, shd = &tesselation_control_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = tesselation_control_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto tesselation_evaluation_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -258,8 +258,8 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         "text.tese")};
     assert(tesselation_evaluation_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_tese{
-        [this, shd = &tesselation_evaluation_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = tesselation_evaluation_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -267,8 +267,8 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         "text.frag")};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = fragment_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     [[maybe_unused]] auto descriptor_layout{shader_set.descriptor_bindings(0)
             .transform(
@@ -389,7 +389,7 @@ reshed::text_editor_t::~text_editor_t()
     {
         vkrndr::unmap_memory(backend_->device(), &data.vertex_map);
 
-        vkrndr::destroy(&backend_->device(), &data.vertex_buffer);
+        vkrndr::destroy(backend_->device(), data.vertex_buffer);
     }
 
     destroy(&backend_->device(), &text_pipeline_);
@@ -402,7 +402,7 @@ reshed::text_editor_t::~text_editor_t()
 
     vkDestroySampler(backend_->device(), bitmap_sampler_, nullptr);
 
-    destroy(&backend_->device(), &font_bitmap_);
+    destroy(backend_->device(), font_bitmap_);
 }
 
 void reshed::text_editor_t::handle_event(SDL_Event const& event)
@@ -519,7 +519,7 @@ void reshed::text_editor_t::change_font(ngntxt::font_face_ptr_t font_face)
 {
     font_face_ = std::move(font_face);
 
-    destroy(&backend_->device(), &font_bitmap_);
+    destroy(backend_->device(), font_bitmap_);
     font_bitmap_ = ngntxt::create_bitmap(font_face_,
         ngntxt::font_bitmap_indexing_t::glyph);
 

@@ -119,7 +119,7 @@ gltfviewer::weighted_blend_shader_t::weighted_blend_shader_t(
         "weighted_blend.comp")};
     assert(shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-        [this, shd = &shader.value()]() { destroy(&backend_->device(), shd); }};
+        [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
     auto layout{
         vkglsl::descriptor_set_layout(shader_set, backend_->device(), 0)};

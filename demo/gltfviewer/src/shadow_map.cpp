@@ -202,8 +202,8 @@ gltfviewer::shadow_map_t::~shadow_map_t()
 
     vkDestroySampler(backend_->device(), shadow_sampler_, nullptr);
 
-    destroy(&backend_->device(), &shadow_map_);
-    destroy(&backend_->device(), &vertex_shader_);
+    destroy(backend_->device(), shadow_map_);
+    destroy(backend_->device(), vertex_shader_);
 }
 
 VkPipelineLayout gltfviewer::shadow_map_t::pipeline_layout() const
@@ -288,7 +288,7 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
     {
         if (vertex_shader_.handle)
         {
-            destroy(&backend_->device(), &vertex_shader_);
+            destroy(backend_->device(), vertex_shader_);
         }
 
         auto vertex_shader{add_shader_module_from_path(shader_set,

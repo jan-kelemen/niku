@@ -40,8 +40,8 @@ gltfviewer::pbr_shader_t::~pbr_shader_t()
 {
     destroy(&backend_->device(), &culling_pipeline_);
     destroy(&backend_->device(), &double_sided_pipeline_);
-    destroy(&backend_->device(), &fragment_shader_);
-    destroy(&backend_->device(), &vertex_shader_);
+    destroy(backend_->device(), fragment_shader_);
+    destroy(backend_->device(), vertex_shader_);
 }
 
 VkPipelineLayout gltfviewer::pbr_shader_t::pipeline_layout() const
@@ -98,7 +98,7 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
     {
         if (vertex_shader_.handle)
         {
-            destroy(&backend_->device(), &vertex_shader_);
+            destroy(backend_->device(), vertex_shader_);
         }
 
         auto vertex_shader{add_shader_module_from_path(shader_set,
@@ -120,7 +120,7 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
     {
         if (fragment_shader_.handle)
         {
-            destroy(&backend_->device(), &fragment_shader_);
+            destroy(backend_->device(), fragment_shader_);
         }
 
         auto fragment_shader{add_shader_module_from_path(shader_set,

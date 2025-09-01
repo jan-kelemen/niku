@@ -259,11 +259,11 @@ gltfviewer::skybox_t::skybox_t(vkrndr::backend_t& backend) : backend_{&backend}
 
 gltfviewer::skybox_t::~skybox_t()
 {
-    destroy(&backend_->device(), &brdf_lookup_);
+    destroy(backend_->device(), brdf_lookup_);
 
-    destroy(&backend_->device(), &prefilter_cubemap_);
+    destroy(backend_->device(), prefilter_cubemap_);
 
-    destroy(&backend_->device(), &irradiance_cubemap_);
+    destroy(backend_->device(), irradiance_cubemap_);
 
     destroy(&backend_->device(), &skybox_pipeline_);
 
@@ -279,13 +279,13 @@ gltfviewer::skybox_t::~skybox_t()
 
     vkDestroySampler(backend_->device(), brdf_sampler_, nullptr);
 
-    destroy(&backend_->device(), &cubemap_uniform_buffer_);
+    destroy(backend_->device(), cubemap_uniform_buffer_);
 
-    destroy(&backend_->device(), &cubemap_index_buffer_);
+    destroy(backend_->device(), cubemap_index_buffer_);
 
-    destroy(&backend_->device(), &cubemap_vertex_buffer_);
+    destroy(backend_->device(), cubemap_vertex_buffer_);
 
-    destroy(&backend_->device(), &cubemap_);
+    destroy(backend_->device(), cubemap_);
 }
 
 void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
@@ -350,7 +350,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
         backend_->transfer_buffer(staging_buffer, cubemap_vertex_buffer_);
 
-        destroy(&backend_->device(), &staging_buffer);
+        destroy(backend_->device(), staging_buffer);
     }
 
     {
@@ -412,7 +412,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
         backend_->transfer_buffer(staging_buffer, cubemap_index_buffer_);
 
-        destroy(&backend_->device(), &staging_buffer);
+        destroy(backend_->device(), staging_buffer);
     }
 
     {
@@ -452,7 +452,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
         backend_->transfer_buffer(staging_buffer, cubemap_uniform_buffer_);
 
-        destroy(&backend_->device(), &staging_buffer);
+        destroy(backend_->device(), staging_buffer);
     }
 
     VkSampler const cubemap_sampler{create_cubemap_sampler(backend_->device())};
@@ -523,8 +523,8 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
             .add_vertex_input(binding_description(), attribute_descriptions())
             .build();
 
-    destroy(&backend_->device(), &skybox_vertex_shader.value());
-    destroy(&backend_->device(), &skybox_fragment_shader.value());
+    destroy(backend_->device(), skybox_vertex_shader.value());
+    destroy(backend_->device(), skybox_fragment_shader.value());
 
     irradiance_cubemap_ = vkrndr::create_cubemap(backend_->device(),
         32,
@@ -577,7 +577,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
 
     vkDestroySampler(backend_->device(), cubemap_sampler, nullptr);
 
-    destroy(&backend_->device(), &cubemap_texture);
+    destroy(backend_->device(), cubemap_texture);
 }
 
 void gltfviewer::skybox_t::draw(VkCommandBuffer command_buffer)
@@ -655,8 +655,8 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
         "cubemap.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = vertex_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -664,8 +664,8 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
         "equirectangular_to_cubemap.frag")};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = fragment_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto pipeline =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
@@ -699,8 +699,8 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
         "cubemap.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = vertex_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -708,8 +708,8 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
         "irradiance.frag")};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = fragment_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto pipeline =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
@@ -746,8 +746,8 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
         "cubemap.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = vertex_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -755,8 +755,8 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
         "prefilter.frag")};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = fragment_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     struct specialization_t
     {
@@ -918,8 +918,8 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
         "fullscreen.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = vertex_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -927,8 +927,8 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
         "brdf.frag")};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = fragment_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     struct specialization_t
     {

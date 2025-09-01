@@ -82,8 +82,8 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
         "debug.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = vertex_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -91,8 +91,8 @@ galileo::batch_renderer_t::batch_renderer_t(vkrndr::backend_t& backend,
         "debug.frag")};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = fragment_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     VkPipelineColorBlendAttachmentState const alpha_blend{
         .blendEnable = VK_TRUE,
@@ -165,7 +165,7 @@ galileo::batch_renderer_t::~batch_renderer_t()
                 vkrndr::unmap_memory(backend_->device(), &buffer.memory);
             }
 
-            vkrndr::destroy(&backend_->device(), &buffer.buffer);
+            vkrndr::destroy(backend_->device(), buffer.buffer);
         }
     }
 }
@@ -316,7 +316,7 @@ galileo::batch_renderer_t::buffer_for(VkPrimitiveTopology topology)
                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT})};
             boost::scope::scope_fail f{
-                [this, &buffer]() { destroy(&backend_->device(), &buffer); }};
+                [this, buffer]() { destroy(backend_->device(), buffer); }};
 
             frame_data_->buffers.emplace_back(topology,
                 buffer,

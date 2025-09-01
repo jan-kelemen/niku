@@ -10,13 +10,10 @@
 
 #include <bit>
 
-void vkrndr::destroy(device_t const* const device, image_t const* const image)
+void vkrndr::destroy(device_t const& device, image_t const& image)
 {
-    if (image)
-    {
-        vkDestroyImageView(*device, image->view, nullptr);
-        vmaDestroyImage(device->allocator, image->image, image->allocation);
-    }
+    vkDestroyImageView(device, image.view, nullptr);
+    vmaDestroyImage(device.allocator, image.image, image.allocation);
 }
 
 vkrndr::image_t vkrndr::create_image(device_t const& device,
@@ -106,8 +103,7 @@ vkrndr::image_t vkrndr::create_image_and_view(device_t const& device,
     VkImageAspectFlags const aspect_flags)
 {
     image_t rv{create_image(device, create_info)};
-    boost::scope::scope_exit rollback{
-        [&device, &rv] { destroy(&device, &rv); }};
+    boost::scope::scope_exit rollback{[&device, &rv] { destroy(device, rv); }};
 
     rv.view = create_image_view(device,
         rv.image,

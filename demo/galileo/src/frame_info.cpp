@@ -169,11 +169,11 @@ galileo::frame_info_t::~frame_info_t()
             backend_->descriptor_pool(),
             cppext::as_span(data.descriptor_set));
 
-        vkrndr::destroy(&backend_->device(), &data.light_buffer);
+        vkrndr::destroy(backend_->device(), data.light_buffer);
 
         vkrndr::unmap_memory(backend_->device(), &data.info_map);
 
-        vkrndr::destroy(&backend_->device(), &data.info_buffer);
+        vkrndr::destroy(backend_->device(), data.info_buffer);
     }
 
     vkDestroyDescriptorSetLayout(backend_->device(),
@@ -231,5 +231,5 @@ void galileo::frame_info_t::disperse_lights(
         backend_->transfer_buffer(staging, data.light_buffer);
     }
 
-    destroy(&backend_->device(), &staging);
+    destroy(backend_->device(), staging);
 }

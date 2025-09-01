@@ -104,14 +104,11 @@ namespace
     }
 } // namespace
 
-void ngnast::gpu::destroy(vkrndr::device_t const* const device,
-    geometry_transfer_result_t* const model)
+void ngnast::gpu::destroy(vkrndr::device_t const& device,
+    geometry_transfer_result_t const& model)
 {
-    if (model)
-    {
-        destroy(device, &model->vertex_buffer);
-        destroy(device, &model->index_buffer);
-    }
+    destroy(device, model.vertex_buffer);
+    destroy(device, model.index_buffer);
 }
 
 ngnast::gpu::geometry_transfer_result_t ngnast::gpu::transfer_geometry(

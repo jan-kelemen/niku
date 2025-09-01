@@ -40,7 +40,7 @@ gltfviewer::depth_pass_shader_t::depth_pass_shader_t(vkrndr::backend_t& backend)
 gltfviewer::depth_pass_shader_t::~depth_pass_shader_t()
 {
     destroy(&backend_->device(), &depth_pipeline_);
-    destroy(&backend_->device(), &vertex_shader_);
+    destroy(backend_->device(), vertex_shader_);
 }
 
 VkPipelineLayout gltfviewer::depth_pass_shader_t::pipeline_layout() const
@@ -85,7 +85,7 @@ void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
     {
         if (vertex_shader_.handle)
         {
-            destroy(&backend_->device(), &vertex_shader_);
+            destroy(backend_->device(), vertex_shader_);
         }
 
         auto vertex_shader{add_shader_module_from_path(shader_set,

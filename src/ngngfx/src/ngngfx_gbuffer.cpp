@@ -41,13 +41,10 @@ ngngfx::gbuffer_t ngngfx::create_gbuffer(vkrndr::device_t const& device,
     return {std::move(images)};
 }
 
-void ngngfx::destroy(vkrndr::device_t const* device, gbuffer_t* gbuffer)
+void ngngfx::destroy(vkrndr::device_t const& device, gbuffer_t const& gbuffer)
 {
-    if (gbuffer)
+    for (auto& image : gbuffer.images)
     {
-        for (auto& image : gbuffer->images)
-        {
-            destroy(device, &image);
-        }
+        destroy(device, image);
     }
 }

@@ -26,7 +26,7 @@ namespace vkrndr
         [[nodiscard]] operator VkBuffer() const noexcept;
     };
 
-    void destroy(device_t const* device, buffer_t const* buffer);
+    void destroy(device_t const& device, buffer_t const& buffer);
 
     [[nodiscard]] VkDeviceAddress device_address(device_t const& device,
         buffer_t const& buffer);

@@ -604,7 +604,7 @@ void heatx::application_t::on_startup()
 
     for (auto const& shd : mods)
     {
-        destroy(&backend_->device(), &shd);
+        destroy(backend_->device(), shd);
     }
 
     create_shader_binding_table();
@@ -619,9 +619,9 @@ void heatx::application_t::on_shutdown()
         descriptor_sets_);
     vkrndr::destroy_descriptor_pool(backend_->device(), descriptor_pool_);
 
-    destroy(&backend_->device(), &hit_binding_table_);
-    destroy(&backend_->device(), &miss_binding_table_);
-    destroy(&backend_->device(), &raygen_binding_table_);
+    destroy(backend_->device(), hit_binding_table_);
+    destroy(backend_->device(), miss_binding_table_);
+    destroy(backend_->device(), raygen_binding_table_);
 
     destroy(&backend_->device(), &pipeline_);
 
@@ -631,18 +631,18 @@ void heatx::application_t::on_shutdown()
 
     for (vkrndr::buffer_t const& buffer : uniform_buffers_)
     {
-        destroy(&backend_->device(), &buffer);
+        destroy(backend_->device(), buffer);
     }
 
-    destroy(&backend_->device(), &ray_generation_storage_);
+    destroy(backend_->device(), ray_generation_storage_);
 
     destroy(backend_->device(), tlas_);
     destroy(backend_->device(), blas_);
 
-    destroy(&backend_->device(), &instance_buffer_);
-    destroy(&backend_->device(), &transform_buffer_);
-    destroy(&backend_->device(), &index_buffer_);
-    destroy(&backend_->device(), &vertex_buffer_);
+    destroy(backend_->device(), instance_buffer_);
+    destroy(backend_->device(), transform_buffer_);
+    destroy(backend_->device(), index_buffer_);
+    destroy(backend_->device(), vertex_buffer_);
 
     imgui_.reset();
 
@@ -673,9 +673,9 @@ void heatx::application_t::on_resize(uint32_t const width,
         [&in_flight](std::function<void()> cb)
         { in_flight.cleanup.push_back(std::move(cb)); }};
 
-    deletion_queue_insert([device = &backend_->device(),
+    deletion_queue_insert([&device = backend_->device(),
                               image = std::move(ray_generation_storage_)]()
-        { destroy(device, &image); });
+        { destroy(device, image); });
 
     ray_generation_storage_ = create_ray_generation_storage_image(*backend_,
         {width, height},
@@ -890,8 +890,8 @@ void heatx::application_t::create_blas()
             &acceleration_structure_build_geometry,
             range_infos.data());
     }
-    destroy(rendering_context_.device.get(), &staging);
-    destroy(rendering_context_.device.get(), &scratch_buffer);
+    destroy(*rendering_context_.device, staging);
+    destroy(*rendering_context_.device, scratch_buffer);
 
     blas_.device_address = device_address(*rendering_context_.device, blas_);
 }
@@ -1018,8 +1018,8 @@ void heatx::application_t::create_tlas()
             &acceleration_structure_build_geometry,
             range_infos.data());
     }
-    destroy(rendering_context_.device.get(), &staging);
-    destroy(rendering_context_.device.get(), &scratch_buffer);
+    destroy(*rendering_context_.device, staging);
+    destroy(*rendering_context_.device, scratch_buffer);
 
     tlas_.device_address = device_address(*rendering_context_.device, tlas_);
 }

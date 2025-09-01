@@ -1007,11 +1007,11 @@ void galileo::application_t::on_shutdown()
 
     frame_info_.reset();
 
-    destroy(&backend_->device(), &color_image_);
+    destroy(backend_->device(), color_image_);
 
     gbuffer_.reset();
 
-    destroy(&backend_->device(), &depth_buffer_);
+    destroy(backend_->device(), depth_buffer_);
 
     imgui_.reset();
 
@@ -1045,8 +1045,8 @@ void galileo::application_t::on_resize(uint32_t const width,
     projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(depth_buffer_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(depth_buffer_)]()
+        { destroy(device, image); });
     depth_buffer_ = create_depth_buffer(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_buffer_, "Depth buffer"));
@@ -1056,8 +1056,8 @@ void galileo::application_t::on_resize(uint32_t const width,
     gbuffer_->resize(width, height);
 
     deletion_queue_insert(
-        [device = &backend_->device(), image = std::move(color_image_)]()
-        { destroy(device, &image); });
+        [&device = backend_->device(), image = std::move(color_image_)]()
+        { destroy(device, image); });
     color_image_ = create_color_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), color_image_, "Color image"));

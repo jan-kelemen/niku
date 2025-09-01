@@ -159,8 +159,8 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
         "fullscreen.vert")};
     assert(vertex_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, shd = &vertex_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = vertex_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
         backend_->device(),
@@ -168,8 +168,8 @@ galileo::deferred_shader_t::deferred_shader_t(vkrndr::backend_t& backend,
         "deferred.frag")};
     assert(fragment_shader);
     [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
-        [this, shd = &fragment_shader.value()]()
-        { destroy(&backend_->device(), shd); }};
+        [this, &shd = fragment_shader.value()]()
+        { destroy(backend_->device(), shd); }};
 
     pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),
         vkrndr::pipeline_layout_builder_t{backend_->device()}
