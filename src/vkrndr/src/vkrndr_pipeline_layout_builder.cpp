@@ -16,9 +16,9 @@ vkrndr::pipeline_layout_t vkrndr::pipeline_layout_builder_t::build()
 {
     VkPipelineLayoutCreateInfo const pipeline_layout_info{
         .sType = vku::GetSType<VkPipelineLayoutCreateInfo>(),
-        .setLayoutCount = count_cast(descriptor_set_layouts_.size()),
+        .setLayoutCount = count_cast(descriptor_set_layouts_),
         .pSetLayouts = descriptor_set_layouts_.data(),
-        .pushConstantRangeCount = count_cast(push_constants_.size()),
+        .pushConstantRangeCount = count_cast(push_constants_),
         .pPushConstantRanges = push_constants_.data(),
     };
 

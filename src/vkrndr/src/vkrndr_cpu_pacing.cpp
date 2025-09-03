@@ -17,6 +17,7 @@
 // IWYU pragma: no_include <boost/move/detail/reverse_iterator.hpp>
 // IWYU pragma: no_include <set>
 // IWYU pragma: no_include <string>
+// IWYU pragma: no_include <variant>
 
 vkrndr::cpu_pacing_t::cpu_pacing_t(device_t const& device,
     uint32_t const frames_in_flight)

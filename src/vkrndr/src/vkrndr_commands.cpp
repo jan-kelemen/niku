@@ -91,10 +91,7 @@ void vkrndr::free_command_buffers(device_t const& device,
     VkCommandPool pool,
     std::span<VkCommandBuffer const> const& buffers)
 {
-    vkFreeCommandBuffers(device,
-        pool,
-        count_cast(buffers.size()),
-        buffers.data());
+    vkFreeCommandBuffers(device, pool, count_cast(buffers), buffers.data());
 }
 
 VkResult vkrndr::reset_command_pool(device_t const& device,
@@ -146,7 +143,7 @@ void vkrndr::end_single_time_commands(device_t const& device,
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = count_cast(command_buffers.size());
+    submit_info.commandBufferCount = count_cast(command_buffers);
     submit_info.pCommandBuffers = command_buffers.data();
 
     port.submit(cppext::as_span(submit_info));

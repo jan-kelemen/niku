@@ -18,7 +18,7 @@ std::expected<VkDescriptorPool, VkResult> vkrndr::create_descriptor_pool(
         .sType = vku::GetSType<VkDescriptorPoolCreateInfo>(),
         .flags = flags,
         .maxSets = max_sets,
-        .poolSizeCount = vkrndr::count_cast(pool_sizes.size()),
+        .poolSizeCount = vkrndr::count_cast(pool_sizes),
         .pPoolSizes = pool_sizes.data(),
     };
 
@@ -43,7 +43,7 @@ VkResult vkrndr::allocate_descriptor_sets(device_t const& device,
     VkDescriptorSetAllocateInfo const alloc_info{
         .sType = vku::GetSType<VkDescriptorSetAllocateInfo>(),
         .descriptorPool = pool,
-        .descriptorSetCount = count_cast(layouts.size()),
+        .descriptorSetCount = count_cast(layouts),
         .pSetLayouts = layouts.data(),
     };
 
@@ -63,7 +63,7 @@ VkResult vkrndr::allocate_descriptor_sets(device_t const& device,
     VkDescriptorSetAllocateInfo alloc_info{
         .sType = vku::GetSType<VkDescriptorSetAllocateInfo>(),
         .descriptorPool = pool,
-        .descriptorSetCount = count_cast(layouts.size()),
+        .descriptorSetCount = count_cast(layouts),
         .pSetLayouts = layouts.data(),
     };
 
@@ -73,7 +73,7 @@ VkResult vkrndr::allocate_descriptor_sets(device_t const& device,
     };
     if (!variable_counts.empty())
     {
-        variable_info.descriptorSetCount = count_cast(variable_counts.size());
+        variable_info.descriptorSetCount = count_cast(variable_counts);
         variable_info.pDescriptorCounts = variable_counts.data();
 
         alloc_info.pNext = &variable_info;
@@ -95,7 +95,7 @@ void vkrndr::free_descriptor_sets(device_t const& device,
 
     vkFreeDescriptorSets(device,
         pool,
-        count_cast(descriptor_sets.size()),
+        count_cast(descriptor_sets),
         descriptor_sets.data());
 }
 
@@ -120,7 +120,7 @@ vkrndr::create_descriptor_set_layout(device_t const& device,
 
     VkDescriptorSetLayoutCreateInfo layout_info{
         .sType = vku::GetSType<VkDescriptorSetLayoutCreateInfo>(),
-        .bindingCount = count_cast(bindings.size()),
+        .bindingCount = count_cast(bindings),
         .pBindings = bindings.data(),
     };
 
@@ -132,7 +132,7 @@ vkrndr::create_descriptor_set_layout(device_t const& device,
             [](VkDescriptorBindingFlagsEXT f)
             { return f & VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT; }))
     {
-        flags_info.bindingCount = count_cast(binding_flags.size());
+        flags_info.bindingCount = count_cast(binding_flags);
         flags_info.pBindingFlags = binding_flags.data();
 
         layout_info.flags =

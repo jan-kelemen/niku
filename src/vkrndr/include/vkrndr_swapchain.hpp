@@ -195,7 +195,7 @@ inline uint32_t vkrndr::swapchain_t::min_image_count() const noexcept
 
 inline uint32_t vkrndr::swapchain_t::image_count() const noexcept
 {
-    return vkrndr::count_cast(images_.size());
+    return count_cast(images_);
 }
 
 inline bool vkrndr::swapchain_t::needs_refresh() const noexcept

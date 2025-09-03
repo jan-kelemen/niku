@@ -145,7 +145,7 @@ namespace
         std::array const descriptor_writes{sampler_write, uniform_write};
 
         vkUpdateDescriptorSets(device,
-            vkrndr::count_cast(descriptor_writes.size()),
+            vkrndr::count_cast(descriptor_writes),
             descriptor_writes.data(),
             0,
             nullptr);
@@ -780,7 +780,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
             .size = sizeof(uint32_t)}};
 
     VkSpecializationInfo const fragment_specialization{
-        .mapEntryCount = vkrndr::count_cast(specialization_entries.size()),
+        .mapEntryCount = vkrndr::count_cast(specialization_entries),
         .pMapEntries = specialization_entries.data(),
         .dataSize = sizeof(specialization_t),
         .pData = &spec};
@@ -951,7 +951,7 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
             .size = sizeof(uint32_t)}};
 
     VkSpecializationInfo const fragment_specialization{
-        .mapEntryCount = vkrndr::count_cast(specialization_entries.size()),
+        .mapEntryCount = vkrndr::count_cast(specialization_entries),
         .pMapEntries = specialization_entries.data(),
         .dataSize = sizeof(specialization_t),
         .pData = &spec};

@@ -99,11 +99,9 @@ namespace
         VkDeviceCreateInfo const ci{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pNext = create_info.chain,
-            .queueCreateInfoCount =
-                vkrndr::count_cast(queue_create_infos.size()),
+            .queueCreateInfoCount = vkrndr::count_cast(queue_create_infos),
             .pQueueCreateInfos = queue_create_infos.data(),
-            .enabledExtensionCount =
-                vkrndr::count_cast(create_info.extensions.size()),
+            .enabledExtensionCount = vkrndr::count_cast(create_info.extensions),
             .ppEnabledExtensionNames = create_info.extensions.data()};
 
         if (VkResult const result{vkCreateDevice(create_info.device,

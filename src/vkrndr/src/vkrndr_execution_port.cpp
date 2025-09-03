@@ -45,10 +45,8 @@ void vkrndr::execution_port_t::submit(
     std::span<VkSubmitInfo const> const& submits,
     VkFence const fence)
 {
-    check_result(vkQueueSubmit(queue_,
-        count_cast(submits.size()),
-        submits.data(),
-        fence));
+    check_result(
+        vkQueueSubmit(queue_, count_cast(submits), submits.data(), fence));
 }
 
 VkResult vkrndr::execution_port_t::present(VkPresentInfoKHR const& present_info)

@@ -32,7 +32,7 @@ vkrndr::render_pass_guard_t vkrndr::render_pass_t::begin(
     render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
     render_info.renderArea = render_area;
     render_info.layerCount = 1;
-    render_info.colorAttachmentCount = count_cast(color_attachments_.size());
+    render_info.colorAttachmentCount = count_cast(color_attachments_);
     render_info.pColorAttachments = color_attachments_.data();
 
     if (depth_attachment_)

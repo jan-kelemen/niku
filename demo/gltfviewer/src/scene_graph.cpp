@@ -58,7 +58,7 @@ namespace
 
         VkDescriptorSetLayoutCreateInfo layout_info{};
         layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_info.bindingCount = vkrndr::count_cast(bindings.size());
+        layout_info.bindingCount = vkrndr::count_cast(bindings);
         layout_info.pBindings = bindings.data();
 
         VkDescriptorSetLayout rv; // NOLINT
@@ -85,7 +85,7 @@ namespace
         std::array const descriptor_writes{transform_storage_write};
 
         vkUpdateDescriptorSets(device,
-            vkrndr::count_cast(descriptor_writes.size()),
+            vkrndr::count_cast(descriptor_writes),
             descriptor_writes.data(),
             0,
             nullptr);

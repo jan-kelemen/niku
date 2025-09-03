@@ -137,7 +137,7 @@ namespace
         std::array const descriptor_writes{texture_descriptor_write};
 
         vkUpdateDescriptorSets(device,
-            vkrndr::count_cast(descriptor_writes.size()),
+            vkrndr::count_cast(descriptor_writes),
             descriptor_writes.data(),
             0,
             nullptr);

@@ -18,9 +18,9 @@ vkrndr::pipeline_t vkrndr::raytracing_pipeline_builder_t::build()
 {
     VkRayTracingPipelineCreateInfoKHR const create_info{
         .sType = vku::GetSType<VkRayTracingPipelineCreateInfoKHR>(),
-        .stageCount = count_cast(stages_.size()),
+        .stageCount = count_cast(stages_),
         .pStages = stages_.data(),
-        .groupCount = count_cast(groups_.size()),
+        .groupCount = count_cast(groups_),
         .pGroups = groups_.data(),
         .maxPipelineRayRecursionDepth = recursion_depth_,
         .layout = *layout_,
@@ -47,7 +47,7 @@ vkrndr::raytracing_pipeline_builder_t::add_shader(
 {
     stages_.push_back(shader);
 
-    stage = count_cast(stages_.size()) - 1;
+    stage = count_cast(stages_) - 1;
 
     return *this;
 }

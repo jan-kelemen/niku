@@ -40,7 +40,7 @@ vkrndr::image_t vkrndr::create_image(device_t const& device,
     {
         image_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
         image_info.queueFamilyIndexCount =
-            count_cast(create_info.sharing_queue_families.size());
+            count_cast(create_info.sharing_queue_families);
         image_info.pQueueFamilyIndices =
             create_info.sharing_queue_families.data();
     }

@@ -59,9 +59,9 @@ std::expected<vkrndr::instance_ptr_t, std::error_code> vkrndr::create_instance(
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext = create_info.chain,
         .pApplicationInfo = &app_info,
-        .enabledLayerCount = count_cast(create_info.layers.size()),
+        .enabledLayerCount = count_cast(create_info.layers),
         .ppEnabledLayerNames = create_info.layers.data(),
-        .enabledExtensionCount = count_cast(required_extensions.size()),
+        .enabledExtensionCount = count_cast(required_extensions),
         .ppEnabledExtensionNames = required_extensions.data()};
 
     instance_ptr_t rv{new instance_t};

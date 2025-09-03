@@ -9,6 +9,7 @@
 #include <cmath>
 #include <concepts>
 #include <cstdint>
+#include <ranges>
 #include <source_location>
 #include <utility>
 
@@ -22,10 +23,18 @@ namespace vkrndr
         return std::to_underlying(result) >= 0;
     }
 
-    template<typename T>
+    template<std::integral T>
     [[nodiscard]] constexpr uint32_t count_cast(T const count)
     {
         return cppext::narrow<uint32_t>(count);
+    }
+
+    template<typename Container>
+    [[nodiscard]] constexpr uint32_t count_cast(Container const& container)
+    requires(std::ranges::contiguous_range<Container> &&
+        std::ranges::sized_range<Container>)
+    {
+        return cppext::narrow<uint32_t>(std::ranges::size(container));
     }
 
     template<std::integral T>

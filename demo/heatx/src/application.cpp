@@ -1225,7 +1225,7 @@ void heatx::application_t::update_descriptors()
             storage_image_write_write,
             uniform_buffer_write};
         vkUpdateDescriptorSets(backend_->device(),
-            vkrndr::count_cast(descriptor_writes.size()),
+            vkrndr::count_cast(descriptor_writes),
             descriptor_writes.data(),
             0,
             nullptr);

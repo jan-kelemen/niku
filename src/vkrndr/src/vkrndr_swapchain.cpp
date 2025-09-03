@@ -125,7 +125,7 @@ namespace
         std::array<VkPresentModeKHR, 7> results{};
         VkSurfacePresentModeCompatibilityKHR compatibility{
             .sType = vku::GetSType<VkSurfacePresentModeCompatibilityKHR>(),
-            .presentModeCount = vkrndr::count_cast(results.size()),
+            .presentModeCount = vkrndr::count_cast(results),
             .pPresentModes = results.data()};
 
         VkSurfacePresentModeKHR surface_present_mode{
@@ -330,7 +330,7 @@ void vkrndr::swapchain_t::submit_command_buffers(
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &frame.acquire_semaphore,
         .pWaitDstStageMask = &wait_stage,
-        .commandBufferCount = count_cast(command_buffers.size()),
+        .commandBufferCount = count_cast(command_buffers),
         .pCommandBuffers = command_buffers.data(),
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &frame.present_semaphore};
@@ -488,7 +488,7 @@ void vkrndr::swapchain_t::create_swap_frames(bool const is_recreated,
 
     VkSwapchainPresentModesCreateInfoKHR const present_modes{
         .sType = vku::GetSType<VkSwapchainPresentModesCreateInfoKHR>(),
-        .presentModeCount = count_cast(compatible_present_modes_.size()),
+        .presentModeCount = count_cast(compatible_present_modes_),
         .pPresentModes = compatible_present_modes_.data()};
 
     if (swapchain_maintenance_1_enabled_)

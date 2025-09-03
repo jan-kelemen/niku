@@ -42,7 +42,7 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
     {
         buffer_info.sharingMode = VK_SHARING_MODE_CONCURRENT;
         buffer_info.queueFamilyIndexCount =
-            count_cast(create_info.sharing_queue_families.size());
+            count_cast(create_info.sharing_queue_families);
         buffer_info.pQueueFamilyIndices =
             create_info.sharing_queue_families.data();
     }

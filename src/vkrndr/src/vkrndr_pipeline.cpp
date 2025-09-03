@@ -25,7 +25,7 @@ void vkrndr::bind_pipeline(VkCommandBuffer command_buffer,
             pipeline.type,
             pipeline.layout,
             first_set,
-            count_cast(descriptor_sets.size()),
+            count_cast(descriptor_sets),
             descriptor_sets.data(),
             0,
             nullptr);

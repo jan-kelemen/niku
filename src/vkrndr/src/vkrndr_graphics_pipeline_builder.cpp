@@ -26,11 +26,9 @@ vkrndr::pipeline_t vkrndr::graphics_pipeline_builder_t::build()
 {
     VkPipelineVertexInputStateCreateInfo const vertex_input_info{
         .sType = vku::GetSType<VkPipelineVertexInputStateCreateInfo>(),
-        .vertexBindingDescriptionCount =
-            count_cast(vertex_input_binding_.size()),
+        .vertexBindingDescriptionCount = count_cast(vertex_input_binding_),
         .pVertexBindingDescriptions = vertex_input_binding_.data(),
-        .vertexAttributeDescriptionCount =
-            count_cast(vertex_input_attributes_.size()),
+        .vertexAttributeDescriptionCount = count_cast(vertex_input_attributes_),
         .pVertexAttributeDescriptions = vertex_input_attributes_.data(),
     };
 
@@ -63,20 +61,20 @@ vkrndr::pipeline_t vkrndr::graphics_pipeline_builder_t::build()
     VkPipelineColorBlendStateCreateInfo const color_blending{
         .sType = vku::GetSType<VkPipelineColorBlendStateCreateInfo>(),
         .logicOp = VK_LOGIC_OP_COPY,
-        .attachmentCount = count_cast(color_blending_.size()),
+        .attachmentCount = count_cast(color_blending_),
         .pAttachments = color_blending_.data(),
         .blendConstants = {0.0f, 0.0f, 0.0f, 0.0f},
     };
 
     VkPipelineDynamicStateCreateInfo const dynamic_state{
         .sType = vku::GetSType<VkPipelineDynamicStateCreateInfo>(),
-        .dynamicStateCount = count_cast(dynamic_states_.size()),
+        .dynamicStateCount = count_cast(dynamic_states_),
         .pDynamicStates = dynamic_states_.data(),
     };
 
     VkPipelineRenderingCreateInfo rendering_create_info{
         .sType = vku::GetSType<VkPipelineRenderingCreateInfo>(),
-        .colorAttachmentCount = count_cast(color_attachments_.size()),
+        .colorAttachmentCount = count_cast(color_attachments_),
         .pColorAttachmentFormats = color_attachments_.data(),
     };
     if (depth_stencil_)
@@ -91,7 +89,7 @@ vkrndr::pipeline_t vkrndr::graphics_pipeline_builder_t::build()
     VkGraphicsPipelineCreateInfo const create_info{
         .sType = vku::GetSType<VkGraphicsPipelineCreateInfo>(),
         .pNext = &rendering_create_info,
-        .stageCount = count_cast(shaders_.size()),
+        .stageCount = count_cast(shaders_),
         .pStages = shaders_.data(),
         .pVertexInputState = &vertex_input_info,
         .pInputAssemblyState = &input_assembly,

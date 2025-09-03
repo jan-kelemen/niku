@@ -218,7 +218,7 @@ namespace
                 staging_buffer,
                 new_bitmap_image,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                vkrndr::count_cast(regions.size()),
+                vkrndr::count_cast(regions),
                 regions.data());
 
             vkrndr::wait_for_transfer_write_completed(new_bitmap_image, cb, 1);

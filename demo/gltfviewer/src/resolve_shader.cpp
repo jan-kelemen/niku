@@ -85,7 +85,7 @@ namespace
             bright_image_uniform_write};
 
         vkUpdateDescriptorSets(device,
-            vkrndr::count_cast(descriptor_writes.size()),
+            vkrndr::count_cast(descriptor_writes),
             descriptor_writes.data(),
             0,
             nullptr);
