@@ -237,8 +237,9 @@ namespace
             return rv;
         };
 
-        vkrndr::buffer_t const staging_buffer{create_staging_buffer(backend.device(),
-            sizeof(material_t) * materials.size())};
+        vkrndr::buffer_t const staging_buffer{
+            create_staging_buffer(backend.device(),
+                sizeof(material_t) * materials.size())};
         vkrndr::mapped_memory_t staging_buffer_map{
             map_memory(backend.device(), staging_buffer)};
         material_t* const gpu_materials{staging_buffer_map.as<material_t>()};

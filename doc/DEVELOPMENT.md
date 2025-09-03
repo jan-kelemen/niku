@@ -7,17 +7,17 @@ Override packages from public Conan2 package index with updated ones from [jan-k
 ```
 git clone git@github.com:jan-kelemen/conan-recipes.git
 conan export conan-recipes/recipes/angelscript/all --version 2.38.0
-conan export conan-recipes/recipes/boost/all --version 1.88.0
-conan export conan-recipes/recipes/catch2/3.x.x --version 3.9.1
+conan export conan-recipes/recipes/boost/all --version 1.89.0
+conan export conan-recipes/recipes/catch2/3.x.x --version 3.10.0
 conan export conan-recipes/recipes/entt/3.x.x --version 3.15.0
 conan export conan-recipes/recipes/fastgltf/all --version 0.9.0
 conan export conan-recipes/recipes/freetype/meson --version 2.13.3
 conan export conan-recipes/recipes/glslang/all --version 1.4.321.0
-conan export conan-recipes/recipes/harfbuzz/all --version 11.4.1
+conan export conan-recipes/recipes/harfbuzz/all --version 11.4.5
 conan export conan-recipes/recipes/imgui/all --version 1.92.2b-docking
 conan export conan-recipes/recipes/joltphysics/all --version 5.3.0
 conan export conan-recipes/recipes/mikktspace/all --version cci.20200325
-conan export conan-recipes/recipes/meshoptimizer/all --version 0.24
+conan export conan-recipes/recipes/meshoptimizer/all --version 0.25
 conan export conan-recipes/recipes/recastnavigation/all --version 1.6.0
 conan export conan-recipes/recipes/sdl/3.x --version 3.2.20
 conan export conan-recipes/recipes/simdjson/all --version 3.13.0
