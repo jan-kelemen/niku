@@ -8,11 +8,16 @@
 #include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 
 #include <SDL3/SDL_events.h>
 
+#include <volk.h>
+
+#include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace ngnwsi
 {

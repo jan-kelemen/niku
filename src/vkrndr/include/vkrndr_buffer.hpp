@@ -56,7 +56,7 @@ namespace vkrndr
         std::string_view name);
 } // namespace vkrndr
 
-inline constexpr vkrndr::buffer_t::operator VkBuffer() const noexcept
+constexpr vkrndr::buffer_t::operator VkBuffer() const noexcept
 {
     return handle;
 }

@@ -3,18 +3,19 @@
 
 #include <cppext_container.hpp>
 #include <cppext_memory.hpp>
+#include <cppext_numeric.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
-#include <ngngfx_aircraft_camera.hpp>
-#include <ngngfx_perspective_projection.hpp>
-
 #include <vkglsl_shader_set.hpp>
 
+#include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_backend.hpp>
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_cpu_pacing.hpp>
 #include <vkrndr_debug_utils.hpp>
@@ -23,12 +24,18 @@
 #include <vkrndr_error_code.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_raytracing_pipeline_builder.hpp>
+#include <vkrndr_shader_module.hpp>
+#include <vkrndr_swapchain.hpp>
+#include <vkrndr_synchronization.hpp>
+#include <vkrndr_transient_operation.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -38,6 +45,8 @@
 #include <glm/vec3.hpp>
 
 #include <imgui.h>
+
+#include <vma_impl.hpp>
 
 #include <volk.h>
 
@@ -51,22 +60,24 @@
 #include <algorithm>
 #include <array>
 #include <bit>
-#include <cstdint>
-#include <exception>
+#include <cstddef>
+#include <cstring>
 #include <expected>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <optional>
 #include <span>
 #include <system_error>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
+// IWYU pragma: no_include <boost/container/deque.hpp>
+// IWYU pragma: no_include <boost/intrusive/detail/iterator.hpp>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <filesystem>
-// IWYU pragma: no_include <functional>
+// IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <map>
 // IWYU pragma: no_include <string>
 
@@ -369,8 +380,9 @@ void heatx::application_t::draw()
                 .size = aligned_handle_size,
             },
         };
-        VkStridedDeviceAddressRegionKHR callable_entry{};
+        VkStridedDeviceAddressRegionKHR const callable_entry{};
 
+        // NOLINTBEGIN(readability-container-data-pointer)
         vkCmdTraceRaysKHR(command_buffer,
             &binding_table_entries[0],
             &binding_table_entries[1],
@@ -379,6 +391,7 @@ void heatx::application_t::draw()
             target_image->extent.width,
             target_image->extent.height,
             1);
+        // NOLINTEND(readability-container-data-pointer)
     }
 
     {
@@ -546,6 +559,7 @@ void heatx::application_t::on_startup()
 
     std::array<vkrndr::shader_module_t, 3> mods;
 
+    // NOLINTNEXTLINE(readability-qualified-auto)
     auto it{std::begin(mods)};
 
     vkglsl::shader_set_t shader_set{heatx::enable_shader_debug_symbols,
@@ -563,10 +577,12 @@ void heatx::application_t::on_startup()
                 {
                     return raygen_stage;
                 }
-                else if (s == VK_SHADER_STAGE_MISS_BIT_KHR)
+
+                if (s == VK_SHADER_STAGE_MISS_BIT_KHR)
                 {
                     return miss_stage;
                 }
+
                 return closest_hit_stage;
             }(stage)};
 
@@ -672,12 +688,12 @@ void heatx::application_t::on_resize(uint32_t const width,
     }
 
     vkrndr::frame_in_flight_t& in_flight{render_window_->frame_in_flight()};
-    std::function<void(std::function<void()>)> deletion_queue_insert{
+    std::function<void(std::function<void()>)> const deletion_queue_insert{
         [&in_flight](std::function<void()> cb)
         { in_flight.cleanup.push_back(std::move(cb)); }};
 
-    deletion_queue_insert([&device = backend_->device(),
-                              image = std::move(ray_generation_storage_)]()
+    deletion_queue_insert(
+        [&device = backend_->device(), image = ray_generation_storage_]()
         { destroy(device, image); });
 
     ray_generation_storage_ = create_ray_generation_storage_image(*backend_,
@@ -688,7 +704,7 @@ void heatx::application_t::on_resize(uint32_t const width,
         "Ray Generation Storage"));
 
     {
-        vkrndr::transient_operation_t op{
+        vkrndr::transient_operation_t const op{
             backend_->request_transient_operation(false)};
 
         VkImageMemoryBarrier2 const barrier{vkrndr::with_access(
@@ -758,12 +774,15 @@ void heatx::application_t::create_blas()
                         .sType = vku::GetSType<
                             VkAccelerationStructureGeometryTrianglesDataKHR>(),
                         .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
-                        .vertexData = vertex_buffer_.device_address,
+                        .vertexData = {.deviceAddress =
+                                           vertex_buffer_.device_address},
                         .vertexStride = sizeof(glm::vec3),
                         .maxVertex = 3,
                         .indexType = VK_INDEX_TYPE_UINT32,
-                        .indexData = index_buffer_.device_address,
-                        .transformData = transform_buffer_.device_address,
+                        .indexData = {.deviceAddress =
+                                          index_buffer_.device_address},
+                        .transformData = {.deviceAddress =
+                                              transform_buffer_.device_address},
                     }},
         .flags = VK_GEOMETRY_OPAQUE_BIT_KHR,
     };
@@ -813,7 +832,7 @@ void heatx::application_t::create_blas()
         vkrndr::create_staging_buffer(*rendering_context_.device,
             vertex_buffer_.size + index_buffer_.size + transform_buffer_.size)};
     {
-        vkrndr::transient_operation_t transient{
+        vkrndr::transient_operation_t const transient{
             backend_->request_transient_operation(false)};
 
         VkCommandBuffer cb{transient.command_buffer()};
@@ -851,6 +870,8 @@ void heatx::application_t::create_blas()
         {
             VkTransformMatrixKHR* const transforms{map.as<VkTransformMatrixKHR>(
                 vertex_buffer_.size + index_buffer_.size)};
+            DISABLE_WARNING_PUSH
+            DISABLE_WARNING_MISSING_BRACES
             // clang-format off
             *transforms = 
             {
@@ -859,7 +880,7 @@ void heatx::application_t::create_blas()
                 0.0f, 0.0f, 1.0f, 0.0f,
             };
             // clang-format on
-
+            DISABLE_WARNING_POP
             VkBufferCopy const copy_transform{
                 .srcOffset = vertex_buffer_.size + index_buffer_.size,
                 .dstOffset = 0,
@@ -974,7 +995,7 @@ void heatx::application_t::create_tlas()
         vkrndr::create_staging_buffer(backend_->device(),
             instance_buffer_.size)};
     {
-        vkrndr::transient_operation_t transient{
+        vkrndr::transient_operation_t const transient{
             backend_->request_transient_operation(false)};
 
         VkCommandBuffer cb{transient.command_buffer()};
@@ -983,6 +1004,8 @@ void heatx::application_t::create_tlas()
             vkrndr::mapped_memory_t map{
                 vkrndr::map_memory(backend_->device(), staging)};
 
+            DISABLE_WARNING_PUSH
+            DISABLE_WARNING_MISSING_BRACES
             // clang-format off
             *map.as<VkAccelerationStructureInstanceKHR>() = {
                 .transform = 
@@ -996,7 +1019,7 @@ void heatx::application_t::create_tlas()
                 .accelerationStructureReference = blas_.device_address,
             };
             // clang-format on
-
+            DISABLE_WARNING_POP
             vkrndr::unmap_memory(backend_->device(), &map);
 
             VkBufferCopy const copy_transform{
@@ -1096,7 +1119,7 @@ void heatx::application_t::create_shader_binding_table()
             vkrndr::map_memory(*rendering_context_.device, hit_binding_table_)};
 
         memcpy(map.as<std::byte>(),
-            handle_storage.data() + aligned_handle_size * 2,
+            handle_storage.data() + size_t{aligned_handle_size} * 2,
             handle_size);
 
         vkrndr::unmap_memory(*rendering_context_.device, &map);

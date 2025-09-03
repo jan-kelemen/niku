@@ -1,9 +1,12 @@
 #include <vkrndr_acceleration_structure.hpp>
 
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <vulkan/utility/vk_struct_helper.hpp>
+
+#include <span>
 
 void vkrndr::destroy(device_t const& device,
     acceleration_structure_t const& structure)

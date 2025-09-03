@@ -309,7 +309,7 @@ galileo::batch_renderer_t::buffer_for(VkPrimitiveTopology topology)
         }
         else
         {
-            vkrndr::buffer_t buffer{create_buffer(backend_->device(),
+            vkrndr::buffer_t const buffer{create_buffer(backend_->device(),
                 {.size = 30000 * sizeof(batch_vertex_t),
                     .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                     .allocation_flags =

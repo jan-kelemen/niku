@@ -91,12 +91,12 @@ namespace vkrndr
         VkSurfaceKHR surface);
 } // namespace vkrndr
 
-inline constexpr vkrndr::device_t::operator VkDevice() const noexcept
+constexpr vkrndr::device_t::operator VkDevice() const noexcept
 {
     return logical_device;
 }
 
-inline constexpr vkrndr::device_t::operator VkPhysicalDevice() const noexcept
+constexpr vkrndr::device_t::operator VkPhysicalDevice() const noexcept
 {
     return physical_device;
 }

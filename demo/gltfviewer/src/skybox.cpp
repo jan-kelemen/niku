@@ -306,7 +306,7 @@ void gltfviewer::skybox_t::load_hdr(std::filesystem::path const& hdr_image,
     assert(hdr_texture_data);
 
     auto const hdr_extent{vkrndr::to_2d_extent(width, height)};
-    vkrndr::image_t cubemap_texture = backend_->transfer_image(
+    vkrndr::image_t const cubemap_texture = backend_->transfer_image(
         as_bytes(std::span{hdr_texture_data,
             size_t{hdr_extent.width} * hdr_extent.height * 4}),
         hdr_extent,

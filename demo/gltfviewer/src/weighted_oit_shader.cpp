@@ -278,7 +278,7 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
     std::function<void(std::function<void()>)>& deletion_queue_insert)
 {
     deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(accumulation_image_)]()
+        [&device = backend_->device(), image = accumulation_image_]()
         { destroy(device, image); });
     accumulation_image_ = create_image_and_view(backend_->device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -292,7 +292,7 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
         VK_IMAGE_ASPECT_COLOR_BIT);
 
     deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(reveal_image_)]()
+        [&device = backend_->device(), image = reveal_image_]()
         { destroy(device, image); });
     reveal_image_ = create_image_and_view(backend_->device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R8_UNORM,

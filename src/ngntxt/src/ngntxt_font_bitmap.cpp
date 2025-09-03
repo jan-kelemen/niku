@@ -112,7 +112,7 @@ namespace
             (glyph_count + horizontal_glyphs - 1) / horizontal_glyphs)};
 
         // Prepare staging buffer and the target bitmap image
-        vkrndr::buffer_t staging_buffer{
+        vkrndr::buffer_t const staging_buffer{
             vkrndr::create_staging_buffer(backend.device(), all_bitmaps_size)};
         boost::scope::defer_guard const rollback{[&backend, staging_buffer]()
             { destroy(backend.device(), staging_buffer); }};
@@ -237,8 +237,8 @@ ngntxt::font_bitmap_t ngntxt::create_bitmap(font_face_ptr_t font_face,
 
 size_t ngntxt::load_codepoint_range(vkrndr::backend_t& backend,
     font_bitmap_t& bitmap,
-    char32_t begin,
-    char32_t end)
+    char32_t const begin,
+    char32_t const end)
 {
     create_atlas_for_codepoints(backend, bitmap, std::views::iota(begin, end));
     return bitmap.bitmap_images.size() - 1;

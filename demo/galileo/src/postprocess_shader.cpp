@@ -328,7 +328,7 @@ void galileo::postprocess_shader_t::resize(uint32_t width,
     std::function<void(std::function<void()>)>& deletion_queue_insert)
 {
     deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(intermediate_image_)]()
+        [&device = backend_->device(), image = intermediate_image_]()
         { destroy(device, image); });
     intermediate_image_ = create_intermediate_image(*backend_,
         vkrndr::to_2d_extent(width, height));

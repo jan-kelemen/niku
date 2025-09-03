@@ -43,7 +43,7 @@ ngngfx::gbuffer_t ngngfx::create_gbuffer(vkrndr::device_t const& device,
 
 void ngngfx::destroy(vkrndr::device_t const& device, gbuffer_t const& gbuffer)
 {
-    for (auto& image : gbuffer.images)
+    for (auto const& image : gbuffer.images)
     {
         destroy(device, image);
     }

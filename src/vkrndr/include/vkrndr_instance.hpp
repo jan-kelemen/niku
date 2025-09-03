@@ -65,7 +65,7 @@ namespace vkrndr
         char const* layer_name = nullptr);
 } // namespace vkrndr
 
-inline constexpr vkrndr::instance_t::operator VkInstance() const noexcept
+constexpr vkrndr::instance_t::operator VkInstance() const noexcept
 {
     return handle;
 }

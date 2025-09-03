@@ -5,6 +5,7 @@
 
 #include <volk.h>
 
+#include <cstdint>
 #include <vector>
 
 namespace vkrndr

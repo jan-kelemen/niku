@@ -9,14 +9,20 @@
 
 #include <vulkan/utility/vk_struct_helper.hpp>
 
+#include <bit>
 #include <cstdint>
 #include <system_error>
+#include <utility>
+
+// IWYU pragma: no_include <boost/move/detail/reverse_iterator.hpp>
+// IWYU pragma: no_include <set>
+// IWYU pragma: no_include <string>
 
 vkrndr::cpu_pacing_t::cpu_pacing_t(device_t const& device,
     uint32_t const frames_in_flight)
     : device_{&device}
-    , frames_in_flight_{frames_in_flight}
     , frames_{frames_in_flight}
+    , frames_in_flight_{frames_in_flight}
 {
     VkFenceCreateInfo const signaled_fence_create{
         .sType = vku::GetSType<VkFenceCreateInfo>(),
@@ -66,6 +72,7 @@ vkrndr::cpu_pacing_t::~cpu_pacing_t()
 
 vkrndr::frame_in_flight_t* vkrndr::cpu_pacing_t::pace(uint64_t const timeout)
 {
+    // NOLINTBEGIN(readability-else-after-return)
     if (VkResult const result{vkWaitForFences(*device_,
             1,
             &frames_[current_frame_].submit_fence,
@@ -79,6 +86,7 @@ vkrndr::frame_in_flight_t* vkrndr::cpu_pacing_t::pace(uint64_t const timeout)
     {
         throw std::system_error{make_error_code(result)};
     }
+    // NOLINTEND(readability-else-after-return)
 
     auto& frame{current()};
     for (auto it{frame.old_cleanup_queue.rbegin()};

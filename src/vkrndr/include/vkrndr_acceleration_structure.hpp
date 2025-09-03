@@ -40,7 +40,7 @@ namespace vkrndr
         VkAccelerationStructureBuildSizesInfoKHR const& info);
 } // namespace vkrndr
 
-inline constexpr vkrndr::acceleration_structure_t::
+constexpr vkrndr::acceleration_structure_t::
 operator VkAccelerationStructureKHR() const noexcept
 {
     return handle;

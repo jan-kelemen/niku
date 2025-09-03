@@ -205,8 +205,5 @@ namespace vkrndr
         std::string_view name);
 } // namespace vkrndr
 
-inline constexpr vkrndr::image_t::operator VkImage() const noexcept
-{
-    return handle;
-}
+constexpr vkrndr::image_t::operator VkImage() const noexcept { return handle; }
 #endif

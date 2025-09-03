@@ -199,7 +199,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_image(
     VkFormat const format,
     uint32_t const mip_levels)
 {
-    buffer_t staging_buffer{
+    buffer_t const staging_buffer{
         create_staging_buffer(*context_.device, image_data.size())};
     boost::scope::defer_guard const rollback{[this, staging_buffer]() mutable
         { destroy(*context_.device, staging_buffer); }};

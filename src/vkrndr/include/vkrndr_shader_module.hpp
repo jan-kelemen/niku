@@ -46,8 +46,7 @@ namespace vkrndr
         std::string_view name);
 } // namespace vkrndr
 
-inline constexpr vkrndr::shader_module_t::operator VkShaderModule()
-    const noexcept
+constexpr vkrndr::shader_module_t::operator VkShaderModule() const noexcept
 {
     return handle;
 }

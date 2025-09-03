@@ -4,11 +4,8 @@
 #include <volk.h>
 
 #include <cstdint>
-#include <memory>
-#include <optional>
 #include <span>
 #include <string_view>
-#include <vector>
 
 namespace vkrndr
 {
@@ -50,13 +47,12 @@ namespace vkrndr
         std::string_view name);
 } // namespace vkrndr
 
-inline constexpr vkrndr::pipeline_t::operator VkPipeline() const noexcept
+constexpr vkrndr::pipeline_t::operator VkPipeline() const noexcept
 {
     return handle;
 }
 
-inline constexpr vkrndr::pipeline_layout_t::operator VkPipelineLayout()
-    const noexcept
+constexpr vkrndr::pipeline_layout_t::operator VkPipelineLayout() const noexcept
 {
     return handle;
 }

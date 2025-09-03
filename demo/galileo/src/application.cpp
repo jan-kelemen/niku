@@ -118,6 +118,7 @@ DISABLE_WARNING_POP
 #include <exception>
 #include <expected>
 #include <filesystem>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <span>
@@ -126,6 +127,8 @@ DISABLE_WARNING_POP
 #include <utility>
 #include <vector>
 
+// IWYU pragma: no_include <boost/container/deque.hpp>
+// IWYU pragma: no_include <boost/intrusive/detail/iterator.hpp>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
@@ -1045,18 +1048,18 @@ void galileo::application_t::on_resize(uint32_t const width,
     projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 
     deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(depth_buffer_)]()
+        [&device = backend_->device(), image = depth_buffer_]()
         { destroy(device, image); });
     depth_buffer_ = create_depth_buffer(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_buffer_, "Depth buffer"));
 
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
     deletion_queue_insert([gbuffer = gbuffer_.release()]() { delete gbuffer; });
     gbuffer_ = std::make_unique<gbuffer_t>(*backend_);
     gbuffer_->resize(width, height);
 
-    deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(color_image_)]()
+    deletion_queue_insert([&device = backend_->device(), image = color_image_]()
         { destroy(device, image); });
     color_image_ = create_color_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(

@@ -4,19 +4,10 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <algorithm>
 #include <bit>
-#include <cassert>
 #include <cstdint>
-#include <iterator>
-#include <memory>
 #include <span>
 #include <string_view>
-#include <utility>
-#include <vector>
-
-// IWYU pragma: no_include <type_traits>
-// IWYU pragma: no_include <functional>
 
 void vkrndr::destroy(device_t const& device, pipeline_layout_t const& layout)
 {

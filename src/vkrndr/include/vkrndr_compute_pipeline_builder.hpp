@@ -5,8 +5,6 @@
 
 #include <volk.h>
 
-#include <memory>
-
 namespace vkrndr
 {
     struct device_t;

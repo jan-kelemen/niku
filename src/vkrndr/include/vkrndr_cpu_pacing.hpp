@@ -7,6 +7,9 @@
 
 #include <cstdint>
 #include <functional>
+#include <vector>
+
+// IWYU pragma: no_include <utility>
 
 namespace vkrndr
 {
@@ -19,7 +22,7 @@ namespace vkrndr
     {
         uint32_t index{};
 
-        VkFence submit_fence;
+        VkFence submit_fence{VK_NULL_HANDLE};
 
         boost::container::deque<std::function<void()>> cleanup;
         boost::container::deque<std::function<void()>> old_cleanup_queue;

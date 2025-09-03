@@ -67,7 +67,7 @@ namespace vkrndr
     };
 } // namespace vkrndr
 
-inline constexpr vkrndr::execution_port_t::operator VkQueue() const noexcept
+constexpr vkrndr::execution_port_t::operator VkQueue() const noexcept
 {
     return queue_;
 }

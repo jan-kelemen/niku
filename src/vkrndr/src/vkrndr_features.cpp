@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <iterator>
 #include <ranges>
+#include <span>
 #include <string_view>
 #include <utility>
 
@@ -182,12 +183,11 @@ void vkrndr::set_feature_flags_on_chain(feature_chain_t& chain,
             [&instance](auto const value) { instance.*value = VK_TRUE; });
     };
 
-    auto const set_optional_flags =
-        [&set_flags](auto&& instance, auto const& flags)
+    auto const set_optional_flags = [&set_flags](auto&& instance, auto const& f)
     {
-        if (flags)
+        if (f)
         {
-            set_flags(instance, cppext::as_span(*flags));
+            set_flags(instance, cppext::as_span(*f));
         }
     };
 

@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <ranges>
 #include <span>
+#include <utility>
 #include <vector>
 
 // IWYU pragma: no_include <expected>
@@ -332,7 +333,7 @@ void gltfviewer::pyramid_blur_t::resize(uint32_t const width,
     std::function<void(std::function<void()>)>& deletion_queue_insert)
 {
     deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(pyramid_image_)]()
+        [&device = backend_->device(), image = pyramid_image_]()
         { destroy(device, image); });
     pyramid_image_ = vkrndr::create_image(backend_->device(),
         vkrndr::image_2d_create_info_t{.format = VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -426,11 +427,11 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources(
     }
 
     deletion_queue_insert(
-        [&device = backend_->device(), layout = std::move(pipeline_layout_)]()
+        [&device = backend_->device(), layout = pipeline_layout_]()
         { destroy(device, layout); });
 
-    deletion_queue_insert([&device = backend_->device(),
-                              pipeline = std::move(downsample_pipeline_)]()
+    deletion_queue_insert(
+        [&device = backend_->device(), pipeline = downsample_pipeline_]()
         { destroy(device, pipeline); });
 
     pipeline_layout_ =
@@ -459,8 +460,8 @@ void gltfviewer::pyramid_blur_t::create_upsample_resources(
     [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
         [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
-    deletion_queue_insert([&device = backend_->device(),
-                              pipeline = std::move(upsample_pipeline_)]()
+    deletion_queue_insert(
+        [&device = backend_->device(), pipeline = upsample_pipeline_]()
         { destroy(device, pipeline); });
     upsample_pipeline_ =
         vkrndr::compute_pipeline_builder_t{backend_->device(), pipeline_layout_}

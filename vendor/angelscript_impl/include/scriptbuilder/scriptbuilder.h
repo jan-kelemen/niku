@@ -175,7 +175,7 @@ protected:
 	// Storage of metadata for class member declarations
 	struct SClassMetadata
 	{
-		SClassMetadata(const std::string& aName) : className(aName) {}
+		explicit SClassMetadata(const std::string& aName) : className(aName) {}
 		std::string className;
 		std::map<int, std::vector<std::string> > funcMetadataMap;
 		std::map<int, std::vector<std::string> > varMetadataMap;

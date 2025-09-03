@@ -216,8 +216,9 @@ void galileo::frame_info_t::bind_on(VkCommandBuffer command_buffer,
 void galileo::frame_info_t::disperse_lights(
     ngnast::bounding_box_t const& bounding_box)
 {
-    vkrndr::buffer_t staging{vkrndr::create_staging_buffer(backend_->device(),
-        sizeof(gpu_light_t) * max_lights)};
+    vkrndr::buffer_t const staging{
+        vkrndr::create_staging_buffer(backend_->device(),
+            sizeof(gpu_light_t) * max_lights)};
     {
         vkrndr::mapped_memory_t staging_map{
             map_memory(backend_->device(), staging)};

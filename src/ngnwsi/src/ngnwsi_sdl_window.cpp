@@ -11,7 +11,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include <limits>
 #include <stdexcept>
 
 // IWYU pragma: no_include <fmt/base.h>

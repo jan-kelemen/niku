@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include <vkrndr_device.hpp>
 
 #include <vkrndr_error_code.hpp>
@@ -16,6 +17,8 @@
 #include <string_view>
 #include <vector>
 
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <utility>
@@ -109,6 +112,7 @@ namespace
                 &rv->logical_device)};
             result != VK_SUCCESS)
         {
+            spdlog::error("{}", vkrndr::make_error_code(result).message());
             return std::unexpected{vkrndr::make_error_code(result)};
         }
 

@@ -46,7 +46,7 @@ namespace vkrndr
             VkSemaphore acquire_semaphore{VK_NULL_HANDLE};
             VkSemaphore present_semaphore{VK_NULL_HANDLE};
 
-            uint32_t image_index;
+            uint32_t image_index{};
 
             std::vector<swap_image_t> garbage;
         };

@@ -72,6 +72,7 @@ DISABLE_WARNING_POP
 #include <exception>
 #include <expected>
 #include <filesystem>
+#include <functional>
 #include <iterator>
 #include <memory>
 #include <span>
@@ -81,6 +82,8 @@ DISABLE_WARNING_POP
 #include <utility>
 #include <vector>
 
+// IWYU pragma: no_include <boost/container/deque.hpp>
+// IWYU pragma: no_include <boost/intrusive/detail/iterator.hpp>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <map>
@@ -965,22 +968,21 @@ void gltfviewer::application_t::on_resize(uint32_t const width,
         [&in_flight](std::function<void()> cb)
         { in_flight.cleanup.push_back(std::move(cb)); }};
 
-    deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(color_image_)]()
+    deletion_queue_insert([&device = backend_->device(), image = color_image_]()
         { destroy(device, image); });
     color_image_ = create_color_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), color_image_, "Offscreen Image"));
 
     deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(depth_buffer_)]()
+        [&device = backend_->device(), image = depth_buffer_]()
         { destroy(device, image); });
     depth_buffer_ = create_depth_buffer(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), depth_buffer_, "Depth Buffer"));
 
     deletion_queue_insert(
-        [&device = backend_->device(), image = std::move(resolve_image_)]()
+        [&device = backend_->device(), image = resolve_image_]()
         { destroy(device, image); });
     resolve_image_ = create_resolve_image(*backend_, {width, height});
     VKRNDR_IF_DEBUG_UTILS(

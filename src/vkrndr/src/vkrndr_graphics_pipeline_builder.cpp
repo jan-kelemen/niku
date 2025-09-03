@@ -1,11 +1,17 @@
 #include <vkrndr_graphics_pipeline_builder.hpp>
 
 #include <vkrndr_device.hpp>
+#include <vkrndr_pipeline.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <vulkan/utility/vk_struct_helper.hpp>
 
+#include <algorithm>
 #include <cassert>
+#include <utility> // IWYU pragma: keep
+
+// IWYU pragma: no_include <iterator>
+// IWYU pragma: no_include <functional>
 
 vkrndr::graphics_pipeline_builder_t::graphics_pipeline_builder_t(
     device_t const& device,

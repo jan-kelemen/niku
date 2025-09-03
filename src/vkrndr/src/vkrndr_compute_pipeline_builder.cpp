@@ -1,6 +1,7 @@
 #include <vkrndr_compute_pipeline_builder.hpp>
 
 #include <vkrndr_device.hpp>
+#include <vkrndr_pipeline.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <vulkan/utility/vk_struct_helper.hpp>

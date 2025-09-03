@@ -4,7 +4,6 @@
 #include <ngnwsi_sdl_window.hpp>
 
 #include <vkrndr_image.hpp>
-#include <vkrndr_swapchain.hpp>
 
 #include <SDL3/SDL_video.h>
 
@@ -20,6 +19,8 @@ namespace vkrndr
     class cpu_pacing_t;
     struct device_t;
     struct frame_in_flight_t;
+    struct swapchain_settings_t;
+    class swapchain_t;
 } // namespace vkrndr
 
 namespace ngnwsi

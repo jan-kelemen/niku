@@ -5,7 +5,7 @@
 
 #include <volk.h>
 
-#include <memory>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <vector>

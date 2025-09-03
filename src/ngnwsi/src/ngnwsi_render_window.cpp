@@ -5,7 +5,6 @@
 #include <vkrndr_cpu_pacing.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_swapchain.hpp>
-#include <vkrndr_utility.hpp>
 
 #include <SDL3/SDL_video.h>
 
