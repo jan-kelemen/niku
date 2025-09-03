@@ -48,7 +48,9 @@
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <map>
+// IWYU pragma: no_include <set>
 // IWYU pragma: no_include <string>
+// IWYU pragma: no_include <string_view>
 
 reshed::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{

@@ -41,6 +41,7 @@
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <string_view>
 // IWYU pragma: no_include <system_error>
+// IWYU pragma: no_include <type_traits>
 
 namespace
 {

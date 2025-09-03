@@ -1,6 +1,8 @@
 #ifndef RESHED_APPLICATION_INCLUDED
 #define RESHED_APPLICATION_INCLUDED
 
+#include <editor_window.hpp> // IWYU pragma: keep
+
 #include <ngnwsi_application.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -14,11 +16,6 @@ namespace ngntxt
 {
     class freetype_context_t;
 } // namespace ngntxt
-
-namespace reshed
-{
-    class editor_window_t;
-} // namespace reshed
 
 namespace reshed
 {
