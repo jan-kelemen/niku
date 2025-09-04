@@ -1,7 +1,13 @@
 #ifndef HEATX_APPLICATION_INCLUDED
 #define HEATX_APPLICATION_INCLUDED
 
+#include <camera_controller.hpp>
+
+#include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
+
 #include <ngnwsi_application.hpp>
+#include <ngnwsi_mouse.hpp>
 
 #include <vkglsl_guard.hpp>
 
@@ -51,6 +57,8 @@ namespace heatx
 
         bool handle_event(SDL_Event const& event) override;
 
+        void update(float delta_time) override;
+
         void draw() override;
 
         void end_frame() override;
@@ -75,6 +83,11 @@ namespace heatx
         void update_descriptors();
 
     private:
+        ngnwsi::mouse_t mouse_;
+        ngngfx::aircraft_camera_t camera_;
+        ngngfx::perspective_projection_t projection_;
+        camera_controller_t camera_controller_;
+
         vkglsl::guard_t guard_;
 
         vkrndr::rendering_context_t rendering_context_;

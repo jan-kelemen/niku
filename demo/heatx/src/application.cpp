@@ -1,4 +1,5 @@
 #include <application.hpp>
+#include <camera_controller.hpp>
 #include <config.hpp>
 
 #include <cppext_container.hpp>
@@ -6,8 +7,12 @@
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
 
+#include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
+
 #include <ngnwsi_application.hpp>
 #include <ngnwsi_imgui_layer.hpp>
+#include <ngnwsi_mouse.hpp>
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
@@ -40,8 +45,8 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/matrix.hpp>
 #include <glm/vec3.hpp>
 
 #include <imgui.h>
@@ -109,6 +114,7 @@ namespace
 heatx::application_t::application_t(bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
           .init_subsystems = {.video = true, .debug = debug}}}
+    , camera_controller_{camera_, mouse_}
     , render_window_{std::make_unique<ngnwsi::render_window_t>("heatx",
           SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           1280,
@@ -282,6 +288,11 @@ heatx::application_t::application_t(bool const debug)
         throw std::system_error{create_result.error()};
     }
 
+    camera_.set_position({0.0f, 0.0f, -5.0f});
+    camera_.set_yaw_pitch({3.14f, 0.0f});
+    projection_.set_near_far_planes({0.1f, 1000.f});
+    projection_.set_fov(60.0f);
+
     raytracing_pipeline_properties_ = vkrndr::get_device_properties<
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR>(
         *rendering_context_.device);
@@ -303,6 +314,8 @@ bool heatx::application_t::handle_event(SDL_Event const& event)
         return true;
     }
 
+    camera_controller_.handle_event(event);
+
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
     if (event.type == SDL_EVENT_QUIT ||
@@ -323,6 +336,12 @@ bool heatx::application_t::handle_event(SDL_Event const& event)
     return false;
 }
 
+void heatx::application_t::update(float const delta_time)
+{
+    camera_controller_.update(delta_time);
+    projection_.update(camera_.view_matrix());
+}
+
 void heatx::application_t::draw()
 {
     std::optional<vkrndr::image_t> const target_image{
@@ -334,10 +353,23 @@ void heatx::application_t::draw()
 
     vkrndr::frame_in_flight_t const& frame{render_window_->frame_in_flight()};
 
+    {
+        vkrndr::mapped_memory_t map{vkrndr::map_memory(backend_->device(),
+            uniform_buffers_[frame.index])};
+
+        map.as<uniform_data_t>()->inverse_projection =
+            glm::inverse(projection_.projection_matrix());
+        map.as<uniform_data_t>()->inverse_view =
+            glm::inverse(camera_.view_matrix());
+
+        vkrndr::unmap_memory(backend_->device(), &map);
+    }
+
     backend_->begin_frame();
 
     imgui_->begin_frame();
 
+    camera_controller_.draw_imgui();
     ImGui::ShowMetricsWindow();
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
@@ -473,21 +505,16 @@ void heatx::application_t::end_frame() { }
 
 void heatx::application_t::on_startup()
 {
+    mouse_.set_window_handle(render_window_->platform_window().native_handle());
+
     create_blas();
     create_tlas();
 
-    glm::mat4 view = glm::lookAtRH(glm::vec3{0.0f, 0.0f, -5.0f},
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f});
-
-    glm::mat4 projection =
-        glm::perspectiveRH_ZO(1.047198f, 1280.0f / 720, 0.1f, 1000.0f);
-
     std::ranges::generate_n(std::back_inserter(uniform_buffers_),
         backend_->frames_in_flight(),
-        [this, &view, &projection]()
+        [this]()
         {
-            vkrndr::buffer_t rv{vkrndr::create_buffer(backend_->device(),
+            return vkrndr::create_buffer(backend_->device(),
                 {
                     .size = sizeof(uniform_data_t),
                     .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -497,17 +524,7 @@ void heatx::application_t::on_startup()
                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                })};
-
-            vkrndr::mapped_memory_t map{
-                vkrndr::map_memory(backend_->device(), rv)};
-
-            map.as<uniform_data_t>()->inverse_projection = projection;
-            map.as<uniform_data_t>()->inverse_view = view;
-
-            vkrndr::unmap_memory(backend_->device(), &map);
-
-            return rv;
+                });
         });
 
     std::array const layout_bindings{
@@ -734,6 +751,8 @@ void heatx::application_t::on_resize(uint32_t const width,
 
         update_descriptors();
     }
+
+    projection_.set_aspect_ratio(cppext::as_fp(width) / cppext::as_fp(height));
 }
 
 void heatx::application_t::create_blas()

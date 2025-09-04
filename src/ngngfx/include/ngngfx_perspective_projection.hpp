@@ -29,6 +29,10 @@ namespace ngngfx
 
         [[nodiscard]] float aspect_ratio() const;
 
+        void set_fov(float fov);
+
+        [[nodiscard]] float fov() const;
+
     public: // projection_t overrides
         void update(glm::mat4 const& view_matrix) override;
 

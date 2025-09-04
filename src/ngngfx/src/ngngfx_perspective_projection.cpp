@@ -17,7 +17,8 @@ ngngfx::perspective_projection_t::perspective_projection_t(
 {
 }
 
-void ngngfx::perspective_projection_t::set_aspect_ratio(float aspect_ratio)
+void ngngfx::perspective_projection_t::set_aspect_ratio(
+    float const aspect_ratio)
 {
     aspect_ratio_ = aspect_ratio;
 }
@@ -26,6 +27,10 @@ float ngngfx::perspective_projection_t::aspect_ratio() const
 {
     return aspect_ratio_;
 }
+
+void ngngfx::perspective_projection_t::set_fov(float const fov) { fov_ = fov; }
+
+float ngngfx::perspective_projection_t::fov() const { return fov_; }
 
 void ngngfx::perspective_projection_t::update(glm::mat4 const& view_matrix)
 {
