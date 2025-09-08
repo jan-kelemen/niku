@@ -28,9 +28,7 @@ namespace ngnast::gpu
     struct [[nodiscard]] vertex_t final
     {
         glm::vec3 position;
-        uint8_t padding1[4];
         glm::vec3 normal;
-        uint8_t padding2[4];
         glm::vec4 tangent;
         glm::vec4 color{1.0f};
         glm::vec2 uv;
