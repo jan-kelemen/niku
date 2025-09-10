@@ -7,6 +7,9 @@
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
 
+#include <ngnast_gltf_loader.hpp>
+#include <ngnast_gpu_transfer.hpp>
+
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
@@ -643,6 +646,15 @@ void heatx::application_t::on_startup()
     }
 
     create_shader_binding_table();
+
+    ngnast::gltf::loader_t loader;
+    if (auto scene{loader.load(
+            R"(D:\git\glTF-Sample-Assets\Models\Sponza\glTF\Sponza.gltf)")})
+    {
+        ngnast::gpu::acceleration_structure_build_result_t br{
+            ngnast::gpu::build_acceleration_structures(*backend_, *scene)};
+        destroy(backend_->device(), br);
+    }
 }
 
 void heatx::application_t::on_shutdown()

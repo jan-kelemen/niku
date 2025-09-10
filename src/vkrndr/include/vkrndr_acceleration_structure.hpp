@@ -34,6 +34,8 @@ namespace vkrndr
     buffer_t create_scratch_buffer(device_t const& device,
         VkAccelerationStructureBuildSizesInfoKHR const& info);
 
+    buffer_t create_scratch_buffer(device_t const& device, VkDeviceSize size);
+
     acceleration_structure_t create_acceleration_structure(
         device_t const& device,
         VkAccelerationStructureTypeKHR type,

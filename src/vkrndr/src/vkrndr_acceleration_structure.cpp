@@ -41,9 +41,15 @@ vkrndr::buffer_t vkrndr::create_acceleration_structure_buffer(
 vkrndr::buffer_t vkrndr::create_scratch_buffer(device_t const& device,
     VkAccelerationStructureBuildSizesInfoKHR const& info)
 {
+    return create_scratch_buffer(device, info.buildScratchSize);
+}
+
+vkrndr::buffer_t vkrndr::create_scratch_buffer(device_t const& device,
+    VkDeviceSize const size)
+{
     return create_buffer(device,
         {
-            .size = info.buildScratchSize,
+            .size = size,
             .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

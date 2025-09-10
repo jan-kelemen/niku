@@ -1,6 +1,7 @@
 #ifndef NGNAST_GPU_TRANSFER_INCLUDED
 #define NGNAST_GPU_TRANSFER_INCLUDED
 
+#include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_buffer.hpp>
 
 #include <glm/vec2.hpp>
@@ -21,6 +22,7 @@ namespace ngnast
 namespace vkrndr
 {
     struct device_t;
+    class backend_t;
 } // namespace vkrndr
 
 namespace ngnast::gpu
@@ -61,7 +63,29 @@ namespace ngnast::gpu
     void destroy(vkrndr::device_t const& device,
         geometry_transfer_result_t const& model);
 
+    struct [[nodiscard]] acceleration_structure_build_result_t final
+    {
+        vkrndr::buffer_t vertex_buffer;
+        uint32_t vertex_count{};
+
+        vkrndr::buffer_t index_buffer;
+        uint32_t index_count{};
+
+        std::vector<primitive_t> primitives;
+
+        std::vector<vkrndr::acceleration_structure_t> bottom_level;
+
+        vkrndr::acceleration_structure_t top_level;
+    };
+
+    void destroy(vkrndr::device_t const& device,
+        acceleration_structure_build_result_t const& structures);
+
     geometry_transfer_result_t transfer_geometry(vkrndr::device_t const& device,
+        scene_model_t const& model);
+
+    acceleration_structure_build_result_t build_acceleration_structures(
+        vkrndr::backend_t& backend,
         scene_model_t const& model);
 } // namespace ngnast::gpu
 

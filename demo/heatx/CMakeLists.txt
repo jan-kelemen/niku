@@ -25,6 +25,7 @@ target_include_directories(heatx
 
 target_link_libraries(heatx
     PRIVATE
+        ngnast
         ngngfx
         ngnwsi
         vkrndr
