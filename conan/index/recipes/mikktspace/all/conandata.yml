@@ -1,0 +1,10 @@
+sources:
+  "cci.20200325":
+    url: "https://github.com/mmikk/MikkTSpace/archive/3e895b49d05ea07e4c2133156cfa94369e19e409.tar.gz"
+    sha256: "aeba65ddee85a679133d510d71d00b108f603752f90b15b9ecf7777033f6e351"
+patches:
+  "cci.20200325":
+    - patch_file: "patches/20200325-undefined-behavior-shift.patch"
+      patch_description: "Fix undefined behavior error under UBSAN"
+      patch_type: "bug"
+      sha256: "0f42f47205a07f3f43e4987e7c75f1a06b0edb18b5e24e0a3683cb2fa63ffc09"

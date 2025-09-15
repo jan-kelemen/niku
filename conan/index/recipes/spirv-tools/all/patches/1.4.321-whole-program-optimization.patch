@@ -1,0 +1,37 @@
+--- a/source/binary.cpp
++++ b/source/binary.cpp
+@@ -853,7 +853,7 @@ void Parser::recordNumberType(size_t inst_offset,
+       info.type = SPV_NUMBER_FLOATING;
+       info.bit_width = peekAt(inst_offset + 2);
+       if (inst->num_words >= 4) {
+-        const spvtools::OperandDesc* desc;
++        const spvtools::OperandDesc* desc = nullptr;
+         spv_result_t status = spvtools::LookupOperand(
+             SPV_OPERAND_TYPE_FPENCODING, peekAt(inst_offset + 3), &desc);
+         if (status == SPV_SUCCESS) {
+diff --git a/source/text_handler.cpp b/source/text_handler.cpp
+index 1f1f1e8c..df0cc39d 100644
+--- a/source/text_handler.cpp
++++ b/source/text_handler.cpp
+@@ -336,7 +336,7 @@ spv_result_t AssemblyContext::recordTypeDefinition(
+       return diagnostic() << "Invalid OpTypeFloat instruction";
+     spv_fp_encoding_t enc = SPV_FP_ENCODING_UNKNOWN;
+     if (pInst->words.size() >= 4) {
+-      const spvtools::OperandDesc* desc;
++      const spvtools::OperandDesc* desc = nullptr;
+       spv_result_t status = spvtools::LookupOperand(SPV_OPERAND_TYPE_FPENCODING,
+                                                     pInst->words[3], &desc);
+       if (status == SPV_SUCCESS) {
+diff --git a/source/val/validate_type.cpp b/source/val/validate_type.cpp
+index 7a3105af..a7806f76 100644
+--- a/source/val/validate_type.cpp
++++ b/source/val/validate_type.cpp
+@@ -140,7 +140,7 @@ spv_result_t ValidateTypeFloat(ValidationState_t& _, const Instruction* inst) {
+       return _.diag(SPV_ERROR_INVALID_DATA, inst)
+              << "8-bit floating point type requires an encoding.";
+     }
+-    const spvtools::OperandDesc* desc;
++    const spvtools::OperandDesc* desc = nullptr;
+     const std::set<spv::FPEncoding> known_encodings{
+         spv::FPEncoding::Float8E4M3EXT, spv::FPEncoding::Float8E5M2EXT};
+     spv_result_t status = spvtools::LookupOperand(SPV_OPERAND_TYPE_FPENCODING,

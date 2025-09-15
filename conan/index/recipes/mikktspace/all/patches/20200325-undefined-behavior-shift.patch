@@ -1,0 +1,32 @@
+--- a/mikktspace.c
++++ b/mikktspace.c
+@@ -1457,7 +1457,13 @@ static void QuickSort(int* pSortBuffer, int iLeft, int iRight, unsigned int uSee
+ 
+ 	// Random
+ 	unsigned int t=uSeed&31;
+-	t=(uSeed<<t)|(uSeed>>(32-t));
++
++	// https://github.com/mmikk/MikkTSpace/pull/3
++	if (t != 0)
++		t=(uSeed<<t)|(uSeed>>(32-t)); // This triggers Clang's UBSan if t == 0
++	else
++		t = uSeed;
++
+ 	uSeed=uSeed+t+3;
+ 	// Random end
+ 
+@@ -1664,7 +1670,13 @@ static void QuickSortEdges(SEdge * pSortBuffer, int iLeft, int iRight, const int
+ 
+ 	// Random
+ 	t=uSeed&31;
+-	t=(uSeed<<t)|(uSeed>>(32-t));
++
++	// https://github.com/mmikk/MikkTSpace/pull/3
++	if (t != 0)
++		t=(uSeed<<t)|(uSeed>>(32-t)); // This triggers Clang's UBSan if t == 0
++	else
++		t = uSeed;
++
+ 	uSeed=uSeed+t+3;
+ 	// Random end
+ 

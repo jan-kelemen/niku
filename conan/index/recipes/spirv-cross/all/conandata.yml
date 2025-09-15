@@ -1,0 +1,7 @@
+sources:
+  "1.4.321.0":
+    url: "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/vulkan-sdk-1.4.321.0.tar.gz"
+    sha256: "6037555620c27105bf1d4068a6eeb4b0d7953630d556a1ca9799dfe06fd2fb68"
+  "1.4.304.0":
+    url: "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/vulkan-sdk-1.4.304.0.tar.gz"
+    sha256: "635b9b9ed2318df5ac65a0e1db1f92deb1e9c29e9dac30cd4b14eb3d72be5cf3"

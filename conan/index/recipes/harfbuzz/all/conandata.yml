@@ -1,0 +1,7 @@
+sources:
+  "11.5.0":
+    url: "https://github.com/harfbuzz/harfbuzz/releases/download/11.5.0/harfbuzz-11.5.0.tar.xz"
+    sha256: "2d30ba45c4c8ec4de661a1002b4f88d0841ff1a3087f34629275f5436d722109"
+  "11.4.5":
+    url: "https://github.com/harfbuzz/harfbuzz/releases/download/11.4.5/harfbuzz-11.4.5.tar.xz"
+    sha256: "0f052eb4ab01d8bae98ba971c954becb32be57d7250f18af343b1d27892e03fa"
