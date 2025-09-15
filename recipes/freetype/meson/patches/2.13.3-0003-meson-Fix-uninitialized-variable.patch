@@ -1,0 +1,11 @@
+--- a/src/type42/t42objs.c
++++ b/src/type42/t42objs.c
+@@ -504,7 +504,7 @@
+     T42_Size  t42size = (T42_Size)size;
+     FT_Face   face    = size->face;
+     T42_Face  t42face = (T42_Face)face;
+-    FT_Size   ttsize;
++    FT_Size   ttsize = NULL;
+     FT_Error  error;
+ 
+ 

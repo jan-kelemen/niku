@@ -1,0 +1,7 @@
+sources:
+  "2.2.0":
+    url: "https://distfiles.ariadne.space/pkgconf/pkgconf-2.2.0.tar.xz"
+    sha256: "b06ff63a83536aa8c2f6422fa80ad45e4833f590266feb14eaddfe1d4c853c69"
+patches:
+  "2.2.0":
+    - patch_file: "patches/2.2.0-0001-PKG_CONF_PATH-allow-colon+semicolon-separator.patch"
