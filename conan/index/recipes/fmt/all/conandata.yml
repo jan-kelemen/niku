@@ -1,7 +1,14 @@
 sources:
+  "12.0.0":
+    url: "https://github.com/fmtlib/fmt/releases/download/12.0.0/fmt-12.0.0.zip"
+    sha256: "1c32293203449792bf8e94c7f6699c643887e826f2d66a80869b4f279fb07d25"
   "11.2.0":
     url: "https://github.com/fmtlib/fmt/releases/download/11.2.0/fmt-11.2.0.zip"
     sha256: "203eb4e8aa0d746c62d8f903df58e0419e3751591bb53ff971096eaa0ebd4ec3"
-  "11.1.4":
-    url: "https://github.com/fmtlib/fmt/releases/download/11.1.4/fmt-11.1.4.zip"
-    sha256: "49b039601196e1a765e81c5c9a05a61ed3d33f23b3961323d7322e4fe213d3e6"
+patches:
+  "12.0.0":
+    - patch_file: "patches/12.0.0-std-fs-path-unformattable.patch"
+      patch_description: "Fix a clang-tidy error"
+      patch_type: "bug"
+      patch_source: https://github.com/fmtlib/fmt/commit/17be91c07901d960e1ede3c94b286d14129ca868
+      sha256: "52b48978588eed97880d459d6532b5131cfdcb92a63755297ecc38560b332952"

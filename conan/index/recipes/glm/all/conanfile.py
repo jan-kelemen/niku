@@ -25,16 +25,13 @@ class GlmConan(ConanFile):
         self.info.clear()
 
     def source(self):
-        get(self, **self.conan_data["sources"][self.version], strip_root=self.version < Version("1.0.0"))
+        get(self, **self.conan_data["sources"][self.version])
 
     def build(self):
         pass
 
     def package(self):
-        if self.version < Version("1.0.0"):
-            copy(self, "copying.txt", src=self.source_folder, dst=os.path.join(self.package_folder, "licenses"))
-        else:
-            copy(self, "copying.txt", src=os.path.join(self.source_folder, "glm"), dst=os.path.join(self.package_folder, "licenses"))
+        copy(self, "copying.txt", src=os.path.join(self.source_folder, "glm"), dst=os.path.join(self.package_folder, "licenses"))
         for headers in ("*.hpp", "*.inl", "*.h", "*.cppm"):
             copy(self, headers, src=os.path.join(self.source_folder, "glm"),
                                 dst=os.path.join(self.package_folder, "include", "glm"))
