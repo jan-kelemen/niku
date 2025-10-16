@@ -108,15 +108,16 @@ ngnwsi::imgui_layer_t::imgui_layer_t(sdl_window_t const& window,
     init_info.Queue = present_queue;
     init_info.PipelineCache = VK_NULL_HANDLE;
     init_info.DescriptorPool = descriptor_pool_;
-    init_info.RenderPass = VK_NULL_HANDLE;
-    init_info.Subpass = 0;
+    init_info.PipelineInfoMain.RenderPass = VK_NULL_HANDLE;
+    init_info.PipelineInfoMain.Subpass = 0;
     init_info.MinImageCount = swapchain.min_image_count();
     init_info.ImageCount = swapchain.image_count();
-    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     init_info.Allocator = VK_NULL_HANDLE;
     init_info.CheckVkResultFn = imgui_vulkan_result_callback;
     init_info.UseDynamicRendering = true;
-    init_info.PipelineRenderingCreateInfo = rendering_create_info;
+    init_info.PipelineInfoMain.PipelineRenderingCreateInfo =
+        rendering_create_info;
     [[maybe_unused]] bool const init_vulkan{ImGui_ImplVulkan_Init(&init_info)};
     assert(init_vulkan);
 }
