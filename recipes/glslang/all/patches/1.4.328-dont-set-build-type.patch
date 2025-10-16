@@ -1,0 +1,18 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -54,15 +54,6 @@ if(BUILD_SHARED_LIBS)
+     set(LIB_TYPE SHARED)
+ endif()
+ 
+-get_cmake_property(isMultiConfig "GENERATOR_IS_MULTI_CONFIG")
+-if (NOT isMultiConfig AND NOT CMAKE_BUILD_TYPE)
+-    # This logic inside SPIRV-Tools, which can upset build target dependencies
+-    # if changed after targets are already defined. To prevent these issues,
+-    # ensure CMAKE_BUILD_TYPE is assigned early and at the glslang root scope.
+-    message(STATUS "No build type selected, default to Debug")
+-    set(CMAKE_BUILD_TYPE "Debug")
+-endif()
+-
+ # Currently iOS and Android are very similar.
+ # They both have their own packaging (APP/APK).
+ # Which makes regular executables/testing problematic.
