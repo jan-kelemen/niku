@@ -5,3 +5,9 @@ sources:
   "11.5.0":
     url: "https://github.com/harfbuzz/harfbuzz/releases/download/11.5.0/harfbuzz-11.5.0.tar.xz"
     sha256: "2d30ba45c4c8ec4de661a1002b4f88d0841ff1a3087f34629275f5436d722109"
+patches:
+  "12.1.0":
+    - patch_file: "patches/12.1.0-disable-msvc-warning-4146.patch"
+      patch_description: "Disable warning C4146 for MSVC"
+      patch_type: "portability"
+      sha256: "d0652444776e5e254018067de241724e5b88a7909f54f5f8a062137bc549c0ba"

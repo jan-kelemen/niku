@@ -1,0 +1,11 @@
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -627,7 +627,7 @@ defs_list = [harfbuzz_def]
+ 
+ version = '0.@0@.0'.format(hb_version_int)
+ 
+-extra_hb_cpp_args = []
++extra_hb_cpp_args = ['/wd4146']
+ if cpp_is_microsoft_compiler
+   if get_option('default_library') != 'static'
+     extra_hb_cpp_args += '-DHB_DLL_EXPORT'
