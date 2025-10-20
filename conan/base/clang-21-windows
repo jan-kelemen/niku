@@ -1,7 +1,7 @@
 [settings]
 os=Windows
 compiler=clang
-compiler.version=20
+compiler.version=21
 compiler.cppstd=23
 compiler.runtime_version=v144
 

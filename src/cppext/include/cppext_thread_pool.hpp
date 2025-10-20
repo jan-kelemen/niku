@@ -163,7 +163,7 @@ namespace cppext::detail
         auto new_data{std::make_shared<T>(std::move(new_value))};
         auto new_node{std::make_unique<node_t>()};
         {
-            std::lock_guard const tail_lock{tail_mutex_};
+            std::scoped_lock const tail_lock{tail_mutex_};
             tail_->data = std::move(new_data);
             node_t* const new_tail{new_node.get()};
             tail_->next = std::move(new_node);
@@ -175,14 +175,14 @@ namespace cppext::detail
     template<typename T>
     bool threadsafe_queue_t<T>::empty()
     {
-        std::lock_guard head_lock{head_mutex_};
+        std::scoped_lock const head_lock{head_mutex_};
         return head_.get() == get_tail();
     }
 
     template<typename T>
     threadsafe_queue_t<T>::node_t* threadsafe_queue_t<T>::get_tail()
     {
-        std::lock_guard const tail_lock{tail_mutex_};
+        std::scoped_lock const tail_lock{tail_mutex_};
         return tail_;
     }
 
@@ -224,7 +224,7 @@ namespace cppext::detail
     std::unique_ptr<typename threadsafe_queue_t<T>::node_t>
     threadsafe_queue_t<T>::try_pop_head()
     {
-        std::lock_guard const head_lock{head_mutex_};
+        std::scoped_lock const head_lock{head_mutex_};
         if (head_.get() == get_tail())
         {
             return nullptr;
@@ -236,7 +236,7 @@ namespace cppext::detail
     std::unique_ptr<typename threadsafe_queue_t<T>::node_t>
     threadsafe_queue_t<T>::try_pop_head(T& value)
     {
-        std::lock_guard const head_lock{head_mutex_};
+        std::scoped_lock const head_lock{head_mutex_};
         if (head_.get() == get_tail())
         {
             return nullptr;

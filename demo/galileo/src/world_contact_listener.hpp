@@ -36,9 +36,9 @@ namespace galileo
             world_contact_listener_t&&) noexcept = delete;
 
     private:
-        void OnContactPersisted(const JPH::Body& inBody1,
-            const JPH::Body& inBody2,
-            const JPH::ContactManifold& inManifold,
+        void OnContactPersisted(JPH::Body const& inBody1,
+            JPH::Body const& inBody2,
+            JPH::ContactManifold const& inManifold,
             JPH::ContactSettings& ioSettings) override;
 
     private:

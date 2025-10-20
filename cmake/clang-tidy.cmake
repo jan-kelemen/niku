@@ -1,5 +1,5 @@
 if (NIKU_ENABLE_CLANG_TIDY)
-    find_program(CLANG_TIDY_EXE NAMES clang-tidy-20 clang-tidy REQUIRED)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy-21 clang-tidy REQUIRED)
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
 
     if (NIKU_ENABLE_COLORED_COMPILER_OUTPUT)

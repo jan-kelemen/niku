@@ -1,0 +1,13 @@
+[settings]
+os=Linux
+compiler=clang
+compiler.cppstd=23
+compiler.version=21
+
+[buildenv]
+CC=clang-21
+CXX=clang++-21
+CPP=clang-cpp-21
+AR=llvm-ar-21
+NM=llvm-nm-21
+RANLIB=llvm-ranlib-21

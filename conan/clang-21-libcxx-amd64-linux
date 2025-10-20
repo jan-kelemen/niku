@@ -1,4 +1,4 @@
-include(base/clang-20-linux)
+include(base/clang-21-linux)
 
 [settings]
 arch=x86_64

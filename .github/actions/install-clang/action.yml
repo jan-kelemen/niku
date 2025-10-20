@@ -4,7 +4,7 @@ inputs:
   version:
     description: 'Version to install'
     required: false
-    default: '20'
+    default: '21'
   clang-tidy:
     description: 'Install clang-tidy'
     required: false

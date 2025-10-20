@@ -26,9 +26,9 @@ galileo::world_contact_listener_t::world_contact_listener_t(
 }
 
 void galileo::world_contact_listener_t::OnContactPersisted(
-    const JPH::Body& inBody1,
-    const JPH::Body& inBody2,
-    [[maybe_unused]] const JPH::ContactManifold& inManifold,
+    JPH::Body const& inBody1,
+    JPH::Body const& inBody2,
+    [[maybe_unused]] JPH::ContactManifold const& inManifold,
     [[maybe_unused]] JPH::ContactSettings& ioSettings)
 {
     auto call_on_hit_script =

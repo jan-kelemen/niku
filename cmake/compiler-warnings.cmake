@@ -25,7 +25,7 @@ set(MSVC_WARNINGS
     /w14928 # illegal copy-initialization; more than one user-defined conversion has been implicitly applied
 )
 
-set(CLANG_WARNINGS
+set(GNULIKE_WARNINGS
     -Wall
     -Wextra # reasonable and standard
     -Wextra-semi # Warn about semicolon after in-class function definition.
@@ -43,6 +43,13 @@ set(CLANG_WARNINGS
     -Wdouble-promotion # warn if float is implicit promoted to double
     -Wformat=2 # warn on security issues around functions that format output (ie printf)
     -Wimplicit-fallthrough # warn on statements that fallthrough without an explicit annotation
+    -Wnrvo # warn about missed NRVO opportunities
+)
+
+set(CLANG_WARNINGS
+    ${GNULIKE_WARNINGS}
+    -Wunique-object-duplication
+    -Wshift-bool
 )
 
 set(CLANG_WARNINGS_DISABLE
@@ -50,7 +57,7 @@ set(CLANG_WARNINGS_DISABLE
 )
 
 set(GCC_WARNINGS
-    ${CLANG_WARNINGS}
+    ${GNULIKE_WARNINGS}
     -Wmisleading-indentation # warn if indentation implies blocks where blocks do not exist
     -Wduplicated-cond # warn if if / else chain has duplicated conditions
     -Wduplicated-branches # warn if if / else branches have duplicated code
