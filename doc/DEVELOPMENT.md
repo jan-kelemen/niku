@@ -13,6 +13,11 @@ Folder [ci/conan](../ci/conan) contains preconfigured profile combinations for C
 
 Recipes of Conan packages are managed in the [jan-kelemen/conan-recipes](https://github.com/jan-kelemen/conan-recipes) repository, `conan/index` is a git subtree.
 
+Use the following command to update the recipes index:
+```
+git subtree --prefix conan/index pull --squash git@github.com:jan-kelemen/conan-recipes.git master
+```
+
 ### Windows
 ```
 conan install . --profile=conan/msvc-2022-amd64-windows --profile=conan/dependencies --build=missing -s build_type=Release -r niku-remote
