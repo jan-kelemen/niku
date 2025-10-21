@@ -1,12 +1,25 @@
 # Add only the SDK release versions from https://github.com/KhronosGroup/glslang/tags for consistency
 sources:
+  "1.4.328.1":
+    url: "https://github.com/KhronosGroup/glslang/archive/refs/tags/vulkan-sdk-1.4.328.1.tar.gz"
+    sha256: "f80ca88a2c52586e31225493ad5eaf4c29a74c6105283decee6c3717afbf8326"
   "1.4.321.0":
     url: "https://github.com/KhronosGroup/glslang/archive/refs/tags/vulkan-sdk-1.4.321.0.tar.gz"
     sha256: "cb14f05b25b832655f440a36b13fbd0ab83e508d4de5c2e19c5f83eb61f6d55c"
-  "1.4.304.0":
-    url: "https://github.com/KhronosGroup/glslang/archive/refs/tags/vulkan-sdk-1.4.304.0.tar.gz"
-    sha256: "30f6557836308d9c8e8ea7e8905d2d430bd60752506b01ed9be6c4e82fe732ac"
 patches:
+  "1.4.328.1":
+    - patch_file: "patches/1.4.328-cxx-standard-override.patch"
+      patch_description: "Fix override of CMAKE_CXX_STANDARD variable"
+      patch_type: "bug"
+      sha256: "ef603db851233a7c92f87c201a7bc377e0ad3215b3ea717d5984af71d3e5e750"
+    - patch_file: "patches/1.4.328-dont-set-build-type.patch"
+      patch_description: "Don't set build type if CMAKE_BUILD_TYPE is not defined"
+      patch_type: "portability"
+      sha256: "4389c1bd2824db318aa7d6b097075e23c40bc6eefee33eae29325a88743918a1"
+    - patch_file: "patches/1.4.328-msvc-sdl-error.patch"
+      patch_description: "Fix warnings promoted to errors under /sdl flag on MSVC"
+      patch_type: "portability"
+      sha256: "a4e8a1b76074ce6dd45444a32136c50a0903b8ac227c93dfe33c38e4efe4f07a"
   "1.4.321.0":
     - patch_file: "patches/1.4.321-cxx-standard-override.patch"
       patch_description: "Fix override of CMAKE_CXX_STANDARD variable"
@@ -16,12 +29,3 @@ patches:
       patch_description: "Don't set build type if CMAKE_BUILD_TYPE is not defined"
       patch_type: "portability"
       sha256: "4389c1bd2824db318aa7d6b097075e23c40bc6eefee33eae29325a88743918a1"
-  "1.4.304.0":
-    - patch_file: "patches/1.4.304-cxx-standard-override.patch"
-      patch_description: "Fix override of CMAKE_CXX_STANDARD variable"
-      patch_type: "bug"
-      sha256: "6d894064eac3873a73670415d432ab87c029f8860b113123dd61118226146908"
-    - patch_file: "patches/1.4.304-dont-set-build-type.patch"
-      patch_description: "Don't set build type if CMAKE_BUILD_TYPE is not defined"
-      patch_type: "portability"
-      sha256: "113f3e3af708d7e7e187440bea6072f50e1071729331eda3981eb41eee51c7e5"

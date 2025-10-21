@@ -1,7 +1,14 @@
 sources:
+  "12.1.0":
+    url: "https://github.com/harfbuzz/harfbuzz/releases/download/12.1.0/harfbuzz-12.1.0.tar.xz"
+    sha256: "e5c81b7f6e0b102dfb000cfa424538b8e896ab78a2f4b8a5ec8cae62ab43369e"
   "11.5.0":
     url: "https://github.com/harfbuzz/harfbuzz/releases/download/11.5.0/harfbuzz-11.5.0.tar.xz"
     sha256: "2d30ba45c4c8ec4de661a1002b4f88d0841ff1a3087f34629275f5436d722109"
-  "11.4.5":
-    url: "https://github.com/harfbuzz/harfbuzz/releases/download/11.4.5/harfbuzz-11.4.5.tar.xz"
-    sha256: "0f052eb4ab01d8bae98ba971c954becb32be57d7250f18af343b1d27892e03fa"
+patches:
+  "12.1.0":
+    - patch_file: "patches/12.1.0-fix-msvc-warning-4146.patch"
+      patch_description: "Fix warning C4146 for MSVC"
+      patch_type: "portability"
+      patch_source: https://github.com/harfbuzz/harfbuzz/commit/07f0cba388cf6690e67d9ffaa3dc3f82281ed38f
+      sha256: "0df181a0b740c791d84d5eb40105df1457a5aa421a28e54b8c10009cba11eac8"
