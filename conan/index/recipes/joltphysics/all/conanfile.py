@@ -1,7 +1,7 @@
 from conan import ConanFile
 from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
-from conan.tools.files import copy, get, replace_in_file, rmdir, rm
+from conan.tools.files import apply_conandata_patches, copy, export_conandata_patches, get, replace_in_file, rmdir, rm
 from conan.tools.microsoft import is_msvc, is_msvc_static_runtime
 import os
 
@@ -34,6 +34,9 @@ class JoltPhysicsConan(ConanFile):
         "profiler": False,
     }
     implements = ["auto_shared_fpic"]
+
+    def export_sources(self):
+        export_conandata_patches(self)
 
     def layout(self):
         cmake_layout(self, src_folder="src")
@@ -76,6 +79,8 @@ class JoltPhysicsConan(ConanFile):
         replace_in_file(self, jolt,
             "	target_compile_definitions(Jolt PUBLIC \"$<$<CONFIG:Debug,Release>:JPH_FLOATING_POINT_EXCEPTIONS_ENABLED>\")",
             "	target_compile_definitions(Jolt PUBLIC \"$<$<CONFIG:Debug,RelWithDebInfo,Release>:JPH_FLOATING_POINT_EXCEPTIONS_ENABLED>\")")
+
+        apply_conandata_patches(self)
 
     def build(self):
         self._patch_sources()

@@ -1,0 +1,63 @@
+commit 2e1c30b7e7d29b1a692611930bb5b0afd316d4e9
+Author: Jan Kelemen <jkeleme@gmail.com>
+Date:   Fri Oct 17 18:44:49 2025 +0200
+
+    Fix C4146 unary minus operator applied to unsigned type
+    
+    Silence C4267 'argument' conversion from 'size_t' to X
+
+diff --git a/SPIRV/SpvBuilder.cpp b/SPIRV/SpvBuilder.cpp
+index 5a5affac..a98a3723 100644
+--- a/SPIRV/SpvBuilder.cpp
++++ b/SPIRV/SpvBuilder.cpp
+@@ -1401,7 +1401,7 @@ Id Builder::createDebugLocalVariable(Id type, char const*const name, size_t cons
+     inst->addIdOperand(currentDebugScopeId.top()); // scope id
+     inst->addIdOperand(makeUintConstant(NonSemanticShaderDebugInfo100FlagIsLocal)); // flags id
+     if(argNumber != 0) {
+-        inst->addIdOperand(makeUintConstant(argNumber));
++        inst->addIdOperand(makeUintConstant(static_cast<unsigned int>(argNumber)));
+     }
+ 
+     constantsTypesGlobals.push_back(std::unique_ptr<Instruction>(inst));
+diff --git a/glslang/MachineIndependent/ParseHelper.cpp b/glslang/MachineIndependent/ParseHelper.cpp
+index 845020af..b9bd7640 100644
+--- a/glslang/MachineIndependent/ParseHelper.cpp
++++ b/glslang/MachineIndependent/ParseHelper.cpp
+@@ -1862,8 +1862,8 @@ void TParseContext::handleVector2CoopMatConversionCall(const TSourceLoc& loc, co
+       error(loc, "source and destination element types are not compatible", "", "");
+ 
+     uint32_t scope = spv_Scope_Subgroup;
+-    uint32_t coopMatKHRuse = -1u;
+-    uint32_t coopMatNumRows = -1u, coopMatNumCols = -1u;
++    uint32_t coopMatKHRuse = !0u;
++    uint32_t coopMatNumRows = !0u, coopMatNumCols = !0u;
+     TIntermTyped *nodeNumRows = nullptr, *nodeNumCols = nullptr;
+     const TTypeParameters* dstTypeParameters = dstType.getTypeParameters();
+     if (dstTypeParameters->arraySizes == nullptr || dstTypeParameters->arraySizes->getNumDims() != 4) {
+@@ -1946,7 +1946,7 @@ void TParseContext::handleVector2CoopMatConversionCall(const TSourceLoc& loc, co
+       error(loc, "source and destination element types are not compatible", "", "");
+ 
+     uint32_t scope = spv_Scope_Subgroup;
+-    unsigned coopMatKHRuse = -1u;
++    unsigned coopMatKHRuse = !0u;
+     const TTypeParameters* srcTypeParameters = srcType.getTypeParameters();
+     if (srcTypeParameters->arraySizes == nullptr || srcTypeParameters->arraySizes->getNumDims() != 4) {
+       error(loc, "source cooperative matrix has an unsupported type", "", "");
+@@ -2008,7 +2008,7 @@ void TParseContext::handleVector2CoopMatConversionCall(const TSourceLoc& loc, co
+ 
+     {
+       //int coopMatKHRuse = srcTypeParameters->arraySizes->getDimSize(3);
+-      uint32_t index = -1u;
++      uint32_t index = !0u;
+       if (coopMatKHRuse == CM_MatrixUseA) {
+         index = 2;
+       } else if (coopMatKHRuse == CM_MatrixUseB) {
+@@ -8642,7 +8642,7 @@ static void ForEachOpaque(const TType& type, const TString& path, Function callb
+                 for (size_t dimIndex = 0; dimIndex < indices.size(); ++dimIndex)
+                 {
+                     ++indices[dimIndex];
+-                    if (indices[dimIndex] < type.getArraySizes()->getDimSize(dimIndex))
++                    if (indices[dimIndex] < type.getArraySizes()->getDimSize(static_cast<int>(dimIndex)))
+                         break;
+                     else
+                         indices[dimIndex] = 0;

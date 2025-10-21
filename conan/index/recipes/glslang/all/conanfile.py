@@ -51,6 +51,8 @@ class GlslangConan(ConanFile):
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
+        if Version(self.version) >= "1.4.328.0":
+            self.options.rm_safe("spv_remapper")
 
     def configure(self):
         if self.options.shared:
@@ -97,7 +99,8 @@ class GlslangConan(ConanFile):
         tc.variables["BUILD_EXTERNAL"] = False
         tc.variables["ENABLE_SPIRV"] = self.options.get_safe("enable_spirv", True)
         tc.variables["GLSLANG_ENABLE_INSTALL"] = True
-        tc.variables["ENABLE_SPVREMAPPER"] = self.options.spv_remapper
+        if Version(self.version) < "1.4.328.0":
+            tc.variables["ENABLE_SPVREMAPPER"] = self.options.spv_remapper
         tc.variables["ENABLE_GLSLANG_BINARIES"] = self.options.build_executables
         tc.variables["ENABLE_GLSLANG_JS"] = False
         tc.variables["ENABLE_GLSLANG_WEBMIN"] = False
@@ -178,8 +181,8 @@ class GlslangConan(ConanFile):
                 self.cpp_info.components["spirv"].requires.append("spirv-tools::spirv-tools-opt")
                 self.cpp_info.components["spirv"].defines.append("ENABLE_OPT")
 
-        # SPVRemapper
-        if self.options.spv_remapper:
+        if Version(self.version) < "1.4.328.0" and self.options.spv_remapper:
+            # SPVRemapper
             self.cpp_info.components["spvremapper"].set_property("cmake_target_name", "glslang::SPVRemapper")
             self.cpp_info.components["spvremapper"].names["cmake_find_package"] = "SPVRemapper"
             self.cpp_info.components["spvremapper"].names["cmake_find_package_multi"] = "SPVRemapper"

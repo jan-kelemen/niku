@@ -1,10 +1,13 @@
 sources:
-  "5.3.0p":
-    url: "https://github.com/jrouwe/JoltPhysics/archive/56131e034249d3ac9289536f6b4104233c54023f.tar.gz"
-    sha256: "346eaf984d14b07ce6a9f71cadab2578887ce5f2b2e9de2d2d89ebcc62ce695a"
+  "5.4.0":
+    url: "https://github.com/jrouwe/JoltPhysics/archive/refs/tags/v5.4.0.tar.gz"
+    sha256: "1d2fdc33ef9a2da69efd704adc0a97da7c6ed698c2bded04b0c36f31207b0829"
   "5.3.0":
     url: "https://github.com/jrouwe/JoltPhysics/archive/refs/tags/v5.3.0.tar.gz"
     sha256: "e7f9621e480646c434150e1fbe3a9410f4ec4b04ffe54791e0678326b741b918"
-  "5.2.0":
-    url: "https://github.com/jrouwe/JoltPhysics/archive/refs/tags/v5.2.0.tar.gz"
-    sha256: "f478afe3050c885e21403748e10ab18e3e8df8b0982c540e75f1e078ef8b2c88"
+patches:
+  "5.4.0":
+    - patch_file: "patches/5.4.0-missing-include.patch"
+      patch_description: "Add missing include for libc++"
+      patch_type: "portability"
+      sha256: "9c28b0f1f35b0342791603671dc4ddec7c266a72a1a348a91760293d606e7cb4"
