@@ -128,6 +128,7 @@ jobs:
       - name: Install Ninja
         run: |
           choco install ninja
+          choco install llvm --version 21.1.0 -y
           
       - name: Setup Conan
         id: setup-conan
