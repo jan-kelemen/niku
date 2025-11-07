@@ -111,6 +111,89 @@ namespace
 
         return rv;
     }
+
+    [[nodiscard]] uint32_t calculate_transform(
+        ngnast::scene_model_t const& model,
+        ngnast::node_t const& node,
+        VkAccelerationStructureInstanceKHR* const instances,
+        std::vector<vkrndr::acceleration_structure_t>& bottom_level_structures,
+        glm::mat4 const& transform,
+        uint32_t const index)
+    {
+        auto const node_transform{transform * node.matrix};
+
+        uint32_t drawn{0};
+        if (node.mesh_index)
+        {
+            VkAccelerationStructureInstanceKHR const data{
+                .transform =
+                    {
+                        node_transform[0][0],
+                        node_transform[0][1],
+                        node_transform[0][2],
+                        node_transform[0][3],
+                        node_transform[1][0],
+                        node_transform[1][1],
+                        node_transform[1][2],
+                        node_transform[1][3],
+                        node_transform[2][0],
+                        node_transform[2][1],
+                        node_transform[2][2],
+                        node_transform[2][3],
+                    },
+                .mask = 0xFF,
+                .flags =
+                    VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
+            };
+
+            for (size_t const primitive_index :
+                model.meshes[*node.mesh_index].primitive_indices)
+            {
+                VkAccelerationStructureInstanceKHR& instance{
+                    instances[index + drawn]};
+                instance = data;
+                instance.accelerationStructureReference =
+                    bottom_level_structures[primitive_index].device_address;
+
+                ++drawn;
+            }
+        }
+
+        // cppcheck-suppress-begin useStlAlgorithm
+        for (auto const& child : node.children(model))
+        {
+            drawn += calculate_transform(model,
+                child,
+                instances,
+                bottom_level_structures,
+                node_transform,
+                index + drawn);
+        }
+        // cppcheck-suppress-end useStlAlgorithm
+
+        return drawn;
+    }
+
+    void calculate_transform_matrices(ngnast::scene_model_t const& model,
+        VkAccelerationStructureInstanceKHR* instances,
+        std::vector<vkrndr::acceleration_structure_t>& bottom_level_structures)
+    {
+        uint32_t index{0};
+        for (auto const& graph : model.scenes)
+        {
+            // cppcheck-suppress-begin useStlAlgorithm
+            for (auto const& root : graph.roots(model))
+            {
+                index += calculate_transform(model,
+                    root,
+                    instances,
+                    bottom_level_structures,
+                    glm::mat4{1.0f},
+                    index);
+            }
+            // cppcheck-suppress-end useStlAlgorithm
+        }
+    }
 } // namespace
 
 void ngnast::gpu::destroy(vkrndr::device_t const& device,
@@ -189,6 +272,8 @@ void ngnast::gpu::destroy(vkrndr::device_t const& device,
         destroy(device, structure);
     }
 
+    destroy(device, structures.instance_buffer);
+
     destroy(device, structures.top_level);
 }
 
@@ -196,6 +281,8 @@ ngnast::gpu::acceleration_structure_build_result_t
 ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
     scene_model_t const& model)
 {
+    uint32_t const transform_count{required_transforms(model, true)};
+
     geometry_transfer_result_t intermediate{
         transfer_geometry(backend.device(), model)};
     [[maybe_unused]] boost::scope::defer_guard const destroy_transfer{
@@ -226,7 +313,16 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
                   })
             : vkrndr::buffer_t{},
         .index_count = intermediate.index_count,
-        .primitives = std::move(intermediate.primitives)};
+        .primitives = std::move(intermediate.primitives),
+        .instance_buffer = vkrndr::create_buffer(backend.device(),
+            {
+                .size = sizeof(VkAccelerationStructureInstanceKHR) *
+                    transform_count,
+                .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                    VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            })};
     [[maybe_unused]] boost::scope::scope_fail const destroy_rv{
         [&backend, &rv]() { destroy(backend.device(), rv); }};
 
@@ -368,9 +464,9 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         assert(overflow);
     }
 
-    vkrndr::buffer_t const scratch_buffer{
+    vkrndr::buffer_t scratch_buffer{
         vkrndr::create_scratch_buffer(backend.device(), scratch_size)};
-    [[maybe_unused]] boost::scope::defer_guard const destroy_scratch{
+    [[maybe_unused]] boost::scope::scope_fail const destroy_scratch{
         [&backend, &scratch_buffer]()
         { destroy(backend.device(), scratch_buffer); }};
 
@@ -385,17 +481,6 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
             scratch_buffer.device_address + scratch_offset;
 
         scratch_offset += build_sizes[i].buildScratchSize;
-    }
-
-    {
-        vkrndr::transient_operation_t op{
-            backend.request_transient_operation(false)};
-        VkCommandBuffer cb{op.command_buffer()};
-
-        vkCmdBuildAccelerationStructuresKHR(cb,
-            rv.primitives.size(),
-            build_geometries.data(),
-            build_ranges.data());
     }
 
     static constexpr uint32_t chunk_size{10};
@@ -416,6 +501,11 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
             build_ranges.data() + offset);
     }
 
+    for (vkrndr::acceleration_structure_t& blas : rv.bottom_level)
+    {
+        blas.device_address = device_address(backend.device(), blas);
+    }
+
     if (chunks.rem)
     {
         uint32_t const offset{
@@ -429,6 +519,111 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
             vkrndr::count_cast(chunks.rem),
             build_geometries.data() + offset,
             build_ranges.data() + offset);
+    }
+
+    destroy(backend.device(), scratch_buffer);
+
+    VkAccelerationStructureGeometryKHR const instance_geometry{
+        .sType = vku::GetSType<VkAccelerationStructureGeometryKHR>(),
+        .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
+        .geometry =
+            {
+                .instances =
+                    {
+                        .sType = vku::GetSType<
+                            VkAccelerationStructureGeometryInstancesDataKHR>(),
+                        .data =
+                            {
+                                .deviceAddress =
+                                    rv.instance_buffer.device_address,
+                            },
+                    },
+            },
+        .flags = VK_GEOMETRY_OPAQUE_BIT_KHR,
+    };
+
+    VkAccelerationStructureBuildGeometryInfoKHR instance_build_geometry{
+        .sType = vku::GetSType<VkAccelerationStructureBuildGeometryInfoKHR>(),
+        .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
+        .flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR,
+        .geometryCount = 1,
+        .pGeometries = &instance_geometry,
+    };
+
+    uint32_t const primitives{1};
+    auto instances_build_sizes{
+        vku::InitStruct<VkAccelerationStructureBuildSizesInfoKHR>()};
+    vkGetAccelerationStructureBuildSizesKHR(backend.device(),
+        VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+        &instance_build_geometry,
+        &primitives,
+        &instances_build_sizes);
+
+    rv.top_level = vkrndr::create_acceleration_structure(backend.device(),
+        VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
+        instances_build_sizes);
+
+    scratch_buffer =
+        vkrndr::create_scratch_buffer(backend.device(), instances_build_sizes);
+
+    instance_build_geometry.mode =
+        VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    instance_build_geometry.dstAccelerationStructure = rv.top_level;
+    instance_build_geometry.scratchData.deviceAddress =
+        scratch_buffer.device_address;
+
+    VkAccelerationStructureBuildRangeInfoKHR const instances_build_range_info{
+        .primitiveCount = primitives,
+    };
+    auto const range_infos{std::to_array({&instances_build_range_info})};
+
+    vkrndr::buffer_t const staging{
+        vkrndr::create_staging_buffer(backend.device(),
+            rv.instance_buffer.size)};
+    [[maybe_unused]] boost::scope::defer_guard const destroy_staging{
+        [&backend, &staging]() { destroy(backend.device(), staging); }};
+    {
+        vkrndr::mapped_memory_t map{
+            vkrndr::map_memory(backend.device(), staging)};
+
+        calculate_transform_matrices(model,
+            map.as<VkAccelerationStructureInstanceKHR>(),
+            rv.bottom_level);
+
+        vkrndr::unmap_memory(backend.device(), &map);
+    }
+
+    {
+        vkrndr::transient_operation_t const transient{
+            backend.request_transient_operation(false)};
+
+        VkCommandBuffer cb{transient.command_buffer()};
+        {
+            VkBufferCopy const copy_transform{
+                .srcOffset = 0,
+                .dstOffset = 0,
+                .size = rv.instance_buffer.size,
+            };
+            vkCmdCopyBuffer(cb,
+                staging,
+                rv.instance_buffer,
+                1,
+                &copy_transform);
+        }
+
+        VkBufferMemoryBarrier2 const buffer_barrier{vkrndr::with_access(
+            vkrndr::on_stage(vkrndr::buffer_barrier(rv.instance_buffer),
+                VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
+                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            VK_ACCESS_2_SHADER_READ_BIT)};
+
+        vkrndr::wait_for(cb, {}, cppext::as_span(buffer_barrier), {});
+
+        vkCmdBuildAccelerationStructuresKHR(cb,
+            primitives,
+            &instance_build_geometry,
+            range_infos.data());
     }
 
     return rv;

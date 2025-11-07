@@ -91,35 +91,6 @@ namespace
             nullptr);
     }
 
-    [[nodiscard]] uint32_t nodes_with_mesh(ngnast::node_t const& node,
-        ngnast::scene_model_t const& model)
-    {
-        auto rv{static_cast<uint32_t>(node.mesh_index.has_value())};
-        // cppcheck-suppress-begin useStlAlgorithm
-        for (auto const& child : node.children(model))
-        {
-            rv += nodes_with_mesh(child, model);
-        }
-        // cppcheck-suppress-end useStlAlgorithm
-        return rv;
-    }
-
-    [[nodiscard]] uint32_t required_transforms(
-        ngnast::scene_model_t const& model)
-    {
-        uint32_t rv{};
-        // cppcheck-suppress-begin useStlAlgorithm
-        for (auto const& graph : model.scenes)
-        {
-            for (auto const& root : graph.roots(model))
-            {
-                rv += nodes_with_mesh(root, model);
-            }
-        }
-        // cppcheck-suppress-end useStlAlgorithm
-        return rv;
-    }
-
     [[nodiscard]] uint32_t calculate_transform(
         ngnast::scene_model_t const& model,
         ngnast::node_t const& node,
@@ -243,7 +214,7 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
         backend_->transfer_buffer(transfer_result.index_buffer, index_buffer_);
     }
 
-    uint32_t const transform_count{required_transforms(model)};
+    uint32_t const transform_count{required_transforms(model, false)};
     VkDeviceSize const transform_buffer_size{
         transform_count * sizeof(transform_t)};
     for (auto& data : cppext::as_span(frame_data_))

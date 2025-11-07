@@ -75,6 +75,8 @@ namespace ngnast::gpu
 
         std::vector<vkrndr::acceleration_structure_t> bottom_level;
 
+        vkrndr::buffer_t instance_buffer;
+
         vkrndr::acceleration_structure_t top_level;
     };
 

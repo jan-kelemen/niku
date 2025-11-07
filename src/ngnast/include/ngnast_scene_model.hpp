@@ -159,6 +159,9 @@ namespace ngnast
     void make_node_matrices_absolute(scene_model_t& model);
 
     void assign_default_material_index(scene_model_t& model, size_t index);
+
+    [[nodiscard]] uint32_t required_transforms(scene_model_t const& model,
+        bool include_primitives);
 } // namespace ngnast
 
 constexpr auto ngnast::node_t::children(ngnast::scene_model_t& model)

@@ -1,5 +1,7 @@
 #include <ngnast_scene_model.hpp>
 
+#include <cppext_numeric.hpp>
+
 #include <glm/common.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/mat4x4.hpp>
@@ -17,6 +19,26 @@ namespace
         {
             calculate_node_matrices(model, child, node.matrix);
         }
+    }
+
+    [[nodiscard]] uint32_t nodes_with_mesh(ngnast::node_t const& node,
+        ngnast::scene_model_t const& model,
+        bool const include_primitives)
+    {
+        auto rv{static_cast<uint32_t>(node.mesh_index.has_value())};
+        if (rv && include_primitives)
+        {
+            rv *= cppext::narrow<uint32_t>(
+                model.meshes[*node.mesh_index].primitive_indices.size());
+        }
+
+        // cppcheck-suppress-begin useStlAlgorithm
+        for (auto const& child : node.children(model))
+        {
+            rv += nodes_with_mesh(child, model, include_primitives);
+        }
+        // cppcheck-suppress-end useStlAlgorithm
+        return rv;
     }
 } // namespace
 
@@ -63,7 +85,7 @@ void ngnast::assign_default_material_index(scene_model_t& model,
 {
     std::ranges::for_each(
         model.primitives,
-        [index](auto& p)
+        [index](std::optional<size_t>& p)
         {
             if (!p)
             {
@@ -71,4 +93,20 @@ void ngnast::assign_default_material_index(scene_model_t& model,
             }
         },
         &ngnast::primitive_t::material_index);
+}
+
+uint32_t ngnast::required_transforms(scene_model_t const& model,
+    bool const include_primitives)
+{
+    uint32_t rv{};
+    // cppcheck-suppress-begin useStlAlgorithm
+    for (auto const& graph : model.scenes)
+    {
+        for (auto const& root : graph.roots(model))
+        {
+            rv += nodes_with_mesh(root, model, include_primitives);
+        }
+    }
+    // cppcheck-suppress-end useStlAlgorithm
+    return rv;
 }
