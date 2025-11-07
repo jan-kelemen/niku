@@ -18,13 +18,15 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <iterator>
 #include <optional>
 #include <type_traits>
 #include <vector>
-#include <vulkan/utility/vk_struct_helper.hpp>
 
 namespace
 {
@@ -395,29 +397,39 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
             build_geometries.data(),
             build_ranges.data());
     }
-    // for (size_t i{}; i != rv.primitives.size() / 10; ++i)
-    //{
-    //     vkrndr::transient_operation_t op{
-    //         backend.request_transient_operation(false)};
-    //     VkCommandBuffer cb{op.command_buffer()};
 
-    //    vkCmdBuildAccelerationStructuresKHR(cb,
-    //        10,
-    //        build_geometries.data() + i * 10,
-    //        build_ranges.data() + i * 10);
-    //}
+    static constexpr uint32_t chunk_size{10};
+    std::div_t const chunks{std::div(cppext::narrow<int>(rv.primitives.size()),
+        static_cast<int>(chunk_size))};
 
-    // if (auto const remainder{rv.primitives.size() % 10})
-    //{
-    //     vkrndr::transient_operation_t op{
-    //         backend.request_transient_operation(false)};
-    //     VkCommandBuffer cb{op.command_buffer()};
+    for (int i{}; i != chunks.quot; ++i)
+    {
+        uint32_t const offset{cppext::narrow<uint32_t>(i) * chunk_size};
 
-    //    vkCmdBuildAccelerationStructuresKHR(cb,
-    //        remainder,
-    //        build_geometries.data() + rv.primitives.size() - remainder,
-    //        build_ranges.data() + rv.primitives.size() - remainder);
-    //}
+        vkrndr::transient_operation_t op{
+            backend.request_transient_operation(false)};
+        VkCommandBuffer cb{op.command_buffer()};
+
+        vkCmdBuildAccelerationStructuresKHR(cb,
+            chunk_size,
+            build_geometries.data() + offset,
+            build_ranges.data() + offset);
+    }
+
+    if (chunks.rem)
+    {
+        uint32_t const offset{
+            cppext::narrow<uint32_t>(chunks.quot) * chunk_size};
+
+        vkrndr::transient_operation_t op{
+            backend.request_transient_operation(false)};
+        VkCommandBuffer cb{op.command_buffer()};
+
+        vkCmdBuildAccelerationStructuresKHR(cb,
+            vkrndr::count_cast(chunks.rem),
+            build_geometries.data() + offset,
+            build_ranges.data() + offset);
+    }
 
     return rv;
 }
