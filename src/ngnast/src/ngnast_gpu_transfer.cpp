@@ -125,26 +125,14 @@ namespace
         uint32_t drawn{0};
         if (node.mesh_index)
         {
-            VkAccelerationStructureInstanceKHR const data{
-                .transform =
-                    {
-                        node_transform[0][0],
-                        node_transform[0][1],
-                        node_transform[0][2],
-                        node_transform[0][3],
-                        node_transform[1][0],
-                        node_transform[1][1],
-                        node_transform[1][2],
-                        node_transform[1][3],
-                        node_transform[2][0],
-                        node_transform[2][1],
-                        node_transform[2][2],
-                        node_transform[2][3],
-                    },
+            VkAccelerationStructureInstanceKHR data{
                 .mask = 0xFF,
                 .flags =
                     VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
             };
+            memcpy(&data.transform,
+                glm::value_ptr(glm::transpose(node_transform)),
+                sizeof(VkTransformMatrixKHR));
 
             for (size_t const primitive_index :
                 model.meshes[*node.mesh_index].primitive_indices)
