@@ -550,13 +550,12 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         .pGeometries = &instance_geometry,
     };
 
-    uint32_t const primitives{1};
     auto instances_build_sizes{
         vku::InitStruct<VkAccelerationStructureBuildSizesInfoKHR>()};
     vkGetAccelerationStructureBuildSizesKHR(backend.device(),
         VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &instance_build_geometry,
-        &primitives,
+        &transform_count,
         &instances_build_sizes);
 
     rv.top_level = vkrndr::create_acceleration_structure(backend.device(),
@@ -573,7 +572,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         scratch_buffer.device_address;
 
     VkAccelerationStructureBuildRangeInfoKHR const instances_build_range_info{
-        .primitiveCount = primitives,
+        .primitiveCount = transform_count,
     };
     auto const range_infos{std::to_array({&instances_build_range_info})};
 
@@ -621,10 +620,12 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         vkrndr::wait_for(cb, {}, cppext::as_span(buffer_barrier), {});
 
         vkCmdBuildAccelerationStructuresKHR(cb,
-            primitives,
+            1,
             &instance_build_geometry,
             range_infos.data());
     }
+
+    destroy(backend.device(), scratch_buffer);
 
     return rv;
 }
