@@ -3,6 +3,8 @@
 
 #include <camera_controller.hpp>
 
+#include <ngnast_gpu_transfer.hpp>
+
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
@@ -70,10 +72,6 @@ namespace heatx
     private:
         void on_resize(uint32_t width, uint32_t height);
 
-        void create_blas();
-
-        void create_tlas();
-
         void create_shader_binding_table();
 
         void create_descriptors();
@@ -96,13 +94,7 @@ namespace heatx
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
 
-        vkrndr::buffer_t vertex_buffer_;
-        vkrndr::buffer_t index_buffer_;
-        vkrndr::buffer_t transform_buffer_;
-        vkrndr::buffer_t instance_buffer_;
-
-        vkrndr::acceleration_structure_t blas_;
-        vkrndr::acceleration_structure_t tlas_;
+        ngnast::gpu::acceleration_structure_build_result_t model_;
 
         vkrndr::image_t ray_generation_storage_;
         std::vector<vkrndr::buffer_t> uniform_buffers_;
