@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
 
 namespace
 {
@@ -41,10 +42,13 @@ public:
     sdl_guard_t guard;
 
     float fixed_update_interval{1.0f / 60.0f};
+
+    std::span<char const*> command_line_parameters;
 };
 
 ngnwsi::application_t::impl::impl(startup_params_t const& params)
     : guard{to_init_flags(params.init_subsystems)}
+    , command_line_parameters{params.command_line_parameters}
 {
 }
 
@@ -119,4 +123,9 @@ void ngnwsi::application_t::run()
 void ngnwsi::application_t::fixed_update_interval(float const fps)
 {
     impl_->fixed_update_interval = fps;
+}
+
+std::span<char const*> ngnwsi::application_t::command_line_parameters()
+{
+    return impl_->command_line_parameters;
 }

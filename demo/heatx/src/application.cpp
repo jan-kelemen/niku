@@ -114,15 +114,24 @@ namespace
     }
 } // namespace
 
-heatx::application_t::application_t(bool const debug)
+heatx::application_t::application_t(int argc,
+    char const** argv,
+    bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug}}}
+          .init_subsystems = {.video = true, .debug = debug},
+          .command_line_parameters = {argv, cppext::narrow<size_t>(argc)}}}
     , camera_controller_{camera_, mouse_}
     , render_window_{std::make_unique<ngnwsi::render_window_t>("heatx",
           SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           1280,
           720)}
 {
+    if (command_line_parameters().size() < 2)
+    {
+        spdlog::error("Model path not set");
+        std::terminate();
+    }
+
     auto const create_result{vkrndr::initialize()
             .and_then(
                 [this](vkrndr::library_handle_ptr_t&& library_handle)
@@ -511,8 +520,7 @@ void heatx::application_t::on_startup()
     mouse_.set_window_handle(render_window_->platform_window().native_handle());
 
     ngnast::gltf::loader_t loader;
-    if (auto scene{loader.load(
-            R"(D:\git\glTF-Sample-Assets\Models\Sponza\glTF\Sponza.gltf)")})
+    if (auto scene{loader.load(command_line_parameters()[1])})
     {
         model_ = ngnast::gpu::build_acceleration_structures(*backend_, *scene);
     }

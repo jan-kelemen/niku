@@ -4,6 +4,7 @@
 #include <SDL3/SDL_events.h>
 
 #include <memory>
+#include <span>
 
 namespace ngnwsi
 {
@@ -16,6 +17,7 @@ namespace ngnwsi
     struct [[nodiscard]] startup_params_t final
     {
         subsystems_t init_subsystems;
+        std::span<char const*> command_line_parameters;
     };
 
     class [[nodiscard]] application_t
@@ -34,6 +36,8 @@ namespace ngnwsi
         void run();
 
         void fixed_update_interval(float fps);
+
+        [[nodiscard]] std::span<char const*> command_line_parameters();
 
     private: // Callback interface
         [[nodiscard]] virtual bool should_run() { return true; }
