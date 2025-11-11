@@ -1,4 +1,4 @@
-find_program(CLANG_FORMAT_EXE NAMES clang-format-20 clang-format REQUIRED)
+find_program(CLANG_FORMAT_EXE NAMES clang-format-21 clang-format REQUIRED)
 message(STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
 
 file(GLOB_RECURSE ALL_SOURCE_FILES 
