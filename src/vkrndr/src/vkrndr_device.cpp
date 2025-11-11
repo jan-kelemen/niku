@@ -1,4 +1,3 @@
-#include <spdlog/spdlog.h>
 #include <vkrndr_device.hpp>
 
 #include <vkrndr_error_code.hpp>
@@ -6,6 +5,10 @@
 #include <vkrndr_features.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_utility.hpp>
+
+#include <cppext_pragma_warning.hpp>
+
+#include <spdlog/spdlog.h>
 
 #include <vma_impl.hpp>
 
@@ -228,6 +231,8 @@ namespace
     [[nodiscard]] auto pick_device_by_type(
         std::ranges::forward_range auto&& devices)
     {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_NRVO
         for (auto it{std::begin(devices)}; it != std::end(devices); ++it)
         {
             if (it->properties.deviceType ==
@@ -256,6 +261,7 @@ namespace
         }
 
         return std::begin(devices);
+        DISABLE_WARNING_POP
     }
 } // namespace
 

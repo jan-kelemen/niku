@@ -58,7 +58,7 @@ galileo::component::create_spawner_scripts(spawner_data_t& spawner,
     asIScriptModule const& module)
 {
     scripts_t rv;
-    asITypeInfo* const type{module.GetTypeInfoByName("spawner")};
+    asITypeInfo const* const type{module.GetTypeInfoByName("spawner")};
     assert(type);
 
     rv.factory =
@@ -99,7 +99,7 @@ galileo::component::create_sphere_scripts(entt::entity sphere,
     asIScriptModule const& module)
 {
     scripts_t rv;
-    asITypeInfo* const type{module.GetTypeInfoByName("sphere")};
+    asITypeInfo const* const type{module.GetTypeInfoByName("sphere")};
     assert(type);
 
     rv.factory = module.GetFunctionByDecl("sphere@ create_sphere(uint32)");

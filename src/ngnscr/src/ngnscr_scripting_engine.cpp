@@ -92,7 +92,8 @@ ngnscr::script_context_ptr_t ngnscr::scripting_engine_t::execution_context(
         spdlog::error("Error {} preparing function {}",
             result,
             function ? function->GetName() : "NULL");
-        return {nullptr, deleter};
+        rv.reset();
+        return rv;
     }
 
     return rv;

@@ -30,7 +30,6 @@ namespace gltfviewer
     {
         std::string label;
         std::string name;
-        std::string screenshot;
         std::vector<std::string> tags;
         std::vector<sample_variant_t> variants;
     };

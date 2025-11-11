@@ -54,16 +54,18 @@ vkrndr::frame_in_flight_t& ngnwsi::render_window_t::frame_in_flight()
 
 std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
 {
+    std::optional<vkrndr::image_t> rv;
+
     if (VkExtent2D const extent{window_.swap_extent()};
         window_.is_minimized() || extent.height == 0 || extent.width == 0)
     {
-        return std::nullopt;
+        return rv;
     }
 
     vkrndr::frame_in_flight_t const* const current{pacing_->pace()};
     if (!current)
     {
-        return std::nullopt;
+        return rv;
     }
 
     if (swapchain_->needs_refresh())
@@ -72,8 +74,7 @@ std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
         swapchain_->recreate(current->index);
     }
 
-    std::optional<vkrndr::image_t> rv{
-        swapchain_->acquire_next_image(current->index)};
+    rv = swapchain_->acquire_next_image(current->index);
     if (rv)
     {
         pacing_->begin_frame();

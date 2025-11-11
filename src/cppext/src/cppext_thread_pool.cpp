@@ -12,19 +12,19 @@ void cppext::detail::function_wrapper_t::operator()()
 
 void cppext::detail::work_stealing_queue_t::push(function_wrapper_t data)
 {
-    std::lock_guard const lock{mutex_};
+    std::scoped_lock const lock{mutex_};
     queue_.push_front(std::move(data));
 }
 
 bool cppext::detail::work_stealing_queue_t::empty() const
 {
-    std::lock_guard const lock{mutex_};
+    std::scoped_lock const lock{mutex_};
     return queue_.empty();
 }
 
 bool cppext::detail::work_stealing_queue_t::try_pop(function_wrapper_t& res)
 {
-    std::lock_guard const lock{mutex_};
+    std::scoped_lock const lock{mutex_};
     if (queue_.empty())
     {
         return false;
@@ -37,7 +37,7 @@ bool cppext::detail::work_stealing_queue_t::try_pop(function_wrapper_t& res)
 
 bool cppext::detail::work_stealing_queue_t::try_steal(function_wrapper_t& res)
 {
-    std::lock_guard const lock{mutex_};
+    std::scoped_lock const lock{mutex_};
     if (queue_.empty())
     {
         return false;

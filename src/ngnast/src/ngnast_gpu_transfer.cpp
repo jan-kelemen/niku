@@ -2,31 +2,42 @@
 
 #include <ngnast_scene_model.hpp>
 
+#include <cppext_container.hpp>
+#include <cppext_numeric.hpp>
+
 #include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
-
-#include <cppext_numeric.hpp>
 
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_exit.hpp>
 #include <boost/scope/scope_fail.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/matrix.hpp>
 
 #include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
 #include <iterator>
 #include <optional>
+#include <ranges>
 #include <type_traits>
+#include <utility>
 #include <vector>
+
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
+// IWYU pragma: no_include <span>
 
 namespace
 {
@@ -315,7 +326,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         [&backend, &rv]() { destroy(backend.device(), rv); }};
 
     {
-        vkrndr::transient_operation_t op{
+        vkrndr::transient_operation_t const op{
             backend.request_transient_operation(false)};
         VkCommandBuffer cb{op.command_buffer()};
 
@@ -479,7 +490,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
     {
         uint32_t const offset{cppext::narrow<uint32_t>(i) * chunk_size};
 
-        vkrndr::transient_operation_t op{
+        vkrndr::transient_operation_t const op{
             backend.request_transient_operation(false)};
         VkCommandBuffer cb{op.command_buffer()};
 
@@ -499,7 +510,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         uint32_t const offset{
             cppext::narrow<uint32_t>(chunks.quot) * chunk_size};
 
-        vkrndr::transient_operation_t op{
+        vkrndr::transient_operation_t const op{
             backend.request_transient_operation(false)};
         VkCommandBuffer cb{op.command_buffer()};
 

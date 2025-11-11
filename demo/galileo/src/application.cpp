@@ -352,7 +352,7 @@ galileo::application_t::application_t(bool const debug)
                             rendering_context_.device->execution_ports,
                             &vkrndr::execution_port_t::has_present)};
 
-                    vkrndr::swapchain_t* const swapchain{
+                    vkrndr::swapchain_t const* const swapchain{
                         render_window_->create_swapchain(
                             *rendering_context_.device,
                             {
@@ -1132,7 +1132,7 @@ void galileo::application_t::setup_world()
                     galileo::object_layers::non_moving};
                 floor_settings.mEnhancedInternalEdgeRemoval = true;
 
-                JPH::Body* const floor{
+                JPH::Body const* const floor{
                     body_interface.CreateBody(floor_settings)};
 
                 body_interface.AddBody(floor->GetID(),

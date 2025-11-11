@@ -322,7 +322,7 @@ std::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
             std::make_error_code(std::errc::executable_format_error)};
     }
 
-    glslang::TIntermediate* const intermediate{
+    glslang::TIntermediate const* const intermediate{
         program.getIntermediate(language)};
 
     glslang::SpvOptions spv_options{};

@@ -55,29 +55,40 @@ bool gltfviewer::model_selector_t::select_model()
             auto json{simdjson::padded_string::load(path.generic_string())};
             std::vector<sample_model_t> samples;
 
-            simdjson::ondemand::parser parser;
-            for (auto model : parser.iterate(json))
+            try
             {
-                sample_model_t sample;
-                model["label"].get_string(sample.label);
-                model["name"].get_string(sample.name);
-                model["screnshot"].get_string(sample.screenshot);
-
-                for (auto tag : model["tags"].get_array())
+                simdjson::ondemand::parser parser;
+                for (auto model : parser.iterate(json))
                 {
-                    std::string value;
-                    tag.get_string(value);
-                    sample.tags.push_back(std::move(value));
-                }
+                    sample_model_t sample{
+                        .label =
+                            std::string{
+                                model["label"].get_string().take_value()},
+                        .name =
+                            std::string{
+                                model["name"].get_string().take_value()},
+                    };
 
-                for (auto kv : model["variants"].get_object())
-                {
-                    sample.variants.emplace_back(
-                        std::string{kv.unescaped_key().value()},
-                        std::string{kv.value().get_string().value()});
-                }
+                    for (auto tag : model["tags"].get_array())
+                    {
+                        sample.tags.emplace_back(tag.get_string().take_value());
+                    }
 
-                samples.push_back(std::move(sample));
+                    for (auto kv : model["variants"].get_object())
+                    {
+                        sample.variants.emplace_back(
+                            std::string{kv.unescaped_key().take_value()},
+                            std::string{kv.value().get_string().take_value()});
+                    }
+
+                    samples.push_back(std::move(sample));
+                }
+            }
+            catch (simdjson::simdjson_error const& error)
+            {
+                spdlog::error("Error while parsing glTF samples: {}",
+                    error.what());
+                return false;
             }
 
             selected_sample_ = 0;

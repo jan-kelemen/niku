@@ -313,7 +313,7 @@ gltfviewer::application_t::application_t(bool const debug)
                             rendering_context_.device->execution_ports,
                             &vkrndr::execution_port_t::has_present)};
 
-                    vkrndr::swapchain_t* const swapchain{
+                    vkrndr::swapchain_t const* const swapchain{
                         render_window_->create_swapchain(
                             *rendering_context_.device,
                             {

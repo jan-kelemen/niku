@@ -1,5 +1,7 @@
 #include <vkrndr_formats.hpp>
 
+#include <cppext_pragma_warning.hpp>
+
 #include <volk.h>
 
 #include <array>
@@ -25,6 +27,8 @@ vkrndr::find_supported_depth_stencil_formats(VkPhysicalDevice const device,
 {
     assert(needs_depth_component || needs_stencil_component);
 
+    DISABLE_WARNING_PUSH
+    DISABLE_WARNING_NRVO
     auto const filter_formats = [&device](auto&& func)
     {
         std::vector<depth_stencil_format_properties_t> rv;
@@ -61,4 +65,5 @@ vkrndr::find_supported_depth_stencil_formats(VkPhysicalDevice const device,
     }
 
     return filter_formats([](auto const& f) { return f.stencil_component; });
+    DISABLE_WARNING_POP
 }

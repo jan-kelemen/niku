@@ -5,7 +5,6 @@
 #include <cppext_container.hpp>
 #include <cppext_memory.hpp>
 #include <cppext_numeric.hpp>
-#include <cppext_pragma_warning.hpp>
 
 #include <ngnast_gltf_loader.hpp>
 #include <ngnast_gpu_transfer.hpp>
@@ -50,7 +49,6 @@
 
 #include <glm/mat4x4.hpp>
 #include <glm/matrix.hpp>
-#include <glm/vec3.hpp>
 
 #include <imgui.h>
 
@@ -70,6 +68,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstring>
+#include <exception>
 #include <expected>
 #include <functional>
 #include <iterator>
@@ -274,7 +273,7 @@ heatx::application_t::application_t(int argc,
                             rendering_context_.device->execution_ports,
                             &vkrndr::execution_port_t::has_present)};
 
-                    vkrndr::swapchain_t* const swapchain{
+                    vkrndr::swapchain_t const* const swapchain{
                         render_window_->create_swapchain(
                             *rendering_context_.device,
                             {

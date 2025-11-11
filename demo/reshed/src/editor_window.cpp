@@ -64,7 +64,7 @@ reshed::editor_window_t::editor_window_t(
         *std::ranges::find_if(context.device->execution_ports,
             &vkrndr::execution_port_t::has_present)};
 
-    vkrndr::swapchain_t* const swapchain{
+    vkrndr::swapchain_t const* const swapchain{
         render_window_->create_swapchain(*context.device,
             {
                 .preferred_format = VK_FORMAT_R8G8B8A8_UNORM,

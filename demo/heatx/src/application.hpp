@@ -13,7 +13,6 @@
 
 #include <vkglsl_guard.hpp>
 
-#include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_image.hpp>
