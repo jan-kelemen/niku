@@ -59,6 +59,7 @@
 #include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_scancode.h>
 #include <SDL3/SDL_video.h>
 
 #include <spdlog/spdlog.h>
@@ -342,6 +343,22 @@ bool heatx::application_t::handle_event(SDL_Event const& event)
         }
 
         return true;
+    }
+
+    if (event.type == SDL_EVENT_KEY_DOWN)
+    {
+        auto const& keyboard{event.key};
+        if (keyboard.scancode == SDL_SCANCODE_F3)
+        {
+            mouse_.set_capture(!mouse_.captured());
+            return true;
+        }
+
+        if (keyboard.scancode == SDL_SCANCODE_F4)
+        {
+            imgui_->set_enabled(!imgui_->enabled());
+            return true;
+        }
     }
 
     return false;
