@@ -77,6 +77,7 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 endif()
 
 # include(${PROJECT_SOURCE_DIR}/cmake/glslc.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/utility.cmake)
 
 add_subdirectory(src)
 add_subdirectory(vendor)

@@ -85,43 +85,25 @@ target_link_libraries(galileo
 
 add_dependencies(galileo galileo_assets galileo_scripts galileo_shaders)
 
-add_custom_target(galileo_assets
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/world.glb
+add_copy_if_different_target(galileo_assets
+    DESTINATION
         ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS
+    FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/world.glb
 )
 
-add_custom_target(galileo_scripts
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/spawner.as
-        ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sphere.as
+add_copy_if_different_target(galileo_scripts
+    DESTINATION
         ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS
+    FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sphere.as
         ${CMAKE_CURRENT_SOURCE_DIR}/scripts/spawner.as
 )
 
-add_custom_target(galileo_shaders
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
-        ${NIKU_DEMO_SHARED_DIR}/shaders/Fxaa3_11.h
-        ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl
-        ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/deferred.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/frame_info.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fxaa.comp
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/gbuffer.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/debug.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/scene_graph.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tone_mapping.comp
+add_copy_if_different_target(galileo_shaders
+    DESTINATION
         ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS
+    FILES
         ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/Fxaa3_11.h
         ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl

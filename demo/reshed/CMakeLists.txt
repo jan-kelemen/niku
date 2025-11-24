@@ -44,26 +44,20 @@ target_link_libraries(reshed
 
 add_dependencies(reshed reshed_assets reshed_shaders)
 
-add_custom_target(reshed_shaders
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.tesc
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.tese
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.vert
+add_copy_if_different_target(reshed_shaders
+    DESTINATION
         ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS
+    FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.frag
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.tesc
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.tese
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/text.vert
 )
 
-add_custom_target(reshed_assets
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/SpaceMono-Regular.ttf
-        ${tree-sitter-glsl_INCLUDE_DIR}/../queries/highlights.scm
+add_copy_if_different_target(reshed_assets
+    DESTINATION
         ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS
+    FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/SpaceMono-Regular.ttf
         ${tree-sitter-glsl_INCLUDE_DIR}/../queries/highlights.scm
 )

@@ -70,39 +70,17 @@ target_link_libraries(gltfviewer
 
 add_dependencies(gltfviewer gltfviewer_assets gltfviewer_shaders)
 
-add_custom_target(gltfviewer_assets
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/aviation_museum_4k.hdr
+add_copy_if_different_target(gltfviewer_assets
+    DESTINATION
         ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS
+    FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/aviation_museum_4k.hdr
 )
 
-add_custom_target(gltfviewer_shaders
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
-        ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl
-        ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/cubemap.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/environment.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/equirectangular_to_cubemap.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fullscreen.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/irradiance.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/oit_composition.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pbr.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/postprocess.comp
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/prefilter.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_downsample.comp
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pyramid_upsample.comp
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/resolve.comp
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/scene_graph.glsl
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.frag
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skybox.vert
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/weighted_blend.comp
+add_copy_if_different_target(gltfviewer_shaders
+    DESTINATION
         ${CMAKE_CURRENT_BINARY_DIR}
-    DEPENDS
+    FILES
         ${NIKU_DEMO_SHARED_DIR}/shaders/color_conversion.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
