@@ -7,5 +7,5 @@ compiler.runtime=dynamic
 [conf]
 tools.build:cflags+=["-fms-runtime-lib=dll"]
 tools.build:cxxflags+=["-fms-runtime-lib=dll"]
-tools.build:sharedlinkflags+=["-Xlinker", "/NODEFAULTLIB:libcmt"]
-tools.build:exelinkflags+=["-Xlinker", "/NODEFAULTLIB:libcmt"]
+tools.build:sharedlinkflags+=["-Xlinker", "-NODEFAULTLIB:libcmt"]
+tools.build:exelinkflags+=["-Xlinker", "-NODEFAULTLIB:libcmt"]

@@ -1,3 +1,3 @@
 [conf]
-tools.build:cflags+=["/arch:AVX2"]
-tools.build:cxxflags+=["/arch:AVX2"]
+tools.build:cflags+=["-arch:AVX2"]
+tools.build:cxxflags+=["-arch:AVX2"]
