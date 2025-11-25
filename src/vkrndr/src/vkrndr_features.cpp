@@ -162,6 +162,7 @@ void vkrndr::add_required_feature_flags(feature_flags_t& flags)
             &VkPhysicalDeviceVulkan12Features::descriptorBindingPartiallyBound,
             &VkPhysicalDeviceVulkan12Features::descriptorBindingVariableDescriptorCount,
             &VkPhysicalDeviceVulkan12Features::runtimeDescriptorArray,
+            &VkPhysicalDeviceVulkan12Features::scalarBlockLayout,
             &VkPhysicalDeviceVulkan12Features::bufferDeviceAddress,
             // clang-format on
         });
