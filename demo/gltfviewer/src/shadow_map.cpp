@@ -220,27 +220,28 @@ VkDescriptorSetLayout gltfviewer::shadow_map_t::descriptor_layout() const
 void gltfviewer::shadow_map_t::draw(scene_graph_t const& graph,
     VkCommandBuffer command_buffer) const
 {
-    vkrndr::render_pass_t shadow_map_pass;
-    shadow_map_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        shadow_map_.view,
-        VkClearValue{.depthStencil = {1.0f, 0}});
+    {
+        vkrndr::render_pass_t shadow_map_pass;
+        shadow_map_pass.with_depth_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            shadow_map_.view,
+            VkClearValue{.depthStencil = {1.0f, 0}});
 
-    [[maybe_unused]] auto guard{shadow_map_pass.begin(command_buffer,
-        {{0, 0}, vkrndr::to_2d_extent(shadow_map_.extent)})};
+        [[maybe_unused]] auto guard{shadow_map_pass.begin(command_buffer,
+            {{0, 0}, vkrndr::to_2d_extent(shadow_map_.extent)})};
 
-    VKRNDR_IF_DEBUG_UTILS(
-        [[maybe_unused]] vkrndr::command_buffer_scope_t const depth_pass_scope{
+        VKRNDR_IF_DEBUG_UTILS(
+            [[maybe_unused]] vkrndr::command_buffer_scope_t const
+                depth_pass_scope{command_buffer, "Shadow Map"});
+
+        vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
+
+        graph.traverse(ngnast::alpha_mode_t::opaque,
             command_buffer,
-            "Shadow Map"});
-
-    vkrndr::bind_pipeline(command_buffer, depth_pipeline_);
-
-    graph.traverse(ngnast::alpha_mode_t::opaque,
-        command_buffer,
-        depth_pipeline_.layout,
-        []([[maybe_unused]] ngnast::alpha_mode_t const mode,
-            [[maybe_unused]] bool const double_sided) { });
+            depth_pipeline_.layout,
+            []([[maybe_unused]] ngnast::alpha_mode_t const mode,
+                [[maybe_unused]] bool const double_sided) { });
+    }
 
     auto const barrier{vkrndr::with_layout(
         vkrndr::with_access(vkrndr::on_stage(vkrndr::image_barrier(shadow_map_,
@@ -323,8 +324,6 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
         depth_pipeline_layout_}
                           .add_shader(as_pipeline_shader(vertex_shader_))
                           .with_depth_test(depth_buffer_format)
-                          .add_vertex_input(graph.binding_description(),
-                              graph.attribute_description())
                           .with_culling(VK_CULL_MODE_FRONT_BIT,
                               VK_FRONT_FACE_COUNTER_CLOCKWISE)
                           .build();

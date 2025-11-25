@@ -535,7 +535,9 @@ void gltfviewer::application_t::draw()
 
                 depth_pass_shader_->draw(*scene_graph_, command_buffer);
             }
+        }
 
+        {
             auto const barrier{vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::image_barrier(depth_buffer_,
                                      VK_IMAGE_ASPECT_DEPTH_BIT),

@@ -2,12 +2,6 @@
 
 #extension GL_GOOGLE_include_directive : require
 
-layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec4 inTangent;
-layout(location = 3) in vec4 inColor;
-layout(location = 4) in vec2 inUV;
-
 layout(push_constant) uniform PushConsts
 {
     uint debug;
@@ -31,9 +25,11 @@ layout(location = 5) out vec4 outShadowPosition;
 
 void main()
 {
-    Transform transform = transforms.v[pc.modelIndex];
+    const Vertex vert = vertices.v[gl_VertexIndex];
 
-    vec4 worldPosition = transform.model * vec4(inPosition, 1.0);
+    const Transform transform = transforms.v[pc.modelIndex];
+
+    vec4 worldPosition = transform.model * vec4(vert.position, 1.0);
 
 #ifndef SHADOW_PASS
     gl_Position = env.projection * env.view * worldPosition;
@@ -53,10 +49,10 @@ void main()
 
 #ifndef DEPTH_PASS
     outPosition = worldPosition.xyz;
-    outNormal = mat3(transform.normal) * normalize(inNormal);
-    outTangent = vec4(mat3(transform.normal) * inTangent.xyz, inTangent.w);
-    outColor = inColor;
-    outUV = inUV;
+    outNormal = mat3(transform.normal) * normalize(vert.normal);
+    outTangent = vec4(mat3(transform.normal) * vert.tangent.xyz, vert.tangent.w);
+    outColor = vert.color;
+    outUV = vert.uv;
 
     // clang-format off
     const mat4 bias = mat4(

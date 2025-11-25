@@ -40,12 +40,6 @@ namespace gltfviewer
 
         [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
 
-        [[nodiscard]] std::span<VkVertexInputBindingDescription const>
-        binding_description() const;
-
-        [[nodiscard]] std::span<VkVertexInputAttributeDescription const>
-        attribute_description() const;
-
         void load(ngnast::scene_model_t&& model);
 
         void bind_on(VkCommandBuffer command_buffer,

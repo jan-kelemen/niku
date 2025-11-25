@@ -118,8 +118,6 @@ void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
             .add_shader(as_pipeline_shader(vertex_shader_))
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_format)
-            .add_vertex_input(graph.binding_description(),
-                graph.attribute_description())
             .with_culling(VK_CULL_MODE_BACK_BIT,
                 VK_FRONT_FACE_COUNTER_CLOCKWISE)
             .build();

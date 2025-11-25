@@ -47,14 +47,22 @@ namespace
     [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
         vkrndr::device_t const& device)
     {
+        VkDescriptorSetLayoutBinding vertex_buffer_binding{};
+        vertex_buffer_binding.binding = 0;
+        vertex_buffer_binding.descriptorType =
+            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        vertex_buffer_binding.descriptorCount = 1;
+        vertex_buffer_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
         VkDescriptorSetLayoutBinding transform_uniform_binding{};
-        transform_uniform_binding.binding = 0;
+        transform_uniform_binding.binding = 1;
         transform_uniform_binding.descriptorType =
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         transform_uniform_binding.descriptorCount = 1;
         transform_uniform_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-        std::array const bindings{transform_uniform_binding};
+        std::array const bindings{vertex_buffer_binding,
+            transform_uniform_binding};
 
         VkDescriptorSetLayoutCreateInfo layout_info{};
         layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -70,19 +78,30 @@ namespace
 
     void update_descriptor_set(vkrndr::device_t const& device,
         VkDescriptorSet const descriptor_set,
+        VkDescriptorBufferInfo const vertex_buffer_info,
         VkDescriptorBufferInfo const transform_uniform_info)
     {
+        VkWriteDescriptorSet vertex_storage_write{};
+        vertex_storage_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        vertex_storage_write.dstSet = descriptor_set;
+        vertex_storage_write.dstBinding = 0;
+        vertex_storage_write.dstArrayElement = 0;
+        vertex_storage_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        vertex_storage_write.descriptorCount = 1;
+        vertex_storage_write.pBufferInfo = &vertex_buffer_info;
+
         VkWriteDescriptorSet transform_storage_write{};
         transform_storage_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         transform_storage_write.dstSet = descriptor_set;
-        transform_storage_write.dstBinding = 0;
+        transform_storage_write.dstBinding = 1;
         transform_storage_write.dstArrayElement = 0;
         transform_storage_write.descriptorType =
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         transform_storage_write.descriptorCount = 1;
         transform_storage_write.pBufferInfo = &transform_uniform_info;
 
-        std::array const descriptor_writes{transform_storage_write};
+        std::array const descriptor_writes{vertex_storage_write,
+            transform_storage_write};
 
         vkUpdateDescriptorSets(device,
             vkrndr::count_cast(descriptor_writes),
@@ -140,47 +159,6 @@ VkDescriptorSetLayout gltfviewer::scene_graph_t::descriptor_layout() const
     return descriptor_layout_;
 }
 
-std::span<VkVertexInputBindingDescription const>
-gltfviewer::scene_graph_t::binding_description() const
-{
-    static constexpr std::array descriptions{
-        VkVertexInputBindingDescription{.binding = 0,
-            .stride = sizeof(ngnast::gpu::vertex_t),
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
-    };
-
-    return descriptions;
-}
-
-std::span<VkVertexInputAttributeDescription const>
-gltfviewer::scene_graph_t::attribute_description() const
-{
-    static constexpr std::array descriptions{
-        VkVertexInputAttributeDescription{.location = 0,
-            .binding = 0,
-            .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(ngnast::gpu::vertex_t, position)},
-        VkVertexInputAttributeDescription{.location = 1,
-            .binding = 0,
-            .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(ngnast::gpu::vertex_t, normal)},
-        VkVertexInputAttributeDescription{.location = 2,
-            .binding = 0,
-            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(ngnast::gpu::vertex_t, tangent)},
-        VkVertexInputAttributeDescription{.location = 3,
-            .binding = 0,
-            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(ngnast::gpu::vertex_t, color)},
-        VkVertexInputAttributeDescription{.location = 4,
-            .binding = 0,
-            .format = VK_FORMAT_R32G32_SFLOAT,
-            .offset = offsetof(ngnast::gpu::vertex_t, uv)},
-    };
-
-    return descriptions;
-}
-
 void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
 {
     clear();
@@ -198,7 +176,7 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
     vertex_count_ = transfer_result.vertex_count;
     vertex_buffer_ = create_buffer(backend_->device(),
         {.size = transfer_result.vertex_buffer.size,
-            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+            .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
     backend_->transfer_buffer(transfer_result.vertex_buffer, vertex_buffer_);
@@ -236,6 +214,7 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
 
         update_descriptor_set(backend_->device(),
             data.descriptor_set,
+            vkrndr::buffer_descriptor(vertex_buffer_),
             vkrndr::buffer_descriptor(data.uniform));
     }
 
@@ -260,16 +239,6 @@ void gltfviewer::scene_graph_t::bind_on(VkCommandBuffer command_buffer,
         &frame_data_->descriptor_set,
         0,
         nullptr);
-
-    if (vertex_count_)
-    {
-        VkDeviceSize const zero_offset{};
-        vkCmdBindVertexBuffers(command_buffer,
-            0,
-            1,
-            &vertex_buffer_.handle,
-            &zero_offset);
-    }
 
     if (index_count_)
     {

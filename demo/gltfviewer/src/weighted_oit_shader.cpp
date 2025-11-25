@@ -404,8 +404,6 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(backend_->device().max_msaa_samples)
             .with_depth_test(depth_buffer_format, VK_COMPARE_OP_LESS, false)
-            .add_vertex_input(graph.binding_description(),
-                graph.attribute_description())
             .build();
     VKRNDR_IF_DEBUG_UTILS(
         object_name(backend_->device(), pbr_pipeline_, "Transparent Pipeline"));
