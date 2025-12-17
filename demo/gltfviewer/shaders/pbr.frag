@@ -54,7 +54,7 @@ layout(std430, set = 1, binding = 2) readonly buffer MaterialBuffer
     Material v[];
 } materials;
 
-layout(set = 3, binding = 0) uniform sampler2D shadowMap;
+layout(set = 2, binding = 0) uniform sampler2D shadowMap;
 
 #ifndef OIT
 layout(location = 0) out vec4 outColor;

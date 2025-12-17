@@ -381,18 +381,16 @@ void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
         VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     reveal_color_blending.alphaBlendOp = VK_BLEND_OP_ADD;
 
-    pbr_pipeline_layout_ =
-        vkrndr::pipeline_layout_builder_t{backend_->device()}
-            .add_descriptor_set_layout(environment_layout)
-            .add_descriptor_set_layout(materials_layout)
-            .add_descriptor_set_layout(graph.descriptor_layout())
-            .add_descriptor_set_layout(shadow_layout)
-            .add_push_constants(
-                VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
-                        VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .offset = 0,
-                    .size = 32})
-            .build();
+    pbr_pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
+                               .add_descriptor_set_layout(environment_layout)
+                               .add_descriptor_set_layout(materials_layout)
+                               .add_descriptor_set_layout(shadow_layout)
+                               .add_push_constants(VkPushConstantRange{
+                                   .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
+                                       VK_SHADER_STAGE_FRAGMENT_BIT,
+                                   .offset = 0,
+                                   .size = 32})
+                               .build();
     pbr_pipeline_ =
         vkrndr::graphics_pipeline_builder_t{backend_->device(),
             pbr_pipeline_layout_}

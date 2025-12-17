@@ -263,7 +263,7 @@ void gltfviewer::shadow_map_t::bind_on(VkCommandBuffer command_buffer,
     vkCmdBindDescriptorSets(command_buffer,
         bind_point,
         layout,
-        3,
+        2,
         1,
         &descriptor_,
         0,
@@ -312,7 +312,6 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
         vkrndr::pipeline_layout_builder_t{backend_->device()}
             .add_descriptor_set_layout(environment_layout)
             .add_descriptor_set_layout(materials_layout)
-            .add_descriptor_set_layout(graph.descriptor_layout())
             .add_push_constants(
                 VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                         VK_SHADER_STAGE_FRAGMENT_BIT,

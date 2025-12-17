@@ -38,8 +38,6 @@ namespace gltfviewer
     public:
         [[nodiscard]] bool empty() const;
 
-        [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
-
         void load(ngnast::scene_model_t&& model);
 
         void bind_on(VkCommandBuffer command_buffer,
@@ -62,7 +60,6 @@ namespace gltfviewer
         {
             vkrndr::buffer_t uniform;
             vkrndr::mapped_memory_t uniform_map;
-            VkDescriptorSet descriptor_set{VK_NULL_HANDLE};
         };
 
     private:
@@ -81,8 +78,6 @@ namespace gltfviewer
 
     private:
         vkrndr::backend_t* backend_;
-
-        VkDescriptorSetLayout descriptor_layout_{VK_NULL_HANDLE};
 
         ngnast::scene_model_t model_;
         std::vector<ngnast::gpu::primitive_t> primitives_;

@@ -4,7 +4,7 @@
 
 #include "environment.glsl" // (set = 0)
 
-#include "scene_graph.glsl" // (set = 2)
+#include "scene_graph.glsl"
 
 layout(push_constant) uniform PushConsts
 {

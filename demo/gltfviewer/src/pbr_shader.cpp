@@ -138,7 +138,6 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
     pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
                            .add_descriptor_set_layout(environment_layout)
                            .add_descriptor_set_layout(materials_layout)
-                           .add_descriptor_set_layout(graph.descriptor_layout())
                            .add_descriptor_set_layout(shadow_layout)
                            .add_push_constants(VkPushConstantRange{
                                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |

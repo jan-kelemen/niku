@@ -4,7 +4,6 @@
 #include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_buffer.hpp>
 
-#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 

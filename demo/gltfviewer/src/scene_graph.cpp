@@ -22,7 +22,6 @@
 #include <vma_impl.hpp>
 
 #include <array>
-#include <cstddef>
 #include <functional>
 #include <utility>
 
@@ -45,72 +44,6 @@ namespace
         glm::mat4 model;
         glm::mat4 model_inverse;
     };
-
-    [[nodiscard]] VkDescriptorSetLayout create_descriptor_set_layout(
-        vkrndr::device_t const& device)
-    {
-        VkDescriptorSetLayoutBinding vertex_buffer_binding{};
-        vertex_buffer_binding.binding = 0;
-        vertex_buffer_binding.descriptorType =
-            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        vertex_buffer_binding.descriptorCount = 1;
-        vertex_buffer_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        VkDescriptorSetLayoutBinding transform_uniform_binding{};
-        transform_uniform_binding.binding = 1;
-        transform_uniform_binding.descriptorType =
-            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        transform_uniform_binding.descriptorCount = 1;
-        transform_uniform_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-        std::array const bindings{vertex_buffer_binding,
-            transform_uniform_binding};
-
-        VkDescriptorSetLayoutCreateInfo layout_info{};
-        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_info.bindingCount = vkrndr::count_cast(bindings);
-        layout_info.pBindings = bindings.data();
-
-        VkDescriptorSetLayout rv; // NOLINT
-        vkrndr::check_result(
-            vkCreateDescriptorSetLayout(device, &layout_info, nullptr, &rv));
-
-        return rv;
-    }
-
-    void update_descriptor_set(vkrndr::device_t const& device,
-        VkDescriptorSet const descriptor_set,
-        VkDescriptorBufferInfo const vertex_buffer_info,
-        VkDescriptorBufferInfo const transform_uniform_info)
-    {
-        VkWriteDescriptorSet vertex_storage_write{};
-        vertex_storage_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        vertex_storage_write.dstSet = descriptor_set;
-        vertex_storage_write.dstBinding = 0;
-        vertex_storage_write.dstArrayElement = 0;
-        vertex_storage_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        vertex_storage_write.descriptorCount = 1;
-        vertex_storage_write.pBufferInfo = &vertex_buffer_info;
-
-        VkWriteDescriptorSet transform_storage_write{};
-        transform_storage_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        transform_storage_write.dstSet = descriptor_set;
-        transform_storage_write.dstBinding = 1;
-        transform_storage_write.dstArrayElement = 0;
-        transform_storage_write.descriptorType =
-            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        transform_storage_write.descriptorCount = 1;
-        transform_storage_write.pBufferInfo = &transform_uniform_info;
-
-        std::array const descriptor_writes{vertex_storage_write,
-            transform_storage_write};
-
-        vkUpdateDescriptorSets(device,
-            vkrndr::count_cast(descriptor_writes),
-            descriptor_writes.data(),
-            0,
-            nullptr);
-    }
 
     [[nodiscard]] uint32_t calculate_transform(
         ngnast::scene_model_t const& model,
@@ -156,16 +89,9 @@ gltfviewer::scene_graph_t::~scene_graph_t() { clear(); }
 
 bool gltfviewer::scene_graph_t::empty() const { return primitives_.empty(); }
 
-VkDescriptorSetLayout gltfviewer::scene_graph_t::descriptor_layout() const
-{
-    return descriptor_layout_;
-}
-
 void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
 {
     clear();
-
-    descriptor_layout_ = create_descriptor_set_layout(backend_->device());
 
     auto transfer_result{
         ngnast::gpu::transfer_geometry(backend_->device(), model)};
@@ -212,16 +138,6 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 .alignment = 128});
         data.uniform_map = map_memory(backend_->device(), data.uniform);
-
-        vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            cppext::as_span(descriptor_layout_),
-            cppext::as_span(data.descriptor_set)));
-
-        update_descriptor_set(backend_->device(),
-            data.descriptor_set,
-            vkrndr::buffer_descriptor(vertex_buffer_),
-            vkrndr::buffer_descriptor(data.uniform));
     }
 
     calculate_transforms(model, cppext::as_span(frame_data_));
@@ -236,15 +152,6 @@ void gltfviewer::scene_graph_t::bind_on(VkCommandBuffer command_buffer,
     VkPipelineBindPoint const bind_point)
 {
     frame_data_.cycle();
-
-    vkCmdBindDescriptorSets(command_buffer,
-        bind_point,
-        layout,
-        2,
-        1,
-        &frame_data_->descriptor_set,
-        0,
-        nullptr);
 
     if (index_count_)
     {
@@ -385,10 +292,6 @@ void gltfviewer::scene_graph_t::clear()
 {
     for (frame_data_t& data : cppext::as_span(frame_data_))
     {
-        free_descriptor_sets(backend_->device(),
-            backend_->descriptor_pool(),
-            cppext::as_span(data.descriptor_set));
-
         if (data.uniform_map.allocation)
         {
             unmap_memory(backend_->device(), &data.uniform_map);
@@ -409,8 +312,4 @@ void gltfviewer::scene_graph_t::clear()
     }
 
     primitives_.clear();
-
-    vkDestroyDescriptorSetLayout(backend_->device(),
-        descriptor_layout_,
-        nullptr);
 }
