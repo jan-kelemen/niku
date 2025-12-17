@@ -109,7 +109,7 @@ void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
                                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                                    VK_SHADER_STAGE_FRAGMENT_BIT,
                                .offset = 0,
-                               .size = 16})
+                               .size = 24})
                            .build();
 
     depth_pipeline_ =

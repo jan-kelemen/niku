@@ -2,6 +2,7 @@
 #define GLTFVIEWER_SCENE_GRAPH_INCLUDED
 
 #extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_buffer_reference : require
 
 struct Vertex
 {
@@ -23,9 +24,9 @@ struct Transform
     mat4 normal;
 };
 
-layout(std140, set = 2, binding = 1) readonly buffer TransformBuffer
+layout(buffer_reference, buffer_reference_align = 128) readonly buffer TransformBuffer
 {
     Transform v[];
-} transforms;
+};
 
 #endif

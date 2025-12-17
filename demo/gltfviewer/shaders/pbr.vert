@@ -2,17 +2,18 @@
 
 #extension GL_GOOGLE_include_directive : require
 
+#include "environment.glsl" // (set = 0)
+
+#include "scene_graph.glsl" // (set = 2)
+
 layout(push_constant) uniform PushConsts
 {
     uint debug;
     float iblFactor;
     uint modelIndex;
     uint materialIndex;
+    TransformBuffer transforms;
 } pc;
-
-#include "environment.glsl" // (set = 0)
-
-#include "scene_graph.glsl" // (set = 2)
 
 #ifndef DEPTH_PASS
 layout(location = 0) out vec3 outPosition;
@@ -27,7 +28,7 @@ void main()
 {
     const Vertex vert = vertices.v[gl_VertexIndex];
 
-    const Transform transform = transforms.v[pc.modelIndex];
+    const Transform transform = pc.transforms.v[pc.modelIndex];
 
     vec4 worldPosition = transform.model * vec4(vert.position, 1.0);
 

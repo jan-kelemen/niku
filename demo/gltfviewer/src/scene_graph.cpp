@@ -36,6 +36,7 @@ namespace
     {
         uint32_t transform_index;
         uint32_t material_index;
+        VkDeviceAddress transforms;
     };
 
     struct [[nodiscard]] transform_t final
@@ -177,7 +178,8 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
     vertex_buffer_ = create_buffer(backend_->device(),
         {.size = transfer_result.vertex_buffer.size,
             .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
     backend_->transfer_buffer(transfer_result.vertex_buffer, vertex_buffer_);
 
@@ -199,12 +201,14 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
     {
         data.uniform = create_buffer(backend_->device(),
             {.size = transform_buffer_size,
-                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                    VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
                 .allocation_flags =
                     VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
                 .required_memory_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                .alignment = 128});
         data.uniform_map = map_memory(backend_->device(), data.uniform);
 
         vkrndr::check_result(allocate_descriptor_sets(backend_->device(),
@@ -315,7 +319,8 @@ uint32_t gltfviewer::scene_graph_t::draw_node(VkCommandBuffer command_buffer,
 
             push_constants_t const pc{.transform_index = index,
                 .material_index =
-                    cppext::narrow<uint32_t>(primitive.material_index)};
+                    cppext::narrow<uint32_t>(primitive.material_index),
+                .transforms = frame_data_->uniform.device_address};
 
             if (!model_.materials.empty())
             {
