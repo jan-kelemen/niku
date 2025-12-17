@@ -54,6 +54,7 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
         .memoryTypeBits = create_info.memory_type_bits,
         .pool = create_info.pool,
         .priority = create_info.priority};
+
     if (create_info.required_memory_flags &
         VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)
     {
@@ -65,12 +66,25 @@ vkrndr::buffer_t vkrndr::create_buffer(device_t const& device,
         vma_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     }
 
-    check_result(vmaCreateBuffer(device.allocator,
-        &buffer_info,
-        &vma_info,
-        &rv.handle,
-        &rv.allocation,
-        nullptr));
+    if (create_info.alignment == 0)
+    {
+        check_result(vmaCreateBuffer(device.allocator,
+            &buffer_info,
+            &vma_info,
+            &rv.handle,
+            &rv.allocation,
+            nullptr));
+    }
+    else
+    {
+        check_result(vmaCreateBufferWithAlignment(device.allocator,
+            &buffer_info,
+            &vma_info,
+            create_info.alignment,
+            &rv.handle,
+            &rv.allocation,
+            nullptr));
+    }
 
     if (create_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
     {

@@ -44,6 +44,7 @@ namespace vkrndr
         uint32_t memory_type_bits{};
         VmaPool pool{VK_NULL_HANDLE};
         float priority{};
+        VkDeviceSize alignment{};
     };
 
     buffer_t create_buffer(device_t const& device,
