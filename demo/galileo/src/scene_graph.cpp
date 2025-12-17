@@ -284,7 +284,7 @@ void galileo::scene_graph_t::consume(ngnast::scene_model_t& model)
             vertices[i].position = gltf_vertices[i].position;
             vertices[i].normal = gltf_vertices[i].normal;
             vertices[i].color = gltf_vertices[i].color;
-            vertices[i].uv = gltf_vertices[i].uv;
+            vertices[i].uv = {gltf_vertices[i].uv_s, gltf_vertices[i].uv_t};
         }
 
         unmap_memory(backend_->device(), &gltf_map);

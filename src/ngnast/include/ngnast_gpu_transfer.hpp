@@ -30,10 +30,11 @@ namespace ngnast::gpu
     struct [[nodiscard]] vertex_t final
     {
         glm::vec3 position;
+        float uv_s;
         glm::vec3 normal;
+        float uv_t;
         glm::vec4 tangent;
         glm::vec4 color{1.0f};
-        glm::vec2 uv;
     };
 
     struct [[nodiscard]] primitive_t final

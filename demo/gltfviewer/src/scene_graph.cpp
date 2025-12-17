@@ -36,6 +36,7 @@ namespace
     {
         uint32_t transform_index;
         uint32_t material_index;
+        VkDeviceAddress vertices;
         VkDeviceAddress transforms;
     };
 
@@ -180,7 +181,8 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
             .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT |
                 VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT});
+            .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            .alignment = 64});
     backend_->transfer_buffer(transfer_result.vertex_buffer, vertex_buffer_);
 
     if (transfer_result.index_count > 0)
@@ -320,6 +322,7 @@ uint32_t gltfviewer::scene_graph_t::draw_node(VkCommandBuffer command_buffer,
             push_constants_t const pc{.transform_index = index,
                 .material_index =
                     cppext::narrow<uint32_t>(primitive.material_index),
+                .vertices = vertex_buffer_.device_address,
                 .transforms = frame_data_->uniform.device_address};
 
             if (!model_.materials.empty())

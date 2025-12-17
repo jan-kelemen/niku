@@ -12,6 +12,7 @@ layout(push_constant) uniform PushConsts
     float iblFactor;
     uint modelIndex;
     uint materialIndex;
+    VertexBuffer vertices;
     TransformBuffer transforms;
 } pc;
 
@@ -26,7 +27,7 @@ layout(location = 5) out vec4 outShadowPosition;
 
 void main()
 {
-    const Vertex vert = vertices.v[gl_VertexIndex];
+    const Vertex vert = unpackVertex(pc.vertices.v[gl_VertexIndex]);
 
     const Transform transform = pc.transforms.v[pc.modelIndex];
 

@@ -4,6 +4,14 @@
 #extension GL_EXT_scalar_block_layout : require
 #extension GL_EXT_buffer_reference : require
 
+struct PackedVertex
+{
+    vec4 position_uv_s;
+    vec4 normal_uv_t;
+    vec4 tangent;
+    vec4 color;
+};
+
 struct Vertex
 {
     vec3 position;
@@ -13,10 +21,15 @@ struct Vertex
     vec2 uv;
 };
 
-layout(scalar, set = 2, binding = 0) readonly buffer VertexBuffer
+layout(buffer_reference, buffer_reference_align = 64) readonly buffer VertexBuffer
 {
-    Vertex v[];
-} vertices;
+    PackedVertex v[];
+};
+
+Vertex unpackVertex(PackedVertex vtx)
+{
+    return Vertex(vtx.position_uv_s.xyz, vtx.normal_uv_t.xyz, vtx.tangent, vtx.color, vec2(vtx.position_uv_s.w, vtx.normal_uv_t.w));
+}
 
 struct Transform
 {

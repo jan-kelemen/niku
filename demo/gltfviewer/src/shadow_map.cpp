@@ -317,7 +317,7 @@ void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
                 VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                         VK_SHADER_STAGE_FRAGMENT_BIT,
                     .offset = 0,
-                    .size = 24})
+                    .size = 32})
             .build();
 
     depth_pipeline_ = vkrndr::graphics_pipeline_builder_t{backend_->device(),

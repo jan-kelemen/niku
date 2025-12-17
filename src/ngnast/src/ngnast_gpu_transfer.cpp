@@ -43,11 +43,12 @@ namespace
 {
     ngnast::gpu::vertex_t to_gpu_vertex(ngnast::vertex_t const& v)
     {
-        return {.position = glm::make_vec3(v.position),
+        return {.position = v.position,
+            .uv_s = v.uv.x,
             .normal = v.normal,
+            .uv_t = v.uv.y,
             .tangent = v.tangent,
-            .color = v.color,
-            .uv = v.uv};
+            .color = v.color};
     }
 
     [[nodiscard]] std::vector<ngnast::gpu::primitive_t> transfer_primitives(

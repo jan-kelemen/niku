@@ -144,7 +144,7 @@ void gltfviewer::pbr_shader_t::load(scene_graph_t const& graph,
                                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT |
                                    VK_SHADER_STAGE_FRAGMENT_BIT,
                                .offset = 0,
-                               .size = 24})
+                               .size = 32})
                            .build();
 
     double_sided_pipeline_ =
