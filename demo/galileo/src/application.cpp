@@ -301,6 +301,8 @@ galileo::application_t::application_t(bool const debug)
                         return std::unexpected{vkrndr::make_error_code(
                             VK_ERROR_INITIALIZATION_FAILED)};
                     }
+                    spdlog::info("Selected {} GPU",
+                        physical_device->properties.deviceName);
 
                     auto const queue_with_present{std::ranges::find_if(
                         physical_device->queue_families,

@@ -196,6 +196,8 @@ heatx::application_t::application_t(int argc,
                         return std::unexpected{vkrndr::make_error_code(
                             VK_ERROR_INITIALIZATION_FAILED)};
                     }
+                    spdlog::info("Selected {} GPU",
+                        physical_device->properties.deviceName);
 
                     vkrndr::feature_chain_t effective_features;
                     set_feature_flags_on_chain(effective_features,
