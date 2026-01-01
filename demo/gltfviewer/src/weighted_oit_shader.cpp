@@ -320,7 +320,7 @@ void gltfviewer::weighted_oit_shader_t::resize(uint32_t const width,
         vkrndr::combined_sampler_descriptor(reveal_sampler_, reveal_image_));
 }
 
-void gltfviewer::weighted_oit_shader_t::load(scene_graph_t const& graph,
+void gltfviewer::weighted_oit_shader_t::load(
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
     VkDescriptorSetLayout shadow_layout,

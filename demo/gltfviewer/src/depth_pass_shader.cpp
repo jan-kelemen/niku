@@ -66,7 +66,7 @@ void gltfviewer::depth_pass_shader_t::draw(scene_graph_t const& graph,
             [[maybe_unused]] bool const double_sided) { });
 }
 
-void gltfviewer::depth_pass_shader_t::load(scene_graph_t const& graph,
+void gltfviewer::depth_pass_shader_t::load(
     VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)

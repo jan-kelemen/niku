@@ -147,9 +147,7 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
     model_.images.clear();
 }
 
-void gltfviewer::scene_graph_t::bind_on(VkCommandBuffer command_buffer,
-    VkPipelineLayout layout,
-    VkPipelineBindPoint const bind_point)
+void gltfviewer::scene_graph_t::bind_on(VkCommandBuffer command_buffer)
 {
     frame_data_.cycle();
 

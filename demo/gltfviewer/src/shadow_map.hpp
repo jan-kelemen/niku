@@ -38,8 +38,7 @@ namespace gltfviewer
 
         [[nodiscard]] VkDescriptorSetLayout descriptor_layout() const;
 
-        void load(scene_graph_t const& graph,
-            VkDescriptorSetLayout environment_layout,
+        void load(VkDescriptorSetLayout environment_layout,
             VkDescriptorSetLayout materials_layout,
             VkFormat depth_buffer_format);
 

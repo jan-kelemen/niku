@@ -426,21 +426,17 @@ void gltfviewer::application_t::update(float delta_time)
 
         materials_->load(*model);
         scene_graph_->load(std::move(model).value());
-        depth_pass_shader_->load(*scene_graph_,
-            environment_->descriptor_layout(),
+        depth_pass_shader_->load(environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             depth_buffer_.format);
-        shadow_map_->load(*scene_graph_,
-            environment_->descriptor_layout(),
+        shadow_map_->load(environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             depth_buffer_.format);
-        pbr_shader_->load(*scene_graph_,
-            environment_->descriptor_layout(),
+        pbr_shader_->load(environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             shadow_map_->descriptor_layout(),
             depth_buffer_.format);
-        weighted_oit_shader_->load(*scene_graph_,
-            environment_->descriptor_layout(),
+        weighted_oit_shader_->load(environment_->descriptor_layout(),
             materials_->descriptor_layout(),
             shadow_map_->descriptor_layout(),
             depth_buffer_.format);
@@ -517,9 +513,7 @@ void gltfviewer::application_t::draw()
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            scene_graph_->bind_on(command_buffer,
-                layout,
-                VK_PIPELINE_BIND_POINT_GRAPHICS);
+            scene_graph_->bind_on(command_buffer);
 
             vkCmdPushConstants(command_buffer,
                 layout,
@@ -560,9 +554,7 @@ void gltfviewer::application_t::draw()
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            scene_graph_->bind_on(command_buffer,
-                layout,
-                VK_PIPELINE_BIND_POINT_GRAPHICS);
+            scene_graph_->bind_on(command_buffer);
 
             vkCmdPushConstants(command_buffer,
                 layout,
@@ -593,9 +585,7 @@ void gltfviewer::application_t::draw()
                 layout,
                 VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-            scene_graph_->bind_on(command_buffer,
-                layout,
-                VK_PIPELINE_BIND_POINT_GRAPHICS);
+            scene_graph_->bind_on(command_buffer);
 
             shadow_map_->bind_on(command_buffer,
                 layout,
@@ -670,9 +660,7 @@ void gltfviewer::application_t::draw()
             oit_layout,
             VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-        scene_graph_->bind_on(command_buffer,
-            oit_layout,
-            VK_PIPELINE_BIND_POINT_GRAPHICS);
+        scene_graph_->bind_on(command_buffer);
 
         shadow_map_->bind_on(command_buffer,
             oit_layout,

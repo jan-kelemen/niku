@@ -270,8 +270,7 @@ void gltfviewer::shadow_map_t::bind_on(VkCommandBuffer command_buffer,
         nullptr);
 }
 
-void gltfviewer::shadow_map_t::load(scene_graph_t const& graph,
-    VkDescriptorSetLayout environment_layout,
+void gltfviewer::shadow_map_t::load(VkDescriptorSetLayout environment_layout,
     VkDescriptorSetLayout materials_layout,
     VkFormat depth_buffer_format)
 {

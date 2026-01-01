@@ -40,9 +40,7 @@ namespace gltfviewer
 
         void load(ngnast::scene_model_t&& model);
 
-        void bind_on(VkCommandBuffer command_buffer,
-            VkPipelineLayout layout,
-            VkPipelineBindPoint bind_point);
+        void bind_on(VkCommandBuffer command_buffer);
 
         void traverse(ngnast::alpha_mode_t alpha_mode,
             VkCommandBuffer command_buffer,
