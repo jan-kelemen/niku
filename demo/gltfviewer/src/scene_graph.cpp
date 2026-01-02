@@ -1,6 +1,5 @@
 #include <scene_graph.hpp>
 
-#include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
 
@@ -9,10 +8,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
-#include <vkrndr_descriptors.hpp>
-#include <vkrndr_device.hpp>
 #include <vkrndr_memory.hpp>
-#include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
 
@@ -21,7 +17,6 @@
 
 #include <vma_impl.hpp>
 
-#include <array>
 #include <functional>
 #include <utility>
 

@@ -26,6 +26,7 @@
 #include <span>
 
 // IWYU pragma: no_include <boost/container/vector.hpp>
+// IWYU pragma: no_include <boost/intrusive/detail/iterator.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <expected>
