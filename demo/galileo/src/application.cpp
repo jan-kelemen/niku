@@ -227,7 +227,7 @@ namespace
                 ngnast::vertex_t const& v3) -> JPH::Triangle
         { return {to_jolt_pos(v1), to_jolt_pos(v2), to_jolt_pos(v3)}; };
 
-        return {
+        return JPH::MeshShapeSettings{
             ngnphy::to_unindexed_triangles(primitive.vertices, to_jolt_tri)};
     }
 } // namespace
