@@ -1,13 +1,13 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, cmake_layout
-from conan.tools.files import get, copy 
+from conan.tools.files import get, copy
 
 import os
 
 required_conan_version = ">=2.4"
 
 
-class TreeSitterCConan(ConanFile):
+class TreeSitterGlslConan(ConanFile):
     name = "tree-sitter-glsl"
     description = "GLSL grammar for tree-sitter."
     license = "MIT"
@@ -37,7 +37,7 @@ class TreeSitterCConan(ConanFile):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
 
     def requirements(self):
-        self.requires("tree-sitter/[^0.25.8]", transitive_headers=True, transitive_libs=True)
+        self.requires("tree-sitter/[>=0.25<1.0]", transitive_headers=True, transitive_libs=True)
 
     def build(self):
         cmake = CMake(self)

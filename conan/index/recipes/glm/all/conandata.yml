@@ -1,7 +1,4 @@
 sources:
-  "1.0.2":
-    url: "https://github.com/g-truc/glm/releases/download/1.0.2/glm-1.0.2.zip"
-    sha256: "a41adf423315e35489c1e67689c7bb74c7edd4d207a477b7b19c45cd440c2f67"
-  "1.0.1":
-    url: "https://github.com/g-truc/glm/releases/download/1.0.1/glm-1.0.1-light.zip"
-    sha256: "9A995DE4DA09723BD33EF194E6B79818950E5A8F2E154792F02E4615277CFB8D"
+  "1.0.3":
+    url: "https://github.com/g-truc/glm/releases/download/1.0.3/glm-1.0.3.zip"
+    sha256: "3a8815d60cce4bd0a40b3a7380dc23c2831470bdcdaea8089ba86a28510d6ee4"

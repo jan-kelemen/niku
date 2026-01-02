@@ -27,7 +27,6 @@ configure_options:
 - regex
 - serialization
 - stacktrace
-- system
 - test
 - thread
 - timer
@@ -37,12 +36,12 @@ configure_options:
 dependencies:
   atomic: []
   charconv: []
-  chrono:
-  - system
+  chrono: []
   cobalt:
   - container
   - context
-  - system
+  cobalt_io:
+  - cobalt
   container: []
   context: []
   contract:
@@ -51,7 +50,6 @@ dependencies:
   coroutine:
   - context
   - exception
-  - system
   date_time: []
   exception: []
   fiber:
@@ -61,7 +59,6 @@ dependencies:
   - fiber
   filesystem:
   - atomic
-  - system
   graph:
   - math
   - random
@@ -78,17 +75,15 @@ dependencies:
   - regex
   json:
   - container
-  - system
   locale:
+  - charconv
   - thread
   log:
   - atomic
   - date_time
   - exception
   - filesystem
-  - random
   - regex
-  - system
   - thread
   log_setup:
   - log
@@ -118,13 +113,11 @@ dependencies:
   prg_exec_monitor:
   - test
   process:
-  - filesystem
-  - system
   - context
+  - filesystem
   program_options: []
   python: []
-  random:
-  - system
+  random: []
   regex: []
   serialization: []
   stacktrace: []
@@ -142,7 +135,6 @@ dependencies:
   - stacktrace
   stacktrace_windbg_cached:
   - stacktrace
-  system: []
   test:
   - exception
   test_exec_monitor:
@@ -153,7 +145,6 @@ dependencies:
   - container
   - date_time
   - exception
-  - system
   timer: []
   type_erasure:
   - thread
@@ -161,8 +152,7 @@ dependencies:
   - prg_exec_monitor
   - test
   - test_exec_monitor
-  url:
-  - system
+  url: []
   wave:
   - filesystem
   - serialization
@@ -177,6 +167,8 @@ libs:
   - boost_chrono
   cobalt:
   - boost_cobalt
+  cobalt_io:
+  - boost_cobalt_io
   container:
   - boost_container
   context:
@@ -259,8 +251,6 @@ libs:
   - boost_stacktrace_windbg
   stacktrace_windbg_cached:
   - boost_stacktrace_windbg_cached
-  system:
-  - boost_system
   test: []
   test_exec_monitor:
   - boost_test_exec_monitor
@@ -296,4 +286,4 @@ requirements:
 static_only:
 - boost_exception
 - boost_test_exec_monitor
-version: 1.88.0
+version: 1.90.0

@@ -26,18 +26,13 @@ class TreeSitterConan(ConanFile):
         "shared": False,
     }
 
-    def export_sources(self):
-        if Version(self.version) < "0.24.1":
-            copy(self, "CMakeLists.txt", src=self.recipe_folder, dst=self.export_sources_folder)
-
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
-            if Version(self.version) >= "0.24.1":
-                self.package_type = "static-library"
+            self.package_type = "static-library"
 
     def configure(self):
-        if Version(self.version) >= "0.24.1" and self.settings.os == "Windows":
+        if self.settings.os == "Windows":
             self.options.rm_safe("shared")
         if self.options.get_safe("shared"):
             self.options.rm_safe("fPIC")
@@ -52,19 +47,15 @@ class TreeSitterConan(ConanFile):
 
     def generate(self):
         tc = CMakeToolchain(self)
-        if Version(self.version) < "0.24.1":
-            tc.variables["TREE_SITTER_SRC_DIR"] = self.source_folder.replace("\\", "/")
-            tc.variables["TREE_SITTER_VERSION"] = str(self.version)
-        else:
-            tc.cache_variables["BUILD_SHARED_LIBS"] = self.options.get_safe("shared", False)
+        tc.cache_variables["BUILD_SHARED_LIBS"] = self.options.get_safe("shared", False)
         tc.generate()
 
     def build(self):
         cmake = CMake(self)
-        if Version(self.version) < "0.24.1":
-            cmake.configure(build_script_folder=os.path.join(self.source_folder, os.pardir))
-        else:
+        if Version(self.version) < "0.26.1":
             cmake.configure(build_script_folder=os.path.join(self.source_folder, "lib"))
+        else:
+            cmake.configure()
         cmake.build()
 
     def package(self):

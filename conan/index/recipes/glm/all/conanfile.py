@@ -31,7 +31,7 @@ class GlmConan(ConanFile):
         pass
 
     def package(self):
-        copy(self, "copying.txt", src=os.path.join(self.source_folder, "glm"), dst=os.path.join(self.package_folder, "licenses"))
+        copy(self, "copying.txt", src=self.source_folder, dst=os.path.join(self.package_folder, "licenses"))
         for headers in ("*.hpp", "*.inl", "*.h", "*.cppm"):
             copy(self, headers, src=os.path.join(self.source_folder, "glm"),
                                 dst=os.path.join(self.package_folder, "include", "glm"))

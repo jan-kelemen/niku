@@ -1,23 +1,19 @@
 # Add only the SDK release versions from https://github.com/KhronosGroup/SPIRV-Tools/tags for consistency
 sources:
+  "1.4.335.0":
+    url: "https://github.com/KhronosGroup/SPIRV-Tools/archive/refs/tags/vulkan-sdk-1.4.335.0.tar.gz"
+    sha256: "8b3d5637061b52675e506ffa1100740031e38bdd96b8177978acfd898a705da2"
   "1.4.328.1":
     url: "https://github.com/KhronosGroup/SPIRV-Tools/archive/refs/tags/vulkan-sdk-1.4.328.1.tar.gz"
     sha256: "d00dc47df7163c2bacd70f090441e8fad96234f0e3b96c54ee9091a49e627adb"
-  "1.4.321.0":
-    url: "https://github.com/KhronosGroup/SPIRV-Tools/archive/refs/tags/vulkan-sdk-1.4.321.0.tar.gz"
-    sha256: "8327fb8f3e9472346a004c91dbb83a6e5f3b36c3846c142cf8c0dc8fac8710f3"
 patches:
+  "1.4.335.0":
+    - patch_file: "patches/1.4.321-dont-set-build-type.patch"
+      patch_description: "Don't set build type if CMAKE_BUILD_TYPE is not defined"
+      patch_type: "portability"
+      sha256: "dc39d069bcd106ef62de4d870a6eb8563202f146543071b39bbf2baa3dc314ca"
   "1.4.328.1":
     - patch_file: "patches/1.4.321-dont-set-build-type.patch"
       patch_description: "Don't set build type if CMAKE_BUILD_TYPE is not defined"
       patch_type: "portability"
       sha256: "dc39d069bcd106ef62de4d870a6eb8563202f146543071b39bbf2baa3dc314ca"
-  "1.4.321.0":
-    - patch_file: "patches/1.4.321-dont-set-build-type.patch"
-      patch_description: "Don't set build type if CMAKE_BUILD_TYPE is not defined"
-      patch_type: "portability"
-      sha256: "dc39d069bcd106ef62de4d870a6eb8563202f146543071b39bbf2baa3dc314ca"
-    - patch_file: "patches/1.4.321-whole-program-optimization.patch"
-      patch_description: "Fix compile errors with whole program optimization on MSVC"
-      patch_type: "portability"
-      sha256: "835c87a74b534d50e9d288b20232a179e6bb59b06fdd172dc18670259228cccc"
