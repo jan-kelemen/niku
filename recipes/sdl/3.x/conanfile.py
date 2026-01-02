@@ -39,6 +39,7 @@ class SDLConan(ConanFile):
         "xrandr": [True, False],
         "xscrnsaver": [True, False],
         "xshape": [True, False],
+        "xtest": [True, False],
         "xvm": [True, False],
         "wayland": [True, False],
         "directfb": [True, False],
@@ -68,6 +69,7 @@ class SDLConan(ConanFile):
         "xrandr": True,
         "xscrnsaver": True,
         "xshape": True,
+        "xtest": True,
         "xvm": True,
         "wayland": True,
         "directfb": False,
@@ -122,6 +124,7 @@ class SDLConan(ConanFile):
             del self.options.xrandr
             del self.options.xscrnsaver
             del self.options.xshape
+            del self.options.xtest
             del self.options.xvm
             del self.options.wayland
             del self.options.directfb
@@ -210,7 +213,8 @@ class SDLConan(ConanFile):
             tc.variables["HAVE_LIBC"] = True
         tc.variables["SDL_SHARED"] = self.options.shared
         tc.variables["SDL_STATIC"] = not self.options.shared
-        tc.variables["SDL_TEST"] = False
+        tc.variables["SDL_TEST_LIBRARY"] = False
+        tc.variables["SDL_TESTS"] = False
         tc.variables["SDL_OPENGL"] = self.options.opengl
         tc.variables["SDL_OPENGLES"] = self.options.opengles
         tc.variables["SDL_VULKAN"] = self.options.vulkan
@@ -267,6 +271,9 @@ class SDLConan(ConanFile):
             tc.variables["SDL_X11_XSHAPE"] = self.options.xshape
             if self.options.xshape:
                 tc.variables["HAVE_XSHAPE_H"] = True
+            tc.variables["SDL_X11_XTEST"] = self.options.xtest
+            if self.options.xtest:
+                tc.variables["HAVE_XTEST_H"] = True
             tc.variables["SDL_X11_XVM"] = self.options.xvm
             if self.options.xvm:
                 tc.variables["HAVE_XF86VM_H"] = True

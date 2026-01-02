@@ -1,5 +1,5 @@
---- a/angelscript/projects/cmake/CMakeLists.txt
-+++ b/angelscript/projects/cmake/CMakeLists.txt
+--- a/sdk/angelscript/projects/cmake/CMakeLists.txt
++++ b/sdk/angelscript/projects/cmake/CMakeLists.txt
 @@ -105,7 +105,7 @@ set(ANGELSCRIPT_SOURCE
      ../../source/as_variablescope.cpp
  )
