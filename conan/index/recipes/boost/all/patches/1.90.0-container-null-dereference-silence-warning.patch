@@ -1,0 +1,28 @@
+--- a/boost/container/allocator_traits.hpp
++++ b/boost/container/allocator_traits.hpp
+@@ -20,6 +20,10 @@
+ #  include <boost/config.hpp>
+ #endif
+ 
++#ifndef BOOST_CONFIG_WORKAROUND_HPP
++#  include <boost/config/workaround.hpp>
++#endif
++
+ #if defined(BOOST_HAS_PRAGMA_ONCE)
+ #  pragma once
+ #endif
+@@ -91,7 +95,14 @@ namespace dtl {
+ template<class T, class ...Args>
+ BOOST_CONTAINER_FORCEINLINE void construct_type(T *p, BOOST_FWD_REF(Args) ...args)
+ {
++#if    BOOST_WORKAROUND(BOOST_GCC, >= 140000)
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wnull-dereference"
++#endif
+    ::new(const_cast<void*>(static_cast<const volatile void*>(p)), boost_container_new_t()) T(::boost::forward<Args>(args)...);
++#if    BOOST_WORKAROUND(BOOST_GCC, >= 140000)
++#pragma GCC diagnostic pop
++#endif
+ }
+ 
+ #else
