@@ -24,7 +24,7 @@ jobs:
         
     steps:
       - name: Checkout repository from github
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install gcc-${{ env.GCC_VER }}
         uses: ./.github/actions/install-gcc
@@ -76,10 +76,7 @@ jobs:
           git config --global core.autocrlf input
           
       - name: Checkout repository from github
-        uses: actions/checkout@v4
-
-      - name: Install Vulkan SDK
-        uses: ./.github/actions/install-vulkan-sdk
+        uses: actions/checkout@v6
 
       - name: Setup Conan
         id: setup-conan
@@ -120,15 +117,12 @@ jobs:
           git config --global core.autocrlf input
           
       - name: Checkout repository from github
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Install Vulkan SDK
-        uses: ./.github/actions/install-vulkan-sdk
-        
       - name: Install Ninja
         run: |
           choco install ninja
-          choco install llvm --version 21.1.0 -y
+          choco install llvm --version 21.1.7 -y
           
       - name: Setup Conan
         id: setup-conan

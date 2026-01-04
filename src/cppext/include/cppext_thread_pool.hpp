@@ -154,6 +154,7 @@ namespace cppext::detail
     template<typename T>
     void threadsafe_queue_t<T>::wait_and_pop(T& value)
     {
+        // cppcheck-suppress unreadVariable
         [[maybe_unused]] std::unique_ptr old_head{wait_pop_head(value)};
     }
 

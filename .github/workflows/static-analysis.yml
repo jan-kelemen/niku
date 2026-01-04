@@ -19,7 +19,7 @@ jobs:
       
     steps:
       - name: Checkout repository from github
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install gcc-${{ env.GCC_VER }}
         uses: ./.github/actions/install-gcc
@@ -59,7 +59,7 @@ jobs:
         
     steps:
       - name: Checkout repository from github
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install gcc-${{ env.GCC_VER }}
         uses: ./.github/actions/install-gcc
@@ -93,10 +93,7 @@ jobs:
           git config --global core.autocrlf input
           
       - name: Checkout repository from github
-        uses: actions/checkout@v4
-
-      - name: Install Vulkan SDK
-        uses: ./.github/actions/install-vulkan-sdk
+        uses: actions/checkout@v6
 
       - name: Setup Conan
         id: setup-conan
