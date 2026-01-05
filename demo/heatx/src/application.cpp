@@ -44,6 +44,9 @@
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <boost/scope/defer.hpp>
+#include <boost/scope/scope_fail.hpp>
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -112,6 +115,88 @@ namespace
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             VK_IMAGE_ASPECT_COLOR_BIT);
     }
+
+    struct [[nodiscard]] acceleration_structure_primitive_t final
+    {
+        VkDeviceSize vertices{};
+        VkDeviceSize indices{};
+        uint32_t count{};
+        uint32_t material_index{};
+        char padding[32 - 2 * sizeof(VkDeviceSize) - 2 * sizeof(uint32_t)]{};
+    };
+
+    static_assert(sizeof(acceleration_structure_primitive_t) == 32);
+
+    acceleration_structure_primitive_t to_bound_primitive(
+        ngnast::gpu::primitive_t const& primitive,
+        VkDeviceSize const vertex_buffer_address,
+        VkDeviceSize const index_buffer_address)
+    {
+        acceleration_structure_primitive_t rv{
+            .vertices = vertex_buffer_address +
+                cppext::narrow<VkDeviceSize>(primitive.vertex_offset) *
+                    sizeof(ngnast::gpu::vertex_t),
+            .count = primitive.count,
+            .material_index =
+                cppext::narrow<uint32_t>(primitive.material_index),
+        };
+
+        if (primitive.is_indexed)
+        {
+            rv.indices = index_buffer_address +
+                cppext::narrow<VkDeviceSize>(primitive.first) *
+                    sizeof(uint32_t);
+        }
+
+        return rv;
+    }
+
+    vkrndr::buffer_t create_primitive_buffer(vkrndr::backend_t& backend,
+        ngnast::gpu::acceleration_structure_build_result_t const& build_result)
+    {
+        vkrndr::buffer_t rv{vkrndr::create_buffer(backend.device(),
+            {
+                .size = build_result.primitives.size() *
+                    sizeof(acceleration_structure_primitive_t),
+                .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                .alignment = 32,
+            })};
+        VKRNDR_IF_DEBUG_UTILS(
+            object_name(backend.device(), rv, "Primitives Buffer"));
+
+        [[maybe_unused]] boost::scope::scope_fail const destroy_rv{
+            [&backend, &rv]() { destroy(backend.device(), rv); }};
+
+        {
+            vkrndr::buffer_t staging{
+                vkrndr::create_staging_buffer(backend.device(), rv.size)};
+            [[maybe_unused]] boost::scope::defer_guard const destroy_staging{
+                [&backend, &staging]() { destroy(backend.device(), staging); }};
+
+            vkrndr::mapped_memory_t staging_map{
+                vkrndr::map_memory(backend.device(), staging)};
+            boost::scope::defer_guard const unmap_staging{
+                [&device = backend.device(), &staging_map]()
+                { unmap_memory(device, &staging_map); }};
+            std::ranges::transform(build_result.primitives,
+                staging_map.as<acceleration_structure_primitive_t>(),
+                [vb = build_result.vertex_buffer.device_address,
+                    ib = build_result.index_buffer.device_address](
+                    ngnast::gpu::primitive_t const& primitive)
+                { return to_bound_primitive(primitive, vb, ib); });
+
+            backend.transfer_buffer(staging, rv);
+        }
+
+        return rv;
+    }
+
+    struct [[nodiscard]] push_constants_t final
+    {
+        VkDeviceSize primitive_buffer_address{};
+    };
 } // namespace
 
 heatx::application_t::application_t(int argc,
@@ -415,6 +500,15 @@ void heatx::application_t::draw()
     VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image->extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
+    push_constants_t const pc{
+        .primitive_buffer_address = primitives_.device_address};
+    vkCmdPushConstants(command_buffer,
+        pipeline_layout_,
+        VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+        0,
+        sizeof(push_constants_t),
+        &pc);
+
     {
         uint32_t const aligned_handle_size{cppext::aligned_size(
             raytracing_pipeline_properties_.shaderGroupHandleSize,
@@ -424,6 +518,8 @@ void heatx::application_t::draw()
             pipeline_,
             0,
             cppext::as_span(descriptor_sets_[frame.index]));
+
+        materials_->bind_on(command_buffer, pipeline_layout_, pipeline_.type);
 
         std::array const binding_table_entries{
             VkStridedDeviceAddressRegionKHR{
@@ -537,10 +633,14 @@ void heatx::application_t::on_startup()
 {
     mouse_.set_window_handle(render_window_->platform_window().native_handle());
 
+    materials_ = std::make_unique<materials_t>(*backend_);
+
     ngnast::gltf::loader_t loader;
     if (auto scene{loader.load(command_line_parameters()[1])})
     {
         model_ = ngnast::gpu::build_acceleration_structures(*backend_, *scene);
+        primitives_ = create_primitive_buffer(*backend_, model_);
+        materials_->load(*scene);
     }
 
     std::ranges::generate_n(std::back_inserter(uniform_buffers_),
@@ -596,9 +696,13 @@ void heatx::application_t::on_startup()
     auto const extent{render_window_->swapchain().extent()};
     on_resize(extent.width, extent.height);
 
-    pipeline_layout_ = vkrndr::pipeline_layout_builder_t{backend_->device()}
-                           .add_descriptor_set_layout(descriptor_layout_)
-                           .build();
+    pipeline_layout_ =
+        vkrndr::pipeline_layout_builder_t{backend_->device()}
+            .add_descriptor_set_layout(descriptor_layout_)
+            .add_descriptor_set_layout(materials_->descriptor_layout())
+            .add_push_constants<push_constants_t>(
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
+            .build();
 
     vkrndr::raytracing_pipeline_builder_t pipeline_builder{backend_->device(),
         pipeline_layout_};
@@ -705,6 +809,8 @@ void heatx::application_t::on_shutdown()
 
     destroy(backend_->device(), ray_generation_storage_);
 
+    materials_.reset();
+    destroy(backend_->device(), primitives_);
     destroy(backend_->device(), model_);
 
     imgui_.reset();

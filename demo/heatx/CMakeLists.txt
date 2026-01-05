@@ -5,10 +5,12 @@ target_sources(heatx
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/heatx.m.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/materials.cpp
 )
 
 target_compile_definitions(heatx

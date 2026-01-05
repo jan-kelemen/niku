@@ -3,6 +3,8 @@
 
 #include <camera_controller.hpp>
 
+#include <materials.hpp>
+
 #include <ngnast_gpu_transfer.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
@@ -31,6 +33,11 @@ namespace ngnwsi
     class imgui_layer_t;
     class render_window_t;
 } // namespace ngnwsi
+
+namespace heatx
+{
+    class materials_t;
+} // namespace heatx
 
 namespace heatx
 {
@@ -94,6 +101,8 @@ namespace heatx
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
 
         ngnast::gpu::acceleration_structure_build_result_t model_;
+        vkrndr::buffer_t primitives_;
+        std::unique_ptr<materials_t> materials_;
 
         vkrndr::image_t ray_generation_storage_;
         std::vector<vkrndr::buffer_t> uniform_buffers_;
