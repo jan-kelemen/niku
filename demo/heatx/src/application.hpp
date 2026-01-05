@@ -3,8 +3,6 @@
 
 #include <camera_controller.hpp>
 
-#include <materials.hpp>
-
 #include <ngnast_gpu_transfer.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>

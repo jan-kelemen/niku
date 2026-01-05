@@ -1,6 +1,7 @@
 #include <application.hpp>
 #include <camera_controller.hpp>
 #include <config.hpp>
+#include <materials.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_memory.hpp>
@@ -86,6 +87,7 @@
 // IWYU pragma: no_include <boost/container/deque.hpp>
 // IWYU pragma: no_include <boost/intrusive/detail/iterator.hpp>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <initializer_list>

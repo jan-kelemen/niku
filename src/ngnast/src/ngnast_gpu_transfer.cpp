@@ -154,7 +154,10 @@ namespace
                 instance = data;
                 instance.accelerationStructureReference =
                     bottom_level_structures[primitive_index].device_address;
-                instance.instanceCustomIndex = primitive_index;
+                // TODO-JK: This is actually 24 bits, so this is
+                // overconstraining
+                instance.instanceCustomIndex =
+                    cppext::narrow<uint16_t>(primitive_index);
 
                 ++drawn;
             }

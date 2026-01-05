@@ -14,9 +14,6 @@
 #include <vkrndr_memory.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-
 #include <volk.h>
 
 #include <algorithm>
