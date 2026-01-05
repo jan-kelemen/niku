@@ -154,6 +154,7 @@ namespace
                 instance = data;
                 instance.accelerationStructureReference =
                     bottom_level_structures[primitive_index].device_address;
+                instance.instanceCustomIndex = primitive_index;
 
                 ++drawn;
             }
@@ -289,6 +290,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         [&backend, &intermediate]()
         { destroy(backend.device(), intermediate); }};
 
+    static_assert(sizeof(vertex_t) == 64, "Invalid vertex buffer alignment");
     acceleration_structure_build_result_t rv{
         .vertex_buffer = vkrndr::create_buffer(backend.device(),
             {
@@ -298,6 +300,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
                     VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                .alignment = 64,
             }),
         .vertex_count = intermediate.vertex_count,
         .index_buffer = intermediate.index_count > 0
@@ -310,6 +313,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
                           VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                       .required_memory_flags =
                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                      .alignment = 4,
                   })
             : vkrndr::buffer_t{},
         .index_count = intermediate.index_count,
