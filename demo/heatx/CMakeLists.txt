@@ -57,6 +57,7 @@ add_copy_if_different_target(heatx_shaders
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/raygen.rgen
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/miss.rmiss
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tone_mapping.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadow.rmiss
 )
 
 set_property(TARGET heatx

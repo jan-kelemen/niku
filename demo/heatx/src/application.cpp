@@ -53,8 +53,10 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/matrix.hpp>
+#include <glm/vec4.hpp>
 
 #include <imgui.h>
 
@@ -102,6 +104,7 @@ namespace
     {
         glm::mat4 inverse_view;
         glm::mat4 inverse_projection;
+        glm::vec4 light_position;
     };
 
     [[nodiscard]] vkrndr::image_t create_ray_generation_storage_image(
@@ -461,12 +464,6 @@ bool heatx::application_t::handle_event(SDL_Event const& event)
     if (event.type == SDL_EVENT_KEY_DOWN)
     {
         auto const& keyboard{event.key};
-        if (keyboard.scancode == SDL_SCANCODE_F3)
-        {
-            mouse_.set_capture(!mouse_.captured());
-            return true;
-        }
-
         if (keyboard.scancode == SDL_SCANCODE_F4)
         {
             imgui_->set_enabled(!imgui_->enabled());
@@ -498,10 +495,11 @@ void heatx::application_t::draw()
         vkrndr::mapped_memory_t map{vkrndr::map_memory(backend_->device(),
             uniform_buffers_[frame.index])};
 
-        map.as<uniform_data_t>()->inverse_projection =
+        uniform_data_t* const data{map.as<uniform_data_t>()};
+        data->inverse_projection =
             glm::inverse(projection_.projection_matrix());
-        map.as<uniform_data_t>()->inverse_view =
-            glm::inverse(camera_.view_matrix());
+        data->inverse_view = glm::inverse(camera_.view_matrix());
+        data->light_position = {light_position_, 0.0f};
 
         vkrndr::unmap_memory(backend_->device(), &map);
     }
@@ -512,6 +510,15 @@ void heatx::application_t::draw()
 
     camera_controller_.draw_imgui();
     ImGui::ShowMetricsWindow();
+
+    if (ImGui::Begin("Light"))
+    {
+        ImGui::SliderFloat3("Position",
+            glm::value_ptr(light_position_),
+            -100.0f,
+            100.0f);
+    }
+    ImGui::End();
 
     VkCommandBuffer command_buffer{backend_->request_command_buffer()};
 
@@ -682,7 +689,8 @@ void heatx::application_t::on_startup()
             .binding = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
             .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR |
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
         },
         VkDescriptorSetLayoutBinding{
             .binding = 1,
@@ -694,7 +702,8 @@ void heatx::application_t::on_startup()
             .binding = 2,
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR |
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
         },
     };
 
@@ -723,40 +732,22 @@ void heatx::application_t::on_startup()
 
     vkrndr::raytracing_pipeline_builder_t pipeline_builder{backend_->device(),
         pipeline_layout_};
+    pipeline_builder.with_recursion_depth(2);
 
-    uint32_t raygen_stage{};
-    uint32_t miss_stage{};
-    uint32_t closest_hit_stage{};
-
-    std::array<vkrndr::shader_module_t, 3> mods;
+    std::array<vkrndr::shader_module_t, 4> mods;
 
     // NOLINTNEXTLINE(readability-qualified-auto)
     auto it{std::begin(mods)};
 
-    vkglsl::shader_set_t shader_set{heatx::enable_shader_debug_symbols,
-        heatx::enable_shader_optimization};
     for (auto const& [path, stage] :
         {std::make_pair("raygen.rgen", VK_SHADER_STAGE_RAYGEN_BIT_KHR),
             std::make_pair("miss.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR),
+            std::make_pair("shadow.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR),
             std::make_pair("closesthit.rchit",
                 VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)})
     {
-        auto& stage_idx{[&raygen_stage, &miss_stage, &closest_hit_stage](
-                            VkShaderStageFlagBits const s) -> uint32_t&
-            {
-                if (s == VK_SHADER_STAGE_RAYGEN_BIT_KHR)
-                {
-                    return raygen_stage;
-                }
-
-                if (s == VK_SHADER_STAGE_MISS_BIT_KHR)
-                {
-                    return miss_stage;
-                }
-
-                return closest_hit_stage;
-            }(stage)};
-
+        vkglsl::shader_set_t shader_set{heatx::enable_shader_debug_symbols,
+            heatx::enable_shader_optimization};
         if (std::expected<vkrndr::shader_module_t, std::error_code>
                 shader_module{vkglsl::add_shader_module_from_path(shader_set,
                     backend_->device(),
@@ -765,8 +756,24 @@ void heatx::application_t::on_startup()
         {
             *it = *std::move(shader_module);
 
+            uint32_t stage_idx{};
             pipeline_builder.add_shader(vkrndr::as_pipeline_shader(*it),
                 stage_idx);
+            switch (stage)
+            {
+            case VK_SHADER_STAGE_RAYGEN_BIT_KHR:
+                [[fallthrough]];
+            case VK_SHADER_STAGE_MISS_BIT_KHR:
+                pipeline_builder.add_group(vkrndr::general_shader(
+                    VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+                    stage_idx));
+                break;
+            case VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR:
+                pipeline_builder.add_group(vkrndr::closest_hit_shader(
+                    VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+                    stage_idx));
+                break;
+            }
 
             ++it;
         }
@@ -778,16 +785,6 @@ void heatx::application_t::on_startup()
             throw std::system_error{shader_module.error()};
         }
     }
-
-    pipeline_builder.add_group(
-        vkrndr::general_shader(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-            raygen_stage));
-    pipeline_builder.add_group(
-        vkrndr::general_shader(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-            miss_stage));
-    pipeline_builder.add_group(vkrndr::closest_hit_shader(
-        VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-        closest_hit_stage));
 
     pipeline_ = pipeline_builder.build();
 
@@ -916,7 +913,7 @@ void heatx::application_t::create_shader_binding_table()
     uint32_t const aligned_handle_size{cppext::aligned_size(
         raytracing_pipeline_properties_.shaderGroupHandleSize,
         raytracing_pipeline_properties_.shaderGroupHandleAlignment)};
-    uint32_t const group_count{3};
+    uint32_t const group_count{4};
     uint32_t const binding_table_size{group_count * aligned_handle_size};
 
     std::vector<std::byte> handle_storage;
@@ -967,7 +964,7 @@ void heatx::application_t::create_shader_binding_table()
 
         memcpy(map.as<std::byte>(),
             handle_storage.data() + aligned_handle_size,
-            handle_size);
+            handle_size * 2);
 
         vkrndr::unmap_memory(*rendering_context_.device, &map);
     }
@@ -978,7 +975,7 @@ void heatx::application_t::create_shader_binding_table()
             vkrndr::map_memory(*rendering_context_.device, hit_binding_table_)};
 
         memcpy(map.as<std::byte>(),
-            handle_storage.data() + size_t{aligned_handle_size} * 2,
+            handle_storage.data() + size_t{aligned_handle_size} * 3,
             handle_size);
 
         vkrndr::unmap_memory(*rendering_context_.device, &map);

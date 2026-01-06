@@ -8,6 +8,7 @@ layout(binding = 2, set = 0) uniform CameraProperties
 {
 	mat4 viewInverse;
 	mat4 projInverse;
+	vec4 lightPosition;
 } cam;
 
 layout(location = 0) rayPayloadEXT vec3 hitValue;

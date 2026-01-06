@@ -18,6 +18,8 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 
+#include <glm/vec3.hpp>
+
 #include <SDL3/SDL_events.h>
 
 #include <volk.h>
@@ -90,6 +92,7 @@ namespace heatx
         ngngfx::aircraft_camera_t camera_;
         ngngfx::perspective_projection_t projection_;
         camera_controller_t camera_controller_;
+        glm::vec3 light_position_{0.0f, 1.0f, 0.0f};
 
         vkglsl::guard_t guard_;
 
