@@ -629,7 +629,7 @@ void heatx::application_t::draw()
     backend_->end_frame();
 }
 
-void heatx::application_t::end_frame() { }
+void heatx::application_t::end_frame() { imgui_->end_frame(); }
 
 void heatx::application_t::on_startup()
 {
