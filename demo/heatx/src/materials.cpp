@@ -50,7 +50,8 @@ namespace
         texture_uniform_binding.descriptorCount =
             cppext::narrow<uint32_t>(images);
         texture_uniform_binding.stageFlags =
-            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+            VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
 
         VkDescriptorSetLayoutBinding sampler_uniform_binding{};
         sampler_uniform_binding.binding = 1;
@@ -58,7 +59,8 @@ namespace
         sampler_uniform_binding.descriptorCount =
             cppext::narrow<uint32_t>(samplers);
         sampler_uniform_binding.stageFlags =
-            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+            VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
 
         VkDescriptorSetLayoutBinding material_uniform_binding{};
         material_uniform_binding.binding = 2;
@@ -66,7 +68,8 @@ namespace
             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         material_uniform_binding.descriptorCount = 1;
         material_uniform_binding.stageFlags =
-            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+            VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
 
         std::array const bindings{texture_uniform_binding,
             sampler_uniform_binding,

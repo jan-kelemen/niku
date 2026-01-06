@@ -81,9 +81,11 @@
 #include <expected>
 #include <functional>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -537,7 +539,7 @@ void heatx::application_t::draw()
         .primitive_buffer_address = primitives_.device_address};
     vkCmdPushConstants(command_buffer,
         pipeline_layout_,
-        VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+        VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
         0,
         sizeof(push_constants_t),
         &pc);
@@ -703,7 +705,8 @@ void heatx::application_t::on_startup()
             .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .descriptorCount = 1,
             .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR |
-                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+                VK_SHADER_STAGE_ANY_HIT_BIT_KHR,
         },
     };
 
@@ -727,24 +730,23 @@ void heatx::application_t::on_startup()
             .add_descriptor_set_layout(descriptor_layout_)
             .add_descriptor_set_layout(materials_->descriptor_layout())
             .add_push_constants<push_constants_t>(
-                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+                VK_SHADER_STAGE_ANY_HIT_BIT_KHR)
             .build();
 
     vkrndr::raytracing_pipeline_builder_t pipeline_builder{backend_->device(),
         pipeline_layout_};
     pipeline_builder.with_recursion_depth(2);
 
-    std::array<vkrndr::shader_module_t, 4> mods;
-
-    // NOLINTNEXTLINE(readability-qualified-auto)
-    auto it{std::begin(mods)};
-
+    std::map<std::string_view, std::pair<vkrndr::shader_module_t, uint32_t>>
+        shader_modules;
     for (auto const& [path, stage] :
         {std::make_pair("raygen.rgen", VK_SHADER_STAGE_RAYGEN_BIT_KHR),
             std::make_pair("miss.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR),
             std::make_pair("shadow.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR),
             std::make_pair("closesthit.rchit",
-                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)})
+                VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR),
+            std::make_pair("anyhit.rahit", VK_SHADER_STAGE_ANY_HIT_BIT_KHR)})
     {
         vkglsl::shader_set_t shader_set{heatx::enable_shader_debug_symbols,
             heatx::enable_shader_optimization};
@@ -754,28 +756,13 @@ void heatx::application_t::on_startup()
                     stage,
                     path)})
         {
-            *it = *std::move(shader_module);
+            auto [it, inserted] = shader_modules.emplace(path,
+                std::make_pair(*std::move(shader_module), uint32_t{}));
+            assert(inserted);
 
-            uint32_t stage_idx{};
-            pipeline_builder.add_shader(vkrndr::as_pipeline_shader(*it),
-                stage_idx);
-            switch (stage)
-            {
-            case VK_SHADER_STAGE_RAYGEN_BIT_KHR:
-                [[fallthrough]];
-            case VK_SHADER_STAGE_MISS_BIT_KHR:
-                pipeline_builder.add_group(vkrndr::general_shader(
-                    VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-                    stage_idx));
-                break;
-            case VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR:
-                pipeline_builder.add_group(vkrndr::closest_hit_shader(
-                    VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-                    stage_idx));
-                break;
-            }
-
-            ++it;
+            pipeline_builder.add_shader(
+                vkrndr::as_pipeline_shader(it->second.first),
+                it->second.second);
         }
         else
         {
@@ -786,11 +773,28 @@ void heatx::application_t::on_startup()
         }
     }
 
+    for (std::string_view name : {"raygen.rgen", "miss.rmiss", "shadow.rmiss"})
+    {
+        pipeline_builder.add_group(
+            vkrndr::general_shader(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
+                shader_modules.at(name).second));
+    }
+
+    {
+        auto closest_hit_group{vkrndr::closest_hit_shader(
+            VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
+            shader_modules.at("closesthit.rchit").second)};
+        closest_hit_group.anyHitShader =
+            shader_modules.at("anyhit.rahit").second;
+
+        pipeline_builder.add_group(closest_hit_group);
+    }
+
     pipeline_ = pipeline_builder.build();
 
-    for (auto const& shd : mods)
+    for (auto const& [name, pair] : shader_modules)
     {
-        destroy(backend_->device(), shd);
+        destroy(backend_->device(), pair.first);
     }
 
     create_shader_binding_table();
@@ -976,7 +980,7 @@ void heatx::application_t::create_shader_binding_table()
 
         memcpy(map.as<std::byte>(),
             handle_storage.data() + size_t{aligned_handle_size} * 3,
-            handle_size);
+            handle_size * 2);
 
         vkrndr::unmap_memory(*rendering_context_.device, &map);
     }

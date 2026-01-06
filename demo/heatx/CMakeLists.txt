@@ -51,6 +51,7 @@ add_copy_if_different_target(heatx_shaders
         ${NIKU_DEMO_SHARED_DIR}/shaders/Fxaa3_11.h
         ${NIKU_DEMO_SHARED_DIR}/shaders/math_constants.glsl
         ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/anyhit.rahit
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/closesthit.rchit
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fxaa.comp
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/geometry.glsl

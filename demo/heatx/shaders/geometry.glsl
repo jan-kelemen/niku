@@ -1,6 +1,8 @@
 #ifndef HEATX_GEOMETRY_INCLUDED
 #define HEATX_GEOMETRY_INCLUDED
 
+#extension GL_EXT_buffer_reference : require
+
 struct PackedVertex
 {
     vec4 position_uv_s;
