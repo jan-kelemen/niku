@@ -202,7 +202,9 @@ namespace
     }
 } // namespace
 
-gltfviewer::application_t::application_t(bool const debug)
+gltfviewer::application_t::application_t(int const argc,
+    char const** const argv,
+    bool const debug)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
           .init_subsystems = {.video = true, .debug = debug}}}
     , render_window_{std::make_unique<ngnwsi::render_window_t>("gltfviewer",
@@ -210,6 +212,7 @@ gltfviewer::application_t::application_t(bool const debug)
           512,
           512)}
     , camera_controller_{camera_, mouse_}
+    , selector_{argc > 1 ? argv[1] : ""}
 {
     auto const create_result{vkrndr::initialize()
             .and_then(
@@ -248,12 +251,25 @@ gltfviewer::application_t::application_t(bool const debug)
                 [this]() -> std::expected<vkrndr::device_ptr_t, std::error_code>
                 {
                     std::array const device_extensions{
-                        VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+                        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#if GLTFVIEWER_SHADER_DEBUG_SYMBOLS
+                        VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME
+#endif
+                    };
+
+                    vkrndr::feature_flags_t feature_flags;
+                    vkrndr::add_required_feature_flags(feature_flags);
+#if GLTFVIEWER_SHADER_DEBUG_SYMBOLS
+                    feature_flags.relaxed_extended_instruction_flags.emplace(
+                        &VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR::
+                            shaderRelaxedExtendedInstruction);
+#endif
 
                     std::optional<vkrndr::physical_device_features_t> const
                         physical_device{pick_best_physical_device(
                             *rendering_context_.instance,
                             device_extensions,
+                            feature_flags,
                             render_window_->create_surface(
                                 *rendering_context_.instance))};
                     if (!physical_device)
@@ -265,6 +281,23 @@ gltfviewer::application_t::application_t(bool const debug)
                     spdlog::info("Selected {} GPU",
                         physical_device->properties.deviceName);
 
+                    vkrndr::feature_chain_t effective_features;
+                    set_feature_flags_on_chain(effective_features,
+                        feature_flags);
+                    link_required_feature_chain(effective_features);
+
+#if GLTFVIEWER_SHADER_DEBUG_SYMBOLS
+                    if (!vkrndr::enable_extension_for_device(
+                            VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME,
+                            *physical_device,
+                            effective_features))
+                    {
+                        spdlog::error("Extension {} not available",
+                            VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME);
+                        return std::unexpected{vkrndr::make_error_code(
+                            VK_ERROR_INITIALIZATION_FAILED)};
+                    }
+#endif
                     auto const queue_with_present{std::ranges::find_if(
                         physical_device->queue_families,
                         [](vkrndr::queue_family_t const& f)
@@ -284,6 +317,7 @@ gltfviewer::application_t::application_t(bool const debug)
                     return create_device(*rendering_context_.instance,
                         device_extensions,
                         *physical_device,
+                        effective_features,
                         cppext::as_span(*queue_with_present));
                 })
             .transform(

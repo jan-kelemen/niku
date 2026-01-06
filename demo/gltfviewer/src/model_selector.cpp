@@ -27,17 +27,32 @@ DISABLE_WARNING_POP
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 
-gltfviewer::model_selector_t::model_selector_t()
+gltfviewer::model_selector_t::model_selector_t(
+    std::string_view const initial_path)
 {
-    auto const wd{std::filesystem::current_path()};
-    auto const str{wd.generic_string()};
+    if (initial_path.empty())
+    {
+        auto const wd{std::filesystem::current_path()};
+        auto const str{wd.generic_string()};
 
-    using diff_t =
-        std::iterator_traits<decltype(str)::iterator>::difference_type;
-    std::ranges::copy_n(std::begin(str),
-        cppext::narrow<diff_t>(
-            std::min(std::size(str), std::size(index_path_buffer_))),
-        std::begin(index_path_buffer_));
+        using diff_t =
+            std::iterator_traits<decltype(str)::iterator>::difference_type;
+        std::ranges::copy_n(std::begin(str),
+            cppext::narrow<diff_t>(
+                std::min(std::size(str), std::size(index_path_buffer_))),
+            std::begin(index_path_buffer_));
+    }
+    else
+    {
+        using diff_t =
+            std::iterator_traits<std::string_view::iterator>::difference_type;
+        std::ranges::copy_n(std::begin(initial_path),
+            cppext::narrow<diff_t>(std::min(std::size(initial_path),
+                std::size(index_path_buffer_))),
+            std::begin(index_path_buffer_));
+
+        load_model_file();
+    }
 }
 
 bool gltfviewer::model_selector_t::select_model()
@@ -46,53 +61,9 @@ bool gltfviewer::model_selector_t::select_model()
             index_path_buffer_.data(),
             index_path_buffer_.size()))
     {
-        std::filesystem::path const path{std::string_view{index_path_buffer_}};
-        if (std::filesystem::exists(path) &&
-            std::filesystem::is_regular_file(path))
+        if (!load_model_file())
         {
-            spdlog::info("Selected index file {}", path);
-
-            auto json{simdjson::padded_string::load(path.generic_string())};
-            std::vector<sample_model_t> samples;
-
-            try
-            {
-                simdjson::ondemand::parser parser;
-                for (auto model : parser.iterate(json))
-                {
-                    sample_model_t sample{
-                        .label =
-                            std::string{
-                                model["label"].get_string().take_value()},
-                        .name =
-                            std::string{
-                                model["name"].get_string().take_value()},
-                    };
-
-                    for (auto tag : model["tags"].get_array())
-                    {
-                        sample.tags.emplace_back(tag.get_string().take_value());
-                    }
-
-                    for (auto kv : model["variants"].get_object())
-                    {
-                        sample.variants.emplace_back(
-                            std::string{kv.unescaped_key().take_value()},
-                            std::string{kv.value().get_string().take_value()});
-                    }
-
-                    samples.push_back(std::move(sample));
-                }
-            }
-            catch (simdjson::simdjson_error const& error)
-            {
-                spdlog::error("Error while parsing glTF samples: {}",
-                    error.what());
-                return false;
-            }
-
-            selected_sample_ = 0;
-            samples_ = std::move(samples);
+            return false;
         }
     }
 
@@ -176,4 +147,54 @@ std::filesystem::path gltfviewer::model_selector_t::selected_model()
     rv /= variant.file;
 
     return rv;
+}
+
+bool gltfviewer::model_selector_t::load_model_file()
+{
+    std::filesystem::path const path{std::string_view{index_path_buffer_}};
+    if (!std::filesystem::exists(path) ||
+        !std::filesystem::is_regular_file(path))
+    {
+        return false;
+    }
+    spdlog::info("Selected index file {}", path);
+
+    auto json{simdjson::padded_string::load(path.generic_string())};
+    std::vector<sample_model_t> samples;
+
+    try
+    {
+        simdjson::ondemand::parser parser;
+        for (auto model : parser.iterate(json))
+        {
+            sample_model_t sample{
+                .label = std::string{model["label"].get_string().take_value()},
+                .name = std::string{model["name"].get_string().take_value()},
+            };
+
+            for (auto tag : model["tags"].get_array())
+            {
+                sample.tags.emplace_back(tag.get_string().take_value());
+            }
+
+            for (auto kv : model["variants"].get_object())
+            {
+                sample.variants.emplace_back(
+                    std::string{kv.unescaped_key().take_value()},
+                    std::string{kv.value().get_string().take_value()});
+            }
+
+            samples.push_back(std::move(sample));
+        }
+    }
+    catch (simdjson::simdjson_error const& error)
+    {
+        spdlog::error("Error while parsing glTF samples: {}", error.what());
+        return false;
+    }
+
+    selected_sample_ = 0;
+    samples_ = std::move(samples);
+
+    return true;
 }

@@ -48,7 +48,7 @@ namespace gltfviewer
     class [[nodiscard]] application_t final : public ngnwsi::application_t
     {
     public:
-        explicit application_t(bool debug);
+        explicit application_t(int argc, char const** argv, bool debug);
 
         application_t(application_t const&) = delete;
 

@@ -4,6 +4,7 @@
 #include <array>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace gltfviewer
@@ -37,7 +38,7 @@ namespace gltfviewer
     class [[nodiscard]] model_selector_t final
     {
     public:
-        model_selector_t();
+        model_selector_t(std::string_view initial_path);
 
         model_selector_t(model_selector_t const&) = delete;
 
@@ -55,6 +56,9 @@ namespace gltfviewer
         model_selector_t& operator=(model_selector_t const&) = delete;
 
         model_selector_t& operator=(model_selector_t&&) noexcept = default;
+
+    private:
+        bool load_model_file();
 
     private:
         std::array<char, 256> index_path_buffer_{};
