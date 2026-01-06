@@ -261,7 +261,11 @@ heatx::application_t::application_t(int argc,
                         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
                         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
                         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-                        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME};
+                        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+#if HEATX_SHADER_DEBUG_SYMBOLS
+                        VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME,
+#endif // HEATX_SHADER_DEBUG_SYMBOLS
+                    };
 
                     vkrndr::feature_flags_t feature_flags;
                     vkrndr::add_required_feature_flags(feature_flags);
@@ -271,6 +275,11 @@ heatx::application_t::application_t(int argc,
                     feature_flags.ray_tracing_pipeline_flags.push_back(
                         &VkPhysicalDeviceRayTracingPipelineFeaturesKHR::
                             rayTracingPipeline);
+#if HEATX_SHADER_DEBUG_SYMBOLS
+                    feature_flags.relaxed_extended_instruction_flags.emplace(
+                        &VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR::
+                            shaderRelaxedExtendedInstruction);
+#endif
 
                     std::optional<vkrndr::physical_device_features_t> const
                         physical_device{pick_best_physical_device(
@@ -313,6 +322,19 @@ heatx::application_t::application_t(int argc,
                         return std::unexpected{vkrndr::make_error_code(
                             VK_ERROR_INITIALIZATION_FAILED)};
                     }
+
+#if HEATX_SHADER_DEBUG_SYMBOLS
+                    if (!vkrndr::enable_extension_for_device(
+                            VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME,
+                            *physical_device,
+                            effective_features))
+                    {
+                        spdlog::error("Extension {} not available",
+                            VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME);
+                        return std::unexpected{vkrndr::make_error_code(
+                            VK_ERROR_INITIALIZATION_FAILED)};
+                    }
+#endif
 
                     auto const queue_with_present{std::ranges::find_if(
                         physical_device->queue_families,
