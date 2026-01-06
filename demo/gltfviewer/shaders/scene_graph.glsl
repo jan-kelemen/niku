@@ -28,7 +28,11 @@ layout(buffer_reference, buffer_reference_align = 64) readonly buffer VertexBuff
 
 Vertex unpackVertex(PackedVertex vtx)
 {
-    return Vertex(vtx.position_uv_s.xyz, vtx.normal_uv_t.xyz, vtx.tangent, vtx.color, vec2(vtx.position_uv_s.w, vtx.normal_uv_t.w));
+    return Vertex(vtx.position_uv_s.xyz,
+        vtx.normal_uv_t.xyz,
+        vtx.tangent,
+        vtx.color,
+        vec2(vtx.position_uv_s.w, vtx.normal_uv_t.w));
 }
 
 struct Transform

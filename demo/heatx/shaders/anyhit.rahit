@@ -11,20 +11,22 @@ hitAttributeEXT vec2 attribs;
 
 #include "geometry.glsl"
 
-layout(push_constant) uniform PushConsts
-{
-    PrimitiveBuffer primitives;
-} pc;
+layout(push_constant) uniform PushConsts { PrimitiveBuffer primitives; } pc;
 
 void main()
 {
-    const Triangle triangle = unpackTriangle(pc.primitives, gl_InstanceCustomIndexEXT, gl_PrimitiveID, attribs);
+    const Triangle triangle = unpackTriangle(pc.primitives,
+        gl_InstanceCustomIndexEXT,
+        gl_PrimitiveID,
+        attribs);
 
     const Material m = materials.v[triangle.material_index];
-    
-    const float cutoff = texture(sampler2D(textures[nonuniformEXT(m.baseColorTextureIndex)],
-                        samplers[0]),
-                triangle.uv).w;
+
+    const float cutoff =
+        texture(sampler2D(textures[nonuniformEXT(m.baseColorTextureIndex)],
+                    samplers[0]),
+            triangle.uv)
+            .w;
 
     if (m.alphaCutoff != 0.0 && cutoff < m.alphaCutoff)
     {

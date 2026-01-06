@@ -15,7 +15,10 @@ add_custom_target(clang-format
 
 if (NIKU_ENABLE_GLSL_FORMAT)
     file(GLOB_RECURSE ALL_SHADER_FILES
-        demo/*.comp demo/*.frag demo/*.glsl demo/*.tesc demo/*.tese demo/*.vert
+        demo/*.glsl
+        demo/*.comp
+        demo/*.frag demo/*.tesc demo/*.tese demo/*.vert
+        demo/*.rahit demo/*.rchit demo/*.rmiss demo/*.rgen
     )
 
     add_custom_target(glsl-format 

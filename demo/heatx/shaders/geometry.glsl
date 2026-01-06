@@ -27,7 +27,11 @@ layout(buffer_reference, buffer_reference_align = 64) readonly buffer VertexBuff
 
 Vertex unpackVertex(PackedVertex vtx)
 {
-    return Vertex(vtx.position_uv_s.xyz, vtx.normal_uv_t.xyz, vtx.tangent, vtx.color, vec2(vtx.position_uv_s.w, vtx.normal_uv_t.w));
+    return Vertex(vtx.position_uv_s.xyz,
+        vtx.normal_uv_t.xyz,
+        vtx.tangent,
+        vtx.color,
+        vec2(vtx.position_uv_s.w, vtx.normal_uv_t.w));
 }
 
 layout(buffer_reference, buffer_reference_align = 4) readonly buffer IndexBuffer
@@ -35,7 +39,7 @@ layout(buffer_reference, buffer_reference_align = 4) readonly buffer IndexBuffer
     uint v[];
 };
 
-struct Primitive 
+struct Primitive
 {
     VertexBuffer vertices;
     IndexBuffer indices;
@@ -57,7 +61,11 @@ struct Triangle
     uint material_index;
 };
 
-Triangle unpackTriangle(PrimitiveBuffer primitives, const uint geometry_index, const uint primitive_index, const vec2 intersection) {
+Triangle unpackTriangle(PrimitiveBuffer primitives,
+    const uint geometry_index,
+    const uint primitive_index,
+    const vec2 intersection)
+{
     Triangle rv;
 
     Primitive primitive = primitives.v[geometry_index];
@@ -67,13 +75,20 @@ Triangle unpackTriangle(PrimitiveBuffer primitives, const uint geometry_index, c
 
     for (uint i = 0; i < 3; i++)
     {
-        rv.vertices[i] = unpackVertex(primitive.vertices.v[primitive.indices.v[triangle_index + i]]);
+        rv.vertices[i] = unpackVertex(
+            primitive.vertices.v[primitive.indices.v[triangle_index + i]]);
     }
 
     // Calculate values at barycentric coordinates
-    vec3 barycentricCoords = vec3(1.0f - intersection.x - intersection.y, intersection.x, intersection.y);
-    rv.uv = rv.vertices[0].uv * barycentricCoords.x + rv.vertices[1].uv * barycentricCoords.y + rv.vertices[2].uv * barycentricCoords.z;
-    rv.normal = rv.vertices[0].normal * barycentricCoords.x + rv.vertices[1].normal * barycentricCoords.y + rv.vertices[2].normal * barycentricCoords.z;
+    vec3 barycentricCoords = vec3(1.0f - intersection.x - intersection.y,
+        intersection.x,
+        intersection.y);
+    rv.uv = rv.vertices[0].uv * barycentricCoords.x +
+        rv.vertices[1].uv * barycentricCoords.y +
+        rv.vertices[2].uv * barycentricCoords.z;
+    rv.normal = rv.vertices[0].normal * barycentricCoords.x +
+        rv.vertices[1].normal * barycentricCoords.y +
+        rv.vertices[2].normal * barycentricCoords.z;
 
     return rv;
 }

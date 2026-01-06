@@ -14,5 +14,9 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
     outColor = vec4(inTexColor.rgb,
-        texelFetch(sampler2D(texImages[nonuniformEXT(inBitmapIndex)], texSampler), ivec2(inTexCoord.x, inTexCoord.y), 0).r);
+        texelFetch(
+            sampler2D(texImages[nonuniformEXT(inBitmapIndex)], texSampler),
+            ivec2(inTexCoord.x, inTexCoord.y),
+            0)
+            .r);
 }

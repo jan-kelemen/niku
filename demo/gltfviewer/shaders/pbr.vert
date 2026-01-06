@@ -52,7 +52,8 @@ void main()
 #ifndef DEPTH_PASS
     outPosition = worldPosition.xyz;
     outNormal = mat3(transform.normal) * normalize(vert.normal);
-    outTangent = vec4(mat3(transform.normal) * vert.tangent.xyz, vert.tangent.w);
+    outTangent =
+        vec4(mat3(transform.normal) * vert.tangent.xyz, vert.tangent.w);
     outColor = vert.color;
     outUV = vert.uv;
 
