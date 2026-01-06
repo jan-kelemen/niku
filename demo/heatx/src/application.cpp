@@ -75,6 +75,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cassert>
 #include <cstddef>
 #include <cstring>
 #include <exception>
@@ -97,7 +98,6 @@
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <initializer_list>
-// IWYU pragma: no_include <map>
 // IWYU pragma: no_include <string>
 
 namespace
@@ -912,7 +912,7 @@ void heatx::application_t::on_resize(uint32_t const width,
 
 void heatx::application_t::create_shader_binding_table()
 {
-    uint32_t const handle_size{
+    VkDeviceSize const handle_size{
         raytracing_pipeline_properties_.shaderGroupHandleSize};
     uint32_t const aligned_handle_size{cppext::aligned_size(
         raytracing_pipeline_properties_.shaderGroupHandleSize,
@@ -934,11 +934,12 @@ void heatx::application_t::create_shader_binding_table()
         throw std::system_error{vkrndr::make_error_code(result)};
     }
 
-    auto const create_binding_table_buffer = [this, handle_size]()
+    auto const create_binding_table_buffer = [this, handle_size](
+                                                 uint32_t const count)
     {
         return vkrndr::create_buffer(*rendering_context_.device,
             {
-                .size = handle_size,
+                .size = handle_size * count,
                 .usage = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
                     VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
                 .allocation_flags =
@@ -949,7 +950,7 @@ void heatx::application_t::create_shader_binding_table()
             });
     };
 
-    raygen_binding_table_ = create_binding_table_buffer();
+    raygen_binding_table_ = create_binding_table_buffer(1);
     {
         vkrndr::mapped_memory_t map{
             vkrndr::map_memory(*rendering_context_.device,
@@ -960,7 +961,7 @@ void heatx::application_t::create_shader_binding_table()
         vkrndr::unmap_memory(*rendering_context_.device, &map);
     }
 
-    miss_binding_table_ = create_binding_table_buffer();
+    miss_binding_table_ = create_binding_table_buffer(2);
     {
         vkrndr::mapped_memory_t map{
             vkrndr::map_memory(*rendering_context_.device,
@@ -973,14 +974,14 @@ void heatx::application_t::create_shader_binding_table()
         vkrndr::unmap_memory(*rendering_context_.device, &map);
     }
 
-    hit_binding_table_ = create_binding_table_buffer();
+    hit_binding_table_ = create_binding_table_buffer(1);
     {
         vkrndr::mapped_memory_t map{
             vkrndr::map_memory(*rendering_context_.device, hit_binding_table_)};
 
         memcpy(map.as<std::byte>(),
             handle_storage.data() + size_t{aligned_handle_size} * 3,
-            handle_size * 2);
+            handle_size);
 
         vkrndr::unmap_memory(*rendering_context_.device, &map);
     }
