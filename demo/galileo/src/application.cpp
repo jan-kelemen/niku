@@ -648,6 +648,16 @@ void galileo::application_t::draw()
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
     {
+        auto const barrier{vkrndr::to_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(depth_buffer_,
+                                     VK_IMAGE_ASPECT_DEPTH_BIT),
+                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT),
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT),
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+
         gbuffer_->transition(command_buffer,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
