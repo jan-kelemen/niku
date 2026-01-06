@@ -398,6 +398,12 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
             (primitive.is_indexed ? primitive.count : primitive.vertex_count) /
             3);
 
+        auto const geometry_flags{static_cast<VkGeometryFlagsKHR>(
+            model.materials[primitive.material_index].alpha_mode ==
+                    ngnast::alpha_mode_t::opaque
+                ? VK_GEOMETRY_OPAQUE_BIT_KHR
+                : VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_KHR)};
+
         geometries.push_back({
             .sType = vku::GetSType<VkAccelerationStructureGeometryKHR>(),
             .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
@@ -412,7 +418,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
                             .vertexStride = sizeof(vertex_t),
                             .maxVertex = primitive_counts.back() - 1,
                         }},
-            .flags = VK_GEOMETRY_OPAQUE_BIT_KHR,
+            .flags = geometry_flags,
         });
 
         build_range.push_back(VkAccelerationStructureBuildRangeInfoKHR{
