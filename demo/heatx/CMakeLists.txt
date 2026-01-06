@@ -53,6 +53,8 @@ add_copy_if_different_target(heatx_shaders
         ${NIKU_DEMO_SHARED_DIR}/shaders/pbrNeutral.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/closesthit.rchit
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/fxaa.comp
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/geometry.glsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/materials.glsl
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/miss.rmiss
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/raygen.rgen
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/miss.rmiss
