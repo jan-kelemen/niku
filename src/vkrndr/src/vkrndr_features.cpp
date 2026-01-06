@@ -134,6 +134,8 @@ void vkrndr::link_optional_feature_chain(feature_chain_t& chain)
         &chain.acceleration_structure_features;
     chain.acceleration_structure_features.pNext =
         &chain.ray_tracing_pipeline_features;
+    chain.ray_tracing_pipeline_features.pNext =
+        &chain.relaxed_extended_instruction_features;
 }
 
 void vkrndr::add_required_feature_flags(feature_flags_t& flags)
@@ -204,6 +206,8 @@ void vkrndr::set_feature_flags_on_chain(feature_chain_t& chain,
         flags.acceleration_structure_flags);
     set_flags(chain.ray_tracing_pipeline_features,
         flags.ray_tracing_pipeline_flags);
+    set_optional_flags(chain.relaxed_extended_instruction_features,
+        flags.relaxed_extended_instruction_flags);
 }
 
 bool vkrndr::check_feature_flags(feature_chain_t const& chain,
@@ -259,6 +263,13 @@ bool vkrndr::check_feature_flags(feature_chain_t const& chain,
 
     if (!all_true(chain.ray_tracing_pipeline_features,
             flags.ray_tracing_pipeline_flags))
+    {
+        return false;
+    }
+
+    if (flags.relaxed_extended_instruction_flags.has_value() &&
+        !all_true(chain.relaxed_extended_instruction_features,
+            cppext::as_span(*flags.relaxed_extended_instruction_flags)))
     {
         return false;
     }
@@ -349,6 +360,8 @@ bool vkrndr::enable_extension_for_device(char const* const extension_name,
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME};
     static constexpr std::string_view ray_tracing_pipeline{
         VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME};
+    static constexpr std::string_view relaxed_extended_instruction{
+        VK_KHR_SHADER_RELAXED_EXTENDED_INSTRUCTION_EXTENSION_NAME};
 
     std::string_view const name{extension_name};
     if (!std::ranges::contains(device.extensions,
@@ -436,6 +449,25 @@ bool vkrndr::enable_extension_for_device(char const* const extension_name,
             device_features.rayTracingPipelineTraceRaysIndirect;
         chain_features.rayTraversalPrimitiveCulling =
             device_features.rayTraversalPrimitiveCulling;
+
+        chain_features.pNext =
+            std::exchange(chain.device_13_features.pNext, &chain_features);
+
+        return true;
+    }
+
+    if (name == relaxed_extended_instruction)
+    {
+        auto& chain_features{chain.relaxed_extended_instruction_features};
+        auto const& device_features{
+            device.features.relaxed_extended_instruction_features};
+
+        if (device_features.shaderRelaxedExtendedInstruction != VK_TRUE)
+        {
+            return false;
+        }
+
+        chain_features.shaderRelaxedExtendedInstruction = VK_TRUE;
 
         chain_features.pNext =
             std::exchange(chain.device_13_features.pNext, &chain_features);

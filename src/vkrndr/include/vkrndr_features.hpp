@@ -48,6 +48,11 @@ namespace vkrndr
             ray_tracing_pipeline_features{
                 .sType = vku::GetSType<
                     VkPhysicalDeviceRayTracingPipelineFeaturesKHR>()};
+
+        VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR
+            relaxed_extended_instruction_features{
+                .sType = vku::GetSType<
+                    VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR>()};
     };
 
     void link_required_feature_chain(feature_chain_t& chain);
@@ -83,6 +88,10 @@ namespace vkrndr
 
         std::vector<VkBool32 VkPhysicalDeviceRayTracingPipelineFeaturesKHR::*>
             ray_tracing_pipeline_flags;
+
+        std::optional<VkBool32
+                VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR ::*>
+            relaxed_extended_instruction_flags;
     };
 
     void add_required_feature_flags(feature_flags_t& flags);
