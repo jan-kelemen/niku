@@ -35,6 +35,7 @@ namespace ngnwsi
 namespace heatx
 {
     class materials_t;
+    class postprocess_shader_t;
 } // namespace heatx
 
 namespace heatx
@@ -97,6 +98,7 @@ namespace heatx
 
         std::unique_ptr<vkrndr::backend_t> backend_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
+        std::unique_ptr<postprocess_shader_t> postprocess_shader_;
 
         ngnast::gpu::acceleration_structure_build_result_t model_;
         vkrndr::buffer_t primitives_;

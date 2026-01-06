@@ -1,0 +1,54 @@
+#version 460
+
+#extension GL_GOOGLE_include_directive : require
+
+#define FXAA_PC 1
+#define FXAA_GLSL_130 1
+#define FXAA_QUALITY__PRESET 12
+#include "Fxaa3_11.h"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 0, binding = 0) uniform sampler2D backbuffer;
+
+layout(set = 0, binding = 1) uniform writeonly image2D image;
+
+vec4 frameOpt(float left, float right, vec2 resolution)
+{
+    return vec4(left / resolution.x,
+        left / resolution.y,
+        right / resolution.x,
+        right / resolution.y);
+}
+
+void main()
+{
+    const vec2 resolution = vec2(imageSize(image).x, imageSize(image).y);
+
+    const vec2 sampleCoord =
+        vec2(float(gl_GlobalInvocationID.x + 0.5) / resolution.x,
+            float(gl_GlobalInvocationID.y + 0.5) / resolution.y);
+
+    const vec4 fxaaOut = FxaaPixelShader(sampleCoord, // pos
+        vec4(sampleCoord.x - 0.5,
+            sampleCoord.y - 0.5,
+            sampleCoord.x + 0.5,
+            sampleCoord.y + 0.5), // fxaaConsolePosPos
+        backbuffer, // tex
+        backbuffer, // fxaaConsole360TexExpBiasNegOne
+        backbuffer, // fxaaConsole360TexExpBiasNegTwo
+        1 / resolution, // fxaaQualityRcpFrame
+        frameOpt(-0.5, 0.5, resolution), // fxaaConsoleRcpFrameOpt
+        frameOpt(-2, 2, resolution), // fxaaConsoleRcpFrameOpt2
+        frameOpt(8, -4, resolution), // fxaaConsole360RcpFrameOpt2
+        0.75, // fxaaQualitySubpix
+        0.166, // fxaaQualityEdgeThreshold
+        0.0833, // fxaaQualityEdgeThresholdMin
+        8.0, // fxaaConsoleEdgeSharpness
+        0.125, // fxaaConsoleEdgeThreshold
+        0.05, // fxaaConsoleEdgeThresholdMin
+        vec4(0) // fxaaConsole360ConstDir
+    );
+
+    imageStore(image, ivec2(gl_GlobalInvocationID.xy), vec4(fxaaOut.rgb, 1.0));
+}

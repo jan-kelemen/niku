@@ -1,7 +1,9 @@
 #include <application.hpp>
+
 #include <camera_controller.hpp>
 #include <config.hpp>
 #include <materials.hpp>
+#include <postprocess_shader.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_memory.hpp>
@@ -111,8 +113,8 @@ namespace
             vkrndr::image_2d_create_info_t{.format = format,
                 .extent = extent,
                 .tiling = VK_IMAGE_TILING_OPTIMAL,
-                .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                    VK_IMAGE_USAGE_STORAGE_BIT,
+                .usage =
+                    VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
                 .allocation_flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             VK_IMAGE_ASPECT_COLOR_BIT);
@@ -367,7 +369,7 @@ heatx::application_t::application_t(int argc,
                         render_window_->create_swapchain(
                             *rendering_context_.device,
                             {
-                                .preferred_format = VK_FORMAT_B8G8R8A8_UNORM,
+                                .preferred_format = VK_FORMAT_R8G8B8A8_UNORM,
                                 .image_flags =
                                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                                     VK_IMAGE_USAGE_STORAGE_BIT |
@@ -560,46 +562,36 @@ void heatx::application_t::draw()
                 vkrndr::with_layout(
                     vkrndr::on_stage(vkrndr::image_barrier(*target_image),
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_PIPELINE_STAGE_2_TRANSFER_BIT),
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                     VK_IMAGE_LAYOUT_UNDEFINED,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL),
+                    VK_IMAGE_LAYOUT_GENERAL),
                 VK_ACCESS_2_NONE,
-                VK_ACCESS_2_TRANSFER_WRITE_BIT),
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
             vkrndr::with_access(
                 vkrndr::with_layout(
                     vkrndr::on_stage(
                         vkrndr::image_barrier(ray_generation_storage_),
                         VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
-                        VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR),
+                        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
                     VK_IMAGE_LAYOUT_GENERAL,
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL),
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),
                 VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
-                VK_ACCESS_2_TRANSFER_READ_BIT)};
+                VK_ACCESS_2_SHADER_SAMPLED_READ_BIT)};
 
         vkrndr::wait_for(command_buffer, {}, {}, image_barriers);
 
-        VkImageCopy const region{
-            .srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
-            .dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
-            .extent = target_image->extent,
-        };
-
-        vkCmdCopyImage(command_buffer,
+        postprocess_shader_->draw(command_buffer,
             ray_generation_storage_,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            *target_image,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            1,
-            &region);
+            *target_image);
 
         VkImageMemoryBarrier2 const revert_storage_barrier{vkrndr::with_access(
             vkrndr::with_layout(
                 vkrndr::on_stage(vkrndr::image_barrier(ray_generation_storage_),
-                    VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR),
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_IMAGE_LAYOUT_GENERAL),
-            VK_ACCESS_2_TRANSFER_READ_BIT,
+            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
             VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
         vkrndr::wait_for(command_buffer,
             {},
@@ -611,11 +603,11 @@ void heatx::application_t::draw()
         auto const barrier{vkrndr::with_layout(
             vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::image_barrier(*target_image),
-                    VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
+                    VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
                 VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT),
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_GENERAL,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
         vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
 
@@ -636,6 +628,7 @@ void heatx::application_t::on_startup()
     mouse_.set_window_handle(render_window_->platform_window().native_handle());
 
     materials_ = std::make_unique<materials_t>(*backend_);
+    postprocess_shader_ = std::make_unique<postprocess_shader_t>(*backend_);
 
     ngnast::gltf::loader_t loader;
     if (auto scene{loader.load(command_line_parameters()[1])})
@@ -815,6 +808,8 @@ void heatx::application_t::on_shutdown()
     destroy(backend_->device(), primitives_);
     destroy(backend_->device(), model_);
 
+    postprocess_shader_.reset();
+
     imgui_.reset();
 
     if (render_window_)
@@ -850,7 +845,7 @@ void heatx::application_t::on_resize(uint32_t const width,
 
     ray_generation_storage_ = create_ray_generation_storage_image(*backend_,
         {width, height},
-        render_window_->swapchain().image_format());
+        VK_FORMAT_R16G16B16A16_SFLOAT);
     VKRNDR_IF_DEBUG_UTILS(object_name(backend_->device(),
         ray_generation_storage_,
         "Ray Generation Storage"));
@@ -870,6 +865,8 @@ void heatx::application_t::on_resize(uint32_t const width,
 
         vkrndr::wait_for(op.command_buffer(), {}, {}, cppext::as_span(barrier));
     }
+
+    postprocess_shader_->resize(width, height, deletion_queue_insert);
 
     deletion_queue_insert([device = &backend_->device(),
                               pool = descriptor_pool_,
