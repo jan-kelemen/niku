@@ -496,6 +496,19 @@ void gltfviewer::application_t::draw()
     environment_->draw(camera_, projection_);
 
     push_constants_t const pc{.debug = debug_, .ibl_factor = ibl_factor_};
+
+    {
+        auto const barrier{vkrndr::to_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::image_barrier(depth_buffer_,
+                                     VK_IMAGE_ASPECT_DEPTH_BIT),
+                    VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT),
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT),
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+    }
+
     if (!scene_graph_->empty())
     {
         {
