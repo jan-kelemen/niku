@@ -57,10 +57,10 @@ namespace cppext
     [[nodiscard]] bool add(T lhs, T rhs, T& out) noexcept = delete;
 
     template<std::integral T>
-    [[nodiscard]] bool sub(T lhs, T rhs, T& out) noexcept;
+    [[nodiscard]] bool sub(T lhs, T rhs, T& out) noexcept = delete;
 
     template<std::integral T>
-    [[nodiscard]] bool mul(T lhs, T rhs, T& out) noexcept;
+    [[nodiscard]] bool mul(T lhs, T rhs, T& out) noexcept = delete;
 
     template<>
     [[nodiscard]] inline bool
