@@ -272,9 +272,9 @@ void vkrndr::generate_mipmaps(device_t const& device,
     uint32_t const mip_levels,
     uint32_t const layers)
 {
-    VkFormatProperties properties;
-    vkGetPhysicalDeviceFormatProperties(device, format, &properties);
-    if (!(properties.optimalTilingFeatures &
+    auto properties{vku::InitStruct<VkFormatProperties2>()};
+    vkGetPhysicalDeviceFormatProperties2(device, format, &properties);
+    if (!(properties.formatProperties.optimalTilingFeatures &
             VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
     {
         throw std::runtime_error{

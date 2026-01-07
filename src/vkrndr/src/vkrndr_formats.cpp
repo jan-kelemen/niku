@@ -4,6 +4,8 @@
 
 #include <volk.h>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 #include <array>
 #include <cassert>
 #include <ranges>
@@ -35,16 +37,18 @@ vkrndr::find_supported_depth_stencil_formats(VkPhysicalDevice const device,
         for (auto const& format :
             std::views::filter(all_depth_stencil_formats, func))
         {
-            VkFormatProperties props;
-            vkGetPhysicalDeviceFormatProperties(device, format.format, &props);
+            auto properties{vku::InitStruct<VkFormatProperties2>()};
+            vkGetPhysicalDeviceFormatProperties2(device,
+                format.format,
+                &properties);
 
-            if (props.linearTilingFeatures &
+            if (properties.formatProperties.linearTilingFeatures &
                     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT ||
-                props.optimalTilingFeatures &
+                properties.formatProperties.optimalTilingFeatures &
                     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
             {
                 rv.emplace_back(format.format,
-                    props,
+                    properties.formatProperties,
                     format.depth_component,
                     format.stencil_component);
             }
