@@ -25,10 +25,17 @@ jobs:
         uses: ./.github/actions/install-gcc
 
       - name: Install clang-${{ env.CLANG_VER }}
-        uses: ./.github/actions/install-clang 
+        uses: ./.github/actions/install-clang
+        with:
+          version: ${{ env.CLANG_VER }}
+          clang-tidy: true
+          dev: true
 
       - name: Install APT packages
         uses: ./.github/actions/install-apt-packages
+
+      - name: Install IWYU
+        uses: ./.github/actions/install-iwyu
 
       - name: Setup Conan
         id: setup-conan
@@ -38,7 +45,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake --preset relwithdebinfo
+          cmake -DNIKU_ENABLE_CLANG_TIDY=ON -DNIKU_ENABLE_IWYU=ON --preset relwithdebinfo
 
       - name: Build
         run: |
@@ -60,9 +67,14 @@ jobs:
 
       - name: Install gcc-${{ env.GCC_VER }}
         uses: ./.github/actions/install-gcc
+        with:
+          version: ${{ env.GCC_VER }}
 
       - name: Install APT packages
         uses: ./.github/actions/install-apt-packages
+
+      - name: Install Cppcheck
+        uses: ./.github/actions/install-cppcheck
 
       - name: Setup Conan
         id: setup-conan
@@ -72,7 +84,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake --preset relwithdebinfo
+          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON -DNIKU_ENABLE_CPPCHECK=ON --preset relwithdebinfo
 
       - name: Build
         run: |
@@ -101,7 +113,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake --preset default
+          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON --preset default
           
       - name: Build
         run: |

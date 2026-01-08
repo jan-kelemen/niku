@@ -1,5 +1,0 @@
-include(../../conan/msvc-2022-amd64-windows)
-include(../../conan/dependencies)
-
-[settings]
-build_type=Release
