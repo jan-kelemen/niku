@@ -79,5 +79,8 @@ class fastgltf(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["fastgltf"]
+        self.cpp_info.defines.append("FASTGLTF_CPP_17")
         if str(self.settings.get_safe("compiler.cppstd")) in ("20", "23"):
             self.cpp_info.defines.append("FASTGLTF_CPP_20")
+        if str(self.settings.get_safe("compiler.cppstd")) in ("23"):
+            self.cpp_info.defines.append("FASTGLTF_CPP_23")
