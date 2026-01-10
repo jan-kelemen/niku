@@ -1085,7 +1085,7 @@ void galileo::application_t::setup_world()
 {
     using namespace JPH::literals;
 
-    ngnast::gltf::loader_t loader;
+    ngnast::gltf::loader_t loader{{}};
     auto model{loader.load(std::filesystem::absolute("world.glb"))};
     if (!model)
     {

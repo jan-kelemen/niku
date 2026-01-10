@@ -4,8 +4,6 @@
 #include <camera_controller.hpp>
 #include <model_selector.hpp>
 
-#include <ngnast_gltf_loader.hpp>
-
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
@@ -21,6 +19,11 @@
 
 #include <cstdint>
 #include <memory>
+
+namespace ngnast::gltf
+{
+    class loader_t;
+} // namespace ngnast::gltf
 
 namespace ngnwsi
 {
@@ -116,7 +119,7 @@ namespace gltfviewer
 
         model_selector_t selector_;
         bool change_model_{false};
-        ngnast::gltf::loader_t gltf_loader_;
+        std::unique_ptr<ngnast::gltf::loader_t> gltf_loader_;
 
         uint32_t debug_{0};
         float ibl_factor_{0.5f};

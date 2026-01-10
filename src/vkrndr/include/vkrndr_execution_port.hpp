@@ -8,14 +8,6 @@
 
 namespace vkrndr
 {
-    template<typename... Args>
-    [[nodiscard]] constexpr bool supports_flags(VkQueueFlags const flags,
-        Args... bits)
-    {
-        auto const all_bits{static_cast<VkQueueFlags>((bits | ...))};
-        return (flags & all_bits) == all_bits;
-    }
-
     class [[nodiscard]] execution_port_t final
     {
     public:

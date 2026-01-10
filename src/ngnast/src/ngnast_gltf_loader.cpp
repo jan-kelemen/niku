@@ -22,6 +22,8 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include <libbasisu/transcoder/basisu_transcoder.h>
+
 #include <meshoptimizer.h>
 
 #include <mikktspace.h>
@@ -32,18 +34,23 @@
 
 #include <volk.h>
 
+#include <vulkan/utility/vk_format_utils.h>
+
 #include <algorithm>
-#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <exception> // IWYU pragma: keep
 #include <expected>
+#include <fstream>
 #include <iterator>
+#include <map>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <ranges>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -63,6 +70,163 @@
 
 namespace
 {
+    [[nodiscard]] std::vector<char> read_file(std::filesystem::path const& file)
+    {
+        std::ifstream stream{file, std::ios::ate | std::ios::binary};
+
+        if (!stream.is_open())
+        {
+            throw std::runtime_error{"failed to open file!"};
+        }
+
+        auto const eof{stream.tellg()};
+
+        std::vector<char> buffer(static_cast<size_t>(eof));
+        stream.seekg(0);
+
+        stream.read(buffer.data(), eof);
+
+        return buffer;
+    }
+
+    [[nodiscard]] std::expected<ngnast::image_t, std::error_code>
+    load_ktx_image(VkFormat const format,
+        std::span<char const> const& raw_bytes)
+    {
+        basist::ktx2_transcoder transcoder;
+        bool const transcoder_initialized{transcoder.init(raw_bytes.data(),
+            cppext::narrow<uint32_t>(raw_bytes.size()))};
+        if (!transcoder_initialized)
+        {
+            return std::unexpected{
+                make_error_code(ngnast::error_t::invalid_file)};
+        }
+        bool const transcoding_started{transcoder.start_transcoding()};
+        if (!transcoding_started)
+        {
+            return std::unexpected{
+                make_error_code(ngnast::error_t::invalid_file)};
+        }
+
+        ngnast::image_t image{
+            .data = std::unique_ptr<std::byte[], void (*)(std::byte*)>{nullptr,
+                [](std::byte* const p)
+                {
+                    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+                    delete[] p;
+                }},
+            .format = format,
+        };
+
+        auto const transcoder_texture_format{std::invoke(
+            [](VkFormat const f)
+            {
+                using basist::transcoder_texture_format;
+                switch (f)
+                {
+                case VK_FORMAT_BC7_SRGB_BLOCK:
+                case VK_FORMAT_BC7_UNORM_BLOCK:
+                    return transcoder_texture_format::cTFBC7_RGBA;
+                case VK_FORMAT_BC3_SRGB_BLOCK:
+                case VK_FORMAT_BC3_UNORM_BLOCK:
+                    return transcoder_texture_format::cTFBC3_RGBA;
+                case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+                case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+                    return transcoder_texture_format::cTFASTC_4x4_RGBA;
+                case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+                case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
+                    return transcoder_texture_format::cTFETC2_RGBA;
+                default:
+                    assert(f == VK_FORMAT_R8G8B8A8_SRGB ||
+                        f == VK_FORMAT_R8G8B8A8_UNORM);
+                    return transcoder_texture_format::cTFRGBA32;
+                }
+            },
+            image.format)};
+
+        bool const load_compressed{transcoder_texture_format !=
+            basist::transcoder_texture_format::cTFRGBA32};
+
+        uint32_t const bytes_per_block{
+            basis_get_bytes_per_block_or_pixel(transcoder_texture_format)};
+
+        std::vector<uint32_t> bytes_per_mip;
+        for (uint32_t mip{}; mip != transcoder.get_levels(); ++mip)
+        {
+            basist::ktx2_image_level_info mip_info{};
+            bool const mip_info_loaded{
+                transcoder.get_image_level_info(mip_info, mip, 0, 0)};
+            assert(mip_info_loaded);
+            if (!mip_info_loaded)
+            {
+                break;
+            }
+
+            uint32_t const pixel_or_block_count{load_compressed
+                    ? mip_info.m_total_blocks
+                    : mip_info.m_orig_width * mip_info.m_orig_height};
+
+            if (uint32_t mip_size{};
+                cppext::mul(bytes_per_block, pixel_or_block_count, mip_size))
+            {
+                bytes_per_mip.push_back(mip_size);
+            }
+            else
+            {
+                return std::unexpected{
+                    make_error_code(ngnast::error_t::invalid_file)};
+            }
+        }
+
+        size_t running_mip_offset{};
+        for (uint32_t mip{}; mip != transcoder.get_levels(); ++mip)
+        {
+            basist::ktx2_image_level_info mip_info{};
+            if (!transcoder.get_image_level_info(mip_info, mip, 0, 0))
+            {
+                return std::unexpected{
+                    make_error_code(ngnast::error_t::load_transform_failed)};
+            }
+
+            ngnast::image_mip_level_t const image_mip_level{
+                .extent = vkrndr::to_2d_extent(mip_info.m_orig_width,
+                    mip_info.m_orig_height),
+                .data_offset = running_mip_offset,
+                .data_size = bytes_per_mip[mip],
+            };
+
+            if (mip == 0)
+            {
+                image.data_size = std::reduce(std::cbegin(bytes_per_mip),
+                    std::cend(bytes_per_mip),
+                    size_t{},
+                    [](size_t const acc, uint32_t const size)
+                    { return acc + size; });
+
+                // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+                image.data.reset(new std::byte[image.data_size]);
+            }
+
+            bool const image_level_transcoded{
+                transcoder.transcode_image_level(mip,
+                    0,
+                    0,
+                    image.data.get() + image_mip_level.data_offset,
+                    cppext::narrow<uint32_t>(image_mip_level.data_size),
+                    transcoder_texture_format)};
+            if (!image_level_transcoded)
+            {
+                return std::unexpected{
+                    make_error_code(ngnast::error_t::invalid_file)};
+            }
+
+            image.mip_levels.push_back(image_mip_level);
+            running_mip_offset += image_mip_level.data_size;
+        }
+
+        return image;
+    }
+
     constexpr auto position_attribute{"POSITION"};
     constexpr auto normal_attribute{"NORMAL"};
     constexpr auto tangent_attribute{"TANGENT"};
@@ -267,11 +431,24 @@ namespace
     }
 
     [[nodiscard]] std::expected<ngnast::image_t, std::error_code> load_image(
+        std::span<VkFormat> const& compressed_formats,
         std::filesystem::path const& parent_path,
         bool const as_unorm,
         fastgltf::Asset const& asset,
         fastgltf::Image const& image)
     {
+        auto const select_compressed_texture_format =
+            [&compressed_formats, as_unorm]() -> std::optional<VkFormat>
+        {
+            if (auto it{std::ranges::find_if(compressed_formats,
+                    as_unorm ? vkuFormatIsUNORM : vkuFormatIsSRGB)};
+                it != std::cend(compressed_formats))
+            {
+                return *it;
+            }
+            return std::nullopt;
+        };
+
         auto const image_from_data =
             [as_unorm](int const width, int const height, stbi_uc* const data)
             -> std::expected<ngnast::image_t, std::error_code>
@@ -280,36 +457,67 @@ namespace
             {
                 // Temporary variable to ensure data is released in case of
                 // exception
-                // NOLINTBEGIN(bugprone-bitwise-pointer-cast)
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 std::unique_ptr<std::byte[], void (*)(std::byte*)> image_data{
-                    std::bit_cast<std::byte*>(data),
+                    reinterpret_cast<std::byte*>(data),
                     [](std::byte* p)
-                    { stbi_image_free(std::bit_cast<stbi_uc*>(p)); }};
-                // NOLINTEND(bugprone-bitwise-pointer-cast)
+                    { stbi_image_free(reinterpret_cast<stbi_uc*>(p)); }};
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
-                return ngnast::image_t{.data = std::move(image_data),
-                    .data_size = cppext::narrow<size_t>(width) *
-                        cppext::narrow<size_t>(height) *
-                        4,
-                    .extent = vkrndr::to_2d_extent(width, height),
+                size_t const size{cppext::narrow<size_t>(width) *
+                    cppext::narrow<size_t>(height) *
+                    4};
+
+                ngnast::image_t rv{.data = std::move(image_data),
+                    .data_size = size,
                     .format = as_unorm ? VK_FORMAT_R8G8B8A8_UNORM
-                                       : VK_FORMAT_R8G8B8A8_SRGB};
+                                       : VK_FORMAT_R8G8B8A8_SRGB,
+                    .mip_levels = std::vector{ngnast::image_mip_level_t{
+                        vkrndr::to_2d_extent(width, height),
+                        0,
+                        size}}};
+
+                return rv;
             }
 
             return std::unexpected{
                 make_error_code(ngnast::error_t::invalid_file)};
         };
 
-        auto const load_from_container = [&image_from_data]<typename T>(
-                                             T const& container)
+        auto const load_from_container = [&select_compressed_texture_format,
+                                             &image_from_data]<typename T>(
+                                             fastgltf::MimeType const mime_type,
+                                             T const& container,
+                                             size_t const offset,
+                                             size_t const size)
+            -> std::expected<ngnast::image_t, std::error_code>
         {
+            if (mime_type == fastgltf::MimeType::KTX2)
+            {
+                std::optional<VkFormat> const format{
+                    select_compressed_texture_format()};
+                if (!format)
+                {
+                    return std::unexpected{make_error_code(
+                        ngnast::error_t::load_transform_failed)};
+                }
+
+                return load_ktx_image(*format,
+                    std::span{
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                        reinterpret_cast<char const*>(container.bytes.data()) +
+                            offset,
+                        size});
+            }
+
             int width; // NOLINT
             int height; // NOLINT
             int channels; // NOLINT
             auto* const data{stbi_load_from_memory(
-                // NOLINTNEXTLINE(bugprone-bitwise-pointer-cast)
-                std::bit_cast<stbi_uc const*>(container.bytes.data()),
-                cppext::narrow<int>(container.bytes.size()),
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                reinterpret_cast<stbi_uc const*>(container.bytes.data()) +
+                    offset,
+                cppext::narrow<int>(size),
                 &width,
                 &height,
                 &channels,
@@ -319,15 +527,22 @@ namespace
         };
 
         auto const load_from_vector =
-            [&load_from_container](fastgltf::sources::Vector const& container)
-        { return load_from_container(container); };
+            [&load_from_container](fastgltf::MimeType const mime_type,
+                fastgltf::sources::Vector const& container,
+                size_t const offset,
+                size_t const size)
+        { return load_from_container(mime_type, container, offset, size); };
 
         auto const load_from_array =
-            [&load_from_container](fastgltf::sources::Array const& container)
-        { return load_from_container(container); };
+            [&load_from_container](fastgltf::MimeType const mime_type,
+                fastgltf::sources::Array const& container,
+                size_t const offset,
+                size_t const size)
+        { return load_from_container(mime_type, container, offset, size); };
 
-        auto const load_from_uri = [&image_from_data, &parent_path](
-                                       fastgltf::sources::URI const& filePath)
+        auto const load_from_uri =
+            [&select_compressed_texture_format, &image_from_data, &parent_path](
+                fastgltf::sources::URI const& filePath)
             -> std::expected<ngnast::image_t, std::error_code>
         {
             // No offsets in file
@@ -341,20 +556,48 @@ namespace
                 path = parent_path / path;
             }
 
-            int width; // NOLINT
-            int height; // NOLINT
-            int channels; // NOLINT
-            stbi_uc* const data{stbi_load(path.string().c_str(),
-                &width,
-                &height,
-                &channels,
-                4)};
-            if (data == nullptr)
+            fastgltf::MimeType effective_mime_type{filePath.mimeType};
+            if (filePath.mimeType == fastgltf::MimeType::None)
             {
-                return std::unexpected{
-                    make_error_code(ngnast::error_t::unknown)};
+                if (path.extension() == ".ktx2")
+                {
+                    effective_mime_type = fastgltf::MimeType::KTX2;
+                }
             }
-            return image_from_data(width, height, data);
+
+            switch (effective_mime_type)
+            {
+            case fastgltf::MimeType::KTX2:
+            {
+                std::optional<VkFormat> const format{
+                    select_compressed_texture_format()};
+                if (!format)
+                {
+                    return std::unexpected{make_error_code(
+                        ngnast::error_t::load_transform_failed)};
+                }
+
+                std::vector<char> raw_bytes{read_file(path)};
+                return load_ktx_image(*format, raw_bytes);
+            }
+            default:
+            {
+                int width; // NOLINT
+                int height; // NOLINT
+                int channels; // NOLINT
+                stbi_uc* const data{stbi_load(path.string().c_str(),
+                    &width,
+                    &height,
+                    &channels,
+                    4)};
+                if (data == nullptr)
+                {
+                    return std::unexpected{
+                        make_error_code(ngnast::error_t::unknown)};
+                }
+                return image_from_data(width, height, data);
+            }
+            }
         };
 
         auto const unsupported_variant = []([[maybe_unused]] auto&& arg)
@@ -371,22 +614,46 @@ namespace
         {
             auto const& bufferView = asset.bufferViews[view.bufferViewIndex];
             auto const& buffer = asset.buffers[bufferView.bufferIndex];
-
-            return std::visit(cppext::overloaded{load_from_array,
-                                  load_from_vector,
-                                  unsupported_variant},
+            return std::visit(
+                cppext::overloaded{
+                    [mt = view.mimeType,
+                        off = bufferView.byteOffset,
+                        size = bufferView.byteLength,
+                        &load_from_array](fastgltf::sources::Array const& array)
+                    { return load_from_array(mt, array, off, size); },
+                    [mt = view.mimeType,
+                        off = bufferView.byteOffset,
+                        size = bufferView.byteLength,
+                        &load_from_vector](
+                        fastgltf::sources::Vector const& vector)
+                    { return load_from_vector(mt, vector, off, size); },
+                    unsupported_variant},
                 buffer.data);
         };
 
-        return std::visit(cppext::overloaded{load_from_uri,
-                              load_from_array,
-                              load_from_vector,
-                              load_from_buffer_view,
-                              unsupported_variant},
+        return std::visit(
+            cppext::overloaded{load_from_uri,
+                [&load_from_array](fastgltf::sources::Array const& array)
+                {
+                    return load_from_array(array.mimeType,
+                        array,
+                        0,
+                        array.bytes.size_bytes());
+                },
+                [&load_from_vector](fastgltf::sources::Vector const& vector)
+                {
+                    return load_from_vector(vector.mimeType,
+                        vector,
+                        0,
+                        vector.bytes.size());
+                },
+                load_from_buffer_view,
+                unsupported_variant},
             image.data);
     }
 
-    void load_images(std::filesystem::path const& parent_path,
+    void load_images(std::span<VkFormat> const& compressed_texture_formats,
+        std::filesystem::path const& parent_path,
         std::set<size_t> const& unorm_images,
         fastgltf::Asset const& asset,
         ngnast::scene_model_t& model)
@@ -395,7 +662,8 @@ namespace
         {
             auto const& image{asset.images[i]};
 
-            auto load_result{load_image(parent_path,
+            auto load_result{load_image(compressed_texture_formats,
+                parent_path,
                 unorm_images.contains(i),
                 asset,
                 image)};
@@ -435,8 +703,17 @@ namespace
         {
             ngnast::texture_t t{.name = std::string{texture.name}};
 
-            assert(texture.imageIndex);
-            t.image_index = *texture.imageIndex;
+            if (texture.imageIndex)
+            {
+                t.image_indices.emplace(ngnast::texture_image_type_t::regular,
+                    *texture.imageIndex);
+            }
+
+            if (texture.basisuImageIndex)
+            {
+                t.image_indices.emplace(ngnast::texture_image_type_t::basisu,
+                    *texture.basisuImageIndex);
+            }
 
             t.sampler_index =
                 texture.samplerIndex.value_or(model.samplers.size() - 1);
@@ -466,11 +743,15 @@ namespace
 
             if (auto const& texture{material.pbrData.metallicRoughnessTexture})
             {
-                m.pbr_metallic_roughness.metallic_roughness_texture =
-                    &model.textures[texture->textureIndex];
+                auto& material_texture{
+                    m.pbr_metallic_roughness.metallic_roughness_texture};
+                material_texture = &model.textures[texture->textureIndex];
 
-                unorm_images.insert(m.pbr_metallic_roughness
-                        .metallic_roughness_texture->image_index);
+                for (auto const& [type, index] :
+                    material_texture->image_indices)
+                {
+                    unorm_images.emplace(index);
+                }
             }
             m.pbr_metallic_roughness.metallic_factor =
                 material.pbrData.metallicFactor;
@@ -482,7 +763,11 @@ namespace
                 m.normal_texture = &model.textures[texture->textureIndex];
                 m.normal_scale = texture->scale;
 
-                unorm_images.insert(m.normal_texture->image_index);
+                for (auto const& [type, index] :
+                    m.normal_texture->image_indices)
+                {
+                    unorm_images.emplace(index);
+                }
             }
 
             if (auto const& texture{material.emissiveTexture})
@@ -770,6 +1055,17 @@ namespace
     }
 } // namespace
 
+ngnast::gltf::loader_t::loader_t(
+    std::span<VkFormat> const& compressed_texture_formats)
+    : compressed_texture_formats_{std::cbegin(compressed_texture_formats),
+          std::cend(compressed_texture_formats)}
+{
+    if (!compressed_texture_formats.empty())
+    {
+        basist::basisu_transcoder_init();
+    }
+}
+
 std::expected<ngnast::scene_model_t, std::error_code>
 ngnast::gltf::loader_t::load(std::filesystem::path const& path)
 {
@@ -787,7 +1083,8 @@ ngnast::gltf::loader_t::load(std::filesystem::path const& path)
     }
 
     fastgltf::Parser parser{
-        fastgltf::Extensions::KHR_materials_emissive_strength};
+        fastgltf::Extensions::KHR_materials_emissive_strength |
+        fastgltf::Extensions::KHR_texture_basisu};
 
     auto data{fastgltf::GltfDataBuffer::FromPath(path)};
     if (data.error() != fastgltf::Error::None)
@@ -813,7 +1110,11 @@ ngnast::gltf::loader_t::load(std::filesystem::path const& path)
         load_samplers(asset.get(), rv);
         load_textures(asset.get(), rv);
         std::set<size_t> const unorm_images{load_materials(asset.get(), rv)};
-        load_images(parent_path, unorm_images, asset.get(), rv);
+        load_images(compressed_texture_formats_,
+            parent_path,
+            unorm_images,
+            asset.get(),
+            rv);
 
         rv.nodes.resize(asset->nodes.size());
 

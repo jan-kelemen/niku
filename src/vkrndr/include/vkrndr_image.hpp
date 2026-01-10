@@ -7,6 +7,7 @@
 
 #include <volk.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -29,6 +30,13 @@ namespace vkrndr
         VkExtent3D extent{};
 
         [[nodiscard]] constexpr operator VkImage() const noexcept;
+    };
+
+    struct [[nodiscard]] image_mip_level_t final
+    {
+        VkExtent2D extent{};
+        size_t data_offset{};
+        size_t data_size{};
     };
 
     void destroy(device_t const& device, image_t const& image);

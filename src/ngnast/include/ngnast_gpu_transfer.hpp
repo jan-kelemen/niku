@@ -3,6 +3,7 @@
 
 #include <vkrndr_acceleration_structure.hpp>
 #include <vkrndr_buffer.hpp>
+#include <vkrndr_image.hpp>
 
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
@@ -16,6 +17,7 @@
 namespace ngnast
 {
     struct scene_model_t;
+    struct image_mip_level_t;
 } // namespace ngnast
 
 namespace vkrndr
@@ -89,6 +91,8 @@ namespace ngnast::gpu
     acceleration_structure_build_result_t build_acceleration_structures(
         vkrndr::backend_t& backend,
         scene_model_t const& model);
+
+    vkrndr::image_mip_level_t to_vulkan(image_mip_level_t const& level);
 } // namespace ngnast::gpu
 
 #endif

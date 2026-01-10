@@ -39,10 +39,11 @@ class NikuConan(ConanFile):
         self.requires("harfbuzz/12.3.0")
         self.requires("imgui/1.92.5-docking")
         self.requires("joltphysics/5.5.0")
+        self.requires("libbasisu/1.6.0", transitive_headers=False)
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
         self.requires("meshoptimizer/1.0", transitive_headers=False)
         self.requires("sdl/3.4.0")
-        self.requires("spdlog/1.16.x", transitive_headers=False)
+        self.requires("spdlog/1.17.0", transitive_headers=False)
         self.requires("spirv-cross/1.4.335.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
         self.requires("tree-sitter/0.26.3")
@@ -152,7 +153,7 @@ class NikuConan(ConanFile):
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
         self.cpp_info.components[component].requires.extend(["cppext", "vkrndr", "glm_impl", "stb_impl"])
-        self.cpp_info.components[component].requires.extend(["boost::headers", "fastgltf::fastgltf", "mikktspace::mikktspace", "meshoptimizer::meshoptimizer", "spdlog::spdlog"])
+        self.cpp_info.components[component].requires.extend(["boost::headers", "fastgltf::fastgltf", "libbasisu::libbasisu", "mikktspace::mikktspace", "meshoptimizer::meshoptimizer", "spdlog::spdlog"])
 
         component = "ngngfx"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")

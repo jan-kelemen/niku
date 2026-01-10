@@ -36,6 +36,7 @@ target_link_libraries(ngnast
         Boost::headers
         fastgltf::fastgltf
         fmt::fmt
+        libbasisu::libbasisu
         mikktspace::mikktspace 
         meshoptimizer::meshoptimizer
         spdlog::spdlog

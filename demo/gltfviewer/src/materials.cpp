@@ -3,6 +3,7 @@
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
+#include <ngnast_gpu_transfer.hpp>
 #include <ngnast_scene_model.hpp>
 
 #include <vkrndr_backend.hpp>
@@ -17,17 +18,26 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <volk.h>
+
+#include <vulkan/utility/vk_struct_helper.hpp>
+#include <vulkan/vk_enum_string_helper.h>
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <limits>
+#include <map>
 #include <span>
 #include <tuple>
 #include <utility>
 
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <type_traits>
@@ -181,7 +191,16 @@ namespace
     {
         auto const image_and_sampler = [](ngnast::texture_t const& texture)
         {
-            return std::make_pair(cppext::narrow<uint32_t>(texture.image_index),
+            if (auto it{texture.image_indices.find(
+                    ngnast::texture_image_type_t::basisu)};
+                it != texture.image_indices.cend())
+            {
+                return std::make_pair(cppext::narrow<uint32_t>(it->second),
+                    cppext::narrow<uint32_t>(texture.sampler_index));
+            }
+            return std::make_pair(
+                cppext::narrow<uint32_t>(texture.image_indices.at(
+                    ngnast::texture_image_type_t::regular)),
                 cppext::narrow<uint32_t>(texture.sampler_index));
         };
 
@@ -375,12 +394,41 @@ void gltfviewer::materials_t::transfer_textures(
         images_.reserve(model.images.size());
         for (ngnast::image_t const& image : model.images)
         {
+            auto const& base_mip{image.mip_levels.front()};
+
+            uint32_t effective_mips_for_image{
+                vkrndr::max_mip_levels(base_mip.extent.width,
+                    base_mip.extent.height)};
+
+            std::vector<vkrndr::image_mip_level_t> predefined_mips;
+
+            auto properties{vku::InitStruct<VkFormatProperties2>()};
+            vkGetPhysicalDeviceFormatProperties2(backend_->device(),
+                image.format,
+                &properties);
+            if (!vkrndr::supports_flags(
+                    properties.formatProperties.linearTilingFeatures,
+                    VK_FORMAT_FEATURE_2_BLIT_DST_BIT))
+            {
+                spdlog::warn(
+                    "Mipmap generation disabled for image in source format {}",
+                    string_VkFormat(image.format));
+
+                effective_mips_for_image =
+                    cppext::narrow<uint32_t>(image.mip_levels.size());
+
+                predefined_mips.reserve(effective_mips_for_image);
+                std::ranges::transform(image.mip_levels,
+                    std::back_inserter(predefined_mips),
+                    ngnast::gpu::to_vulkan);
+            }
+
             images_.push_back(backend_->transfer_image(
                 std::span{image.data.get(), image.data_size},
-                image.extent,
+                base_mip.extent,
                 image.format,
-                vkrndr::max_mip_levels(image.extent.width,
-                    image.extent.height)));
+                effective_mips_for_image,
+                predefined_mips));
 
             max_mip_levels =
                 std::max(max_mip_levels, images_.back().mip_levels);

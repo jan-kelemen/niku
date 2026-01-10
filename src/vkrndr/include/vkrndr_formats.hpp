@@ -19,6 +19,9 @@ namespace vkrndr
     find_supported_depth_stencil_formats(VkPhysicalDevice device,
         bool needs_depth_component,
         bool needs_stencil_component);
+
+    [[nodiscard]] std::vector<VkFormat>
+    find_supported_texture_compression_formats(VkPhysicalDevice device);
 } // namespace vkrndr
 
 #endif

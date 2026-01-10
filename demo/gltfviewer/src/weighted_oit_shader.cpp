@@ -412,7 +412,8 @@ void gltfviewer::weighted_oit_shader_t::load(
         destroy(backend_->device(), composition_pipeline_layout_);
     }
 
-    vkglsl::shader_set_t composition_shader_set{true, false};
+    vkglsl::shader_set_t composition_shader_set{enable_shader_debug_symbols,
+        enable_shader_optimization};
     auto composition_vertex_shader{
         vkglsl::add_shader_module_from_path(composition_shader_set,
             backend_->device(),

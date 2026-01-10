@@ -131,6 +131,7 @@ DAMAGES.
 
 Following third party libraries are used:
 * [AngelScript](https://www.angelcode.com/angelscript/) published under [Zlib](https://spdx.org/licenses/Zlib.html)
+* [basis_universal](https://github.com/BinomialLLC/basis_universal) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * [Boost](https://www.boost.org) published under [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)
 * [Catch2](https://github.com/catchorg/Catch2) published under [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)
 * [Dear ImGui](https://github.com/ocornut/imgui) published under [MIT](https://spdx.org/licenses/MIT.html)
@@ -155,6 +156,7 @@ Following third party libraries are used:
 * [Vulkan](https://www.vulkan.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and [MIT](https://spdx.org/licenses/MIT.html)
 * [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) published under [MIT](https://spdx.org/licenses/MIT.html)
 * [Vulkan::UtilityHeaders](https://github.com/KhronosGroup/Vulkan-Utility-Libraries) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* [Zstandard](https://facebook.github.io/zstd/) published under [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
 
 Following third party libraries are used by the engine demos exclusively:
 * [tree-sitter-glsl](https://github.com/tree-sitter-grammars/tree-sitter-glsl/) published under [MIT](https://spdx.org/licenses/MIT.html)

@@ -661,7 +661,7 @@ void heatx::application_t::on_startup()
     materials_ = std::make_unique<materials_t>(*backend_);
     postprocess_shader_ = std::make_unique<postprocess_shader_t>(*backend_);
 
-    ngnast::gltf::loader_t loader;
+    ngnast::gltf::loader_t loader{{}};
     if (auto scene{loader.load(command_line_parameters()[1])})
     {
         model_ = ngnast::gpu::build_acceleration_structures(*backend_, *scene);
@@ -773,7 +773,8 @@ void heatx::application_t::on_startup()
         }
     }
 
-    for (std::string_view name : {"raygen.rgen", "miss.rmiss", "shadow.rmiss"})
+    for (std::string_view const name :
+        {"raygen.rgen", "miss.rmiss", "shadow.rmiss"})
     {
         pipeline_builder.add_group(
             vkrndr::general_shader(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,

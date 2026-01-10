@@ -393,6 +393,10 @@ gltfviewer::application_t::application_t(int const argc,
     {
         throw std::system_error{create_result.error()};
     }
+    std::vector<VkFormat> formats{
+        vkrndr::find_supported_texture_compression_formats(
+            rendering_context_.device->physical_device)};
+    gltf_loader_ = std::make_unique<ngnast::gltf::loader_t>(std::span{formats});
 }
 
 gltfviewer::application_t::~application_t() = default;
@@ -449,7 +453,7 @@ void gltfviewer::application_t::update(float delta_time)
         std::filesystem::path const model_path{selector_.selected_model()};
         spdlog::info("Start loading: {}", model_path);
 
-        auto model{gltf_loader_.load(model_path)};
+        auto model{gltf_loader_->load(model_path)};
         if (!model.has_value())
         {
             spdlog::error("Failed to load model: {}. Reason: {}",

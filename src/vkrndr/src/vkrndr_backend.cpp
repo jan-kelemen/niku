@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstring>
 #include <expected>
 #include <iterator>
@@ -197,7 +198,8 @@ vkrndr::image_t vkrndr::backend_t::transfer_image(
     std::span<std::byte const> const& image_data,
     VkExtent2D const extent,
     VkFormat const format,
-    uint32_t const mip_levels)
+    uint32_t const mip_levels,
+    std::span<image_mip_level_t> const& defined_mips)
 {
     buffer_t const staging_buffer{
         create_staging_buffer(*context_.device, image_data.size())};
@@ -211,15 +213,22 @@ vkrndr::image_t vkrndr::backend_t::transfer_image(
         unmap_memory(*context_.device, &staging_map);
     }
 
-    return transfer_buffer_to_image(staging_buffer, extent, format, mip_levels);
+    return transfer_buffer_to_image(staging_buffer,
+        extent,
+        format,
+        mip_levels,
+        defined_mips);
 }
 
 vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
     vkrndr::buffer_t const& source,
     VkExtent2D const extent,
     VkFormat const format,
-    uint32_t const mip_levels)
+    uint32_t const mip_levels,
+    std::span<image_mip_level_t> const& defined_mips)
 {
+    assert(defined_mips.empty() || defined_mips.size() == mip_levels);
+
     image_t image{create_image_and_view(*context_.device,
         image_2d_create_info_t{.format = format,
             .extent = extent,
@@ -237,13 +246,48 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
         auto transient{request_transient_operation(false)};
         VkCommandBuffer cb{transient.command_buffer()};
         wait_for_transfer_write(image, cb, mip_levels);
-        copy_buffer_to_image(cb, source, image, extent);
         if (mip_levels == 1)
         {
+            copy_buffer_to_image(cb, source, image, extent);
+            wait_for_transfer_write_completed(image, cb, mip_levels);
+        }
+        else if (!defined_mips.empty())
+        {
+            std::vector<VkBufferImageCopy> regions;
+            for (size_t i{}; i != defined_mips.size(); ++i)
+            {
+                image_mip_level_t const& level{defined_mips[i]};
+
+                VkBufferImageCopy region{};
+                region.bufferOffset = level.data_offset;
+                region.bufferRowLength = 0;
+                region.bufferImageHeight = 0;
+
+                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                region.imageSubresource.mipLevel = cppext::narrow<uint32_t>(i);
+                region.imageSubresource.baseArrayLayer = 0;
+                region.imageSubresource.layerCount = 1;
+
+                region.imageOffset = {0, 0, 0};
+                region.imageExtent = {level.extent.width,
+                    level.extent.height,
+                    1};
+
+                regions.push_back(region);
+            }
+
+            vkCmdCopyBufferToImage(cb,
+                source,
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                vkrndr::count_cast(regions),
+                regions.data());
+
             wait_for_transfer_write_completed(image, cb, mip_levels);
         }
         else
         {
+            copy_buffer_to_image(cb, source, image, extent);
             generate_mipmaps(*context_.device,
                 image,
                 cb,

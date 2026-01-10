@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -49,10 +50,16 @@ namespace ngnast
         VkSamplerMipmapMode mipmap_mode{VK_SAMPLER_MIPMAP_MODE_LINEAR};
     };
 
+    enum class [[nodiscard]] texture_image_type_t
+    {
+        regular,
+        basisu,
+    };
+
     struct [[nodiscard]] texture_t final
     {
         std::string name;
-        size_t image_index;
+        std::map<texture_image_type_t, size_t> image_indices;
         size_t sampler_index;
     };
 
@@ -135,12 +142,19 @@ namespace ngnast
         [[nodiscard]] constexpr auto roots(scene_model_t const& model) const;
     };
 
+    struct [[nodiscard]] image_mip_level_t final
+    {
+        VkExtent2D extent{};
+        size_t data_offset{};
+        size_t data_size{};
+    };
+
     struct [[nodiscard]] image_t final
     {
         std::unique_ptr<std::byte[], void (*)(std::byte*)> data;
         size_t data_size{};
-        VkExtent2D extent;
         VkFormat format;
+        std::vector<image_mip_level_t> mip_levels;
     };
 
     struct [[nodiscard]] scene_model_t final

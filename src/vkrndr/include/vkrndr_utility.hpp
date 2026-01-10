@@ -79,6 +79,14 @@ namespace vkrndr
                    std::floor(std::log2(std::max(width, height)))) +
             1;
     }
+
+    template<typename... Args>
+    [[nodiscard]] constexpr bool supports_flags(VkFlags const flags,
+        Args... bits)
+    {
+        auto const all_bits{static_cast<VkFlags>((bits | ...))};
+        return (flags & all_bits) == all_bits;
+    }
 } // namespace vkrndr
 
 #endif

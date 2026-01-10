@@ -9,6 +9,7 @@
 #include <vkrndr_backend.hpp>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_device.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_transient_operation.hpp>
@@ -641,4 +642,9 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
     destroy(backend.device(), scratch_buffer);
 
     return rv;
+}
+
+vkrndr::image_mip_level_t ngnast::gpu::to_vulkan(image_mip_level_t const& level)
+{
+    return {level.extent, level.data_offset, level.data_size};
 }

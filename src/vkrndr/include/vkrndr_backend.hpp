@@ -68,13 +68,15 @@ namespace vkrndr
             std::span<std::byte const> const& image_data,
             VkExtent2D extent,
             VkFormat format,
-            uint32_t mip_levels);
+            uint32_t mip_levels,
+            std::span<image_mip_level_t> const& defined_mips = {});
 
         [[nodiscard]] image_t transfer_buffer_to_image(
             vkrndr::buffer_t const& source,
             VkExtent2D extent,
             VkFormat format,
-            uint32_t mip_levels);
+            uint32_t mip_levels,
+            std::span<image_mip_level_t> const& defined_mips = {});
 
         void transfer_buffer(buffer_t const& source, buffer_t const& target);
 
