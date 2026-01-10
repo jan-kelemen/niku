@@ -1,0 +1,104 @@
+--- a/encoder/cppspmd_sse.h
++++ b/encoder/cppspmd_sse.h
+@@ -490,24 +490,12 @@ struct spmd_kernel
+ 		return dst;
+ 	}
+ 
+-	CPPSPMD_FORCE_INLINE vfloat& store(vfloat&& dst, const vfloat& src)
+-	{
+-		dst.m_value = blendv_mask_ps(dst.m_value, src.m_value, _mm_castsi128_ps(m_exec.m_mask));
+-		return dst;
+-	}
+-	
+ 	CPPSPMD_FORCE_INLINE vfloat& store_all(vfloat& dst, const vfloat& src)
+ 	{
+ 		dst.m_value = src.m_value;
+ 		return dst;
+ 	}
+ 
+-	CPPSPMD_FORCE_INLINE vfloat& store_all(vfloat&& dst, const vfloat& src)
+-	{
+-		dst.m_value = src.m_value;
+-		return dst;
+-	}
+-
+ 	// Linear ref to floats
+ 	struct float_lref
+ 	{
+@@ -527,28 +515,12 @@ struct spmd_kernel
+ 		return dst;
+ 	}
+ 
+-	CPPSPMD_FORCE_INLINE const float_lref& store(const float_lref&& dst, const vfloat& src)
+-	{
+-		int mask = _mm_movemask_ps(_mm_castsi128_ps(m_exec.m_mask));
+-		if (mask == ALL_ON_MOVEMASK)
+-			_mm_storeu_ps(dst.m_pValue, src.m_value);
+-		else
+-			_mm_storeu_ps(dst.m_pValue, blendv_mask_ps(_mm_loadu_ps(dst.m_pValue), src.m_value, _mm_castsi128_ps(m_exec.m_mask)));
+-		return dst;
+-	}
+-	
+ 	CPPSPMD_FORCE_INLINE const float_lref& store_all(const float_lref& dst, const vfloat& src)
+ 	{
+ 		_mm_storeu_ps(dst.m_pValue, src.m_value);
+ 		return dst;
+ 	}
+ 
+-	CPPSPMD_FORCE_INLINE const float_lref& store_all(const float_lref&& dst, const vfloat& src)
+-	{
+-		_mm_storeu_ps(dst.m_pValue, src.m_value);
+-		return dst;
+-	}
+-
+ 	CPPSPMD_FORCE_INLINE vfloat load(const float_lref& src)
+ 	{
+ 		return vfloat{ _mm_and_ps(_mm_loadu_ps(src.m_pValue), _mm_castsi128_ps(m_exec.m_mask)) };
+@@ -585,10 +557,8 @@ struct spmd_kernel
+ 	};
+ 
+ 	CPPSPMD_FORCE_INLINE const float_vref& store(const float_vref& dst, const vfloat& src);
+-	CPPSPMD_FORCE_INLINE const float_vref& store(const float_vref&& dst, const vfloat& src);
+ 		
+ 	CPPSPMD_FORCE_INLINE const float_vref& store_all(const float_vref& dst, const vfloat& src);
+-	CPPSPMD_FORCE_INLINE const float_vref& store_all(const float_vref&& dst, const vfloat& src);
+ 
+ 	CPPSPMD_FORCE_INLINE vfloat load(const float_vref& src)
+ 	{
+@@ -2068,36 +2038,6 @@ CPPSPMD_FORCE_INLINE const float_vref& spmd_kernel::store_all(const float_vref&
+ 	return dst;
+ }
+ 
+-CPPSPMD_FORCE_INLINE const float_vref& spmd_kernel::store(const float_vref&& dst, const vfloat& src)
+-{
+-	CPPSPMD_ALIGN(16) int vindex[4];
+-	_mm_store_si128((__m128i*)vindex, dst.m_vindex);
+-
+-	CPPSPMD_ALIGN(16) float stored[4];
+-	_mm_store_ps(stored, src.m_value);
+-
+-	int mask = _mm_movemask_ps(_mm_castsi128_ps(m_exec.m_mask));
+-	for (int i = 0; i < 4; i++)
+-	{
+-		if (mask & (1 << i))
+-			dst.m_pValue[vindex[i]] = stored[i];
+-	}
+-	return dst;
+-}
+-
+-CPPSPMD_FORCE_INLINE const float_vref& spmd_kernel::store_all(const float_vref&& dst, const vfloat& src)
+-{
+-	CPPSPMD_ALIGN(16) int vindex[4];
+-	_mm_store_si128((__m128i*)vindex, dst.m_vindex);
+-
+-	CPPSPMD_ALIGN(16) float stored[4];
+-	_mm_store_ps(stored, src.m_value);
+-
+-	for (int i = 0; i < 4; i++)
+-		dst.m_pValue[vindex[i]] = stored[i];
+-	return dst;
+-}
+-
+ #include "cppspmd_flow.h"
+ #include "cppspmd_math.h"
+ 

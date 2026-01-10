@@ -1,0 +1,11 @@
+--- a/transcoder/basisu_containers_impl.h
++++ b/transcoder/basisu_containers_impl.h
+@@ -5,6 +5,8 @@
+ #pragma warning (disable:4127) // warning C4127: conditional expression is constant
+ #endif
+ 
++#include <exception>
++
+ namespace basisu
+ {
+ 	// A container operation has internally panicked in an unrecoverable way.
