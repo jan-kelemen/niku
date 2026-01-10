@@ -1,1 +1,2 @@
 leak:SDL_VideoInit
+leak:_dbus_message_loader_queue_messages
