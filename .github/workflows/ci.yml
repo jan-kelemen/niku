@@ -52,7 +52,7 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build --preset release
+          cmake --build --parallel --preset release
       
       - name: Test
         run: |
@@ -90,7 +90,7 @@ jobs:
           
       - name: Build
         run: |
-          cmake --build --preset multi-release
+          cmake --build --parallel --preset multi-release
 
       - name: Test
         run: |
@@ -136,7 +136,7 @@ jobs:
           
       - name: Build
         run: |
-          cmake --build --preset release
+          cmake --build --parallel --preset release
 
       - name: Test
         run: |
