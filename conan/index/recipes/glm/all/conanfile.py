@@ -25,7 +25,7 @@ class GlmConan(ConanFile):
         self.info.clear()
 
     def source(self):
-        get(self, **self.conan_data["sources"][self.version])
+        get(self, **self.conan_data["sources"][self.version], strip_root=True)
 
     def build(self):
         pass
