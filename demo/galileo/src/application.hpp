@@ -23,6 +23,7 @@
 
 #include <vkrndr_backend.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_rendering_context.hpp>
 
 #include <entt/entt.hpp>
 
@@ -60,7 +61,7 @@ namespace galileo
     class [[nodiscard]] application_t final : public ngnwsi::application_t
     {
     public:
-        explicit application_t(bool debug);
+        application_t();
 
         application_t(application_t const&) = delete;
 

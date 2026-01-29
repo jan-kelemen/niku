@@ -9,6 +9,7 @@
 
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_render_window.hpp>
+#include <ngnwsi_sdl_guard.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
 #include <vkrndr_backend.hpp>

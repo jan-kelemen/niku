@@ -20,32 +20,31 @@ vkrndr::instance_t::~instance_t()
 std::expected<vkrndr::instance_ptr_t, std::error_code> vkrndr::create_instance(
     instance_create_info_t const& create_info)
 {
+    auto const instance_version{create_info.maximum_vulkan_version.or_else(
+        []() -> std::optional<uint32_t>
+        {
+            uint32_t rv;
+            if (VkResult const result{vkEnumerateInstanceVersion(&rv)};
+                is_success_result(result))
+            {
+                return rv;
+            };
+
+            return std::nullopt;
+        })};
+    if (!instance_version)
+    {
+        // This would be an extremely weird case
+        return std::unexpected{vkrndr::make_error_code(VK_ERROR_UNKNOWN)};
+    }
+
     std::vector<char const*> required_extensions{
         std::cbegin(create_info.extensions),
         std::cend(create_info.extensions)};
 
-#if VKRNDR_ENABLE_DEBUG_UTILS
-    if (is_instance_extension_available(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
-    {
-        required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
-#endif
-
-    {
-        auto const capabilities2{is_instance_extension_available(
-            VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME)};
-
-        auto const maintenance1{is_instance_extension_available(
-            VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME)};
-
-        if (capabilities2 && maintenance1)
-        {
-            required_extensions.push_back(
-                VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
-            required_extensions.push_back(
-                VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME);
-        }
-    }
+    std::ranges::copy_if(create_info.optional_extensions,
+        std::back_inserter(required_extensions),
+        std::bind_back(is_instance_extension_available, nullptr));
 
     VkApplicationInfo const app_info{
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -53,7 +52,7 @@ std::expected<vkrndr::instance_ptr_t, std::error_code> vkrndr::create_instance(
         .applicationVersion = create_info.application_version,
         .pEngineName = "niku",
         .engineVersion = VK_MAKE_API_VERSION(0, 0, 1, 0),
-        .apiVersion = create_info.maximum_vulkan_version};
+        .apiVersion = *instance_version};
 
     VkInstanceCreateInfo const ci{
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,

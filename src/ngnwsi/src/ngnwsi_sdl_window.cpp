@@ -3,29 +3,14 @@
 #include <vkrndr_utility.hpp>
 
 #include <SDL3/SDL_error.h>
-#include <SDL3/SDL_hints.h>
-#include <SDL3/SDL_init.h>
 #include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
 
 #include <spdlog/spdlog.h>
 
-#include <stdexcept>
-
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
-
-ngnwsi::sdl_guard_t::sdl_guard_t(uint32_t const flags)
-{
-    if (!SDL_Init(flags))
-    {
-        throw std::runtime_error{SDL_GetError()};
-    }
-    SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "1");
-}
-
-ngnwsi::sdl_guard_t::~sdl_guard_t() { SDL_Quit(); }
 
 std::vector<char const*> ngnwsi::sdl_window_t::required_extensions()
 {
@@ -98,19 +83,4 @@ VkExtent2D ngnwsi::sdl_window_t::swap_extent() const
     SDL_GetWindowSize(window_, &width, &height);
 
     return vkrndr::to_2d_extent(width, height);
-}
-
-ngnwsi::sdl_text_input_guard_t::sdl_text_input_guard_t(
-    sdl_window_t const& window)
-    : window_{&window}
-{
-    if (!SDL_StartTextInput(window_->native_handle()))
-    {
-        throw std::runtime_error{SDL_GetError()};
-    }
-}
-
-ngnwsi::sdl_text_input_guard_t::~sdl_text_input_guard_t()
-{
-    SDL_StopTextInput(window_->native_handle());
 }

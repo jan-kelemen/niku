@@ -6,12 +6,14 @@ target_sources(ngnwsi
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_imgui_layer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_mouse.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_render_window.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_sdl_guard.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_sdl_window.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_imgui_layer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_mouse.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_render_window.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_sdl_guard.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_sdl_window.cpp
 )
 

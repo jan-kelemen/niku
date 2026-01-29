@@ -8,3 +8,4 @@ add_subdirectory(ngnwsi)
 add_subdirectory(vkrndr)
 add_subdirectory(vkglsl)
 
+add_subdirectory(editor)

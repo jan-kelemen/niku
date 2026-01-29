@@ -17,6 +17,7 @@
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
+#include <vkrndr_rendering_context.hpp>
 
 #include <glm/vec3.hpp>
 
@@ -45,7 +46,7 @@ namespace heatx
     class [[nodiscard]] application_t final : public ngnwsi::application_t
     {
     public:
-        explicit application_t(int argc, char const** argv, bool debug);
+        application_t(int argc, char const** argv);
 
         application_t(application_t const&) = delete;
 

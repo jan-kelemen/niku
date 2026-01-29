@@ -14,12 +14,6 @@ namespace galileo
 #define GALILEO_SHADER_OPTIMIZATION 0
 #endif
     constexpr bool enable_shader_optimization{GALILEO_SHADER_OPTIMIZATION != 0};
-
-#ifndef GALILEO_VALIDATION_LAYERS
-#define GALILEO_VALIDATION_LAYERS 0
-#endif
-    constexpr bool enable_validation_layers{GALILEO_VALIDATION_LAYERS != 0};
-    // NOLINTEND(misc-redundant-expression)
 } // namespace galileo
 
 #endif

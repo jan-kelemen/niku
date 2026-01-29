@@ -19,7 +19,6 @@ target_compile_definitions(reshed
     PRIVATE
         RESHED_SHADER_DEBUG_SYMBOLS=$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>
         RESHED_SHADER_OPTIMIZATION=$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:Release>>
-        RESHED_VALIDATION_LAYERS=$<CONFIG:Debug>
 )
 
 target_include_directories(reshed

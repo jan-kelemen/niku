@@ -1,5 +1,6 @@
 # Source code structure
 
+## Framework components
 * cppext - C++ related utilities, bells and whistles
 * ngnast - Game engine asset loaders
 * ngngfx - Game engine graphics concepts
@@ -10,3 +11,5 @@
 * vkglsl - GLSL shader compiler and reflection for Vulkan SPIR-V binaries
 * vkrndr - Low level Vulkan renderer
 
+## Applications
+* editor - Game engine editor

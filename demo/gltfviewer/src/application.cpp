@@ -203,10 +203,9 @@ namespace
 } // namespace
 
 gltfviewer::application_t::application_t(int const argc,
-    char const** const argv,
-    bool const debug)
+    char const** const argv)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug}}}
+          .init_subsystems = {.video = true}}}
     , render_window_{std::make_unique<ngnwsi::render_window_t>("gltfviewer",
           SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           512,
@@ -234,7 +233,7 @@ gltfviewer::application_t::application_t(int const argc,
                 {
                     spdlog::info(
                         "Created with instance handle {}.\n\tEnabled extensions: {}\n\tEnabled layers: {}",
-                        std::bit_cast<intptr_t>(instance->handle),
+                        vkrndr::handle_cast(instance->handle),
                         fmt::join(instance->extensions, ", "),
                         fmt::join(instance->layers, ", "));
 
@@ -325,7 +324,7 @@ gltfviewer::application_t::application_t(int const argc,
                 {
                     spdlog::info(
                         "Created with device handle {}.\n\tEnabled extensions: {}",
-                        std::bit_cast<intptr_t>(device->logical_device),
+                        vkrndr::handle_cast(device->logical_device),
                         fmt::join(device->extensions, ", "));
 
                     rendering_context_.device = std::move(device);
@@ -994,9 +993,7 @@ void gltfviewer::application_t::on_shutdown()
 
     backend_.reset();
 
-    rendering_context_.device.reset();
-    rendering_context_.instance.reset();
-    rendering_context_.library_handle.reset();
+    destroy(rendering_context_);
 }
 
 void gltfviewer::application_t::on_resize(uint32_t const width,

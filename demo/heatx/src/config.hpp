@@ -13,12 +13,6 @@ namespace heatx
 #define HEATX_SHADER_OPTIMIZATION 0
 #endif
     constexpr bool enable_shader_optimization{HEATX_SHADER_OPTIMIZATION != 0};
-
-#ifndef HEATX_VALIDATION_LAYERS
-#define HEATX_VALIDATION_LAYERS 0
-#endif
-    constexpr bool enable_validation_layers{HEATX_VALIDATION_LAYERS != 0};
-    // NOLINTEND(misc-redundant-expression)
 } // namespace heatx
 
 #endif

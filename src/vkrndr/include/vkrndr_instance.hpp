@@ -6,9 +6,11 @@
 
 #include <volk.h>
 
+#include <array>
 #include <cstdint>
 #include <expected>
 #include <functional>
+#include <optional>
 #include <set>
 #include <span>
 #include <string>
@@ -16,6 +18,13 @@
 
 namespace vkrndr
 {
+    constexpr auto instance_optional_extensions{std::to_array({
+#if VKRNDR_ENABLE_DEBUG_UTILS
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+#endif
+        VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
+        VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME})};
+
     struct [[nodiscard]] instance_t final
         : public boost::intrusive_ref_counter<instance_t>
     {
@@ -49,8 +58,10 @@ namespace vkrndr
     {
         void const* chain{};
 
-        uint32_t maximum_vulkan_version{VK_API_VERSION_1_3};
+        std::optional<uint32_t> maximum_vulkan_version{VK_API_VERSION_1_3};
         std::span<char const* const> extensions;
+        std::span<char const* const> optional_extensions{
+            instance_optional_extensions};
         std::span<char const* const> layers;
 
         char const* application_name{};

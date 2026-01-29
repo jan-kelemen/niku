@@ -208,11 +208,9 @@ namespace
     };
 } // namespace
 
-heatx::application_t::application_t(int argc,
-    char const** argv,
-    bool const debug)
+heatx::application_t::application_t(int argc, char const** argv)
     : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true, .debug = debug},
+          .init_subsystems = {.video = true},
           .command_line_parameters = {argv, cppext::narrow<size_t>(argc)}}}
     , camera_controller_{camera_, mouse_}
     , render_window_{std::make_unique<ngnwsi::render_window_t>("heatx",
@@ -246,7 +244,7 @@ heatx::application_t::application_t(int argc,
                 {
                     spdlog::info(
                         "Created with instance handle {}.\n\tEnabled extensions: {}\n\tEnabled layers: {}",
-                        std::bit_cast<intptr_t>(instance->handle),
+                        vkrndr::handle_cast(instance->handle),
                         fmt::join(instance->extensions, ", "),
                         fmt::join(instance->layers, ", "));
 
@@ -368,7 +366,7 @@ heatx::application_t::application_t(int argc,
                 {
                     spdlog::info(
                         "Created with device handle {}.\n\tEnabled extensions: {}",
-                        std::bit_cast<intptr_t>(device->logical_device),
+                        vkrndr::handle_cast(device->logical_device),
                         fmt::join(device->extensions, ", "));
 
                     rendering_context_.device = std::move(device);
@@ -845,9 +843,7 @@ void heatx::application_t::on_shutdown()
 
     backend_.reset();
 
-    rendering_context_.device.reset();
-    rendering_context_.instance.reset();
-    rendering_context_.library_handle.reset();
+    destroy(rendering_context_);
 }
 
 void heatx::application_t::on_resize(uint32_t const width,

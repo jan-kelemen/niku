@@ -3,8 +3,7 @@
 
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
-#include <vkrndr_instance.hpp>
-#include <vkrndr_library_handle.hpp>
+#include <vkrndr_rendering_context.hpp>
 #include <vkrndr_transient_operation.hpp>
 
 #include <cppext_cycled_buffer.hpp>
@@ -26,13 +25,6 @@ namespace vkrndr
 
 namespace vkrndr
 {
-    struct rendering_context_t final
-    {
-        library_handle_ptr_t library_handle;
-        instance_ptr_t instance;
-        device_ptr_t device;
-    };
-
     class [[nodiscard]] backend_t final
     {
     public: // Construction

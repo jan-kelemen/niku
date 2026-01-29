@@ -13,10 +13,24 @@
 #include <source_location>
 #include <utility>
 
+#if VK_USE_64_BIT_PTR_DEFINES
+#include <bit>
+#endif
+
 namespace vkrndr
 {
     VkResult check_result(VkResult result,
         std::source_location source_location = std::source_location::current());
+
+    template<typename T>
+    [[nodiscard]] constexpr uint64_t handle_cast(T const handle) noexcept
+    {
+#if VK_USE_64_BIT_PTR_DEFINES == 1
+        return std::bit_cast<uint64_t>(handle);
+#else
+        return handle;
+#endif
+    }
 
     [[nodiscard]] constexpr bool is_success_result(VkResult result) noexcept
     {

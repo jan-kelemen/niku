@@ -5,7 +5,7 @@
 
 #include <ngnwsi_application.hpp>
 
-#include <vkrndr_backend.hpp>
+#include <vkrndr_rendering_context.hpp>
 
 #include <SDL3/SDL_events.h>
 
@@ -22,7 +22,7 @@ namespace reshed
     class [[nodiscard]] application_t final : public ngnwsi::application_t
     {
     public:
-        explicit application_t(bool debug);
+        application_t();
 
         application_t(application_t const&) = delete;
 

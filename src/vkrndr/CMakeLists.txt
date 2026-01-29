@@ -24,6 +24,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_pipeline_layout_builder.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_raytracing_pipeline_builder.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_rendering_context.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_shader_module.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_swapchain.hpp
@@ -55,6 +56,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_pipeline_layout_builder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_raytracing_pipeline_builder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_rendering_context.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_shader_module.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swapchain.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_synchronization.cpp
@@ -115,4 +117,34 @@ if (VKRNDR_ENABLE_DEBUG_UTILS)
         PUBLIC 
             VKRNDR_ENABLE_DEBUG_UTILS=1
     )
+endif()
+
+if (NIKU_BUILD_TESTS)
+    add_executable(vkrndr_test)
+
+    target_sources(vkrndr_test
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/global_library_handle.hpp
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_instance.t.cpp
+    )
+    
+    target_include_directories(vkrndr_test
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/test
+)
+
+    target_link_libraries(vkrndr_test
+        PUBLIC
+            vkrndr
+        PRIVATE
+            Catch2::Catch2
+            $<BUILD_INTERFACE:project-options>
+    )
+
+    if (NOT CMAKE_CROSSCOMPILING)
+        # catch_discover_tests registers all test cases as individual process starts
+        add_test(NAME vkrndr_tests COMMAND vkrndr_test)
+    endif()
 endif()

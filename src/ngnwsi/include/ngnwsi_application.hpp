@@ -11,7 +11,6 @@ namespace ngnwsi
     struct [[nodiscard]] subsystems_t final
     {
         bool video{true};
-        bool debug{false};
     };
 
     struct [[nodiscard]] startup_params_t final

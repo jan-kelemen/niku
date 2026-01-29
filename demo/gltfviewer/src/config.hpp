@@ -15,12 +15,6 @@ namespace gltfviewer
 #endif
     constexpr bool enable_shader_optimization{
         GLTFVIEWER_SHADER_OPTIMIZATION != 0};
-
-#ifndef GLTFVIEWER_VALIDATION_LAYERS
-#define GLTFVIEWER_VALIDATION_LAYERS 0
-#endif
-    constexpr bool enable_validation_layers{GLTFVIEWER_VALIDATION_LAYERS != 0};
-    // NOLINTEND(misc-redundant-expression)
 } // namespace gltfviewer
 
 #endif

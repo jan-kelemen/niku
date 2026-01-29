@@ -19,7 +19,6 @@ target_compile_definitions(heatx
     PRIVATE
         HEATX_SHADER_DEBUG_SYMBOLS=$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>
         HEATX_SHADER_OPTIMIZATION=$<OR:$<CONFIG:RelWithDebInfo>,$<CONFIG:Release>>
-        HEATX_VALIDATION_LAYERS=$<CONFIG:Debug>
 )
 
 target_include_directories(heatx
