@@ -19,7 +19,7 @@ TEST_CASE("Optional instance extension is added when available",
     if (!vkrndr::is_instance_extension_available(extension))
     {
         SKIP(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-            "isn't supported");
+            " isn't supported");
     }
 
     static constexpr auto extensions{std::to_array<char const*>({extension})};

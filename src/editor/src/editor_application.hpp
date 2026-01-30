@@ -20,7 +20,7 @@ namespace editor
     public:
         explicit application_t(std::span<char const*> command_line_parameters);
 
-        application_t(application_t const&) = default;
+        application_t(application_t const&) = delete;
 
         application_t(application_t&&) noexcept = default;
 
@@ -33,7 +33,7 @@ namespace editor
         [[nodiscard]] bool update();
 
     public:
-        application_t& operator=(application_t const&) = default;
+        application_t& operator=(application_t const&) = delete;
 
         application_t& operator=(application_t&&) noexcept = default;
 

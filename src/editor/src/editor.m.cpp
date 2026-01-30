@@ -9,7 +9,7 @@
 
 union SDL_Event;
 
-inline [[nodiscard]] editor::application_t* to_app(
+[[nodiscard]] inline editor::application_t* to_app(
     void* const appstate) noexcept
 {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)

@@ -23,7 +23,7 @@ std::expected<vkrndr::instance_ptr_t, std::error_code> vkrndr::create_instance(
     auto const instance_version{create_info.maximum_vulkan_version.or_else(
         []() -> std::optional<uint32_t>
         {
-            uint32_t rv;
+            uint32_t rv{};
             if (VkResult const result{vkEnumerateInstanceVersion(&rv)};
                 is_success_result(result))
             {
@@ -44,7 +44,7 @@ std::expected<vkrndr::instance_ptr_t, std::error_code> vkrndr::create_instance(
 
     std::ranges::copy_if(create_info.optional_extensions,
         std::back_inserter(required_extensions),
-        std::bind_back(is_instance_extension_available, nullptr));
+        [](auto* const e) { return is_instance_extension_available(e); });
 
     VkApplicationInfo const app_info{
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
