@@ -16,7 +16,12 @@ int main(int argc, char* argv[])
             vkrndr::initialize()})
     {
         library = *lh;
-        rv = Catch::Session().run(argc, argv);
+
+        Catch::ConfigData config{.allowZeroTests = true};
+        Catch::Session session;
+        session.useConfigData(config);
+
+        rv = session.run(argc, argv);
     }
     else
     {
