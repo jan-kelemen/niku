@@ -28,5 +28,5 @@ TEST_CASE("Optional instance extension is added when available",
     REQUIRE(instance_result);
 
     auto const& instance{*instance_result};
-    Catch::Matchers::Contains(instance->extensions, extension);
+    CHECK_THAT(instance->extensions, Catch::Matchers::Contains(extension));
 }

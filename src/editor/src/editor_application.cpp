@@ -29,8 +29,8 @@ editor::application_t::application_t(
 
     main_window_ = std::make_unique<ngnwsi::render_window_t>(application_name,
         SDL_WINDOW_MAXIMIZED | SDL_WINDOW_RESIZABLE,
-        1,
-        1);
+        1920,
+        1080);
 
     std::vector<char const*> const instance_extensions{
         ngnwsi::sdl_window_t::required_extensions()};
@@ -52,7 +52,7 @@ editor::application_t::application_t(
     {
         auto message{instance.error().message()};
         spdlog::error("Failed to create rendering instance: {}", message);
-        throw std::runtime_error{std::move(message)};
+        throw std::runtime_error{message};
     }
 }
 
