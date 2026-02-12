@@ -3,11 +3,12 @@
 #include <vkrndr_utility.hpp>
 
 #include <SDL3/SDL_error.h>
-#include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_vulkan.h>
 
 #include <spdlog/spdlog.h>
+
+#include <stdexcept>
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>

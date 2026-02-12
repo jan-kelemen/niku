@@ -1,9 +1,11 @@
 #include <editor_application.hpp>
 
 #include <ngnwsi_render_window.hpp>
+#include <ngnwsi_sdl_window.hpp>
 
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
+#include <vkrndr_rendering_context.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <fmt/ranges.h>
@@ -11,10 +13,26 @@
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_video.h>
 
+#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
+#include <expected>
+#include <iterator>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
+#include <vector>
+
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+// IWYU pragma: no_include <set>
 
 namespace
 {
@@ -93,7 +111,7 @@ editor::application_t::application_t()
     {
         auto message{lh.error().message()};
         spdlog::error("Failed to load rendering library: {}", message);
-        throw std::runtime_error{std::move(message)};
+        throw std::runtime_error{message};
     }
 }
 

@@ -6,8 +6,13 @@
 #include <volk.h>
 
 #include <array>
+#include <expected>
+#include <system_error>
 
-#include <global_library_handle.hpp>
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+// IWYU pragma: no_include <catch2/matchers/catch_matchers.hpp>
+// IWYU pragma: no_include <span>
 
 TEST_CASE("Optional instance extension is added when available",
     "[vkrndr][instance]")
@@ -23,7 +28,7 @@ TEST_CASE("Optional instance extension is added when available",
     }
 
     static constexpr auto extensions{std::to_array<char const*>({extension})};
-    auto instance_result{
+    std::expected<vkrndr::instance_ptr_t, std::system_error> instance_result{
         vkrndr::create_instance({.optional_extensions = extensions})};
     REQUIRE(instance_result);
 

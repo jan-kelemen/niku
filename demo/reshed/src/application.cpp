@@ -10,12 +10,12 @@
 
 #include <ngntxt_font_face.hpp>
 
-#include <vkrndr_backend.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_error_code.hpp>
 #include <vkrndr_features.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
+#include <vkrndr_rendering_context.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <fmt/format.h>
@@ -30,8 +30,6 @@
 
 #include <algorithm>
 #include <array>
-#include <bit>
-#include <cstdint>
 #include <exception>
 #include <expected>
 #include <iterator>

@@ -12,7 +12,6 @@
 
 #include <vkglsl_guard.hpp>
 
-#include <vkrndr_backend.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_rendering_context.hpp>
 
@@ -31,6 +30,11 @@ namespace ngnwsi
     class imgui_layer_t;
     class render_window_t;
 } // namespace ngnwsi
+
+namespace vkrndr
+{
+    class backend_t;
+} // namespace vkrndr
 
 namespace gltfviewer
 {

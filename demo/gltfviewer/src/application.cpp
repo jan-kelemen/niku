@@ -19,6 +19,7 @@
 #include <cppext_pragma_warning.hpp>
 
 #include <ngnast_gltf_loader.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
@@ -42,6 +43,7 @@
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
 #include <vkrndr_render_pass.hpp>
+#include <vkrndr_rendering_context.hpp>
 #include <vkrndr_swapchain.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
@@ -67,7 +69,6 @@ DISABLE_WARNING_POP
 
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <cstdint>
 #include <exception>
 #include <expected>

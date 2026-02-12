@@ -41,6 +41,7 @@
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_raytracing_pipeline_builder.hpp>
+#include <vkrndr_rendering_context.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_swapchain.hpp>
 #include <vkrndr_synchronization.hpp>
@@ -74,7 +75,6 @@
 
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstring>
@@ -99,6 +99,7 @@
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <initializer_list>
 // IWYU pragma: no_include <string>
+// IWYU pragma: no_include <type_traits>
 
 namespace
 {

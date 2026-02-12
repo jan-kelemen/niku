@@ -1,7 +1,6 @@
 #ifndef VKRNDR_BACKEND_INCLUDED
 #define VKRNDR_BACKEND_INCLUDED
 
-#include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_rendering_context.hpp>
 #include <vkrndr_transient_operation.hpp>
@@ -20,6 +19,7 @@
 namespace vkrndr
 {
     struct buffer_t;
+    struct device_t;
     class execution_port_t;
 } // namespace vkrndr
 

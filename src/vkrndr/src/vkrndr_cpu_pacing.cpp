@@ -12,7 +12,7 @@
 #include <bit>
 #include <cstdint>
 #include <system_error>
-#include <utility>
+#include <utility> // IWYU pragma: keep
 
 // IWYU pragma: no_include <boost/move/detail/reverse_iterator.hpp>
 // IWYU pragma: no_include <set>
@@ -51,6 +51,7 @@ vkrndr::cpu_pacing_t::cpu_pacing_t(device_t const& device,
     }
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 vkrndr::cpu_pacing_t::~cpu_pacing_t()
 {
     for (frame_in_flight_t const& frame : frames_)

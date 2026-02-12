@@ -1,7 +1,6 @@
 #include <ngnwsi_application.hpp>
 
 #include <ngnwsi_sdl_guard.hpp>
-#include <ngnwsi_sdl_window.hpp>
 
 #include <cppext_numeric.hpp>
 

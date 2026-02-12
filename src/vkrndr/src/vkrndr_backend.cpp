@@ -7,6 +7,7 @@
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_rendering_context.hpp>
 #include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 

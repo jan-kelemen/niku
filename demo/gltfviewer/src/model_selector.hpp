@@ -38,7 +38,7 @@ namespace gltfviewer
     class [[nodiscard]] model_selector_t final
     {
     public:
-        model_selector_t(std::string_view initial_path);
+        explicit model_selector_t(std::string_view initial_path);
 
         model_selector_t(model_selector_t const&) = delete;
 

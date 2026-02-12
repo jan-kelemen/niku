@@ -1,3 +1,4 @@
+#include <catch2/catch_config.hpp>
 #include <catch2/catch_session.hpp>
 
 #include <global_library_handle.hpp>
@@ -7,8 +8,19 @@
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
 
+#include <volk.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <expected>
+#include <optional>
 #include <print>
 #include <system_error>
+
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+// IWYU pragma: no_include <span>
+// IWYU pragma: no_include <string>
+// IWYU pragma: no_include <vector>
 
 namespace test
 {
@@ -19,6 +31,7 @@ namespace test
     // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 } // namespace test
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 int main(int argc, char* argv[])
 {
     static constexpr int test_initialization_failed{EXIT_FAILURE};
@@ -52,14 +65,12 @@ int main(int argc, char* argv[])
     }
 
     if (std::optional<vkrndr::physical_device_features_t> const& pd{
-            vkrndr::pick_best_physical_device(*test::instance,
-                {},
-                VK_NULL_HANDLE)})
+            pick_best_physical_device(*test::instance, {}, VK_NULL_HANDLE)})
     {
         vkrndr::feature_chain_t chain;
         link_required_feature_chain(chain);
         if (std::expected<vkrndr::device_ptr_t, std::error_code> ld{
-                vkrndr::create_device(*test::instance, {}, *pd, chain, {})})
+                create_device(*test::instance, {}, *pd, chain, {})})
         {
             test::minimal_device = *ld;
         }
@@ -79,7 +90,7 @@ int main(int argc, char* argv[])
         return test_initialization_failed;
     }
 
-    Catch::ConfigData config{.allowZeroTests = true};
+    Catch::ConfigData const config{.allowZeroTests = true};
     Catch::Session session;
     session.useConfigData(config);
 

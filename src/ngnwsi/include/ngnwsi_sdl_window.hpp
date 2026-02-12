@@ -7,8 +7,7 @@
 
 #include <volk.h>
 
-#include <cstdint>
-#include <vector> // IWYU pragma: keep
+#include <vector>
 
 namespace ngnwsi
 {

@@ -5,6 +5,8 @@
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
 
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+
 namespace vkrndr
 {
     struct rendering_context_t final

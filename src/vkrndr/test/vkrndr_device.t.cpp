@@ -30,7 +30,7 @@ TEST_CASE("Device extension is added when available", "[vkrndr][device]")
     static constexpr auto extension{VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME};
 
     std::vector<vkrndr::physical_device_features_t> const& devices{
-        vkrndr::query_available_physical_devices(*test::instance)};
+        query_available_physical_devices(*test::instance)};
     if (devices.empty())
     {
         SKIP("No physical devices available");

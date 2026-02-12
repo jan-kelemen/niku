@@ -19,6 +19,7 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_render_pass.hpp>
+#include <vkrndr_rendering_context.hpp>
 #include <vkrndr_swapchain.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
