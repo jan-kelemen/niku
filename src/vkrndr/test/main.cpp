@@ -94,5 +94,11 @@ int main(int argc, char* argv[])
     Catch::Session session;
     session.useConfigData(config);
 
-    return session.run(argc, argv);
+    int rv{session.run(argc, argv)};
+
+    test::minimal_device.reset();
+    test::instance.reset();
+    test::library.reset();
+
+    return rv;
 }

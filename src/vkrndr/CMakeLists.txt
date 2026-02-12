@@ -127,6 +127,7 @@ if (NIKU_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/test/global_library_handle.hpp
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_device.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_instance.t.cpp
     )
     
