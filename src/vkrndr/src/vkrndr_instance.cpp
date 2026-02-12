@@ -13,7 +13,10 @@
 
 vkrndr::instance_t::~instance_t()
 {
-    vkDestroyInstance(handle, nullptr);
+    if (vkDestroyInstance)
+    {
+        vkDestroyInstance(handle, nullptr);
+    }
     handle = VK_NULL_HANDLE;
 }
 

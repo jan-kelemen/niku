@@ -267,9 +267,11 @@ namespace
 
 vkrndr::device_t::~device_t()
 {
-    vmaDestroyAllocator(allocator);
-
-    vkDestroyDevice(logical_device, nullptr);
+    if (vkDestroyDevice)
+    {
+        vmaDestroyAllocator(allocator);
+        vkDestroyDevice(logical_device, nullptr);
+    }
 }
 
 bool vkrndr::is_device_extension_enabled(char const* const extension_name,
