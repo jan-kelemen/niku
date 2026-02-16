@@ -45,7 +45,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DNIKU_ENABLE_CLANG_TIDY=ON -DNIKU_ENABLE_IWYU=ON --preset relwithdebinfo
+          cmake -DNIKU_ENABLE_CLANG_TIDY=ON -DNIKU_ENABLE_IWYU=ON -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset relwithdebinfo
 
       - name: Build
         run: |
@@ -84,7 +84,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON -DNIKU_ENABLE_CPPCHECK=ON --preset relwithdebinfo
+          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON -DNIKU_ENABLE_CPPCHECK=ON -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset relwithdebinfo
 
       - name: Build
         run: |
@@ -113,7 +113,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON --preset default
+          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset default
           
       - name: Build
         run: |

@@ -45,7 +45,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON --preset debug
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset debug
 
       - name: Build
         run: |
@@ -80,7 +80,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake --preset default
+          cmake -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset default
           
       - name: Build
         run: |
@@ -123,7 +123,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -G=Ninja -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset debug
+          cmake -G=Ninja -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset debug
           
       - name: Build
         run: |

@@ -144,7 +144,7 @@ if (NIKU_BUILD_TESTS)
             $<BUILD_INTERFACE:project-options>
     )
 
-    if (NOT CMAKE_CROSSCOMPILING)
+    if (NOT CMAKE_CROSSCOMPILING AND NIKU_REGISTER_GPU_UNIT_TESTS)
         # catch_discover_tests registers all test cases as individual process starts
         add_test(NAME vkrndr_tests COMMAND vkrndr_test)
     endif()

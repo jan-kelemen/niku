@@ -11,6 +11,7 @@ option(NIKU_ENABLE_CLANG_TIDY "Enable clang-tidy in build" OFF)
 option(NIKU_ENABLE_COMPILER_STATIC_ANALYSIS "Enable static analysis provided by compiler in build" OFF)
 option(NIKU_ENABLE_CPPCHECK "Enable cppcheck in build" OFF)
 option(NIKU_ENABLE_IWYU "Enable include-what-you-use in build" OFF)
+option(NIKU_REGISTER_GPU_UNIT_TESTS "Register tests that require GPU support to CTest" ON)
 
 option(NIKU_BUILD_DEMOS "Building demo examples" ON)
 
