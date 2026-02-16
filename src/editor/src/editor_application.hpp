@@ -11,6 +11,7 @@ union SDL_Event;
 namespace ngnwsi
 {
     class render_window_t;
+    class imgui_layer_t;
 } // namespace ngnwsi
 
 namespace editor
@@ -46,6 +47,7 @@ namespace editor
     private:
         std::unique_ptr<ngnwsi::render_window_t> main_window_;
         vkrndr::rendering_context_t rendering_context_;
+        std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
     };
 } // namespace editor
 

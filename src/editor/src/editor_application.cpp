@@ -1,11 +1,19 @@
 #include <editor_application.hpp>
 
+#include <cppext_container.hpp>
+
+#include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
+#include <vkrndr_device.hpp>
+#include <vkrndr_error_code.hpp> // IWYU pragma: keep
+#include <vkrndr_execution_port.hpp>
+#include <vkrndr_features.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
 #include <vkrndr_rendering_context.hpp>
+#include <vkrndr_swapchain.hpp> // IWYU pragma: keep
 #include <vkrndr_utility.hpp>
 
 #include <fmt/ranges.h>
@@ -18,9 +26,13 @@
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
+#include <volk.h>
+
 #include <algorithm>
+#include <array>
 #include <expected>
 #include <iterator>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -50,6 +62,7 @@ editor::application_t::application_t(
         1920,
         1080);
 
+    // Create Vulkan instance
     std::vector<char const*> const instance_extensions{
         ngnwsi::sdl_window_t::required_extensions()};
     if (std::expected<vkrndr::instance_ptr_t, std::error_code> instance{
@@ -68,14 +81,89 @@ editor::application_t::application_t(
     }
     else
     {
-        auto message{instance.error().message()};
+        auto const message{instance.error().message()};
         spdlog::error("Failed to create rendering instance: {}", message);
         throw std::runtime_error{message};
     }
+
+    // Pick a device that has suitable features
+    static constexpr std::array const device_extensions{
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    std::optional<vkrndr::physical_device_features_t> const physical_device{
+        pick_best_physical_device(*rendering_context_.instance,
+            device_extensions,
+            main_window_->create_surface(*rendering_context_.instance))};
+    if (!physical_device)
+    {
+        static constexpr auto message{"No suitable physical device"};
+        spdlog::error(message);
+        throw std::runtime_error{message};
+    }
+    spdlog::info("Selected {} GPU", physical_device->properties.deviceName);
+
+    // Pick the rendering queue that is able to present
+    auto const queue_with_present{
+        std::ranges::find_if(physical_device->queue_families,
+            [](vkrndr::queue_family_t const& f)
+            {
+                return f.supports_present &&
+                    vkrndr::supports_flags(f.properties.queueFlags,
+                        VK_QUEUE_GRAPHICS_BIT);
+            })};
+    if (queue_with_present == cend(physical_device->queue_families))
+    {
+        static constexpr auto message{"No present queue"};
+        spdlog::error(message);
+        throw std::runtime_error{message};
+    }
+
+    // Create the Vulkan device
+    if (std::expected<vkrndr::device_ptr_t, std::error_code> device{
+            create_device(*rendering_context_.instance,
+                device_extensions,
+                *physical_device,
+                cppext::as_span(*queue_with_present))})
+    {
+        spdlog::debug(
+            "Created with device handle {}.\n\tEnabled extensions: {}",
+            vkrndr::handle_cast((*device)->logical_device),
+            fmt::join((*device)->extensions, ", "));
+
+        rendering_context_.device = *std::move(device);
+    }
+    else
+    {
+        auto const message{device.error().message()};
+        spdlog::error("Failed to create rendering device: {}", message);
+        throw std::runtime_error{message};
+    }
+
+    vkrndr::execution_port_t& present_queue{
+        *std::ranges::find_if(rendering_context_.device->execution_ports,
+            &vkrndr::execution_port_t::has_present)};
+
+    vkrndr::swapchain_t const* const swapchain{
+        main_window_->create_swapchain(*rendering_context_.device,
+            {
+                .preferred_format = VK_FORMAT_B8G8R8A8_UNORM,
+                .image_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_STORAGE_BIT,
+                .preferred_present_mode = VK_PRESENT_MODE_FIFO_KHR,
+                .present_queue = &present_queue,
+            })};
+
+    imgui_ =
+        std::make_unique<ngnwsi::imgui_layer_t>(main_window_->platform_window(),
+            *rendering_context_.instance,
+            *rendering_context_.device,
+            *swapchain,
+            present_queue);
 }
 
 editor::application_t::~application_t()
 {
+    imgui_.reset();
+
     if (main_window_)
     {
         main_window_->destroy_swapchain();
@@ -90,7 +178,24 @@ editor::application_t::~application_t()
 
 bool editor::application_t::handle_event(SDL_Event const& event)
 {
-    return event.type != SDL_EVENT_QUIT;
+    [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
+
+    if (event.type == SDL_EVENT_QUIT ||
+        event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    {
+        if (main_window_)
+        {
+            vkDeviceWaitIdle(*rendering_context_.device);
+
+            main_window_->destroy_swapchain();
+            main_window_->destroy_surface(*rendering_context_.instance);
+            main_window_.reset();
+        }
+
+        return false;
+    }
+
+    return true;
 }
 
 bool editor::application_t::update() { return true; }
