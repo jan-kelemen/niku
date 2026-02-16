@@ -44,6 +44,7 @@
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+// IWYU pragma: no_include <map>
 // IWYU pragma: no_include <set>
 
 namespace

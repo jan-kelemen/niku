@@ -3,15 +3,26 @@
 #include <vkrndr_features.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_contains.hpp>
 
 #include <volk.h>
 
 #include <algorithm>
+#include <array>
+#include <iterator>
 #include <ranges>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include <global_library_handle.hpp>
+
+// IWYU pragma: no_include <vkrndr_instance.hpp>
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+// IWYU pragma: no_include <expected>
+// IWYU pragma: no_include <span>
 
 namespace
 {
