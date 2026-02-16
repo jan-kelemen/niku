@@ -177,7 +177,10 @@ vkrndr::swapchain_t::swapchain_t(window_t const& window,
 
 vkrndr::swapchain_t::~swapchain_t()
 {
-    for (detail::swap_frame_t& frame : frames_in_flight_)
+    auto&& used_frames{frames_in_flight_ |
+        std::views::filter([](auto const& f)
+            { return f.image_index != detail::invalid_image_index; })};
+    for (detail::swap_frame_t& frame : used_frames)
     {
         if (VkResult const result{
                 semaphore_pool_.recycle(frame.acquire_semaphore)};
