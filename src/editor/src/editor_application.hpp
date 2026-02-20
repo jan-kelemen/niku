@@ -3,8 +3,11 @@
 
 #include <vkrndr_rendering_context.hpp>
 
+#include <volk.h>
+
 #include <memory>
 #include <span>
+#include <vector>
 
 union SDL_Event;
 
@@ -48,6 +51,8 @@ namespace editor
         std::unique_ptr<ngnwsi::render_window_t> main_window_;
         vkrndr::rendering_context_t rendering_context_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
+        std::vector<VkCommandPool> pools_;
+        std::vector<VkCommandBuffer> command_buffers_;
     };
 } // namespace editor
 

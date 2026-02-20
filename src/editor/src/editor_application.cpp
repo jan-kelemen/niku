@@ -1,22 +1,28 @@
 #include <editor_application.hpp>
 
 #include <cppext_container.hpp>
+#include <cppext_numeric.hpp>
 
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
+#include <vkrndr_commands.hpp>
+#include <vkrndr_cpu_pacing.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_error_code.hpp> // IWYU pragma: keep
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
+#include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
 #include <vkrndr_rendering_context.hpp>
-#include <vkrndr_swapchain.hpp> // IWYU pragma: keep
+#include <vkrndr_swapchain.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <fmt/ranges.h>
+
+#include <imgui.h>
 
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
@@ -28,8 +34,11 @@
 
 #include <volk.h>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <expected>
 #include <iterator>
 #include <optional>
@@ -159,10 +168,59 @@ editor::application_t::application_t(
             *rendering_context_.device,
             *swapchain,
             present_queue);
+
+    pools_.reserve(swapchain->frames_in_flight());
+    command_buffers_.reserve(swapchain->frames_in_flight());
+    for (uint32_t i{}; i != swapchain->frames_in_flight(); ++i)
+    {
+        if (std::expected<VkCommandPool, VkResult> pool{
+                create_command_pool(*rendering_context_.device,
+                    present_queue.queue_family(),
+                    VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)})
+        {
+            pools_.push_back(*pool);
+        }
+        else
+        {
+            auto const message{vkrndr::make_error_code(pool.error()).message()};
+            spdlog::error("Failed to create command pool for frame {}: {}",
+                i,
+                message);
+            throw std::runtime_error{message};
+        }
+
+        VkCommandBuffer current_buffer{VK_NULL_HANDLE};
+        if (VkResult const result{
+                vkrndr::allocate_command_buffers(*rendering_context_.device,
+                    pools_[i],
+                    true,
+                    1,
+                    cppext::as_span(current_buffer))};
+            vkrndr::is_success_result(result))
+        {
+            command_buffers_.push_back(current_buffer);
+        }
+        else
+        {
+            auto const message{vkrndr::make_error_code(result).message()};
+            spdlog::error("Failed to create command buffer for frame {}: {}",
+                i,
+                message);
+            throw std::runtime_error{message};
+        }
+    }
 }
 
 editor::application_t::~application_t()
 {
+    vkDeviceWaitIdle(*rendering_context_.device);
+
+    command_buffers_.clear();
+
+    std::ranges::for_each(pools_,
+        [&d = *rendering_context_.device](VkCommandPool const cp)
+        { destroy_command_pool(d, cp); });
+
     imgui_.reset();
 
     if (main_window_)
@@ -181,25 +239,62 @@ bool editor::application_t::handle_event(SDL_Event const& event)
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
-    if (event.type == SDL_EVENT_QUIT ||
-        event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    return event.type != SDL_EVENT_QUIT &&
+        event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED;
+}
+
+bool editor::application_t::update()
+{
+    std::optional<vkrndr::image_t> const target_image{
+        main_window_->acquire_next_image()};
+    if (!target_image)
     {
-        if (main_window_)
-        {
-            vkDeviceWaitIdle(*rendering_context_.device);
-
-            main_window_->destroy_swapchain();
-            main_window_->destroy_surface(*rendering_context_.instance);
-            main_window_.reset();
-        }
-
-        return false;
+        return true;
     }
+
+    uint32_t const index{main_window_->frame_in_flight().index};
+    VkCommandBuffer& command_buffer{command_buffers_[index]};
+
+    imgui_->begin_frame();
+    ImGui::ShowMetricsWindow();
+    imgui_->end_frame();
+
+    VkCommandBufferBeginInfo const begin_info{
+        .sType = vku::GetSType<VkCommandBufferBeginInfo>(),
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
+    if (VkResult const result{
+            vkBeginCommandBuffer(command_buffer, &begin_info)};
+        !vkrndr::is_success_result(result))
+    {
+        auto const message{vkrndr::make_error_code(result).message()};
+        spdlog::error("Failed to begin command buffer: {}", message);
+        throw std::runtime_error{message};
+    }
+
+    VkViewport const viewport{.x = 0.0f,
+        .y = 0.0f,
+        .width = cppext::as_fp(target_image->extent.width),
+        .height = cppext::as_fp(target_image->extent.height),
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f};
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+    VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image->extent)};
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    vkrndr::wait_for_color_attachment_write(*target_image, command_buffer);
+
+    imgui_->render(command_buffer, *target_image);
+
+    vkrndr::transition_to_present_layout(*target_image, command_buffer);
+
+    vkEndCommandBuffer(command_buffer);
+
+    main_window_->present(cppext::as_span(command_buffer));
 
     return true;
 }
-
-bool editor::application_t::update() { return true; }
 
 editor::application_t::application_t()
 {

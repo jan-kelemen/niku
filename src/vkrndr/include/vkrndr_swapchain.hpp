@@ -107,6 +107,8 @@ namespace vkrndr
         [[nodiscard]] std::span<VkPresentModeKHR const>
         available_present_modes() const noexcept;
 
+        [[nodiscard]] uint32_t frames_in_flight() const noexcept;
+
         [[nodiscard]] std::optional<vkrndr::image_t> acquire_next_image(
             size_t current_frame);
 
@@ -214,4 +216,8 @@ vkrndr::swapchain_t::available_present_modes() const noexcept
     return available_present_modes_;
 }
 
+inline uint32_t vkrndr::swapchain_t::frames_in_flight() const noexcept
+{
+    return settings_.frames_in_flight;
+}
 #endif

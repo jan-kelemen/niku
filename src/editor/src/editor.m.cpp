@@ -44,7 +44,11 @@ SDL_AppResult SDL_AppEvent(void* const appstate, SDL_Event* const event)
 
 SDL_AppResult SDL_AppIterate([[maybe_unused]] void* const appstate)
 {
-    return SDL_APP_CONTINUE;
+    if (to_app(appstate)->update())
+    {
+        return SDL_APP_CONTINUE;
+    }
+    return SDL_APP_SUCCESS;
 }
 
 void SDL_AppQuit(void* appstate, [[maybe_unused]] SDL_AppResult result)

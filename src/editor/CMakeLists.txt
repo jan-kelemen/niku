@@ -20,6 +20,7 @@ target_link_libraries(editor
         vkrndr
     PRIVATE
         spdlog::spdlog
+        imgui::imgui
     PRIVATE
         project-options
 )
