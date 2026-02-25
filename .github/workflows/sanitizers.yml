@@ -12,6 +12,7 @@ concurrency:
 jobs:
   clang-asan-leak-undefined:
     runs-on: ubuntu-24.04
+    environment: Conan
     
     env:
       GCC_VER: 14
@@ -42,6 +43,9 @@ jobs:
         uses: ./.github/actions/setup-conan
         with:
           profile: clang-libstdcxx-amd64-linux-asan-leak-undefined
+          url: ${{ secrets.CONAN_REMOTE_URL }}
+          token: ${{ secrets.CONAN_REMOTE_TOKEN }}
+          username: ${{ secrets.CONAN_REMOTE_USERNAME }}
 
       - name: Configure CMake
         run: |
@@ -55,8 +59,12 @@ jobs:
         run: |
           ctest --preset relwithdebinfo
 
+      - name: Upload Conan packages
+        uses: ./.github/actions/upload-conan
+
   gcc-tsan:
     runs-on: ubuntu-24.04
+    environment: Conan
     
     env:
       GCC_VER: 14
@@ -81,6 +89,9 @@ jobs:
         uses: ./.github/actions/setup-conan
         with:
           profile: gcc-amd64-linux-tsan
+          url: ${{ secrets.CONAN_REMOTE_URL }}
+          token: ${{ secrets.CONAN_REMOTE_TOKEN }}
+          username: ${{ secrets.CONAN_REMOTE_USERNAME }}
 
       - name: Configure CMake
         run: |
@@ -94,8 +105,12 @@ jobs:
         run: |
           ctest --preset relwithdebinfo
 
+      - name: Upload Conan packages
+        uses: ./.github/actions/upload-conan
+
   msvc-asan:
     runs-on: windows-2025
+    environment: Conan
 
     steps:
       - name: Initialize
@@ -110,6 +125,9 @@ jobs:
         uses: ./.github/actions/setup-conan
         with:
           profile: msvc-amd64-windows-asan
+          url: ${{ secrets.CONAN_REMOTE_URL }}
+          token: ${{ secrets.CONAN_REMOTE_TOKEN }}
+          username: ${{ secrets.CONAN_REMOTE_USERNAME }}
 
       - name: Configure CMake
         run: |
@@ -124,3 +142,6 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
           ctest --preset multi-relwithdebinfo
+
+      - name: Upload Conan packages
+        uses: ./.github/actions/upload-conan

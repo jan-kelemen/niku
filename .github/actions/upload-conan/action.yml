@@ -1,0 +1,10 @@
+name: 'Upload Conan packages'
+description: 'Upload built Conan packages'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Conan configuration files
+      run: |
+        conan upload --confirm -r niku-remote "*"
+

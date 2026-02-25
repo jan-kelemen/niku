@@ -8,6 +8,7 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-24.04
+    environment: Conan
     
     env:
       GCC_VER: 14
@@ -41,7 +42,9 @@ jobs:
         uses: ./.github/actions/setup-conan
         with:
           profile: ${{ matrix.profile }}
-          cache: false
+          url: ${{ secrets.CONAN_REMOTE_URL }}
+          token: ${{ secrets.CONAN_REMOTE_TOKEN }}
+          username: ${{ secrets.CONAN_REMOTE_USERNAME }}
 
       - name: Configure CMake
         run: |
@@ -57,6 +60,7 @@ jobs:
 
   windows-msvc:
     runs-on: windows-2025
+    environment: Conan
     
     strategy:
       fail-fast: false
@@ -76,7 +80,9 @@ jobs:
         uses: ./.github/actions/setup-conan
         with:
           profile: ${{ matrix.profile }}
-          cache: false
+          url: ${{ secrets.CONAN_REMOTE_URL }}
+          token: ${{ secrets.CONAN_REMOTE_TOKEN }}
+          username: ${{ secrets.CONAN_REMOTE_USERNAME }}
 
       - name: Configure CMake
         run: |
@@ -92,6 +98,7 @@ jobs:
 
   windows-clang:
     runs-on: windows-2025
+    environment: Conan
     
     env:
       CLANG_VER: 21
@@ -119,7 +126,9 @@ jobs:
         uses: ./.github/actions/setup-conan
         with:
           profile: ${{ matrix.profile }}
-          cache: false
+          url: ${{ secrets.CONAN_REMOTE_URL }}
+          token: ${{ secrets.CONAN_REMOTE_TOKEN }}
+          username: ${{ secrets.CONAN_REMOTE_USERNAME }}
 
       - name: Configure CMake
         run: |

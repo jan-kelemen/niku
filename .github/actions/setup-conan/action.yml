@@ -8,10 +8,15 @@ inputs:
     description: 'Used shell for executing commands'
     required: false
     default: ${{ runner.os == 'Linux' && 'bash' || 'pwsh' }}
-  cache:
-    description: 'Use cache'
-    required: false
-    default: 'true'
+  token:
+    description: 'Used remote token'
+    required: true
+  url:
+    description: 'Used remote url'
+    required: true
+  username:
+    description: 'Used remote username'
+    required: true
 
 runs:
   using: 'composite'
@@ -30,41 +35,26 @@ runs:
       run: |
         conan config install conan/global.conf
 
-    - name: Set environment variables
-      if: ${{ runner.os == 'Linux' }}
-      shell: ${{ inputs.shell }}
-      run: |
-          echo "CONAN_CACHE_LOCATION=$(conan config home)" >> $GITHUB_ENV
-
-    - name: Set environment variables
-      if: ${{ runner.os == 'Windows' }}
-      shell: ${{ inputs.shell }}
-      run: |
-        echo "CONAN_CACHE_LOCATION=$(conan config home)" >> $env:GITHUB_ENV
-
-    - name: Cache Conan packages
-      id: cache-conan-packages
-      if: ${{ inputs.cache == 'true' }}
-      uses: actions/cache@v4
-      with:
-        path: ${{ env.CONAN_CACHE_LOCATION }}/p
-        key: ${{ inputs.profile }}-${{ hashFiles('conanfile.py') }}
-        
     - name: Detect default profile
       shell: ${{ inputs.shell }}
       run: |
         conan profile detect --force
 
-    - name: Setup local recipes index repository
+    - name: Setup remotes
       shell: ${{ inputs.shell }}
       run: |
         conan remote disable conancenter
-        conan remote add niku-remote conan/index
+        conan remote add local-remote conan/index
+        conan remote add niku-remote ${{ inputs.url }}
+        conan remote auth niku-remote
+      env:
+        CONAN_LOGIN_USERNAME: ${{ inputs.username }}
+        CONAN_PASSWORD: ${{ inputs.token }}
 
     - name: Build all dependencies
       shell: ${{ inputs.shell }}
       run: |
-        conan install . --build=missing --profile=ci/conan/${{ inputs.profile }} --options '&:develop=True' -r niku-remote
+        conan install . --build=missing --profile=ci/conan/${{ inputs.profile }} --options '&:develop=True' -r niku-remote -r local-remote
 
     - name: Cleanup temporary folders from cache
       shell: ${{ inputs.shell }}
