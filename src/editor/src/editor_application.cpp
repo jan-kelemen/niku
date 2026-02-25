@@ -173,7 +173,7 @@ editor::application_t::application_t(
     command_buffers_.reserve(swapchain->frames_in_flight());
     for (uint32_t i{}; i != swapchain->frames_in_flight(); ++i)
     {
-        if (std::expected<VkCommandPool, VkResult> pool{
+        if (std::expected<VkCommandPool, std::error_code> pool{
                 create_command_pool(*rendering_context_.device,
                     present_queue.queue_family(),
                     VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)})
@@ -182,7 +182,7 @@ editor::application_t::application_t(
         }
         else
         {
-            auto const message{vkrndr::make_error_code(pool.error()).message()};
+            auto const& message{pool.error().message()};
             spdlog::error("Failed to create command pool for frame {}: {}",
                 i,
                 message);
@@ -190,19 +190,17 @@ editor::application_t::application_t(
         }
 
         VkCommandBuffer current_buffer{VK_NULL_HANDLE};
-        if (VkResult const result{
+        if (std::expected<void, std::error_code> const result{
                 vkrndr::allocate_command_buffers(*rendering_context_.device,
                     pools_[i],
                     true,
-                    1,
-                    cppext::as_span(current_buffer))};
-            vkrndr::is_success_result(result))
+                    cppext::as_span(current_buffer))})
         {
             command_buffers_.push_back(current_buffer);
         }
         else
         {
-            auto const message{vkrndr::make_error_code(result).message()};
+            auto const& message{result.error().message()};
             spdlog::error("Failed to create command buffer for frame {}: {}",
                 i,
                 message);
@@ -283,7 +281,7 @@ bool editor::application_t::update()
     VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image->extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    vkrndr::wait_for_color_attachment_write(*target_image, command_buffer);
+    vkrndr::wait_for_color_attachment_read(*target_image, command_buffer);
 
     imgui_->render(command_buffer, *target_image);
 
@@ -310,7 +308,7 @@ editor::application_t::application_t()
     }
     else
     {
-        auto message{lh.error().message()};
+        auto const message{lh.error().message()};
         spdlog::error("Failed to load rendering library: {}", message);
         throw std::runtime_error{message};
     }
@@ -322,7 +320,6 @@ void editor::application_t::process_command_line(
     auto const has_argument = [&parameters](std::string_view s)
     { return std::ranges::contains(cbegin(parameters), cend(parameters), s); };
 
-    using namespace std::string_view_literals;
     if (has_argument("--trace"))
     {
         spdlog::set_level(spdlog::level::trace);

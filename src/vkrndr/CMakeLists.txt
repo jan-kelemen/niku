@@ -29,7 +29,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_shader_module.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_swapchain.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_synchronization.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_transient_operation.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_utility.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_window.hpp
     PRIVATE
@@ -60,7 +59,6 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_shader_module.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swapchain.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_synchronization.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_transient_operation.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_utility.cpp
 )
 
@@ -127,6 +125,7 @@ if (NIKU_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/test/global_library_handle.hpp
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_commands.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_device.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_instance.t.cpp
     )

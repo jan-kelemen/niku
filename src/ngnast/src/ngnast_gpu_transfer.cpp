@@ -12,7 +12,6 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_synchronization.hpp>
-#include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -30,15 +29,19 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <expected>
+#include <functional>
 #include <iterator>
 #include <optional>
 #include <ranges>
+#include <system_error>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <span>
+// IWYU pragma: no_include <tuple>
 
 namespace
 {
@@ -334,39 +337,20 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
     [[maybe_unused]] boost::scope::scope_fail const destroy_rv{
         [&backend, &rv]() { destroy(backend.device(), rv); }};
 
-    {
-        vkrndr::transient_operation_t const op{
-            backend.request_transient_operation(false)};
-        VkCommandBuffer cb{op.command_buffer()};
-
-        std::vector<VkBufferMemoryBarrier2> transfer_geometry_barriers;
-
-        VkBufferCopy const copy_vertex{
-            .size = intermediate.vertex_buffer.size,
-        };
-        vkCmdCopyBuffer(cb,
-            intermediate.vertex_buffer,
-            rv.vertex_buffer,
-            1,
-            &copy_vertex);
-
-        transfer_geometry_barriers.push_back(vkrndr::with_access(
-            vkrndr::on_stage(vkrndr::buffer_barrier(rv.vertex_buffer),
-                VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
-                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
-            VK_ACCESS_2_TRANSFER_WRITE_BIT,
-            VK_ACCESS_2_SHADER_READ_BIT));
-
-        if (intermediate.index_count > 0)
+    std::expected<void, std::error_code> const result{backend.execute_immediate(
+        false,
+        [&intermediate, &rv](VkCommandBuffer const cb)
         {
-            VkBufferCopy const copy_index{
-                .size = intermediate.index_buffer.size,
+            std::vector<VkBufferMemoryBarrier2> transfer_geometry_barriers;
+
+            VkBufferCopy const copy_vertex{
+                .size = intermediate.vertex_buffer.size,
             };
             vkCmdCopyBuffer(cb,
-                intermediate.index_buffer,
-                rv.index_buffer,
+                intermediate.vertex_buffer,
+                rv.vertex_buffer,
                 1,
-                &copy_index);
+                &copy_vertex);
 
             transfer_geometry_barriers.push_back(vkrndr::with_access(
                 vkrndr::on_stage(vkrndr::buffer_barrier(rv.vertex_buffer),
@@ -374,9 +358,31 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
                     VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
                 VK_ACCESS_2_TRANSFER_WRITE_BIT,
                 VK_ACCESS_2_SHADER_READ_BIT));
-        }
 
-        vkrndr::wait_for(cb, {}, transfer_geometry_barriers, {});
+            if (intermediate.index_count > 0)
+            {
+                VkBufferCopy const copy_index{
+                    .size = intermediate.index_buffer.size,
+                };
+                vkCmdCopyBuffer(cb,
+                    intermediate.index_buffer,
+                    rv.index_buffer,
+                    1,
+                    &copy_index);
+
+                transfer_geometry_barriers.push_back(vkrndr::with_access(
+                    vkrndr::on_stage(vkrndr::buffer_barrier(rv.vertex_buffer),
+                        VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
+                        VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_2_SHADER_READ_BIT));
+            }
+
+            vkrndr::wait_for(cb, {}, transfer_geometry_barriers, {});
+        })};
+    if (!result)
+    {
+        throw std::system_error{result.error()};
     }
 
     std::vector<VkAccelerationStructureGeometryKHR> geometries;
@@ -505,14 +511,16 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
     {
         uint32_t const offset{cppext::narrow<uint32_t>(i) * chunk_size};
 
-        vkrndr::transient_operation_t const op{
-            backend.request_transient_operation(false)};
-        VkCommandBuffer cb{op.command_buffer()};
-
-        vkCmdBuildAccelerationStructuresKHR(cb,
-            chunk_size,
-            build_geometries.data() + offset,
-            build_ranges.data() + offset);
+        std::expected<void, std::error_code> const build_result{
+            backend.execute_immediate(false,
+                std::bind_back(vkCmdBuildAccelerationStructuresKHR,
+                    chunk_size,
+                    build_geometries.data() + offset,
+                    build_ranges.data() + offset))};
+        if (!build_result)
+        {
+            throw std::system_error{build_result.error()};
+        }
     }
 
     for (vkrndr::acceleration_structure_t& blas : rv.bottom_level)
@@ -525,14 +533,16 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         uint32_t const offset{
             cppext::narrow<uint32_t>(chunks.quot) * chunk_size};
 
-        vkrndr::transient_operation_t const op{
-            backend.request_transient_operation(false)};
-        VkCommandBuffer cb{op.command_buffer()};
-
-        vkCmdBuildAccelerationStructuresKHR(cb,
-            vkrndr::count_cast(chunks.rem),
-            build_geometries.data() + offset,
-            build_ranges.data() + offset);
+        std::expected<void, std::error_code> const build_result{
+            backend.execute_immediate(false,
+                std::bind_back(vkCmdBuildAccelerationStructuresKHR,
+                    vkrndr::count_cast(chunks.rem),
+                    build_geometries.data() + offset,
+                    build_ranges.data() + offset))};
+        if (!build_result)
+        {
+            throw std::system_error{build_result.error()};
+        }
     }
 
     destroy(backend.device(), scratch_buffer);
@@ -606,40 +616,44 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
         vkrndr::unmap_memory(backend.device(), &map);
     }
 
-    {
-        vkrndr::transient_operation_t const transient{
-            backend.request_transient_operation(false)};
-
-        VkCommandBuffer cb{transient.command_buffer()};
+    std::expected<void,
+        std::error_code> const build_result{backend.execute_immediate(false,
+        [&](VkCommandBuffer const cb)
         {
-            VkBufferCopy const copy_transform{
-                .srcOffset = 0,
-                .dstOffset = 0,
-                .size = rv.instance_buffer.size,
-            };
-            vkCmdCopyBuffer(cb,
-                staging,
-                rv.instance_buffer,
+            {
+                VkBufferCopy const copy_transform{
+                    .srcOffset = 0,
+                    .dstOffset = 0,
+                    .size = rv.instance_buffer.size,
+                };
+                vkCmdCopyBuffer(cb,
+                    staging,
+                    rv.instance_buffer,
+                    1,
+                    &copy_transform);
+            }
+
+            VkBufferMemoryBarrier2 const buffer_barrier{vkrndr::with_access(
+                vkrndr::on_stage(vkrndr::buffer_barrier(rv.instance_buffer),
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
+                    VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
+                VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                VK_ACCESS_2_SHADER_READ_BIT)};
+
+            vkrndr::wait_for(cb, {}, cppext::as_span(buffer_barrier), {});
+
+            vkCmdBuildAccelerationStructuresKHR(cb,
                 1,
-                &copy_transform);
-        }
-
-        VkBufferMemoryBarrier2 const buffer_barrier{vkrndr::with_access(
-            vkrndr::on_stage(vkrndr::buffer_barrier(rv.instance_buffer),
-                VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR,
-                VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR),
-            VK_ACCESS_2_TRANSFER_WRITE_BIT,
-            VK_ACCESS_2_SHADER_READ_BIT)};
-
-        vkrndr::wait_for(cb, {}, cppext::as_span(buffer_barrier), {});
-
-        vkCmdBuildAccelerationStructuresKHR(cb,
-            1,
-            &instance_build_geometry,
-            range_infos.data());
-    }
+                &instance_build_geometry,
+                range_infos.data());
+        })};
 
     destroy(backend.device(), scratch_buffer);
+
+    if (!build_result)
+    {
+        throw std::system_error{build_result.error()};
+    }
 
     return rv;
 }

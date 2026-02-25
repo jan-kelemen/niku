@@ -22,7 +22,6 @@
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_synchronization.hpp>
-#include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -41,16 +40,17 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
 #include <span>
+#include <system_error>
 #include <vector>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
-// IWYU pragma: no_include <expected>
+// IWYU pragma: no_forward_declare VkDescriptorSet_T
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <string_view>
-// IWYU pragma: no_include <system_error>
 
 namespace
 {
@@ -817,96 +817,100 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
             mip_views.cend());
     }
 
-    {
-        auto transient{backend_->request_transient_operation(false)};
-        VkCommandBuffer command_buffer{transient.command_buffer()};
-
-        VkDeviceSize const zero_offset{};
-        vkCmdBindVertexBuffers(command_buffer,
-            0,
-            1,
-            &cubemap_vertex_buffer_.handle,
-            &zero_offset);
-
-        vkCmdBindIndexBuffer(command_buffer,
-            cubemap_index_buffer_,
-            0,
-            VK_INDEX_TYPE_UINT32);
-
-        vkrndr::bind_pipeline(command_buffer, pipeline, 0, descriptors);
-
+    std::expected<void,
+        std::error_code> const result{backend_->execute_immediate(false,
+        [&](VkCommandBuffer const cb)
         {
-            auto const barrier{vkrndr::with_layout(
-                vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(prefilter_cubemap_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
-            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-        }
+            VkDeviceSize const zero_offset{};
+            vkCmdBindVertexBuffers(cb,
+                0,
+                1,
+                &cubemap_vertex_buffer_.handle,
+                &zero_offset);
 
-        for (uint32_t mip{}; mip != prefilter_cubemap_.mip_levels; ++mip)
-        {
-            float const dimension{
-                cppext::as_fp(prefilter_cubemap_.extent.width) *
-                std::powf(0.5f, cppext::as_fp(mip))};
+            vkCmdBindIndexBuffer(cb,
+                cubemap_index_buffer_,
+                0,
+                VK_INDEX_TYPE_UINT32);
 
-            std::span const mip_face_views{face_views.data() + size_t{6} * mip,
-                6};
+            vkrndr::bind_pipeline(cb, pipeline, 0, descriptors);
 
-            VkViewport const viewport{.x = 0.0f,
-                .y = 0.0f,
-                .width = dimension,
-                .height = dimension,
-                .minDepth = 0.0f,
-                .maxDepth = 1.0f};
-            vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-            VkRect2D const scissor{{0, 0},
-                {static_cast<uint32_t>(std::round(dimension)),
-                    static_cast<uint32_t>(std::round(dimension))}};
-            vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-            for (uint32_t i{}; i != mip_face_views.size(); ++i)
             {
-                cubemap_push_constants_t pc{.direction = i,
-                    .roughness = cppext::as_fp(mip) /
-                        cppext::as_fp(prefilter_cubemap_.mip_levels - 1)};
-
-                vkCmdPushConstants(command_buffer,
-                    pipeline.layout,
-                    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                    0,
-                    sizeof(cubemap_push_constants_t),
-                    &pc);
-
-                vkrndr::render_pass_t color_render_pass;
-                color_render_pass.with_color_attachment(
-                    VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    VK_ATTACHMENT_STORE_OP_STORE,
-                    mip_face_views[i]);
-
-                [[maybe_unused]] auto guard{
-                    color_render_pass.begin(command_buffer, scissor)};
-
-                vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
+                auto const barrier{vkrndr::with_layout(
+                    vkrndr::with_access(
+                        vkrndr::on_stage(
+                            vkrndr::image_barrier(prefilter_cubemap_),
+                            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+                vkrndr::wait_for(cb, {}, {}, cppext::as_span(barrier));
             }
-        }
 
-        {
-            auto const barrier{vkrndr::with_layout(
-                vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(prefilter_cubemap_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
-            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-        }
-    }
+            for (uint32_t mip{}; mip != prefilter_cubemap_.mip_levels; ++mip)
+            {
+                float const dimension{
+                    cppext::as_fp(prefilter_cubemap_.extent.width) *
+                    std::powf(0.5f, cppext::as_fp(mip))};
+
+                std::span const mip_face_views{
+                    face_views.data() + size_t{6} * mip,
+                    6};
+
+                VkViewport const viewport{.x = 0.0f,
+                    .y = 0.0f,
+                    .width = dimension,
+                    .height = dimension,
+                    .minDepth = 0.0f,
+                    .maxDepth = 1.0f};
+                vkCmdSetViewport(cb, 0, 1, &viewport);
+
+                VkRect2D const scissor{{0, 0},
+                    {static_cast<uint32_t>(std::round(dimension)),
+                        static_cast<uint32_t>(std::round(dimension))}};
+                vkCmdSetScissor(cb, 0, 1, &scissor);
+
+                for (uint32_t i{}; i != mip_face_views.size(); ++i)
+                {
+                    cubemap_push_constants_t pc{.direction = i,
+                        .roughness = cppext::as_fp(mip) /
+                            cppext::as_fp(prefilter_cubemap_.mip_levels - 1)};
+
+                    vkCmdPushConstants(cb,
+                        pipeline.layout,
+                        VK_SHADER_STAGE_VERTEX_BIT |
+                            VK_SHADER_STAGE_FRAGMENT_BIT,
+                        0,
+                        sizeof(cubemap_push_constants_t),
+                        &pc);
+
+                    vkrndr::render_pass_t color_render_pass;
+                    color_render_pass.with_color_attachment(
+                        VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        VK_ATTACHMENT_STORE_OP_STORE,
+                        mip_face_views[i]);
+
+                    [[maybe_unused]] auto guard{
+                        color_render_pass.begin(cb, scissor)};
+
+                    vkCmdDrawIndexed(cb, 36, 1, 0, 0, 0);
+                }
+            }
+
+            {
+                auto const barrier{vkrndr::with_layout(
+                    vkrndr::with_access(
+                        vkrndr::on_stage(
+                            vkrndr::image_barrier(prefilter_cubemap_),
+                            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                            VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
+                vkrndr::wait_for(cb, {}, {}, cppext::as_span(barrier));
+            }
+        })};
 
     for (VkImageView view : face_views)
     {
@@ -915,6 +919,11 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
 
     destroy(backend_->device(), pipeline);
     destroy(backend_->device(), pipeline_layout);
+
+    if (!result)
+    {
+        throw std::system_error{result.error()};
+    }
 }
 
 void gltfviewer::skybox_t::generate_brdf_lookup()
@@ -967,136 +976,159 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
             .with_primitive_topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .with_rasterization_samples(VK_SAMPLE_COUNT_1_BIT)
             .build();
-    {
-        auto transient{backend_->request_transient_operation(false)};
-        VkCommandBuffer command_buffer{transient.command_buffer()};
-        VkViewport const viewport{.x = 0.0f,
-            .y = 0.0f,
-            .width = cppext::as_fp(brdf_lookup_.extent.width),
-            .height = cppext::as_fp(brdf_lookup_.extent.height),
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f};
-        vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-        VkRect2D const scissor{{0, 0},
-            vkrndr::to_2d_extent(brdf_lookup_.extent)};
-        vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+    std::expected<void, std::error_code> const result{
+        backend_->execute_immediate(false,
+            [&](VkCommandBuffer const cb)
+            {
+                VkViewport const viewport{.x = 0.0f,
+                    .y = 0.0f,
+                    .width = cppext::as_fp(brdf_lookup_.extent.width),
+                    .height = cppext::as_fp(brdf_lookup_.extent.height),
+                    .minDepth = 0.0f,
+                    .maxDepth = 1.0f};
+                vkCmdSetViewport(cb, 0, 1, &viewport);
 
-        bind_pipeline(command_buffer, pipeline);
+                VkRect2D const scissor{{0, 0},
+                    vkrndr::to_2d_extent(brdf_lookup_.extent)};
+                vkCmdSetScissor(cb, 0, 1, &scissor);
 
-        vkrndr::wait_for_color_attachment_write(brdf_lookup_, command_buffer);
+                bind_pipeline(cb, pipeline);
 
-        {
-            vkrndr::render_pass_t color_render_pass;
-            color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-                VK_ATTACHMENT_STORE_OP_STORE,
-                brdf_lookup_.view);
+                vkrndr::wait_for_color_attachment_write(brdf_lookup_, cb);
 
-            [[maybe_unused]] auto guard{
-                color_render_pass.begin(command_buffer, scissor)};
+                {
+                    vkrndr::render_pass_t color_render_pass;
+                    color_render_pass.with_color_attachment(
+                        VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        VK_ATTACHMENT_STORE_OP_STORE,
+                        brdf_lookup_.view);
 
-            vkCmdDraw(command_buffer, 3, 1, 0, 0);
-        }
+                    [[maybe_unused]] auto guard{
+                        color_render_pass.begin(cb, scissor)};
 
-        {
-            auto const barrier{vkrndr::with_layout(
-                vkrndr::with_access(
-                    vkrndr::on_stage(vkrndr::image_barrier(brdf_lookup_),
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
-                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                    VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
-            vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-        }
-    }
+                    vkCmdDraw(cb, 3, 1, 0, 0);
+                }
+
+                {
+                    auto const barrier{vkrndr::with_layout(
+                        vkrndr::with_access(
+                            vkrndr::on_stage(
+                                vkrndr::image_barrier(brdf_lookup_),
+                                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT),
+                            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                            VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)};
+                    vkrndr::wait_for(cb, {}, {}, cppext::as_span(barrier));
+                }
+            })};
 
     destroy(backend_->device(), pipeline);
     destroy(backend_->device(), pipeline_layout);
+
+    if (!result)
+    {
+        throw std::system_error{result.error()};
+    }
 }
 
 void gltfviewer::skybox_t::render_to_cubemap(vkrndr::pipeline_t const& pipeline,
     std::span<VkDescriptorSet const> const& descriptors,
     vkrndr::cubemap_t& cubemap)
 {
-    auto transient{backend_->request_transient_operation(false)};
-    VkCommandBuffer command_buffer{transient.command_buffer()};
+    std::expected<void,
+        std::error_code> const result{backend_->execute_immediate(false,
+        [&](VkCommandBuffer const command_buffer)
+        {
+            VkViewport const viewport{.x = 0.0f,
+                .y = 0.0f,
+                .width = cppext::as_fp(cubemap.extent.width),
+                .height = cppext::as_fp(cubemap.extent.height),
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f};
+            vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkViewport const viewport{.x = 0.0f,
-        .y = 0.0f,
-        .width = cppext::as_fp(cubemap.extent.width),
-        .height = cppext::as_fp(cubemap.extent.height),
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f};
-    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+            VkRect2D const scissor{{0, 0}, cubemap.extent};
+            vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    VkRect2D const scissor{{0, 0}, cubemap.extent};
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+            VkDeviceSize const zero_offset{};
+            vkCmdBindVertexBuffers(command_buffer,
+                0,
+                1,
+                &cubemap_vertex_buffer_.handle,
+                &zero_offset);
 
-    VkDeviceSize const zero_offset{};
-    vkCmdBindVertexBuffers(command_buffer,
-        0,
-        1,
-        &cubemap_vertex_buffer_.handle,
-        &zero_offset);
+            vkCmdBindIndexBuffer(command_buffer,
+                cubemap_index_buffer_,
+                0,
+                VK_INDEX_TYPE_UINT32);
 
-    vkCmdBindIndexBuffer(command_buffer,
-        cubemap_index_buffer_,
-        0,
-        VK_INDEX_TYPE_UINT32);
+            vkrndr::bind_pipeline(command_buffer, pipeline, 0, descriptors);
 
-    vkrndr::bind_pipeline(command_buffer, pipeline, 0, descriptors);
+            {
+                auto const barrier{vkrndr::to_layout(
+                    vkrndr::with_access(
+                        vkrndr::on_stage(vkrndr::image_barrier(cubemap),
+                            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+                vkrndr::wait_for(command_buffer,
+                    {},
+                    {},
+                    cppext::as_span(barrier));
+            }
 
+            for (uint32_t i{}; i != cubemap.face_views.size(); ++i)
+            {
+                cubemap_push_constants_t pc{.direction = i, .roughness = 0.0f};
+                vkCmdPushConstants(command_buffer,
+                    pipeline.layout,
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    0,
+                    sizeof(cubemap_push_constants_t),
+                    &pc);
+
+                vkrndr::render_pass_t color_render_pass;
+                color_render_pass.with_color_attachment(
+                    VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    VK_ATTACHMENT_STORE_OP_STORE,
+                    cubemap.face_views[i]);
+
+                [[maybe_unused]] auto guard{
+                    color_render_pass.begin(command_buffer,
+                        {{0, 0}, cubemap.extent})};
+
+                vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
+            }
+
+            {
+                auto const barrier{vkrndr::with_layout(
+                    vkrndr::with_access(
+                        vkrndr::on_stage(vkrndr::image_barrier(cubemap),
+                            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                            VK_PIPELINE_STAGE_2_BLIT_BIT),
+                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                        VK_ACCESS_2_TRANSFER_WRITE_BIT),
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)};
+                vkrndr::wait_for(command_buffer,
+                    {},
+                    {},
+                    cppext::as_span(barrier));
+            }
+
+            generate_mipmaps(backend_->device(),
+                cubemap.image,
+                command_buffer,
+                cubemap.format,
+                cubemap.extent,
+                cubemap.mip_levels,
+                6);
+        })};
+    if (!result)
     {
-        auto const barrier{vkrndr::to_layout(
-            vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(cubemap),
-                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+        throw std::system_error{result.error()};
     }
-
-    for (uint32_t i{}; i != cubemap.face_views.size(); ++i)
-    {
-        cubemap_push_constants_t pc{.direction = i, .roughness = 0.0f};
-        vkCmdPushConstants(command_buffer,
-            pipeline.layout,
-            VK_SHADER_STAGE_VERTEX_BIT,
-            0,
-            sizeof(cubemap_push_constants_t),
-            &pc);
-
-        vkrndr::render_pass_t color_render_pass;
-        color_render_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            cubemap.face_views[i]);
-
-        [[maybe_unused]] auto guard{
-            color_render_pass.begin(command_buffer, {{0, 0}, cubemap.extent})};
-
-        vkCmdDrawIndexed(command_buffer, 36, 1, 0, 0, 0);
-    }
-
-    {
-        auto const barrier{vkrndr::with_layout(
-            vkrndr::with_access(
-                vkrndr::on_stage(vkrndr::image_barrier(cubemap),
-                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    VK_PIPELINE_STAGE_2_BLIT_BIT),
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_ACCESS_2_TRANSFER_WRITE_BIT),
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)};
-        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
-    }
-
-    generate_mipmaps(backend_->device(),
-        cubemap.image,
-        command_buffer,
-        cubemap.format,
-        cubemap.extent,
-        cubemap.mip_levels,
-        6);
 }

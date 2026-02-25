@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <expected>
 #include <span>
+#include <system_error>
 
 namespace vkrndr
 {
@@ -16,22 +17,23 @@ namespace vkrndr
 namespace vkrndr
 {
     // Command pool
-    [[nodiscard]] std::expected<VkCommandPool, VkResult> create_command_pool(
-        device_t const& device,
+    [[nodiscard]] std::expected<VkCommandPool, std::error_code>
+    create_command_pool(device_t const& device,
         uint32_t family,
         VkCommandPoolCreateFlags flags = 0);
 
-    [[nodiscard]] VkResult allocate_command_buffers(device_t const& device,
+    [[nodiscard]] std::expected<void, std::error_code> allocate_command_buffers(
+        device_t const& device,
         VkCommandPool pool,
         bool primary,
-        uint32_t count,
         std::span<VkCommandBuffer> buffers);
 
     void free_command_buffers(device_t const& device,
         VkCommandPool pool,
         std::span<VkCommandBuffer const> const& buffers);
 
-    [[nodiscard]] VkResult reset_command_pool(device_t const& device,
+    [[nodiscard]] std::expected<void, std::error_code> reset_command_pool(
+        device_t const& device,
         VkCommandPool pool,
         bool release_resources = false);
 
@@ -41,15 +43,16 @@ namespace vkrndr
 
     // One time submit
 
-    void begin_single_time_commands(device_t const& device,
+    [[nodiscard]] std::expected<void, std::error_code>
+    begin_single_time_commands(device_t const& device,
         VkCommandPool pool,
-        uint32_t count,
         std::span<VkCommandBuffer> buffers);
 
-    void end_single_time_commands(device_t const& device,
+    [[nodiscard]] std::expected<void, std::error_code> end_single_time_commands(
+        device_t const& device,
         VkCommandPool pool,
         execution_port_t& port,
-        std::span<VkCommandBuffer const> const& command_buffers);
+        std::span<VkCommandBuffer const> const& buffers);
 
     // Individual operations
 

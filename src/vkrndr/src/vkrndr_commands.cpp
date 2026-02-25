@@ -1,19 +1,23 @@
 #include <vkrndr_commands.hpp>
 
 #include <vkrndr_device.hpp>
+#include <vkrndr_error_code.hpp>
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <algorithm>
-#include <cassert>
+#include <expected>
 #include <span>
 #include <stdexcept>
+#include <system_error>
+#include <utility>
 
 namespace
 {
@@ -46,7 +50,7 @@ namespace
     }
 } // namespace
 
-std::expected<VkCommandPool, VkResult> vkrndr::create_command_pool(
+std::expected<VkCommandPool, std::error_code> vkrndr::create_command_pool(
     device_t const& device,
     uint32_t const family,
     VkCommandPoolCreateFlags const flags)
@@ -57,34 +61,39 @@ std::expected<VkCommandPool, VkResult> vkrndr::create_command_pool(
         .queueFamilyIndex = family,
     };
 
-    VkCommandPool rv{};
-    if (auto const result{
+    VkCommandPool rv{VK_NULL_HANDLE};
+    if (VkResult const result{
             vkCreateCommandPool(device, &create_info, nullptr, &rv)};
-        result != VK_SUCCESS)
+        !is_success_result(result))
     {
-        return std::unexpected{result};
+        return std::unexpected{make_error_code(result)};
     }
 
     return rv;
 }
 
-VkResult vkrndr::allocate_command_buffers(device_t const& device,
+std::expected<void, std::error_code> vkrndr::allocate_command_buffers(
+    device_t const& device,
     VkCommandPool pool,
     bool primary,
-    uint32_t count,
     std::span<VkCommandBuffer> buffers)
 {
-    assert(count <= buffers.size());
-
     VkCommandBufferAllocateInfo const alloc_info{
         .sType = vku::GetSType<VkCommandBufferAllocateInfo>(),
         .commandPool = pool,
         .level = primary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY
                          : VK_COMMAND_BUFFER_LEVEL_SECONDARY,
-        .commandBufferCount = count,
+        .commandBufferCount = count_cast(buffers),
     };
 
-    return vkAllocateCommandBuffers(device, &alloc_info, buffers.data());
+    if (VkResult const result{
+            vkAllocateCommandBuffers(device, &alloc_info, buffers.data())};
+        !is_success_result(result))
+    {
+        return std::unexpected{make_error_code(result)};
+    }
+
+    return {};
 }
 
 void vkrndr::free_command_buffers(device_t const& device,
@@ -94,13 +103,21 @@ void vkrndr::free_command_buffers(device_t const& device,
     vkFreeCommandBuffers(device, pool, count_cast(buffers), buffers.data());
 }
 
-VkResult vkrndr::reset_command_pool(device_t const& device,
+std::expected<void, std::error_code> vkrndr::reset_command_pool(
+    device_t const& device,
     VkCommandPool pool,
     bool release_resources)
 {
-    return vkResetCommandPool(device,
-        pool,
-        release_resources ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0);
+    if (VkResult const result{vkResetCommandPool(device,
+            pool,
+            release_resources ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT
+                              : 0)};
+        !is_success_result(result))
+    {
+        return std::unexpected{make_error_code(result)};
+    }
+
+    return {};
 }
 
 void vkrndr::trim_command_pool(device_t const& device, VkCommandPool pool)
@@ -113,43 +130,66 @@ void vkrndr::destroy_command_pool(device_t const& device, VkCommandPool pool)
     vkDestroyCommandPool(device, pool, nullptr);
 }
 
-void vkrndr::begin_single_time_commands(device_t const& device,
+std::expected<void, std::error_code> vkrndr::begin_single_time_commands(
+    device_t const& device,
     VkCommandPool pool,
-    uint32_t count,
     std::span<VkCommandBuffer> buffers)
 {
-    check_result(allocate_command_buffers(device, pool, true, count, buffers));
+    std::expected<void, std::error_code> allocate_result{
+        allocate_command_buffers(device, pool, true, buffers)};
+    if (!allocate_result)
+    {
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_PESSIMIZING_MOVE
+        // NOLINTNEXTLINE
+        return std::move(allocate_result);
+        DISABLE_WARNING_POP
+    }
 
     VkCommandBufferBeginInfo const begin_info{
         .sType = vku::GetSType<VkCommandBufferBeginInfo>(),
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    for (uint32_t i{}; i != count; ++i)
+    for (VkCommandBuffer buffer : buffers)
     {
-        check_result(vkBeginCommandBuffer(buffers[i], &begin_info));
+        if (VkResult const result{vkBeginCommandBuffer(buffer, &begin_info)};
+            !is_success_result(result))
+        {
+            return std::unexpected{make_error_code(result)};
+        }
     }
+
+    return {};
 }
 
-void vkrndr::end_single_time_commands(device_t const& device,
+std::expected<void, std::error_code> vkrndr::end_single_time_commands(
+    device_t const& device,
     VkCommandPool pool,
     execution_port_t& port,
-    std::span<VkCommandBuffer const> const& command_buffers)
+    std::span<VkCommandBuffer const> const& buffers)
 {
-    for (VkCommandBuffer buffer : command_buffers)
+    for (VkCommandBuffer buffer : buffers)
     {
-        check_result(vkEndCommandBuffer(buffer));
+        if (VkResult const result{vkEndCommandBuffer(buffer)};
+            !is_success_result(result))
+        {
+            return std::unexpected{make_error_code(result)};
+        }
     }
 
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = count_cast(command_buffers);
-    submit_info.pCommandBuffers = command_buffers.data();
+    VkSubmitInfo submit_info{
+        .sType = vku::GetSType<VkSubmitInfo>(),
+        .commandBufferCount = count_cast(buffers),
+        .pCommandBuffers = buffers.data(),
+    };
 
     port.submit(cppext::as_span(submit_info));
     port.wait_idle();
 
-    free_command_buffers(device, pool, command_buffers);
+    free_command_buffers(device, pool, buffers);
+
+    return {};
 }
 
 void vkrndr::copy_buffer_to_image(VkCommandBuffer const command_buffer,

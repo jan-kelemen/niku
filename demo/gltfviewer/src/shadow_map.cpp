@@ -21,7 +21,6 @@
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_synchronization.hpp>
-#include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <volk.h>
@@ -30,20 +29,20 @@
 #include <array>
 #include <cassert>
 #include <exception>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <iterator>
+#include <system_error>
 #include <vector>
 
-// IWYU pragma: no_include <expected>
+// IWYU pragma: no_forward_declare VkDescriptorSet_T
 // IWYU pragma: no_include <chrono>
 // IWYU pragma: no_include <memory>
 // IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <type_traits>
 // IWYU pragma: no_include <span>
 // IWYU pragma: no_include <string_view>
-// IWYU pragma: no_include <system_error>
-// IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 namespace
 {
@@ -167,18 +166,20 @@ gltfviewer::shadow_map_t::shadow_map_t(vkrndr::backend_t& backend)
         cppext::as_span(descriptor_layout_),
         cppext::as_span(descriptor_)));
 
+    std::expected<void, std::error_code> const result{
+        backend_->execute_immediate(false,
+            [this](VkCommandBuffer const cb)
+            {
+                auto const barrier{
+                    vkrndr::to_layout(vkrndr::image_barrier(shadow_map_,
+                                          VK_IMAGE_ASPECT_DEPTH_BIT),
+                        VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL)};
+
+                vkrndr::wait_for(cb, {}, {}, cppext::as_span(barrier));
+            })};
+    if (!result)
     {
-        vkrndr::transient_operation_t const transient{
-            backend_->request_transient_operation(false)};
-
-        auto const barrier{vkrndr::to_layout(
-            vkrndr::image_barrier(shadow_map_, VK_IMAGE_ASPECT_DEPTH_BIT),
-            VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL)};
-
-        vkrndr::wait_for(transient.command_buffer(),
-            {},
-            {},
-            cppext::as_span(barrier));
+        throw std::system_error{result.error()};
     }
 
     ::update_descriptor_set(backend_->device(),

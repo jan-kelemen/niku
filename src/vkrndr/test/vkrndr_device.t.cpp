@@ -18,7 +18,7 @@
 
 #include <global_library_handle.hpp>
 
-// IWYU pragma: no_include <vkrndr_instance.hpp>
+// IWYU pragma: no_include "vkrndr_instance.hpp"
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 // IWYU pragma: no_include <expected>

@@ -45,7 +45,6 @@
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_swapchain.hpp>
 #include <vkrndr_synchronization.hpp>
-#include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -871,20 +870,25 @@ void heatx::application_t::on_resize(uint32_t const width,
         ray_generation_storage_,
         "Ray Generation Storage"));
 
+    std::expected<void, std::error_code> const result{
+        backend_->execute_immediate(true,
+            [this](VkCommandBuffer const cb)
+            {
+                VkImageMemoryBarrier2 const barrier{vkrndr::with_access(
+                    vkrndr::on_stage(
+                        vkrndr::to_layout(
+                            vkrndr::image_barrier(ray_generation_storage_),
+                            VK_IMAGE_LAYOUT_GENERAL),
+                        VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+                        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT),
+                    VK_ACCESS_2_NONE,
+                    VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
+
+                vkrndr::wait_for(cb, {}, {}, cppext::as_span(barrier));
+            })};
+    if (!result)
     {
-        vkrndr::transient_operation_t const op{
-            backend_->request_transient_operation(false)};
-
-        VkImageMemoryBarrier2 const barrier{vkrndr::with_access(
-            vkrndr::on_stage(vkrndr::to_layout(
-                                 vkrndr::image_barrier(ray_generation_storage_),
-                                 VK_IMAGE_LAYOUT_GENERAL),
-                VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT),
-            VK_ACCESS_2_NONE,
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT)};
-
-        vkrndr::wait_for(op.command_buffer(), {}, {}, cppext::as_span(barrier));
+        throw std::system_error{result.error()};
     }
 
     postprocess_shader_->resize(width, height, deletion_queue_insert);

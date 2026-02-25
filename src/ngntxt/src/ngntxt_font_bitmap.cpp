@@ -9,7 +9,6 @@
 #include <vkrndr_commands.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
-#include <vkrndr_transient_operation.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <boost/scope/defer.hpp>
@@ -28,8 +27,10 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <expected>
 #include <ranges>
 #include <span>
+#include <system_error>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -209,19 +210,26 @@ namespace
         }
 
         // Transfer staging buffer to the target bitmap
+        std::expected<void, std::error_code> const result{
+            backend.execute_immediate(true,
+                [&](VkCommandBuffer const cb)
+                {
+                    vkrndr::wait_for_transfer_write(new_bitmap_image, cb, 1);
+
+                    vkCmdCopyBufferToImage(cb,
+                        staging_buffer,
+                        new_bitmap_image,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        vkrndr::count_cast(regions),
+                        regions.data());
+
+                    vkrndr::wait_for_transfer_write_completed(new_bitmap_image,
+                        cb,
+                        1);
+                })};
+        if (!result)
         {
-            auto transient{backend.request_transient_operation(true)};
-            VkCommandBuffer cb{transient.command_buffer()};
-            vkrndr::wait_for_transfer_write(new_bitmap_image, cb, 1);
-
-            vkCmdCopyBufferToImage(cb,
-                staging_buffer,
-                new_bitmap_image,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                vkrndr::count_cast(regions),
-                regions.data());
-
-            vkrndr::wait_for_transfer_write_completed(new_bitmap_image, cb, 1);
+            throw std::system_error{result.error()};
         }
 
         bitmap.bitmap_images.push_back(new_bitmap_image);
