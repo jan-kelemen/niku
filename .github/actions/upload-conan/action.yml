@@ -5,6 +5,7 @@ runs:
   using: 'composite'
   steps:
     - name: Install Conan configuration files
+      shell: bash
       run: |
         conan upload --confirm -r niku-remote "*"
 
