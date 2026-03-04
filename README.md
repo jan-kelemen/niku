@@ -18,8 +18,8 @@ Cross platform game engine implemented in C++23 with support for Windows and Lin
 ## Building
 
 Necessary build tools are:
-* CMake 3.27 or higher
-* Conan 2.20 or higher
+* CMake 4.2 or higher
+* Conan 2.26 or higher
   * See [installation instructions](https://docs.conan.io/2/installation.html)
 * One of supported compilers:
   * Clang-21 (libstdc++ or libc++)

@@ -58,7 +58,7 @@ class NikuConan(ConanFile):
             self.requires("tree-sitter-glsl/0.2.0")
 
     def build_requirements(self):
-        self.tool_requires("cmake/[^3.31]")
+        self.tool_requires("cmake/[^4.2]")
         self.test_requires("catch2/3.12.0")
 
     def layout(self):

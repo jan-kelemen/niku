@@ -86,6 +86,10 @@ jobs:
       - name: Checkout repository from github
         uses: actions/checkout@v6
 
+      - name: Install Chocolatey packages
+        run: |
+          choco install cmake --version 4.2.3 -y
+
       - name: Setup Conan
         id: setup-conan
         uses: ./.github/actions/setup-conan
@@ -134,8 +138,9 @@ jobs:
       - name: Checkout repository from github
         uses: actions/checkout@v6
 
-      - name: Install Ninja
+      - name: Install Chocolatey packages
         run: |
+          choco install cmake --version 4.2.3 -y
           choco install ninja
           choco install llvm --version 21.1.7 -y
           
