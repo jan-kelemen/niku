@@ -100,6 +100,48 @@ jobs:
         run: |
           ctest --preset multi-debug
 
+  windows-msvc-2026:
+    runs-on: windows-2025-vs2026
+    environment: Conan
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [msvc-2026-amd64-windows]
+        
+    steps:
+      - name: Initialize
+        run: |
+          git config --global core.autocrlf input
+          
+      - name: Checkout repository from github
+        uses: actions/checkout@v6
+
+      - name: Install Chocolatey packages
+        run: |
+          choco install cmake --version 4.2.3 -y
+
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: ${{ matrix.profile }}
+          url: ${{ secrets.CONAN_REMOTE_URL }}
+          token: ${{ secrets.CONAN_REMOTE_TOKEN }}
+          username: ${{ secrets.CONAN_REMOTE_USERNAME }}
+
+      - name: Configure CMake
+        run: |
+          cmake -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset default
+          
+      - name: Build
+        run: |
+          cmake --build --parallel --preset multi-debug
+
+      - name: Test
+        run: |
+          ctest --preset multi-debug
+
   windows-clang:
     runs-on: windows-2025
     environment: Conan

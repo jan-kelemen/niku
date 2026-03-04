@@ -149,3 +149,45 @@ jobs:
 
       - name: Upload Conan packages
         uses: ./.github/actions/upload-conan
+
+  msvc-2026-asan:
+    runs-on: windows-2025-vs2026
+    environment: Conan
+
+    steps:
+      - name: Initialize
+        run: |
+          git config --global core.autocrlf input
+          
+      - name: Checkout repository from github
+        uses: actions/checkout@v6
+
+      - name: Install Chocolatey packages
+        run: |
+          choco install cmake --version 4.2.3 -y
+
+      - name: Setup Conan
+        id: setup-conan
+        uses: ./.github/actions/setup-conan
+        with:
+          profile: msvc-2026-amd64-windows-asan
+          url: ${{ secrets.CONAN_REMOTE_URL }}
+          token: ${{ secrets.CONAN_REMOTE_TOKEN }}
+          username: ${{ secrets.CONAN_REMOTE_USERNAME }}
+
+      - name: Configure CMake
+        run: |
+          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset default
+          
+      - name: Build
+        run: |
+          cmake --build --parallel --preset multi-relwithdebinfo
+
+      - name: Test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2026\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 -host_arch=amd64
+          ctest --preset multi-relwithdebinfo
+
+      - name: Upload Conan packages
+        uses: ./.github/actions/upload-conan

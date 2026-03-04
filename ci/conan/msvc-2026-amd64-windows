@@ -1,0 +1,6 @@
+include(../../conan/msvc-2026-amd64-windows)
+include(../../conan/opt/msvc-arch-amd64-v3)
+include(../../conan/dependencies)
+
+[settings]
+build_type=Debug

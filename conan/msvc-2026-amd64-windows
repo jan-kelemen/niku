@@ -1,0 +1,11 @@
+[settings]
+arch=x86_64
+compiler=msvc
+compiler.cppstd=23
+compiler.runtime=dynamic
+compiler.version=195
+os=Windows
+
+[conf]
+tools.build:cflags+=["-permissive-", "-Zc:inline", "-Zc:preprocessor"]
+tools.build:cxxflags+=["-permissive-", "-Zc:enumTypes", "-Zc:inline", "-Zc:preprocessor", "-Zc:__cplusplus", "-Zc:externConstexpr", "-Zc:templateScope"]
