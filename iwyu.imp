@@ -122,7 +122,7 @@
   # glslang aliases
   { include: [ "@<glslang/MachineIndependent/.*>", private, "<glslang/Public/ShaderLang.h>", public ] },
 
-  # glm aliases
+  # spirv-cross aliases
   { include: [ "<spirv_cross_containers.hpp>", private, "<spirv_cross.hpp>", public] },
   
   # vulkan aliases

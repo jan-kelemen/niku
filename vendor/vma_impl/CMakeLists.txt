@@ -15,7 +15,7 @@ target_include_directories(vma_impl
 
 target_link_libraries(vma_impl
     PUBLIC
-        vulkan-memory-allocator::vulkan-memory-allocator
+        GPUOpen::VulkanMemoryAllocator
 )
 
 set_source_files_properties(

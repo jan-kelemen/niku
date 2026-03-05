@@ -35,31 +35,31 @@ class NikuConan(ConanFile):
         self.requires("fmt/12.1.0")
         self.requires("freetype/2.14.1")
         self.requires("glm/1.0.3")
-        self.requires("glslang/1.4.335.0", transitive_headers=False)
-        self.requires("harfbuzz/12.3.0")
-        self.requires("imgui/1.92.5-docking")
+        self.requires("glslang/1.4.341.0", transitive_headers=False)
+        self.requires("harfbuzz/13.0.0")
+        self.requires("imgui/1.92.6-docking")
         self.requires("joltphysics/5.5.0")
         self.requires("libbasisu/1.6.0", transitive_headers=False)
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
         self.requires("meshoptimizer/1.0", transitive_headers=False)
-        self.requires("sdl/3.4.0")
+        self.requires("sdl/3.4.2")
         self.requires("spdlog/1.17.0", transitive_headers=False)
-        self.requires("spirv-cross/1.4.335.0", transitive_headers=False)
+        self.requires("spirv-cross/1.4.341.0", transitive_headers=False)
         self.requires("stb/cci.20240531", transitive_headers=False)
-        self.requires("tree-sitter/0.26.3")
-        self.requires("volk/1.4.335.0")
+        self.requires("tree-sitter/0.26.6")
+        self.requires("volk/1.4.341.0")
         self.requires("vulkan-memory-allocator/3.3.0")
-        self.requires("vulkan-utility-libraries/1.4.335.0")
+        self.requires("vulkan-utility-libraries/1.4.341.0")
 
         if self.options.develop:
             self.requires("entt/3.16.0")
             self.requires("recastnavigation/1.6.0")
-            self.requires("simdjson/4.2.4")
+            self.requires("simdjson/4.3.1")
             self.requires("tree-sitter-glsl/0.2.0")
 
     def build_requirements(self):
         self.tool_requires("cmake/[^4.2]")
-        self.test_requires("catch2/3.12.0")
+        self.test_requires("catch2/3.13.0")
 
     def layout(self):
         cmake_layout(self)
@@ -92,7 +92,7 @@ class NikuConan(ConanFile):
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].defines = ["VK_NO_PROTOTYPES"]
         self.cpp_info.components[component].libs = [component]
-        self.cpp_info.components[component].requires.extend(["vulkan-memory-allocator::vulkan-memory-allocator"])
+        self.cpp_info.components[component].requires.extend(["GPUOpen::VulkanMemoryAllocator"])
 
         component = "stb_impl"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")

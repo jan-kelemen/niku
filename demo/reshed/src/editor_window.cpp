@@ -27,8 +27,8 @@
 #include <imgui.h>
 
 #include <SDL3/SDL_events.h>
-#include <SDL_scancode.h>
-#include <SDL_video.h>
+#include <SDL3/SDL_scancode.h>
+#include <SDL3/SDL_video.h>
 
 #include <volk.h>
 
