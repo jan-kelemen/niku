@@ -1,12 +1,10 @@
 from conan import ConanFile
-from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd, stdcpp_library
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.env import VirtualBuildEnv
-from conan.tools.files import copy, apply_conandata_patches, get, export_conandata_patches, replace_in_file, rm, rmdir, save
+from conan.tools.files import copy, get, replace_in_file, rm, rmdir, save, apply_conandata_patches, export_conandata_patches
 from conan.tools.scm import Version
 import os
-import textwrap
 
 required_conan_version = ">2.0"
 
@@ -34,25 +32,9 @@ class SpirvtoolsConan(ConanFile):
 
     short_paths = True
 
-    @property
-    def _min_cppstd(self):
-        return "11" if Version(self.version) < "1.3.243" else "17"
-
-    @property
-    def _compilers_minimum_version(self):
-        return {
-            "17": {
-                "apple-clang": "10",
-                "clang": "7" if Version(self.version) >= "1.3.250" else "5",
-                "gcc": "8" if Version(self.version) >= "1.3.250" else "7",
-                "msvc": "191",
-                "Visual Studio": "15",
-            }
-        }.get(self._min_cppstd, {})
-        
     def export_sources(self):
         export_conandata_patches(self)
-        
+
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
@@ -67,15 +49,13 @@ class SpirvtoolsConan(ConanFile):
     def requirements(self):
         self.requires(f"spirv-headers/{self.version}")
 
-    def validate(self):
-        if self.settings.compiler.get_safe("cppstd"):
-            check_min_cppstd(self, self._min_cppstd)
+    def validate_build(self):
+        # newer versions of the library require C++17 for internals
+        check_min_cppstd(self, 11 if Version(self.version) < "1.3.243" else 17)
 
-        minimum_version = self._compilers_minimum_version.get(str(self.settings.compiler), False)
-        if minimum_version and Version(self.settings.compiler.version) < minimum_version:
-            raise ConanInvalidConfiguration(
-                f"{self.ref} requires C++{self._min_cppstd}, which your compiler does not support."
-            )
+    def validate(self):
+        # The interface requires C++11
+        check_min_cppstd(self, 11)
 
     def build_requirements(self):
         self.tool_requires("cmake/[^4.2]")
@@ -164,39 +144,6 @@ class SpirvtoolsConan(ConanFile):
             rm(self, "*SPIRV-Tools-shared.dll", os.path.join(self.package_folder, "bin"))
             rm(self, "*SPIRV-Tools-shared*", os.path.join(self.package_folder, "lib"))
 
-        # TODO: to remove in conan v2 once cmake_find_package* generators removed
-        if self.options.shared:
-            targets = {"SPIRV-Tools-shared": "spirv-tools::SPIRV-Tools"}
-        else:
-            targets = {
-                "SPIRV-Tools": "spirv-tools::SPIRV-Tools", # before 2020.5, kept for conveniency
-                "SPIRV-Tools-static": "spirv-tools::SPIRV-Tools",
-                "SPIRV-Tools-opt": "spirv-tools::SPIRV-Tools-opt",
-                "SPIRV-Tools-link": "spirv-tools::SPIRV-Tools-link",
-                "SPIRV-Tools-reduce": "spirv-tools::SPIRV-Tools-reduce",
-                "SPIRV-Tools-lint": "spirv-tools::SPIRV-Tools-lint",
-                "SPIRV-Tools-diff": "spirv-tools::SPIRV-Tools-diff",
-            }
-        self._create_cmake_module_alias_targets(
-            os.path.join(self.package_folder, self._module_file_rel_path),
-            targets,
-        )
-
-    def _create_cmake_module_alias_targets(self, module_file, targets):
-        content = ""
-        for alias, aliased in targets.items():
-            content += textwrap.dedent(f"""\
-                if(TARGET {aliased} AND NOT TARGET {alias})
-                    add_library({alias} INTERFACE IMPORTED)
-                    set_property(TARGET {alias} PROPERTY INTERFACE_LINK_LIBRARIES {aliased})
-                endif()
-            """)
-        save(self, module_file, content)
-
-    @property
-    def _module_file_rel_path(self):
-        return os.path.join("lib", "cmake", f"conan-official-{self.name}-targets.cmake")
-
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "SPIRV-Tools")
         self.cpp_info.set_property("pkg_config_name", "SPIRV-Tools-shared" if self.options.shared else "SPIRV-Tools")
@@ -246,9 +193,6 @@ class SpirvtoolsConan(ConanFile):
             self.cpp_info.components["spirv-tools-diff"].set_property("cmake_target_name", "SPIRV-Tools-diff")
             self.cpp_info.components["spirv-tools-diff"].libs = ["SPIRV-Tools-diff"]
             self.cpp_info.components["spirv-tools-diff"].requires = ["spirv-tools-core", "spirv-tools-opt"]
-
-        if self.options.build_executables:
-            self.env_info.path.append(os.path.join(self.package_folder, "bin"))
 
         if not self.options.shared:
             del self.cpp_info.components["spirv-tools-diff"]

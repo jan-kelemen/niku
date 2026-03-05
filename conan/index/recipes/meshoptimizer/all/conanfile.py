@@ -1,8 +1,7 @@
 from conan import ConanFile
 from conan.tools.build import stdcpp_library
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
-from conan.tools.files import copy, get, replace_in_file, rm, rmdir
-from conan.tools.scm import Version
+from conan.tools.files import copy, get, rm, rmdir
 import os
 
 required_conan_version = ">2.0"
@@ -66,5 +65,7 @@ class MeshOptimizerConan(ConanFile):
             libcxx = stdcpp_library(self)
             if libcxx:
                 self.cpp_info.system_libs.append(libcxx)
-        if self.options.shared and self.settings.os == "Windows":
-            self.cpp_info.defines = ["MESHOPTIMIZER_API=__declspec(dllimport)"]
+        if self.options.shared:
+            self.cpp_info.defines = ["MESHOPTIMIZER_ALLOC_EXPORT"]
+            if self.settings.os == "Windows":
+                self.cpp_info.defines.append("MESHOPTIMIZER_API=__declspec(dllimport)")

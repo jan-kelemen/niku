@@ -1,7 +1,7 @@
 from conan import ConanFile, conan_version
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.apple import is_apple_os, fix_apple_shared_install_name
-from conan.tools.build import can_run, stdcpp_library
+from conan.tools.build import stdcpp_library
 from conan.tools.env import Environment, VirtualBuildEnv
 from conan.tools.files import apply_conandata_patches, copy, export_conandata_patches, get, rm, rmdir, replace_in_file
 from conan.tools.gnu import PkgConfigDeps
@@ -12,7 +12,7 @@ from conan.tools.scm import Version
 
 import os
 
-required_conan_version = ">=1.60.0 <2.0 || >=2.0.6"
+required_conan_version = ">=2.1"
 
 
 class HarfbuzzConan(ConanFile):
@@ -49,12 +49,6 @@ class HarfbuzzConan(ConanFile):
         "with_coretext": False,
     }
 
-    short_paths = True
-
-    @property
-    def _settings_build(self):
-        return getattr(self, "settings_build", self.settings)
-
     def export_sources(self):
         export_conandata_patches(self)
 
@@ -84,7 +78,7 @@ class HarfbuzzConan(ConanFile):
         if self.options.with_icu:
             self.requires("icu/74.1")
         if self.options.with_glib:
-            self.requires("glib/2.78.3")
+            self.requires("glib/[^2.78]")
 
     def validate(self):
         if self.options.shared and self.options.with_glib and not self.dependencies["glib"].options.shared:
@@ -108,7 +102,7 @@ class HarfbuzzConan(ConanFile):
         if self.settings.os == "Macos":
             # Ensure that the gettext we use at build time is compatible
             # with the libiconv that is transitively exposed by glib
-            self.tool_requires("gettext/0.21")
+            self.tool_requires("gettext/0.22.5")
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
@@ -131,7 +125,7 @@ class HarfbuzzConan(ConanFile):
 
         # Avoid conflicts with libiconv
         # see: https://github.com/conan-io/conan-center-index/pull/17046#issuecomment-1554629094
-        if self._settings_build.os == "Macos":
+        if self.settings_build.os == "Macos":
             env = Environment()
             env.define_path("DYLD_FALLBACK_LIBRARY_PATH", "$DYLD_LIBRARY_PATH")
             env.define_path("DYLD_LIBRARY_PATH", "")
@@ -150,12 +144,15 @@ class HarfbuzzConan(ConanFile):
             "gdi": is_enabled(self.options.get_safe("with_gdi")),
             "coretext": is_enabled(self.options.get_safe("with_coretext")),
             "directwrite": is_enabled(self.options.get_safe("with_directwrite")),
-            "gobject": is_enabled(can_run(self) and self.options.with_glib),
+            "gobject": is_enabled(self.options.with_glib),
             "introspection": is_enabled(False),
             "tests": "disabled",
             "docs": "disabled",
             "benchmark": "disabled",
-            "icu_builtin": "false"
+            "icu_builtin": "false",
+            "subset": "disabled",
+            "raster": "disabled",
+            "vector": "disabled"
         })
         tc.cpp_args += cxxflags
         if self.settings.os == "Windows":
