@@ -9,7 +9,7 @@ from conan.tools.env import VirtualBuildEnv
 from conan.tools.files import copy, apply_conandata_patches, get, export_conandata_patches, rmdir
 from conan.tools.scm import Version
 
-required_conan_version = ">2.0"
+required_conan_version = ">=2.1"
 
 
 class GlslangConan(ConanFile):
@@ -30,7 +30,6 @@ class GlslangConan(ConanFile):
         "spv_remapper": [True, False],
         "hlsl": [True, False],
         "enable_optimizer": [True, False],
-        "enable_spirv": [True, False],
     }
     default_options = {
         "shared": False,
@@ -39,7 +38,6 @@ class GlslangConan(ConanFile):
         "spv_remapper": True,
         "hlsl": True,
         "enable_optimizer": True,
-        "enable_spirv": True,
     }
 
     short_paths = True
@@ -51,8 +49,6 @@ class GlslangConan(ConanFile):
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
-        if Version(self.version) >= "1.4.328.0":
-            self.options.rm_safe("spv_remapper")
 
     def configure(self):
         if self.options.shared:
@@ -80,11 +76,6 @@ class GlslangConan(ConanFile):
                 "because SPIRV-Tools-opt is not built if shared"
             )
 
-        if self.options.enable_optimizer and not self.options.enable_spirv:
-            raise ConanInvalidConfiguration(
-                f"{self.ref} with enable_optimizer requires enable_spirv"
-            )
-
     def build_requirements(self):
         self.tool_requires("cmake/[^4.2]")
 
@@ -97,10 +88,9 @@ class GlslangConan(ConanFile):
 
         tc = CMakeToolchain(self)
         tc.variables["BUILD_EXTERNAL"] = False
-        tc.variables["ENABLE_SPIRV"] = self.options.get_safe("enable_spirv", True)
-        tc.variables["GLSLANG_ENABLE_INSTALL"] = True
-        if Version(self.version) < "1.4.328.0":
-            tc.variables["ENABLE_SPVREMAPPER"] = self.options.spv_remapper
+        tc.variables["SKIP_GLSLANG_INSTALL"] = False
+        tc.cache_variables["GLSLANG_ENABLE_INSTALL"] = True
+        tc.variables["ENABLE_SPVREMAPPER"] = self.options.spv_remapper
         tc.variables["ENABLE_GLSLANG_BINARIES"] = self.options.build_executables
         tc.variables["ENABLE_GLSLANG_JS"] = False
         tc.variables["ENABLE_GLSLANG_WEBMIN"] = False
@@ -171,27 +161,18 @@ class GlslangConan(ConanFile):
             self.cpp_info.components["glslang-core"].system_libs.extend(["m", "pthread"])
 
         # SPIRV
-        if self.options.enable_spirv:
-            self.cpp_info.components["spirv"].set_property("cmake_target_name", "glslang::SPIRV")
-            self.cpp_info.components["spirv"].names["cmake_find_package"] = "SPIRV"
-            self.cpp_info.components["spirv"].names["cmake_find_package_multi"] = "SPIRV"
-            self.cpp_info.components["spirv"].libs = [f"SPIRV{lib_suffix}"]
-            self.cpp_info.components["spirv"].requires = ["glslang-core"]
-            if self.options.enable_optimizer:
-                self.cpp_info.components["spirv"].requires.append("spirv-tools::spirv-tools-opt")
-                self.cpp_info.components["spirv"].defines.append("ENABLE_OPT")
+        self.cpp_info.components["spirv"].set_property("cmake_target_name", "glslang::SPIRV")
+        self.cpp_info.components["spirv"].libs = [f"SPIRV{lib_suffix}"]
+        self.cpp_info.components["spirv"].requires = ["glslang-core"]
+        if self.options.enable_optimizer:
+            self.cpp_info.components["spirv"].requires.append("spirv-tools::spirv-tools-opt")
+            self.cpp_info.components["spirv"].defines.append("ENABLE_OPT")
 
-        if Version(self.version) < "1.4.328.0" and self.options.spv_remapper:
-            # SPVRemapper
+        # SPVRemapper
+        if self.options.spv_remapper:
             self.cpp_info.components["spvremapper"].set_property("cmake_target_name", "glslang::SPVRemapper")
-            self.cpp_info.components["spvremapper"].names["cmake_find_package"] = "SPVRemapper"
-            self.cpp_info.components["spvremapper"].names["cmake_find_package_multi"] = "SPVRemapper"
             self.cpp_info.components["spvremapper"].libs = [f"SPVRemapper{lib_suffix}"]
 
-        if self.options.build_executables:
-            self.env_info.PATH.append(os.path.join(self.package_folder, "bin"))
-
-        self.cpp_info.components["glslang-default-resource-limits"].set_property("cmake_target_name", "glslang::glslang-default-resource-limits")
-        self.cpp_info.components["glslang-default-resource-limits"].names["cmake_find_package"] = "glslang-default-resource-limits"
-        self.cpp_info.components["glslang-default-resource-limits"].names["cmake_find_package_multi"] = "glslang-default-resource-limits"
-        self.cpp_info.components["glslang-default-resource-limits"].libs = [f"glslang-default-resource-limits{lib_suffix}"]
+        if Version(self.version) >= "1.3.243":
+            self.cpp_info.components["glslang-default-resource-limits"].set_property("cmake_target_name", "glslang::glslang-default-resource-limits")
+            self.cpp_info.components["glslang-default-resource-limits"].libs = [f"glslang-default-resource-limits{lib_suffix}"]
