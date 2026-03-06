@@ -39,7 +39,7 @@ class NikuConan(ConanFile):
         self.requires("harfbuzz/13.0.0")
         self.requires("imgui/1.92.6-docking")
         self.requires("joltphysics/5.5.0")
-        self.requires("libbasisu/1.6.0", transitive_headers=False)
+        self.requires("libbasisu/2.0.0", transitive_headers=False)
         self.requires("mikktspace/cci.20200325", transitive_headers=False)
         self.requires("meshoptimizer/1.0", transitive_headers=False)
         self.requires("sdl/3.4.2")
