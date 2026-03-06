@@ -1,13 +1,9 @@
 sources:
-  "1.6.0":
-    url: "https://github.com/BinomialLLC/basis_universal/archive/refs/tags/v1_60.tar.gz"
-    sha256: "64ac9363656dc3eb41c59ee52af7e939abe574a92c85fd0ba27008c4a7ec9f40"
+  "2.0.0":
+    url: "https://github.com/BinomialLLC/basis_universal/archive/refs/tags/v2_00_final_snapshot.tar.gz"
+    sha256: "68b7d374591f4e63d229fb81c000e84ac7c3a13c793cbb7f522125a92355a500"
 patches:
-  "1.6.0":
-    - patch_file: "patches/1.6.0-cmakelists_build_lib.patch"
-    - patch_file: "patches/1.6.0-build_error_with_cpp23.patch"
-    - patch_file: "patches/1.6.0-deprecated-enum-enum-conversion.patch"
-      patch_source: https://github.com/BinomialLLC/basis_universal/pull/415
-    - patch_file: "patches/1.6.0-build_error_with_libcxx.patch"
-    - patch_file: "patches/1.6.0-build_error_in_debug.patch"
-      patch_source: https://github.com/BinomialLLC/basis_universal/pull/387
+  "2.0.0":
+    - patch_file: "patches/2.0.0-cmakelists_build_lib.patch"
+    - patch_file: "patches/2.0.0-build_error_with_libcxx.patch"
+    - patch_file: "patches/2.0.0-use-zstd-from-package.patch"

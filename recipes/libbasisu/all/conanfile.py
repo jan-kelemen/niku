@@ -63,18 +63,16 @@ class LibBasisUniversalConan(ConanFile):
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
-        rmdir(self, os.path.join(self.source_folder, "webgl")) 
+        rmdir(self, os.path.join(self.source_folder, "webgl"))
         rmdir(self, os.path.join(self.source_folder, "test_files"))
         apply_conandata_patches(self)
 
     def generate(self):
         tc = CMakeToolchain(self)
-        tc.variables["SSE4"] = self.options.use_sse4
-        tc.variables["ZSTD"] = self.options.with_zstd
+        tc.variables["BASISU_SSE"] = self.options.use_sse4
+        tc.variables["BASISU_ZSTD"] = self.options.with_zstd
         tc.variables["BASISU_BUILD_ENCODER"] = self.options.build_encoder
         tc.variables["BASISU_BUILD_DECODER"] = self.options.build_decoder
-        tc.variables["OPENCL"] = False
-        tc.variables["EXAMPLES"] = False
         tc.generate()
         tc = CMakeDeps(self)
         tc.generate()
