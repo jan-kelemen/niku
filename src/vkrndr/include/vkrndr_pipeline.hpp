@@ -21,6 +21,10 @@ namespace vkrndr
         [[nodiscard]] constexpr operator VkPipelineLayout() const noexcept;
     };
 
+    void object_name(device_t const& device,
+        pipeline_layout_t const& pipeline_layout,
+        std::string_view name);
+
     void destroy(device_t const& device, pipeline_layout_t const& layout);
 
     struct [[nodiscard]] pipeline_t final

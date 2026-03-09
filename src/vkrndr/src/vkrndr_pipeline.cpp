@@ -9,6 +9,16 @@
 #include <span>
 #include <string_view>
 
+void vkrndr::object_name(device_t const& device,
+    pipeline_layout_t const& pipeline_layout,
+    std::string_view name)
+{
+    object_name(device,
+        VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+        handle_cast(pipeline_layout.handle),
+        name);
+}
+
 void vkrndr::destroy(device_t const& device, pipeline_layout_t const& layout)
 {
     vkDestroyPipelineLayout(device, layout, nullptr);
@@ -45,6 +55,6 @@ void vkrndr::object_name(device_t const& device,
 {
     object_name(device,
         VK_OBJECT_TYPE_PIPELINE,
-        std::bit_cast<uint64_t>(pipeline.handle),
+        handle_cast(pipeline.handle),
         name);
 }

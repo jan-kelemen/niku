@@ -1,6 +1,14 @@
-#ifndef EDITOR_APPLICATION_INCLUDED
-#define EDITOR_APPLICATION_INCLUDED
+#ifndef EDITOR_EDITOR_APPLICATION_INCLUDED
+#define EDITOR_EDITOR_APPLICATION_INCLUDED
 
+#include <camera_controller.hpp>
+
+#include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
+
+#include <ngnwsi_mouse.hpp>
+
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_rendering_context.hpp>
 
 #include <volk.h>
@@ -16,6 +24,11 @@ namespace ngnwsi
     class render_window_t;
     class imgui_layer_t;
 } // namespace ngnwsi
+
+namespace editor
+{
+    struct grid_shader_t;
+} // namespace editor
 
 namespace editor
 {
@@ -53,6 +66,18 @@ namespace editor
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
         std::vector<VkCommandPool> pools_;
         std::vector<VkCommandBuffer> command_buffers_;
+
+        VkDescriptorPool descriptor_pool_{VK_NULL_HANDLE};
+        VkDescriptorSetLayout frame_info_layout_{VK_NULL_HANDLE};
+        std::vector<VkDescriptorSet> frame_info_descriptors_;
+        std::vector<vkrndr::buffer_t> frame_info_buffers_;
+
+        std::unique_ptr<grid_shader_t> grid_shader_;
+
+        ngnwsi::mouse_t mouse_;
+        ngngfx::aircraft_camera_t camera_;
+        ngngfx::perspective_projection_t projection_;
+        camera_controller_t camera_controller_;
     };
 } // namespace editor
 

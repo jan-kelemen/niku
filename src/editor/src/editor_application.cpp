@@ -1,5 +1,7 @@
 #include <editor_application.hpp>
 
+#include <grid_shader.hpp>
+
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
@@ -9,6 +11,8 @@
 
 #include <vkrndr_commands.hpp>
 #include <vkrndr_cpu_pacing.hpp>
+#include <vkrndr_debug_utils.hpp>
+#include <vkrndr_descriptors.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_error_code.hpp> // IWYU pragma: keep
 #include <vkrndr_execution_port.hpp>
@@ -16,11 +20,16 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
+#include <vkrndr_memory.hpp>
+#include <vkrndr_render_pass.hpp>
 #include <vkrndr_rendering_context.hpp>
 #include <vkrndr_swapchain.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <fmt/ranges.h>
+
+#include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 #include <imgui.h>
 
@@ -59,6 +68,62 @@
 namespace
 {
     constexpr auto application_name{"Niku Editor"};
+
+    struct [[nodiscard]] frame_info_t final
+    {
+        glm::mat4 view;
+        glm::mat4 projection;
+        glm::vec3 position;
+    };
+
+    [[nodiscard]] std::expected<VkDescriptorPool, std::error_code>
+    create_descriptor_pool(vkrndr::device_t const& device)
+    {
+        return create_descriptor_pool(device,
+            std::to_array<VkDescriptorPoolSize>({
+                // clang-format off
+                {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = 1000},
+                // clang-format on
+            }),
+            1000,
+            VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
+            .transform_error(vkrndr::make_error_code);
+    }
+
+    [[nodiscard]] std::expected<VkDescriptorSetLayout, std::error_code>
+    create_frame_info_descriptor_layout(vkrndr::device_t const& device)
+    {
+        static constexpr VkDescriptorSetLayoutBinding position_binding{
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        };
+
+        return create_descriptor_set_layout(device,
+            cppext::as_span(position_binding))
+            .transform_error(vkrndr::make_error_code);
+    }
+
+    void update_frame_info_descriptor_set(vkrndr::device_t const& device,
+        VkDescriptorSet const descriptor_set,
+        vkrndr::buffer_t const& buffer)
+    {
+        VkDescriptorBufferInfo const buffer_info{
+            vkrndr::buffer_descriptor(buffer)};
+
+        VkWriteDescriptorSet const write_info{
+            .sType = vku::GetSType<VkWriteDescriptorSet>(),
+            .dstSet = descriptor_set,
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .pBufferInfo = &buffer_info,
+        };
+
+        vkUpdateDescriptorSets(device, 1, &write_info, 0, nullptr);
+    }
 } // namespace
 
 editor::application_t::application_t(
@@ -143,7 +208,7 @@ editor::application_t::application_t(
     }
     else
     {
-        auto const message{device.error().message()};
+        auto const& message{device.error().message()};
         spdlog::error("Failed to create rendering device: {}", message);
         throw std::runtime_error{message};
     }
@@ -169,9 +234,47 @@ editor::application_t::application_t(
             *swapchain,
             present_queue);
 
-    pools_.reserve(swapchain->frames_in_flight());
-    command_buffers_.reserve(swapchain->frames_in_flight());
-    for (uint32_t i{}; i != swapchain->frames_in_flight(); ++i)
+    if (std::expected<VkDescriptorPool, std::error_code> const result{
+            create_descriptor_pool(*rendering_context_.device)})
+    {
+        descriptor_pool_ = *result;
+        VKRNDR_IF_DEBUG_UTILS(object_name(*rendering_context_.device,
+            VK_OBJECT_TYPE_DESCRIPTOR_POOL,
+            vkrndr::handle_cast(*result),
+            "Global Descriptor Pool"));
+    }
+    else
+    {
+        auto const& message{result.error().message()};
+        spdlog::error("Failed to create frame descriptor set layout: {}",
+            message);
+        throw std::runtime_error{message};
+    }
+
+    if (std::expected<VkDescriptorSetLayout, std::error_code> const result{
+            create_frame_info_descriptor_layout(*rendering_context_.device)})
+    {
+        frame_info_layout_ = *result;
+        VKRNDR_IF_DEBUG_UTILS(object_name(*rendering_context_.device,
+            VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT,
+            vkrndr::handle_cast(*result),
+            "Frame Descriptor Set Layout"));
+    }
+    else
+    {
+        auto const& message{result.error().message()};
+        spdlog::error("Failed to create frame descriptor set layout: {}",
+            message);
+        throw std::runtime_error{message};
+    }
+
+    uint32_t const frames_in_flight{swapchain->frames_in_flight()};
+    pools_.reserve(frames_in_flight);
+    command_buffers_.reserve(frames_in_flight);
+    frame_info_descriptors_.reserve(frames_in_flight);
+    frame_info_buffers_.reserve(frames_in_flight);
+
+    for (uint32_t i{}; i != frames_in_flight; ++i)
     {
         if (std::expected<VkCommandPool, std::error_code> pool{
                 create_command_pool(*rendering_context_.device,
@@ -206,12 +309,111 @@ editor::application_t::application_t(
                 message);
             throw std::runtime_error{message};
         }
+
+        if (VkResult const result{
+                vkrndr::allocate_descriptor_sets(*rendering_context_.device,
+                    descriptor_pool_,
+                    cppext::as_span(frame_info_layout_),
+                    cppext::as_span(
+                        frame_info_descriptors_.emplace_back(VK_NULL_HANDLE)))};
+            !vkrndr::is_success_result(result))
+        {
+            auto const& message{vkrndr::make_error_code(result).message()};
+            spdlog::error("Failed to allocate descriptor set for frame {}: {}",
+                i,
+                message);
+            throw std::runtime_error{message};
+        }
+
+        frame_info_buffers_.push_back(create_buffer(*rendering_context_.device,
+            {.size = sizeof(frame_info_t),
+                .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                .allocation_flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT}));
+
+        update_frame_info_descriptor_set(*rendering_context_.device,
+            frame_info_descriptors_.back(),
+            frame_info_buffers_.back());
+    }
+
+    auto const execute_transfer =
+        [this, &present_queue](
+            std::function<void(VkCommandBuffer)> const& callback)
+        -> std::expected<void, std::error_code>
+    {
+        VkCommandBuffer command_buffer{VK_NULL_HANDLE};
+
+        if (std::expected<void, std::error_code> const begin_result{
+                begin_single_time_commands(*rendering_context_.device,
+                    pools_.front(),
+                    cppext::as_span(command_buffer))};
+            !begin_result)
+        {
+            return begin_result;
+        }
+
+        callback(command_buffer);
+
+        if (std::expected<void, std::error_code> const end_result{
+                end_single_time_commands(*rendering_context_.device,
+                    pools_.front(),
+                    present_queue,
+                    cppext::as_span(command_buffer))};
+            !end_result)
+        {
+            return end_result;
+        }
+
+        return {};
+    };
+
+    if (std::expected<grid_shader_t, std::error_code> grid_shader_result{
+            create_grid_shader(*rendering_context_.device,
+                swapchain->image_format(),
+                execute_transfer)})
+    {
+        grid_shader_ = std::make_unique<grid_shader_t>(
+            std::move(grid_shader_result).value());
+    }
+    else
+    {
+        auto const& message{grid_shader_result.error().message()};
+        spdlog::error("Failed to create grid shader: {}", message);
+        throw std::runtime_error{message};
     }
 }
 
 editor::application_t::~application_t()
 {
     vkDeviceWaitIdle(*rendering_context_.device);
+
+    if (grid_shader_)
+    {
+        destroy(*rendering_context_.device, *grid_shader_);
+    }
+
+    std::ranges::for_each(frame_info_buffers_,
+        [&d = *rendering_context_.device](vkrndr::buffer_t const& b)
+        { destroy(d, b); });
+
+    std::ranges::for_each(frame_info_descriptors_,
+        [this, &d = *rendering_context_.device](VkDescriptorSet const s)
+        {
+            vkrndr::free_descriptor_sets(d,
+                descriptor_pool_,
+                cppext::as_span(s));
+        });
+
+    vkDestroyDescriptorSetLayout(*rendering_context_.device,
+        frame_info_layout_,
+        nullptr);
+
+    vkDestroyDescriptorPool(*rendering_context_.device,
+        descriptor_pool_,
+        nullptr);
 
     command_buffers_.clear();
 
@@ -237,6 +439,8 @@ bool editor::application_t::handle_event(SDL_Event const& event)
 {
     [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
 
+    camera_controller_.handle_event(event);
+
     return event.type != SDL_EVENT_QUIT &&
         event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED;
 }
@@ -250,13 +454,27 @@ bool editor::application_t::update()
         return true;
     }
 
+    // TODO-JK: Fix this with proper delta time value
+    camera_controller_.update(0.083f);
+    projection_.update(camera_.view_matrix());
+
     uint32_t const index{main_window_->frame_in_flight().index};
-    VkCommandBuffer& command_buffer{command_buffers_[index]};
+
+    {
+        vkrndr::mapped_memory_t map{
+            map_memory(*rendering_context_.device, frame_info_buffers_[index])};
+        *map.as<frame_info_t>() = {.view = camera_.view_matrix(),
+            .projection = projection_.projection_matrix(),
+            .position = camera_.position()};
+        unmap_memory(*rendering_context_.device, &map);
+    }
 
     imgui_->begin_frame();
     ImGui::ShowMetricsWindow();
+    camera_controller_.draw_imgui();
     imgui_->end_frame();
 
+    VkCommandBuffer& command_buffer{command_buffers_[index]};
     VkCommandBufferBeginInfo const begin_info{
         .sType = vku::GetSType<VkCommandBufferBeginInfo>(),
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
@@ -281,6 +499,48 @@ bool editor::application_t::update()
     VkRect2D const scissor{{0, 0}, vkrndr::to_2d_extent(target_image->extent)};
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
+    {
+        auto const barrier{vkrndr::with_layout(
+            vkrndr::with_access(
+                vkrndr::on_stage(image_barrier(*target_image),
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT),
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)};
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+    }
+
+    {
+        vkrndr::render_pass_t grid_color_pass;
+        grid_color_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
+            VK_ATTACHMENT_STORE_OP_STORE,
+            target_image->view,
+            VkClearValue{0.0f, 0.0f, 0.0f, 0.0f});
+
+        vkCmdBindDescriptorSets(command_buffer,
+            grid_shader_->pipeline.type,
+            grid_shader_->pipeline_layout,
+            0,
+            1,
+            &frame_info_descriptors_[index],
+            0,
+            nullptr);
+
+        [[maybe_unused]] vkrndr::render_pass_guard_t const guard{
+            grid_color_pass.begin(command_buffer,
+                VkRect2D{.offset = {0, 0},
+                    .extent = vkrndr::to_2d_extent(target_image->extent)})};
+        draw(*grid_shader_, command_buffer);
+    }
+
+    {
+        auto const barrier{vkrndr::with_access(
+            vkrndr::on_stage(image_barrier(*target_image),
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT),
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)};
+        vkrndr::wait_for(command_buffer, {}, {}, cppext::as_span(barrier));
+    }
     vkrndr::wait_for_color_attachment_read(*target_image, command_buffer);
 
     imgui_->render(command_buffer, *target_image);
@@ -294,7 +554,7 @@ bool editor::application_t::update()
     return true;
 }
 
-editor::application_t::application_t()
+editor::application_t::application_t() : camera_controller_{camera_, mouse_}
 {
     if (!SDL_Init(SDL_INIT_VIDEO))
     {

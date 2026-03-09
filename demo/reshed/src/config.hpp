@@ -3,7 +3,7 @@
 
 namespace reshed
 {
-// NOLINTBEGIN(misc-redundant-expression)
+    // NOLINTBEGIN(misc-redundant-expression)
 #ifndef RESHED_SHADER_DEBUG_SYMBOLS
 #define RESHED_SHADER_DEBUG_SYMBOLS 0
 #endif
@@ -14,6 +14,7 @@ namespace reshed
 #define RESHED_SHADER_OPTIMIZATION 0
 #endif
     constexpr bool enable_shader_optimization{RESHED_SHADER_OPTIMIZATION != 0};
+    // NOLINTEND(misc-redundant-expression)
 } // namespace reshed
 
 #endif

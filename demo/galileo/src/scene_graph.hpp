@@ -110,10 +110,6 @@ namespace galileo
         };
 
     private:
-        [[nodiscard]] size_t calculate_unique_draws(
-            ngnast::scene_model_t const& model);
-
-    private:
         vkrndr::backend_t* backend_;
 
         VkDescriptorSetLayout descriptor_set_layout_{VK_NULL_HANDLE};

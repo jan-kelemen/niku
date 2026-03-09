@@ -46,7 +46,7 @@ vkrndr::cpu_pacing_t::cpu_pacing_t(device_t const& device,
 
         VKRNDR_IF_DEBUG_UTILS(object_name(*device_,
             VK_OBJECT_TYPE_FENCE,
-            std::bit_cast<uint64_t>(frame.submit_fence),
+            handle_cast(frame.submit_fence),
             fmt::format("CPU pacing fence {}", frame.index)));
     }
 }

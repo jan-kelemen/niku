@@ -112,6 +112,6 @@ void vkrndr::object_name(device_t const& device,
 {
     object_name(device,
         VK_OBJECT_TYPE_BUFFER,
-        std::bit_cast<uint64_t>(buffer.handle),
+        handle_cast(buffer.handle),
         name);
 }

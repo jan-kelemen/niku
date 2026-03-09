@@ -3,7 +3,7 @@
 
 namespace heatx
 {
-// NOLINTBEGIN(misc-redundant-expression)
+    // NOLINTBEGIN(misc-redundant-expression)
 #ifndef HEATX_SHADER_DEBUG_SYMBOLS
 #define HEATX_SHADER_DEBUG_SYMBOLS 0
 #endif
@@ -13,6 +13,7 @@ namespace heatx
 #define HEATX_SHADER_OPTIMIZATION 0
 #endif
     constexpr bool enable_shader_optimization{HEATX_SHADER_OPTIMIZATION != 0};
+    // NOLINTEND(misc-redundant-expression)
 } // namespace heatx
 
 #endif

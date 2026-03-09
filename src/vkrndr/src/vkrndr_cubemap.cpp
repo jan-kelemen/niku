@@ -153,6 +153,6 @@ void vkrndr::object_name(device_t const& device,
 {
     object_name(device,
         VK_OBJECT_TYPE_IMAGE,
-        std::bit_cast<uint64_t>(cubemap.image),
+        handle_cast(cubemap.image),
         name);
 }

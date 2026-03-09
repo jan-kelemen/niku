@@ -95,6 +95,6 @@ void vkrndr::object_name(device_t const& device,
 {
     object_name(device,
         VK_OBJECT_TYPE_SHADER_MODULE,
-        std::bit_cast<uint64_t>(shader_module.handle),
+        handle_cast(shader_module.handle),
         name);
 }

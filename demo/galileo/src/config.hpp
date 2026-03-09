@@ -3,7 +3,7 @@
 
 namespace galileo
 {
-// NOLINTBEGIN(misc-redundant-expression)
+    // NOLINTBEGIN(misc-redundant-expression)
 #ifndef GALILEO_SHADER_DEBUG_SYMBOLS
 #define GALILEO_SHADER_DEBUG_SYMBOLS 0
 #endif
@@ -14,6 +14,7 @@ namespace galileo
 #define GALILEO_SHADER_OPTIMIZATION 0
 #endif
     constexpr bool enable_shader_optimization{GALILEO_SHADER_OPTIMIZATION != 0};
+    // NOLINTEND(misc-redundant-expression)
 } // namespace galileo
 
 #endif
