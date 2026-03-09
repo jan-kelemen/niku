@@ -9,7 +9,7 @@ runs:
   using: 'composite'
   steps:
       - name: Checkout IWYU repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           repository: include-what-you-use/include-what-you-use
           path: iwyu 
@@ -19,7 +19,7 @@ runs:
         shell: bash
         run: |
           cmake -S iwyu -B iwyu/build -DCMAKE_PREFIX_PATH=/usr/lib/llvm-${{ inputs.version }} -DCMAKE_BUILD_TYPE=Release -Wno-dev
-          cmake --build iwyu/build -j4
+          cmake --build iwyu/build --parallel
           sudo cmake --install iwyu/build
 
       - name: Cleanup
