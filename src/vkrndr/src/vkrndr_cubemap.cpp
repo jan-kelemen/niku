@@ -10,8 +10,6 @@
 
 #include <volk.h>
 
-#include <bit>
-
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 
 void vkrndr::destroy(device_t const& device, cubemap_t const& cubemap)

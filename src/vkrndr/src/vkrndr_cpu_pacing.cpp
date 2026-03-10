@@ -9,7 +9,6 @@
 
 #include <vulkan/utility/vk_struct_helper.hpp>
 
-#include <bit>
 #include <cstdint>
 #include <system_error>
 #include <utility> // IWYU pragma: keep

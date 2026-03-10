@@ -1,14 +1,19 @@
 #include <editor_application.hpp>
 
+#include <camera_controller.hpp>
 #include <grid_shader.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 
+#include <ngngfx_aircraft_camera.hpp>
+#include <ngngfx_perspective_projection.hpp>
+
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_cpu_pacing.hpp>
 #include <vkrndr_debug_utils.hpp>
@@ -21,9 +26,11 @@
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
 #include <vkrndr_render_pass.hpp>
 #include <vkrndr_rendering_context.hpp>
 #include <vkrndr_swapchain.hpp>
+#include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <fmt/ranges.h>
@@ -43,12 +50,15 @@
 
 #include <volk.h>
 
+#include <vma_impl.hpp>
+
 #include <vulkan/utility/vk_struct_helper.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <expected>
+#include <functional>
 #include <iterator>
 #include <optional>
 #include <stdexcept>
@@ -57,13 +67,6 @@
 #include <system_error>
 #include <utility>
 #include <vector>
-
-// IWYU pragma: no_include <fmt/base.h>
-// IWYU pragma: no_include <fmt/format.h>
-// IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
-// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
-// IWYU pragma: no_include <map>
-// IWYU pragma: no_include <set>
 
 namespace
 {
@@ -515,7 +518,7 @@ bool editor::application_t::update()
         grid_color_pass.with_color_attachment(VK_ATTACHMENT_LOAD_OP_CLEAR,
             VK_ATTACHMENT_STORE_OP_STORE,
             target_image->view,
-            VkClearValue{0.0f, 0.0f, 0.0f, 0.0f});
+            VkClearValue{.color = {{0.0f, 0.0f, 0.0f, 0.0f}}});
 
         vkCmdBindDescriptorSets(command_buffer,
             grid_shader_->pipeline.type,

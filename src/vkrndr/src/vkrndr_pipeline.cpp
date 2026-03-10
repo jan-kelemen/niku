@@ -4,7 +4,6 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <bit>
 #include <cstdint>
 #include <span>
 #include <string_view>

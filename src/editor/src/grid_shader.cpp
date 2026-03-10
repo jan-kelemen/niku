@@ -6,12 +6,15 @@
 
 #include <vkglsl_shader_set.hpp>
 
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_debug_utils.hpp>
 #include <vkrndr_device.hpp>
 #include <vkrndr_graphics_pipeline_builder.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_pipeline.hpp>
 #include <vkrndr_pipeline_layout_builder.hpp>
+#include <vkrndr_shader_module.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -22,9 +25,18 @@
 #include <glm/vec4.hpp>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <span>
 #include <system_error>
+#include <utility>
+
+// IWYU pragma: no_include <boost/scope/exception_checker.hpp>
+// IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_forward_declare VkDescriptorSet_T
+
+struct VkDescriptorSetLayout_T;
 
 namespace
 {
@@ -33,8 +45,8 @@ namespace
         glm::vec4 position;
     };
 
-    static constexpr VkDeviceSize vertices_size{4 * sizeof(vertex_t)};
-    static constexpr VkDeviceSize indices_size{6 * sizeof(uint32_t)};
+    constexpr VkDeviceSize vertices_size{4 * sizeof(vertex_t)};
+    constexpr VkDeviceSize indices_size{6 * sizeof(uint32_t)};
 
     constexpr std::span<VkVertexInputBindingDescription const>
     binding_description()
@@ -213,10 +225,11 @@ editor::create_grid_shader(vkrndr::device_t const& device,
         destroy_pipeline_layout.set_active(false);
         destroy_pipeline.set_active(false);
 
-        return rv;
+        return std::move(rv);
     }
     else
     {
+        // NOLINTNEXTLINE(readability-else-after-return)
         return std::unexpected{quad_buffer_result.error()};
     }
 }

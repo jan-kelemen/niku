@@ -8,7 +8,6 @@
 
 #include <ngnwsi_mouse.hpp>
 
-#include <vkrndr_buffer.hpp>
 #include <vkrndr_rendering_context.hpp>
 
 #include <volk.h>
@@ -25,6 +24,11 @@ namespace ngnwsi
     class imgui_layer_t;
 } // namespace ngnwsi
 
+namespace vkrndr
+{
+    struct buffer_t;
+} // namespace vkrndr
+
 namespace editor
 {
     struct grid_shader_t;
@@ -39,7 +43,7 @@ namespace editor
 
         application_t(application_t const&) = delete;
 
-        application_t(application_t&&) noexcept = default;
+        application_t(application_t&&) noexcept = delete;
 
     public:
         ~application_t();
@@ -52,7 +56,7 @@ namespace editor
     public:
         application_t& operator=(application_t const&) = delete;
 
-        application_t& operator=(application_t&&) noexcept = default;
+        application_t& operator=(application_t&&) noexcept = delete;
 
     private:
         application_t();

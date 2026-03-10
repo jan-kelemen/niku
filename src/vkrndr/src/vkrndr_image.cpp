@@ -8,8 +8,6 @@
 
 #include <boost/scope/scope_exit.hpp>
 
-#include <bit>
-
 void vkrndr::destroy(device_t const& device, image_t const& image)
 {
     vkDestroyImageView(device, image.view, nullptr);

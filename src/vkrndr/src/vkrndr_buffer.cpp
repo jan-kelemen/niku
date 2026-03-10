@@ -8,8 +8,6 @@
 
 #include <vulkan/utility/vk_struct_helper.hpp>
 
-#include <bit>
-
 void vkrndr::destroy(device_t const& device, buffer_t const& buffer)
 {
     vmaDestroyBuffer(device.allocator, buffer, buffer.allocation);
