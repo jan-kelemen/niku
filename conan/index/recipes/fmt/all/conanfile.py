@@ -1,5 +1,3 @@
-import os
-
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import apply_conandata_patches, copy, export_conandata_patches, get, rmdir
@@ -7,6 +5,9 @@ from conan.tools.layout import basic_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
 from conan.tools.microsoft import is_msvc
+from pathlib import Path
+import shutil
+import os
 
 required_conan_version = ">=2.1"
 
@@ -119,6 +120,10 @@ class FmtConan(ConanFile):
             rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
             rmdir(self, os.path.join(self.package_folder, "res"))
             rmdir(self, os.path.join(self.package_folder, "share"))
+
+            if self.settings.os == "Windows":
+                for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                    shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         target = "fmt-header-only" if self.options.header_only else "fmt"

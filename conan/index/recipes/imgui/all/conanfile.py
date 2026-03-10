@@ -1,8 +1,9 @@
-import os
-
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import apply_conandata_patches, copy, export_conandata_patches, get, replace_in_file
+from pathlib import Path
+import os
+import shutil
 
 required_conan_version = ">2.0"
 
@@ -95,6 +96,10 @@ class IMGUIConan(ConanFile):
             src=os.path.join(self.source_folder, "misc", "freetype"))
         cmake = CMake(self)
         cmake.install()
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         _is_docking_branch = "docking" in str(self.version)

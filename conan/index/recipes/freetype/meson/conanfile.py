@@ -9,6 +9,7 @@ from conan.tools.gnu import PkgConfigDeps
 from conan.tools.layout import basic_layout
 from conan.tools.meson import Meson, MesonToolchain
 from conan.tools.scm import Version
+from pathlib import Path
 import os
 import re
 import shutil
@@ -178,8 +179,6 @@ class FreetypeConan(ConanFile):
         copy(self, "GPLv2.TXT", doc_folder, license_folder)
         copy(self, "LICENSE.TXT", doc_folder, license_folder)
 
-        rm(self, "*.pdb", os.path.join(self.package_folder, "bin"))
-
         rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
         rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
         rmdir(self, os.path.join(self.package_folder, "share"))
@@ -188,6 +187,10 @@ class FreetypeConan(ConanFile):
         )
 
         fix_apple_shared_install_name(self)
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def _create_cmake_module_variables(self, module_file):
         save(self, module_file, "set(FREETYPE_FOUND TRUE)\n")

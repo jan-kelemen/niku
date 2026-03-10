@@ -4,7 +4,9 @@ from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.env import VirtualBuildEnv
 from conan.tools.files import copy, get, replace_in_file, rm, rmdir, save, apply_conandata_patches, export_conandata_patches
 from conan.tools.scm import Version
+from pathlib import Path
 import os
+import shutil
 
 required_conan_version = ">2.0"
 
@@ -133,12 +135,17 @@ class SpirvtoolsConan(ConanFile):
         rmdir(self, os.path.join(self.package_folder, "SPIRV-Tools-lint"))
         rmdir(self, os.path.join(self.package_folder, "SPIRV-Tools-diff"))
         rmdir(self, os.path.join(self.package_folder, "SPIRV-Tools-tools"))
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
+
         if self.options.shared:
             for file_name in [
                 "*SPIRV-Tools", "*SPIRV-Tools-opt", "*SPIRV-Tools-link",
                 "*SPIRV-Tools-reduce", "*SPIRV-Tools-lint",
             ]:
-                for ext in [".a", ".lib"]:
+                for ext in [".a", ".lib", ".pdb"]:
                     rm(self, f"{file_name}{ext}", os.path.join(self.package_folder, "lib"))
         else:
             rm(self, "*SPIRV-Tools-shared.dll", os.path.join(self.package_folder, "bin"))

@@ -2,8 +2,10 @@ from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import collect_libs, copy, get, replace_in_file, rmdir, rm
 from conan.tools.scm import Version
+from pathlib import Path
 import glob
 import os
+import shutil
 
 required_conan_version = ">=2.1"
 
@@ -80,6 +82,10 @@ class ZstdConan(ConanFile):
             for lib in glob.glob(os.path.join(self.package_folder, "lib", "*.a")):
                 if not lib.endswith(".dll.a"):
                     os.remove(lib)
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         zstd_cmake = "libzstd_shared" if self.options.shared else "libzstd_static"

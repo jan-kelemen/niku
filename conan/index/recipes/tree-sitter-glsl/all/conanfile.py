@@ -1,8 +1,9 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, cmake_layout
 from conan.tools.files import get, copy
-
+from pathlib import Path
 import os
+import shutil
 
 required_conan_version = ">=2.4"
 
@@ -59,6 +60,10 @@ class TreeSitterGlslConan(ConanFile):
         )
         cmake = CMake(self)
         cmake.install()
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         self.cpp_info.libs = ["tree-sitter-glsl"]
