@@ -1,8 +1,9 @@
-import os
-
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout
 from conan.tools.files import get, copy, rmdir
+from pathlib import Path
+import os
+import shutil
 
 required_conan_version = ">=1.53.0"
 
@@ -66,6 +67,10 @@ class TreeSitterConan(ConanFile):
 
         rmdir(self, os.path.join(self.package_folder, "share"))
         rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         self.cpp_info.libs = ["tree-sitter"]

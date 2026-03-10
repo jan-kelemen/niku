@@ -4,8 +4,10 @@ from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import copy, get, rmdir, save
 from conan.tools.scm import Version
+from pathlib import Path
 import os
 import textwrap
+import shutil
 
 required_conan_version = ">=2.0"
 
@@ -109,6 +111,10 @@ class Catch2Conan(ConanFile):
                 src=os.path.join(self.source_folder, "extras"),
                 dst=os.path.join(self.package_folder, "lib", "cmake", "Catch2"),
             )
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
         # TODO: to remove in conan v2 once legacy generators removed
         self._create_cmake_module_alias_targets(

@@ -5,7 +5,9 @@ from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps, cmake_layout
 from conan.tools.files import get, copy, rmdir, replace_in_file
 from conan.tools.microsoft import check_min_vs, is_msvc, is_msvc_static_runtime
 from conan.tools.scm import Version
+from pathlib import Path
 import os
+import shutil
 
 required_conan_version = ">2.0"
 
@@ -157,6 +159,10 @@ class SpdlogConan(ConanFile):
             rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
             rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
             rmdir(self, os.path.join(self.package_folder, "lib", "spdlog", "cmake"))
+
+            if self.settings.os == "Windows":
+                for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                    shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         target = "spdlog_header_only" if self.options.header_only else "spdlog"

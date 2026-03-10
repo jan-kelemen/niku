@@ -2,8 +2,9 @@ from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.files import get, copy, rmdir
 from conan.tools.build import check_min_cppstd
-
+from pathlib import Path
 import os
+import shutil
 
 required_conan_version = ">2.0"
 
@@ -76,6 +77,10 @@ class fastgltf(ConanFile):
         cmake.install()
         copy(self, "LICENSE*", src=self.source_folder, dst=os.path.join(self.package_folder, "licenses"))
         rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         self.cpp_info.libs = ["fastgltf"]

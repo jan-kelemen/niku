@@ -9,8 +9,9 @@ from conan.tools.layout import basic_layout
 from conan.tools.meson import Meson, MesonToolchain
 from conan.tools.microsoft import is_msvc_static_runtime, is_msvc
 from conan.tools.scm import Version
-
+from pathlib import Path
 import os
+import shutil
 
 required_conan_version = ">=2.1"
 
@@ -175,6 +176,10 @@ class HarfbuzzConan(ConanFile):
         rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
         fix_apple_shared_install_name(self)
         fix_msvc_libname(self)
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "harfbuzz")

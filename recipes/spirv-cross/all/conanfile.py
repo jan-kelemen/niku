@@ -3,7 +3,9 @@ from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import stdcpp_library
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import copy, get, rm, rmdir, save
+from pathlib import Path
 import os
+import shutil
 import textwrap
 
 required_conan_version = ">2.0"
@@ -107,7 +109,11 @@ class SpirvCrossConan(ConanFile):
         rmdir(self, os.path.join(self.package_folder, "lib", "pkgconfig"))
         rmdir(self, os.path.join(self.package_folder, "share"))
         rm(self, "*.ilk", os.path.join(self.package_folder, "bin"))
-        rm(self, "*.pdb", os.path.join(self.package_folder, "bin"))
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
+
         if self.options.shared and self.options.build_executable:
             for static_lib in [
                 "spirv-cross-core", "spirv-cross-glsl", "spirv-cross-hlsl", "spirv-cross-msl",

@@ -1,7 +1,9 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import apply_conandata_patches, copy, get, export_conandata_patches, save
+from pathlib import Path
 import os
+import shutil
 
 required_conan_version = ">=1.53.0"
 
@@ -68,6 +70,10 @@ class MikkTSpaceConan(ConanFile):
         save(self, os.path.join(self.package_folder, "licenses", "LICENSE"), self._extracted_license)
         cmake = CMake(self)
         cmake.install()
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         self.cpp_info.libs = ["mikktspace"]

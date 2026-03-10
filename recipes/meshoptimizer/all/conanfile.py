@@ -2,7 +2,9 @@ from conan import ConanFile
 from conan.tools.build import stdcpp_library
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import copy, get, rm, rmdir
+from pathlib import Path
 import os
+import shutil
 
 required_conan_version = ">2.0"
 
@@ -56,6 +58,10 @@ class MeshOptimizerConan(ConanFile):
         cmake.install()
         rm(self, "*.pdb", os.path.join(self.package_folder, "bin"))
         rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
+
+        if self.settings.os == "Windows":
+            for symbol_file in Path(self.build_folder).rglob("*.pdb"):
+                shutil.copy2(symbol_file, os.path.join(self.package_folder, "lib", symbol_file.name))
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "meshoptimizer")
