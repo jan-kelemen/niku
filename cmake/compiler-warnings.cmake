@@ -54,6 +54,7 @@ set(CLANG_WARNINGS
 
 set(CLANG_WARNINGS_DISABLE
     -Wno-missing-field-initializers
+    -Wno-c2y-extensions # https://github.com/catchorg/Catch2/issues/3076
 )
 
 set(GCC_WARNINGS
