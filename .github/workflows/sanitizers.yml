@@ -16,7 +16,7 @@ jobs:
     
     env:
       GCC_VER: 14
-      CLANG_VER: 21
+      CLANG_VER: 22
 
     steps:
       - name: Checkout repository from github
@@ -25,12 +25,17 @@ jobs:
       - name: Install gcc-${{ env.GCC_VER }}
         uses: ./.github/actions/install-gcc
 
+      - name: Install clang-21
+        uses: ./.github/actions/install-clang
+        with:
+          version: 21
+          dev: true
+
       - name: Install clang-${{ env.CLANG_VER }}
         uses: ./.github/actions/install-clang
         with:
           version: ${{ env.CLANG_VER }}
           clang-tidy: true
-          dev: true
 
       - name: Install APT packages
         uses: ./.github/actions/install-apt-packages

@@ -118,7 +118,5 @@ void vkrndr::object_name(device_t const& device,
     image_t const& image,
     std::string_view const name)
 {
-    object_name(device,
-        VK_OBJECT_TYPE_IMAGE, handle_cast(image.handle),
-        name);
+    object_name(device, VK_OBJECT_TYPE_IMAGE, handle_cast(image.handle), name);
 }

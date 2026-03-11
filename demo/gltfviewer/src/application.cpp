@@ -205,8 +205,10 @@ namespace
 
 gltfviewer::application_t::application_t(int const argc,
     char const** const argv)
-    : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true}}}
+    : ngnwsi::application_t{ngnwsi::startup_params_t{.init_subsystems =
+                                                         {
+                                                             .video = true,
+                                                         }}}
     , render_window_{std::make_unique<ngnwsi::render_window_t>("gltfviewer",
           SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY,
           512,

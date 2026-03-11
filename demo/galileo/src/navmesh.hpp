@@ -28,7 +28,7 @@ namespace galileo
     {
         watershed,
         monotone,
-        layers
+        layers,
     };
 
     struct [[nodiscard]] polymesh_parameters_t final

@@ -149,8 +149,5 @@ void vkrndr::object_name(device_t const& device,
     cubemap_t const& cubemap,
     std::string_view const name)
 {
-    object_name(device,
-        VK_OBJECT_TYPE_IMAGE,
-        handle_cast(cubemap.image),
-        name);
+    object_name(device, VK_OBJECT_TYPE_IMAGE, handle_cast(cubemap.image), name);
 }

@@ -51,8 +51,10 @@
 // IWYU pragma: no_include <string_view>
 
 reshed::application_t::application_t()
-    : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true}}}
+    : ngnwsi::application_t{ngnwsi::startup_params_t{.init_subsystems =
+                                                         {
+                                                             .video = true,
+                                                         }}}
     , freetype_context_{ngntxt::freetype_context_t::create()}
 {
     auto render_window{std::make_unique<ngnwsi::render_window_t>("reshed",

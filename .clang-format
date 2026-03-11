@@ -1,6 +1,6 @@
 ﻿---
 BasedOnStyle: WebKit
-AlignAfterOpenBracket: DontAlign
+AlignAfterOpenBracket: 'false'
 AlignArrayOfStructures: None
 AlignConsecutiveAssignments: 'false'
 AlignConsecutiveDeclarations: 'false'
@@ -46,7 +46,7 @@ DerivePointerAlignment: 'false'
 DisableFormat: 'false'
 EmptyLineBeforeAccessModifier: Always
 EmptyLineAfterAccessModifier: Never
-EnumTrailingComma: Leave
+EnumTrailingComma: Insert
 FixNamespaceComments: 'true'
 IncludeBlocks: Preserve
 IncludeIsMainRegex: '"(.t)?$"'
@@ -59,6 +59,7 @@ IndentWidth: '4'
 IndentWrappedFunctionNames: 'false'
 InsertBraces: 'false'
 InsertNewlineAtEOF: 'true'
+InsertTrailingCommas: Wrapped
 KeepEmptyLines:
   AtEndOfFile: 'false'
   AtStartOfBlock: 'false'
@@ -68,6 +69,11 @@ Language: Cpp
 LambdaBodyIndentation: Signature
 MaxEmptyLinesToKeep: '1'
 NamespaceIndentation: All
+NumericLiteralCase:
+  ExponentLetter: Lower
+  HexDigit: Upper
+  Prefix: Lower
+  Suffix: Lower
 PackConstructorInitializers: CurrentLine
 PenaltyBreakBeforeFirstCallParameter: '0'
 PPIndentWidth: '-1'
@@ -89,6 +95,7 @@ SpaceBeforeAssignmentOperators: 'true'
 SpaceBeforeCaseColon: 'false'
 SpaceBeforeCpp11BracedList: 'false'
 SpaceBeforeParens: ControlStatements
+SpaceInEmptyBraces: Block
 SpaceInEmptyParentheses: 'false'
 SpacesBeforeTrailingComments: '1'
 SpacesInAngles: 'false'

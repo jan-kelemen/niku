@@ -209,8 +209,10 @@ namespace
 } // namespace
 
 heatx::application_t::application_t(int argc, char const** argv)
-    : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true},
+    : ngnwsi::application_t{ngnwsi::startup_params_t{.init_subsystems =
+                                                         {
+                                                             .video = true,
+                                                         },
           .command_line_parameters = {argv, cppext::narrow<size_t>(argc)}}}
     , camera_controller_{camera_, mouse_}
     , render_window_{std::make_unique<ngnwsi::render_window_t>("heatx",

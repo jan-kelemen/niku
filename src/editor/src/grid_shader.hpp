@@ -7,8 +7,8 @@
 #include <volk.h>
 
 #include <expected>
-#include <system_error>
 #include <functional>
+#include <system_error>
 
 namespace vkrndr
 {
@@ -28,7 +28,8 @@ namespace editor
     [[nodiscard]] std::expected<grid_shader_t, std::error_code>
     create_grid_shader(vkrndr::device_t const& device,
         VkFormat color_attachment_format,
-        std::function<std::expected<void, std::error_code>(std::function<void(VkCommandBuffer)> const&)> const&
+        std::function<std::expected<void, std::error_code>(
+            std::function<void(VkCommandBuffer)> const&)> const&
             execute_transfer);
 
     void destroy(vkrndr::device_t const& device, grid_shader_t const& shader);

@@ -14,7 +14,7 @@ namespace ngnast
         out_of_memory,
         export_failed,
         load_transform_failed,
-        unknown
+        unknown,
     };
 
     [[nodiscard]] std::error_code make_error_code(error_t e);

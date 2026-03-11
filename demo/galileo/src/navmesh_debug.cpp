@@ -312,7 +312,7 @@ void galileo::navmesh_debug_t::draw_poly_mesh(rcPolyMesh const& poly_mesh)
                     : j + 1};
 
             auto col{line_color};
-            if ((polygon[vertices_per_polygon + j] & 0xf) != 0xf)
+            if ((polygon[vertices_per_polygon + j] & 0xF) != 0xF)
             {
                 col = glm::vec4{1.0f, 1.0f, 1.0f, 0.5f};
             }

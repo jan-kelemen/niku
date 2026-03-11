@@ -233,8 +233,10 @@ namespace
 } // namespace
 
 galileo::application_t::application_t()
-    : ngnwsi::application_t{ngnwsi::startup_params_t{
-          .init_subsystems = {.video = true}}}
+    : ngnwsi::application_t{ngnwsi::startup_params_t{.init_subsystems =
+                                                         {
+                                                             .video = true,
+                                                         }}}
     , free_camera_controller_{camera_, mouse_}
     , follow_camera_controller_{camera_}
     , random_engine_{std::random_device{}()}

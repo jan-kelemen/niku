@@ -33,7 +33,7 @@ namespace ngntxt
     enum class [[nodiscard]] font_bitmap_indexing_t
     {
         codepoint,
-        glyph
+        glyph,
     };
 
     struct [[nodiscard]] font_bitmap_t final
