@@ -52,11 +52,6 @@ set(CLANG_WARNINGS
     -Wshift-bool
 )
 
-set(CLANG_WARNINGS_DISABLE
-    -Wno-missing-field-initializers
-    -Wno-c2y-extensions # https://github.com/catchorg/Catch2/issues/3076
-)
-
 set(GCC_WARNINGS
     ${GNULIKE_WARNINGS}
     -Wmisleading-indentation # warn if indentation implies blocks where blocks do not exist
@@ -66,8 +61,17 @@ set(GCC_WARNINGS
     -Wuseless-cast # warn if you perform a cast to the same type
 )
 
+set(GNULIKE_WARNINGS_DISABLE
+    -Wno-missing-field-initializers
+)
+
 set(GCC_WARNINGS_DISABLE
-    ${CLANG_WARNINGS_DISABLE}
+    ${GNULIKE_WARNINGS_DISABLE}
+)
+
+set (CLANG_WARNINGS_DISABLE
+    ${GNULIKE_WARNINGS_DISABLE}
+    -Wno-c2y-extensions # https://github.com/catchorg/Catch2/issues/3076
 )
 
 if(MSVC)
