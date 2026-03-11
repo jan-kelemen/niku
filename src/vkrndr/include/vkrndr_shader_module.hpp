@@ -19,7 +19,7 @@ namespace vkrndr
     struct [[nodiscard]] shader_module_t final
     {
         VkShaderModule handle{VK_NULL_HANDLE};
-        VkShaderStageFlagBits stage{};
+        VkShaderStageFlagBits stage{VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM};
         std::string entry_point;
 
         [[nodiscard]] constexpr operator VkShaderModule() const noexcept;

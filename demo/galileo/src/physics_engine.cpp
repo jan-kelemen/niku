@@ -48,6 +48,7 @@ namespace
     // Contact constraint buffer
     constexpr unsigned int max_contact_constraints{1024};
 
+    // NOLINTNEXTLINE(modernize-avoid-variadic-functions)
     void trace(char const* const format_string, ...)
     {
         // NOLINTBEGIN
@@ -93,116 +94,119 @@ namespace
     }
 
     DISABLE_WARNING_POP
-} // namespace
 
-class [[nodiscard]] object_layer_pair_filter final
-    : public JPH::ObjectLayerPairFilter
-{
-    [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer first,
-        JPH::ObjectLayer second) const override
+    class [[nodiscard]] object_layer_pair_filter_t final
+        : public JPH::ObjectLayerPairFilter
     {
-        switch (first)
+    public:
+        [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer first,
+            JPH::ObjectLayer second) const override
         {
-        case galileo::object_layers::non_moving:
-            // Non moving only collides with moving
-            return second == galileo::object_layers::moving;
-        case galileo::object_layers::moving:
-            // Moving collides with everything
-            return true;
-        default:
-            JPH_ASSERT(false);
-            return false;
+            switch (first)
+            {
+            case galileo::object_layers::non_moving:
+                // Non moving only collides with moving
+                return second == galileo::object_layers::moving;
+            case galileo::object_layers::moving:
+                // Moving collides with everything
+                return true;
+            default:
+                JPH_ASSERT(false);
+                return false;
+            }
         }
-    }
-};
+    };
 
-namespace broad_phase_layers
-{
-    constexpr JPH::BroadPhaseLayer non_moving{0};
-    constexpr JPH::BroadPhaseLayer moving{1};
-    constexpr unsigned int count{2};
-} // namespace broad_phase_layers
-
-class [[nodiscard]] broad_phase_layer final
-    : public JPH::BroadPhaseLayerInterface
-{
-public:
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    broad_phase_layer()
+    namespace broad_phase_layers
     {
-        // Create a mapping table from object to broad phase layer
-        object_to_broad_mapping_[galileo::object_layers::non_moving] =
-            broad_phase_layers::non_moving;
-        object_to_broad_mapping_[galileo::object_layers::moving] =
-            broad_phase_layers::moving;
-    }
+        constexpr JPH::BroadPhaseLayer non_moving{0};
+        constexpr JPH::BroadPhaseLayer moving{1};
+        constexpr unsigned int count{2};
+    } // namespace broad_phase_layers
 
-    broad_phase_layer(broad_phase_layer const&) = delete;
-
-    broad_phase_layer(broad_phase_layer&&) noexcept = delete;
-
-public:
-    ~broad_phase_layer() override = default;
-
-public:
-    broad_phase_layer& operator=(broad_phase_layer const&) = delete;
-
-    broad_phase_layer& operator=(broad_phase_layer&&) noexcept = delete;
-
-public:
-    [[nodiscard]] JPH::uint GetNumBroadPhaseLayers() const override
+    class [[nodiscard]] broad_phase_layer_t final
+        : public JPH::BroadPhaseLayerInterface
     {
-        return broad_phase_layers::count;
-    }
+    public:
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+        broad_phase_layer_t()
+        {
+            // Create a mapping table from object to broad phase layer
+            object_to_broad_mapping_[galileo::object_layers::non_moving] =
+                broad_phase_layers::non_moving;
+            object_to_broad_mapping_[galileo::object_layers::moving] =
+                broad_phase_layers::moving;
+        }
 
-    [[nodiscard]] JPH::BroadPhaseLayer GetBroadPhaseLayer(
-        JPH::ObjectLayer object_layer) const override
-    {
-        JPH_ASSERT(object_layer < galileo::object_layers::count);
-        return object_to_broad_mapping_[object_layer];
-    }
+        broad_phase_layer_t(broad_phase_layer_t const&) = delete;
+
+        broad_phase_layer_t(broad_phase_layer_t&&) noexcept = delete;
+
+    public:
+        ~broad_phase_layer_t() override = default;
+
+    public:
+        broad_phase_layer_t& operator=(broad_phase_layer_t const&) = delete;
+
+        broad_phase_layer_t& operator=(broad_phase_layer_t&&) noexcept = delete;
+
+    public:
+        [[nodiscard]] JPH::uint GetNumBroadPhaseLayers() const override
+        {
+            return broad_phase_layers::count;
+        }
+
+        [[nodiscard]] JPH::BroadPhaseLayer GetBroadPhaseLayer(
+            JPH::ObjectLayer object_layer) const override
+        {
+            JPH_ASSERT(object_layer < galileo::object_layers::count);
+            return object_to_broad_mapping_[object_layer];
+        }
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    [[nodiscard]] char const* GetBroadPhaseLayerName(
-        JPH::BroadPhaseLayer layer) const override
-    {
-        switch ((JPH::BroadPhaseLayer::Type) layer)
+        [[nodiscard]] char const* GetBroadPhaseLayerName(
+            JPH::BroadPhaseLayer layer) const override
         {
-        case (JPH::BroadPhaseLayer::Type) galileo::object_layers::non_moving:
-            return "non_moving";
-        case (JPH::BroadPhaseLayer::Type) galileo::object_layers::moving:
-            return "moving";
-        default:
-            JPH_ASSERT(false);
-            return "invalid";
+            switch ((JPH::BroadPhaseLayer::Type) layer)
+            {
+            case (
+                JPH::BroadPhaseLayer::Type) galileo::object_layers::non_moving:
+                return "non_moving";
+            case (JPH::BroadPhaseLayer::Type) galileo::object_layers::moving:
+                return "moving";
+            default:
+                JPH_ASSERT(false);
+                return "invalid";
+            }
         }
-    }
 #endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
-private:
-    // NOLINTNEXTLINE
-    JPH::BroadPhaseLayer
-        object_to_broad_mapping_[galileo::object_layers::count];
-};
+    private:
+        // NOLINTNEXTLINE
+        JPH::BroadPhaseLayer
+            object_to_broad_mapping_[galileo::object_layers::count];
+    };
 
-class [[nodiscard]] object_vs_broad_phase_layer_filter final
-    : public JPH::ObjectVsBroadPhaseLayerFilter
-{
-    [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer first,
-        JPH::BroadPhaseLayer second) const override
+    class [[nodiscard]] object_vs_broad_phase_layer_filter_t final
+        : public JPH::ObjectVsBroadPhaseLayerFilter
     {
-        switch (first)
+    public:
+        [[nodiscard]] bool ShouldCollide(JPH::ObjectLayer first,
+            JPH::BroadPhaseLayer second) const override
         {
-        case galileo::object_layers::non_moving:
-            return second == broad_phase_layers::moving;
-        case galileo::object_layers::moving:
-            return true;
-        default:
-            JPH_ASSERT(false);
-            return false;
+            switch (first)
+            {
+            case galileo::object_layers::non_moving:
+                return second == broad_phase_layers::moving;
+            case galileo::object_layers::moving:
+                return true;
+            default:
+                JPH_ASSERT(false);
+                return false;
+            }
         }
-    }
-};
+    };
+} // namespace
 
 struct [[nodiscard]] galileo::physics_engine_t::impl final
 {
@@ -229,9 +233,9 @@ public:
     std::unique_ptr<JPH::TempAllocator> temp_allocator_;
     std::unique_ptr<JPH::JobSystem> job_system_;
 
-    broad_phase_layer broad_phase_layer_;
-    object_vs_broad_phase_layer_filter object_vs_broad_phase_layer_filter_;
-    object_layer_pair_filter object_vs_object_layer_filter_;
+    broad_phase_layer_t broad_phase_layer_;
+    object_vs_broad_phase_layer_filter_t object_vs_broad_phase_layer_filter_;
+    object_layer_pair_filter_t object_vs_object_layer_filter_;
     std::unique_ptr<JPH::PhysicsSystem> physics_system_;
 };
 

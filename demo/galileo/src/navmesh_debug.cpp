@@ -333,6 +333,7 @@ void galileo::navmesh_debug_t::draw_poly_mesh(rcPolyMesh const& poly_mesh)
 void galileo::navmesh_debug_t::draw_detail_poly_mesh(
     rcPolyMeshDetail const& poly_mesh_detail)
 {
+    // NOLINTNEXTLINE(bugprone-random-generator-seed)
     std::minstd_rand generator;
 
     for (int i{}; i != poly_mesh_detail.nmeshes; ++i)

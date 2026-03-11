@@ -68,6 +68,12 @@
 #include <utility>
 #include <vector>
 
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
+// IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
+// IWYU pragma: no_include <fmt/base.h>
+// IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <map>
+
 namespace
 {
     constexpr auto application_name{"Niku Editor"};

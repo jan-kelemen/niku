@@ -56,6 +56,7 @@ namespace ngnast
         basisu,
     };
 
+    // NOLINTNEXTLINE(bugprone-exception-escape)
     struct [[nodiscard]] texture_t final
     {
         std::string name;

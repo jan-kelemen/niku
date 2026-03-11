@@ -38,19 +38,19 @@ namespace galileo
     public:
         ~character_contact_listener_t() override = default;
 
-    public:
-        character_contact_listener_t& operator=(
-            character_contact_listener_t const&) = default;
-        character_contact_listener_t& operator=(
-            character_contact_listener_t&&) noexcept = default;
-
-    private:
+    public: // JPH::CharacterContactListener overrides
         void OnContactAdded(JPH::CharacterVirtual const* inCharacter,
             JPH::BodyID const& inBodyID2,
             JPH::SubShapeID const& inSubShapeID2,
             JPH::RVec3Arg inContactPosition,
             JPH::Vec3Arg inContactNormal,
             JPH::CharacterContactSettings& ioSettings) override;
+
+    public:
+        character_contact_listener_t& operator=(
+            character_contact_listener_t const&) = default;
+        character_contact_listener_t& operator=(
+            character_contact_listener_t&&) noexcept = default;
 
     private:
         physics_engine_t* physics_engine_;

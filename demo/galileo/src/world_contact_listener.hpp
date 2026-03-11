@@ -28,18 +28,18 @@ namespace galileo
     public:
         ~world_contact_listener_t() override = default;
 
+    public: // JPH::ContactListener overrides
+        void OnContactPersisted(JPH::Body const& inBody1,
+            JPH::Body const& inBody2,
+            JPH::ContactManifold const& inManifold,
+            JPH::ContactSettings& ioSettings) override;
+
     public:
         world_contact_listener_t& operator=(
             world_contact_listener_t const&) = delete;
 
         world_contact_listener_t& operator=(
             world_contact_listener_t&&) noexcept = delete;
-
-    private:
-        void OnContactPersisted(JPH::Body const& inBody1,
-            JPH::Body const& inBody2,
-            JPH::ContactManifold const& inManifold,
-            JPH::ContactSettings& ioSettings) override;
 
     private:
         ngnscr::scripting_engine_t* scripting_engine_;

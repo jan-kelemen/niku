@@ -71,7 +71,7 @@ namespace
     {
         void const* chain{};
 
-        VkPhysicalDevice device;
+        VkPhysicalDevice device{VK_NULL_HANDLE};
         std::span<char const* const> extensions;
         std::span<vkrndr::queue_family_t const> queues;
     };

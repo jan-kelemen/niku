@@ -107,6 +107,7 @@ namespace
     void generate_lights(ngnast::bounding_box_t const& bb,
         std::span<gpu_light_t> buffer)
     {
+        // NOLINTNEXTLINE(bugprone-random-generator-seed)
         std::default_random_engine engine;
         std::uniform_real_distribution pdist{bb.min.x, bb.max.x};
         std::uniform_real_distribution cdist{0.0f, 1.0f};

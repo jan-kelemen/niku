@@ -42,7 +42,10 @@ namespace vkrndr
     private: // Data
         device_t const* device_{};
         pipeline_layout_t const* layout_{};
-        VkPipelineShaderStageCreateInfo shader_{};
+        // NOLINTNEXTLINE(bugprone-invalid-enum-default-initialization)
+        VkPipelineShaderStageCreateInfo shader_{
+            .stage = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM,
+        };
     };
 } // namespace vkrndr
 #endif

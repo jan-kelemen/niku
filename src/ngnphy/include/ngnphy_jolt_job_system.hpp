@@ -29,11 +29,6 @@ namespace ngnphy
         ~job_system_t() override = default;
 
     public:
-        job_system_t& operator=(job_system_t const&) = delete;
-
-        job_system_t& operator=(job_system_t&&) noexcept = delete;
-
-    private:
         [[nodiscard]] int GetMaxConcurrency() const override;
 
         JPH::JobSystem::JobHandle CreateJob(char const* inName,
@@ -41,6 +36,12 @@ namespace ngnphy
             JPH::JobSystem::JobFunction const& inJobFunction,
             JPH::uint32 inNumDependencies) override;
 
+    public:
+        job_system_t& operator=(job_system_t const&) = delete;
+
+        job_system_t& operator=(job_system_t&&) noexcept = delete;
+
+    protected:
         void QueueJob(JPH::JobSystem::Job* inJob) override;
 
         void QueueJobs(JPH::JobSystem::Job** inJobs,

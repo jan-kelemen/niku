@@ -127,20 +127,26 @@ namespace
         VkSurfacePresentModeCompatibilityKHR compatibility{
             .sType = vku::GetSType<VkSurfacePresentModeCompatibilityKHR>(),
             .presentModeCount = vkrndr::count_cast(results),
-            .pPresentModes = results.data()};
+            .pPresentModes = results.data(),
+        };
 
         VkSurfacePresentModeKHR surface_present_mode{
             .sType = vku::GetSType<VkSurfacePresentModeKHR>(),
-            .presentMode = present_mode};
+            .presentMode = present_mode,
+        };
 
         VkPhysicalDeviceSurfaceInfo2KHR const surface_info{
             .sType = vku::GetSType<VkPhysicalDeviceSurfaceInfo2KHR>(),
             .pNext = &surface_present_mode,
-            .surface = surface};
+            .surface = surface,
+        };
 
         VkSurfaceCapabilities2KHR surface_capabilities{
             .sType = vku::GetSType<VkSurfaceCapabilities2KHR>(),
-            .pNext = &compatibility};
+            .pNext = &compatibility,
+            .surfaceCapabilities = {.currentTransform =
+                                        VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR},
+        };
 
         vkGetPhysicalDeviceSurfaceCapabilities2KHR(device,
             &surface_info,
@@ -175,6 +181,7 @@ vkrndr::swapchain_t::swapchain_t(window_t const& window,
     create_swap_frames(false, 0);
 }
 
+// NOLINTNEXTLINE(bugprone-exception-escape)
 vkrndr::swapchain_t::~swapchain_t()
 {
     auto&& used_frames{frames_in_flight_ |

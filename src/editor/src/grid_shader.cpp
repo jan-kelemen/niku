@@ -3,6 +3,7 @@
 #include <config.hpp>
 
 #include <cppext_container.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <vkglsl_shader_set.hpp>
 
@@ -218,18 +219,22 @@ editor::create_grid_shader(vkrndr::device_t const& device,
             std::move(quad_buffer_result).value(),
             std::move(descriptor_layout_result).value(),
             pipeline_layout,
-            std::move(pipeline),
+            pipeline,
         };
 
         destroy_descriptor_layout.set_active(false);
         destroy_pipeline_layout.set_active(false);
         destroy_pipeline.set_active(false);
 
+        DISABLE_WARNING_PUSH
+        DISABLE_WARNING_PESSIMIZING_MOVE
+        // NOLINTNEXTLINE(clang-diagnostic-pessimizing-move)
         return std::move(rv);
+        DISABLE_WARNING_POP
     }
+    // NOLINTNEXTLINE(readability-else-after-return)
     else
     {
-        // NOLINTNEXTLINE(readability-else-after-return)
         return std::unexpected{quad_buffer_result.error()};
     }
 }

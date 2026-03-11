@@ -111,7 +111,8 @@ namespace vkrndr
 
     struct [[nodiscard]] swapchain_support_t final
     {
-        VkSurfaceCapabilitiesKHR capabilities{};
+        VkSurfaceCapabilitiesKHR capabilities{
+            .currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
         std::vector<VkSurfaceFormatKHR> surface_formats;
         std::vector<VkPresentModeKHR> present_modes;
     };

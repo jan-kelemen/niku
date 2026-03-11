@@ -42,8 +42,8 @@ namespace ngntxt
 
     struct [[nodiscard]] query_match_t final
     {
-        uint32_t id;
-        uint16_t pattern_index;
+        uint32_t id{};
+        uint16_t pattern_index{};
         std::span<TSQueryCapture const> captures;
     };
 

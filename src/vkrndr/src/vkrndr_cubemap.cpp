@@ -39,19 +39,20 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
     rv.mip_levels = mip_levels;
     rv.extent = vkrndr::to_2d_extent(dimension, dimension);
 
-    VkImageCreateInfo image_info{};
-    image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    image_info.imageType = VK_IMAGE_TYPE_2D;
-    image_info.extent = {dimension, dimension, 1};
-    image_info.mipLevels = mip_levels;
-    image_info.arrayLayers = 6;
-    image_info.format = format;
-    image_info.tiling = tiling;
-    image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    image_info.usage = usage;
-    image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    image_info.samples = samples;
-    image_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    VkImageCreateInfo const image_info{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = format,
+        .extent = {dimension, dimension, 1},
+        .mipLevels = mip_levels,
+        .arrayLayers = 6,
+        .samples = samples,
+        .tiling = tiling,
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
 
     VmaAllocationCreateInfo vma_info{};
     vma_info.usage = (usage & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)

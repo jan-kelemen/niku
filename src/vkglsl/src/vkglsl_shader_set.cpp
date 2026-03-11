@@ -443,6 +443,7 @@ vkglsl::shader_set_t::descriptor_bindings(uint32_t const set) const
 
                 DISABLE_WARNING_PUSH
                 DISABLE_WARNING_SIGN_CONVERSION
+                // NOLINTNEXTLINE(modernize-type-traits) - FP
                 bind_point.stageFlags |= to_vulkan(lang);
                 DISABLE_WARNING_POP
             }

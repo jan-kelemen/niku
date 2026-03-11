@@ -44,35 +44,7 @@ namespace galileo
     public:
         void set_camera(ngngfx::camera_t const& camera);
 
-    public:
-        physics_debug_t& operator=(physics_debug_t const&) = delete;
-
-        physics_debug_t& operator=(physics_debug_t&&) noexcept = delete;
-
-    private:
-        class [[nodiscard]] batch_impl_t final : public JPH::RefTargetVirtual
-        {
-        public:
-            JPH_OVERRIDE_NEW_DELETE
-
-            void AddRef() override { ++ref_count_; }
-
-            void Release() override
-            {
-                if (--ref_count_ == 0)
-                {
-                    triangles.clear();
-                    delete this;
-                }
-            }
-
-            JPH::Array<Triangle> triangles;
-
-        private:
-            std::atomic<uint32_t> ref_count_ = 0;
-        };
-
-    private: // JPH::DebugRenderer overrides
+    public: // JPH::DebugRenderer overrides
         void DrawLine(JPH::RVec3Arg inFrom,
             JPH::RVec3Arg inTo,
             JPH::ColorArg inColor) override;
@@ -104,6 +76,34 @@ namespace galileo
             JPH::string_view const& inString,
             JPH::ColorArg inColor,
             float inHeight) override;
+
+    public:
+        physics_debug_t& operator=(physics_debug_t const&) = delete;
+
+        physics_debug_t& operator=(physics_debug_t&&) noexcept = delete;
+
+    private:
+        class [[nodiscard]] batch_impl_t final : public JPH::RefTargetVirtual
+        {
+        public:
+            JPH_OVERRIDE_NEW_DELETE
+
+            void AddRef() override { ++ref_count_; }
+
+            void Release() override
+            {
+                if (--ref_count_ == 0)
+                {
+                    triangles.clear();
+                    delete this;
+                }
+            }
+
+            JPH::Array<Triangle> triangles;
+
+        private:
+            std::atomic<uint32_t> ref_count_ = 0;
+        };
 
     private:
         batch_renderer_t* batch_renderer_;

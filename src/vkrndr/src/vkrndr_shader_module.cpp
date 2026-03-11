@@ -79,14 +79,11 @@ VkPipelineShaderStageCreateInfo vkrndr::as_pipeline_shader(
     shader_module_t const& shader,
     VkSpecializationInfo const* specialization)
 {
-    VkPipelineShaderStageCreateInfo rv{};
-    rv.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    rv.stage = shader.stage;
-    rv.module = shader.handle;
-    rv.pName = shader.entry_point.c_str();
-    rv.pSpecializationInfo = specialization;
-
-    return rv;
+    return {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .stage = shader.stage,
+        .module = shader.handle,
+        .pName = shader.entry_point.c_str(),
+        .pSpecializationInfo = specialization};
 }
 
 void vkrndr::object_name(device_t const& device,
