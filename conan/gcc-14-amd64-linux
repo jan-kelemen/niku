@@ -1,4 +1,0 @@
-include(base/gcc-14-linux)
-
-[settings]
-arch=x86_64

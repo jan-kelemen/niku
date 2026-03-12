@@ -1,0 +1,4 @@
+include(base/gcc-15-linux)
+
+[settings]
+arch=x86_64

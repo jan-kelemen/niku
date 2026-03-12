@@ -4,7 +4,7 @@ inputs:
   version:
     description: 'Version to install'
     required: false
-    default: '14'
+    default: '15'
   arch:
     description: 'Target architecture'
     required: false

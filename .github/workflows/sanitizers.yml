@@ -15,7 +15,7 @@ jobs:
     environment: Conan
     
     env:
-      GCC_VER: 14
+      GCC_VER: 15
       CLANG_VER: 22
 
     steps:
@@ -72,7 +72,7 @@ jobs:
     environment: Conan
     
     env:
-      GCC_VER: 14
+      GCC_VER: 15
         
     steps:
       - name: Checkout repository from github

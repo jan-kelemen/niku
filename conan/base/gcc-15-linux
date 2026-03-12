@@ -1,0 +1,14 @@
+[settings]
+os=Linux
+compiler=gcc
+compiler.cppstd=23
+compiler.libcxx=libstdc++11
+compiler.version=15
+
+[buildenv]
+CC=gcc-15
+CXX=g++-15
+CPP=cpp-15
+AR=gcc-ar-15
+NM=gcc-nm-15
+RANLIB=gcc-ranlib-15

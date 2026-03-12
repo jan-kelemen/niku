@@ -23,7 +23,7 @@ Necessary build tools are:
   * See [installation instructions](https://docs.conan.io/2/installation.html)
 * One of supported compilers:
   * Clang-22 (libstdc++ or libc++)
-  * GCC-14
+  * GCC-15
   * Visual Studio 2022 (MSVC v194) or 2026 (MSVC v195)
 * Ninja (if using Clang on Windows)
 
