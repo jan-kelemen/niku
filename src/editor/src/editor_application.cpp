@@ -5,10 +5,12 @@
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
+#include <cppext_pragma_warning.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
+#include <ngnwsi_fixed_timestep.hpp>
 #include <ngnwsi_imgui_layer.hpp>
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
@@ -374,7 +376,10 @@ editor::application_t::application_t(
                     cppext::as_span(command_buffer))};
             !end_result)
         {
+            DISABLE_WARNING_PUSH
+            DISABLE_WARNING_NRVO
             return end_result;
+            DISABLE_WARNING_POP
         }
 
         return {};

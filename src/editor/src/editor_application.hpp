@@ -9,6 +9,7 @@
 #include <ngnwsi_fixed_timestep.hpp>
 #include <ngnwsi_mouse.hpp>
 
+#include <vkrndr_buffer.hpp> // IWYU pragma: keep
 #include <vkrndr_rendering_context.hpp>
 
 #include <volk.h>
@@ -24,11 +25,6 @@ namespace ngnwsi
     class render_window_t;
     class imgui_layer_t;
 } // namespace ngnwsi
-
-namespace vkrndr
-{
-    struct buffer_t;
-} // namespace vkrndr
 
 namespace editor
 {
