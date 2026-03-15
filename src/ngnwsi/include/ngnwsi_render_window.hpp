@@ -56,7 +56,8 @@ namespace ngnwsi
 
         [[nodiscard]] vkrndr::frame_in_flight_t& frame_in_flight();
 
-        [[nodiscard]] std::optional<vkrndr::image_t> acquire_next_image();
+        [[nodiscard]] std::optional<vkrndr::image_t> acquire_next_image(
+            uint64_t timeout = 0);
 
         void present(std::span<VkCommandBuffer const> const& command_buffers);
 

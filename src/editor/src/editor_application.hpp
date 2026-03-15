@@ -15,7 +15,9 @@
 #include <volk.h>
 
 #include <memory>
+#include <shared_mutex>
 #include <span>
+#include <thread>
 #include <vector>
 
 union SDL_Event;
@@ -61,6 +63,8 @@ namespace editor
     private:
         void process_command_line(std::span<char const*> const& parameters);
 
+        void render();
+
     private:
         std::unique_ptr<ngnwsi::render_window_t> main_window_;
         vkrndr::rendering_context_t rendering_context_;
@@ -75,12 +79,15 @@ namespace editor
 
         std::unique_ptr<grid_shader_t> grid_shader_;
 
+        std::shared_mutex state_mutex_;
         ngnwsi::mouse_t mouse_;
         ngngfx::aircraft_camera_t camera_;
         ngngfx::perspective_projection_t projection_;
         camera_controller_t camera_controller_;
 
         ngnwsi::fixed_timestep_t timestep_;
+
+        std::unique_ptr<std::jthread> render_thread_;
     };
 } // namespace editor
 

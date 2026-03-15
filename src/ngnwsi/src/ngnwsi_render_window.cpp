@@ -52,7 +52,8 @@ vkrndr::frame_in_flight_t& ngnwsi::render_window_t::frame_in_flight()
     return pacing_->current();
 }
 
-std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
+std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image(
+    uint64_t const timeout)
 {
     std::optional<vkrndr::image_t> rv;
 
@@ -74,7 +75,7 @@ std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image()
         swapchain_->recreate(current->index);
     }
 
-    rv = swapchain_->acquire_next_image(current->index);
+    rv = swapchain_->acquire_next_image(current->index, timeout);
     if (rv)
     {
         pacing_->begin_frame();

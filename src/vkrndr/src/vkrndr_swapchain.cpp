@@ -232,7 +232,8 @@ vkrndr::swapchain_t::~swapchain_t()
 }
 
 std::optional<vkrndr::image_t> vkrndr::swapchain_t::acquire_next_image(
-    size_t const current_frame)
+    size_t const current_frame,
+    uint64_t const timeout)
 {
     auto& frame{frames_in_flight_[current_frame]};
     if (frame.acquire_semaphore != VK_NULL_HANDLE)
@@ -258,7 +259,7 @@ std::optional<vkrndr::image_t> vkrndr::swapchain_t::acquire_next_image(
 
     VkResult const acquire_result{vkAcquireNextImageKHR(*device_,
         handle_,
-        0,
+        timeout,
         acquire_semaphore,
         acquire_fence,
         &frame.image_index)};

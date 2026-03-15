@@ -15,6 +15,7 @@
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
+#include <stop_token>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_cpu_pacing.hpp>
@@ -62,6 +63,9 @@
 #include <expected>
 #include <functional>
 #include <iterator>
+#include <limits>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -399,10 +403,25 @@ editor::application_t::application_t(
         spdlog::error("Failed to create grid shader: {}", message);
         throw std::runtime_error{message};
     }
+
+    render_thread_ = std::make_unique<std::jthread>(
+        [this](std::stop_token const& token)
+        {
+            while (!token.stop_requested())
+            {
+                render();
+            }
+        });
 }
 
 editor::application_t::~application_t()
 {
+    if (render_thread_->joinable())
+    {
+        render_thread_->request_stop();
+        render_thread_->join();
+    }
+
     vkDeviceWaitIdle(*rendering_context_.device);
 
     if (grid_shader_)
@@ -452,9 +471,17 @@ editor::application_t::~application_t()
 
 bool editor::application_t::handle_event(SDL_Event const& event)
 {
-    [[maybe_unused]] auto imgui_handled{imgui_->handle_event(event)};
+    {
+        std::unique_lock guard{state_mutex_};
+        [[maybe_unused]] auto const imgui_handled{imgui_->handle_event(event)};
 
-    camera_controller_.handle_event(event);
+        camera_controller_.handle_event(event);
+    }
+
+    if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    {
+        render_thread_->request_stop();
+    }
 
     return event.type != SDL_EVENT_QUIT &&
         event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED;
@@ -462,22 +489,71 @@ bool editor::application_t::handle_event(SDL_Event const& event)
 
 bool editor::application_t::update()
 {
-    std::optional<vkrndr::image_t> const target_image{
-        main_window_->acquire_next_image()};
-    if (!target_image)
+    if (uint64_t const steps{timestep_.pending_simulation_steps()})
     {
-        return true;
+        std::unique_lock guard{state_mutex_};
+        for (uint64_t i{}; i != steps; ++i)
+        {
+            camera_controller_.update(timestep_.update_interval);
+        }
+        projection_.update(camera_.view_matrix());
     }
 
-    for (uint64_t i{}, end{timestep_.pending_simulation_steps()}; i != end; ++i)
+    return true;
+}
+
+editor::application_t::application_t() : camera_controller_{camera_, mouse_}
+{
+    camera_.set_position({0.0f, 2.0f, 1.0f});
+    camera_.set_yaw_pitch({0.0f, 1.0f});
+    if (!SDL_Init(SDL_INIT_VIDEO))
     {
-        camera_controller_.update(timestep_.update_interval);
+        throw std::runtime_error{SDL_GetError()};
     }
-    projection_.update(camera_.view_matrix());
+
+    if (std::expected<vkrndr::library_handle_ptr_t, std::error_code> lh{
+            vkrndr::initialize()})
+    {
+        rendering_context_.library_handle = *std::move(lh);
+    }
+    else
+    {
+        auto const message{lh.error().message()};
+        spdlog::error("Failed to load rendering library: {}", message);
+        throw std::runtime_error{message};
+    }
+}
+
+void editor::application_t::process_command_line(
+    std::span<char const*> const& parameters)
+{
+    auto const has_argument = [&parameters](std::string_view s)
+    { return std::ranges::contains(cbegin(parameters), cend(parameters), s); };
+
+    if (has_argument("--trace"))
+    {
+        spdlog::set_level(spdlog::level::trace);
+    }
+    else if (has_argument("--debug"))
+    {
+        spdlog::set_level(spdlog::level::debug);
+    }
+}
+
+void editor::application_t::render()
+{
+    std::optional<vkrndr::image_t> const target_image{
+        main_window_->acquire_next_image(std::numeric_limits<uint64_t>::max())};
+    if (!target_image)
+    {
+        return;
+    }
 
     uint32_t const index{main_window_->frame_in_flight().index};
 
     {
+        std::shared_lock guard{state_mutex_};
+
         vkrndr::mapped_memory_t map{
             map_memory(*rendering_context_.device, frame_info_buffers_[index])};
         *map.as<frame_info_t>() = {.view = camera_.view_matrix(),
@@ -570,44 +646,4 @@ bool editor::application_t::update()
     vkEndCommandBuffer(command_buffer);
 
     main_window_->present(cppext::as_span(command_buffer));
-
-    return true;
-}
-
-editor::application_t::application_t() : camera_controller_{camera_, mouse_}
-{
-    camera_.set_position({0.0f, 2.0f, 1.0f});
-    camera_.set_yaw_pitch({0.0f, 1.0f});
-    if (!SDL_Init(SDL_INIT_VIDEO))
-    {
-        throw std::runtime_error{SDL_GetError()};
-    }
-
-    if (std::expected<vkrndr::library_handle_ptr_t, std::error_code> lh{
-            vkrndr::initialize()})
-    {
-        rendering_context_.library_handle = *std::move(lh);
-    }
-    else
-    {
-        auto const message{lh.error().message()};
-        spdlog::error("Failed to load rendering library: {}", message);
-        throw std::runtime_error{message};
-    }
-}
-
-void editor::application_t::process_command_line(
-    std::span<char const*> const& parameters)
-{
-    auto const has_argument = [&parameters](std::string_view s)
-    { return std::ranges::contains(cbegin(parameters), cend(parameters), s); };
-
-    if (has_argument("--trace"))
-    {
-        spdlog::set_level(spdlog::level::trace);
-    }
-    else if (has_argument("--debug"))
-    {
-        spdlog::set_level(spdlog::level::debug);
-    }
 }

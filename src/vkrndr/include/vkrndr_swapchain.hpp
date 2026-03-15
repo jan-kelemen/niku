@@ -109,8 +109,8 @@ namespace vkrndr
 
         [[nodiscard]] uint32_t frames_in_flight() const noexcept;
 
-        [[nodiscard]] std::optional<vkrndr::image_t> acquire_next_image(
-            size_t current_frame);
+        [[nodiscard]] std::optional<vkrndr::image_t>
+        acquire_next_image(size_t current_frame, uint64_t timeout = 0);
 
         void submit_command_buffers(
             std::span<VkCommandBuffer const> command_buffers,
