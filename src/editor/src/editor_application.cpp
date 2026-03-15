@@ -480,6 +480,9 @@ bool editor::application_t::update()
     }
 
     imgui_->begin_frame();
+    ImGui::DockSpaceOverViewport(0,
+        ImGui::GetMainViewport(),
+        ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::ShowMetricsWindow();
     camera_controller_.draw_imgui();
     imgui_->end_frame();
