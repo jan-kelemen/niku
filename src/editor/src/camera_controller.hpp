@@ -50,7 +50,7 @@ namespace editor
         bool update_needed_{false};
 
         float mouse_sensitivity_{0.2f};
-        float velocity_factor_{1.0f};
+        float velocity_factor_{5.0f};
     };
 } // namespace editor
 
