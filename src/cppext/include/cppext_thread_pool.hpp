@@ -272,7 +272,6 @@ namespace cppext::detail
             function_wrapper_t&& other) noexcept = default;
 
     private:
-        // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
         struct [[nodiscard]] impl_base_t
         {
             virtual void call() = 0;

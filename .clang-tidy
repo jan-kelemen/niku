@@ -39,11 +39,17 @@ Checks: '
 FormatStyle: 'file'
 
 CheckOptions:
+  - key: bugprone-unused-return-value.AllowCastToVoid
+    value: true
+  - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: true
+  - key: misc-const-correctness.AllowedTypes
+    value: 'std::(unique|shared)_lock;boost::scope::(scope_fail|defer_guard|scope_exit);vkrndr::render_pass_guard_t;vkglsl::guard_t;ngnwsi::sdl_(text_input_)?guard_t'
   - key: readability-identifier-length.IgnoredVariableNames
     value: 'rv|ec|it'
+  - key: readability-else-after-return.WarnOnConditionVariables
+    value: false
   - key: readability-implicit-bool-conversion.AllowPointerConditions
     value: true
   - key: readability-implicit-bool-conversion.AllowIntegerConditions
     value: true
-  - key: misc-const-correctness.AllowedTypes
-    value: 'std::(unique|shared)_lock;boost::scope::(scope_fail|defer_guard|scope_exit);vkrndr::render_pass_guard_t;vkglsl::guard_t;ngnwsi::sdl_(text_input_)?guard_t'

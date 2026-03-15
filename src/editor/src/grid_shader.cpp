@@ -247,7 +247,6 @@ editor::create_grid_shader(vkrndr::device_t const& device,
         return std::move(rv);
         DISABLE_WARNING_POP
     }
-    // NOLINTNEXTLINE(readability-else-after-return)
     else
     {
         return std::unexpected{quad_buffer_result.error()};

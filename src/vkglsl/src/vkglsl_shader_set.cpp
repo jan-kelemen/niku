@@ -25,7 +25,6 @@ DISABLE_WARNING_POP
 
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -209,7 +208,6 @@ namespace
             user_data->data.size(),
             user_data.get())};
 
-        // NOLINTNEXTLINE(bugprone-unused-return-value)
         static_cast<void>(user_data.release());
 
         return rv.release();
@@ -502,8 +500,8 @@ vkglsl::add_shader_binary_from_path(shader_set_t& shader_set,
 
     return shader_set
         .add_shader_binary(stage,
-            // NOLINTNEXTLINE(bugprone-bitwise-pointer-cast)
-            std::span{std::bit_cast<uint32_t*>(binary.data()),
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+            std::span{reinterpret_cast<uint32_t*>(binary.data()),
                 binary.size() / 4},
             entry_point)
         .and_then([&]() { return shader_set.shader_module(device, stage); });

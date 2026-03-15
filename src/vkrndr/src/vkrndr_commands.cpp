@@ -141,7 +141,7 @@ std::expected<void, std::error_code> vkrndr::begin_single_time_commands(
     {
         DISABLE_WARNING_PUSH
         DISABLE_WARNING_PESSIMIZING_MOVE
-        // NOLINTNEXTLINE
+        // NOLINTNEXTLINE(clang-diagnostic-pessimizing-move)
         return std::move(allocate_result);
         DISABLE_WARNING_POP
     }

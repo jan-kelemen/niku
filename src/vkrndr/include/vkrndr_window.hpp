@@ -7,7 +7,6 @@
 
 namespace vkrndr
 {
-    // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
     class [[nodiscard]] window_t
     {
     public: // Destruction
