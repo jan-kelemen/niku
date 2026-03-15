@@ -464,8 +464,10 @@ bool editor::application_t::update()
         return true;
     }
 
-    // TODO-JK: Fix this with proper delta time value
-    camera_controller_.update(0.083f);
+    for (uint64_t i{}, end{timestep_.pending_simulation_steps()}; i != end; ++i)
+    {
+        camera_controller_.update(timestep_.update_interval);
+    }
     projection_.update(camera_.view_matrix());
 
     uint32_t const index{main_window_->frame_in_flight().index};

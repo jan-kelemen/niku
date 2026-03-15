@@ -6,6 +6,7 @@
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
+#include <ngnwsi_fixed_timestep.hpp>
 #include <ngnwsi_mouse.hpp>
 
 #include <vkrndr_rendering_context.hpp>
@@ -82,6 +83,8 @@ namespace editor
         ngngfx::aircraft_camera_t camera_;
         ngngfx::perspective_projection_t projection_;
         camera_controller_t camera_controller_;
+
+        ngnwsi::fixed_timestep_t timestep_;
     };
 } // namespace editor
 

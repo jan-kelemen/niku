@@ -1,5 +1,6 @@
 #include <ngnwsi_application.hpp>
 
+#include <ngnwsi_fixed_timestep.hpp>
 #include <ngnwsi_sdl_guard.hpp>
 
 #include <cppext_numeric.hpp>
@@ -40,8 +41,7 @@ public:
 
 public:
     sdl_guard_t guard;
-
-    float fixed_update_interval{1.0f / 60.0f};
+    fixed_timestep_t timestep;
 
     std::span<char const*> command_line_parameters;
 };
@@ -65,10 +65,6 @@ void ngnwsi::application_t::run()
 {
     on_startup();
 
-    auto const frequency{cppext::as_fp(SDL_GetPerformanceFrequency())};
-
-    uint64_t last_tick{SDL_GetPerformanceCounter()};
-    float accumulated_error{};
     while (true)
     {
         begin_frame();
@@ -84,32 +80,11 @@ void ngnwsi::application_t::run()
             break;
         }
 
-        // https://gafferongames.com/post/fix_your_timestep/
-        // https://dewitters.com/dewitters-gameloop/
-        // https://jakubtomsu.github.io/posts/input_in_fixed_timestep/
-        uint64_t const current_tick{SDL_GetPerformanceCounter()};
-        auto const frame_duration_in_seconds{
-            cppext::as_fp(current_tick - last_tick) / frequency};
-
-        accumulated_error += frame_duration_in_seconds;
-        auto const simulation_steps{static_cast<uint64_t>(
-            accumulated_error / impl_->fixed_update_interval)};
-        accumulated_error -=
-            cppext::as_fp(simulation_steps) * impl_->fixed_update_interval;
-
-        // spdlog::info(
-        //     "last_tick {} current_tick {} duration {} steps {} error {}
-        //     frequency {}", last_tick, current_tick,
-        //     frame_duration_in_seconds,
-        //     simulation_steps,
-        //     accumulated_error,
-        //     frequency);
-
-        last_tick = current_tick;
-
-        for (uint64_t i{}; i != simulation_steps; ++i)
+        for (uint64_t i{}, end{impl_->timestep.pending_simulation_steps()};
+            i != end;
+            ++i)
         {
-            update(impl_->fixed_update_interval);
+            update(impl_->timestep.update_interval);
         }
 
         draw();
@@ -120,9 +95,9 @@ void ngnwsi::application_t::run()
     on_shutdown();
 }
 
-void ngnwsi::application_t::fixed_update_interval(float const fps)
+void ngnwsi::application_t::fixed_update_interval(float const ups)
 {
-    impl_->fixed_update_interval = fps;
+    impl_->timestep.update_interval = 1.0f / ups;
 }
 
 std::span<char const*> ngnwsi::application_t::command_line_parameters()

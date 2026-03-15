@@ -3,6 +3,7 @@ add_library(ngnwsi)
 target_sources(ngnwsi
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_application.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_fixed_timestep.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_imgui_layer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_mouse.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_render_window.hpp
@@ -10,6 +11,7 @@ target_sources(ngnwsi
         ${CMAKE_CURRENT_SOURCE_DIR}/include/ngnwsi_sdl_window.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_application.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_fixed_timestep.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_imgui_layer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_mouse.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ngnwsi_render_window.cpp

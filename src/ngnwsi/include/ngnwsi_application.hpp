@@ -34,7 +34,7 @@ namespace ngnwsi
     public:
         void run();
 
-        void fixed_update_interval(float fps);
+        void fixed_update_interval(float ups);
 
         [[nodiscard]] std::span<char const*> command_line_parameters();
 
