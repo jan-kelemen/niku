@@ -90,8 +90,7 @@ void gltfviewer::scene_graph_t::load(ngnast::scene_model_t&& model)
 
     auto transfer_result{
         ngnast::gpu::transfer_geometry(backend_->device(), model)};
-    [[maybe_unused]] boost::scope::defer_guard const destroy_transfer{
-        [this, &transfer_result]()
+    boost::scope::defer_guard destroy_transfer{[this, &transfer_result]()
         { destroy(backend_->device(), transfer_result); }};
 
     primitives_ = std::move(transfer_result.primitives);

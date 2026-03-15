@@ -391,7 +391,7 @@ void gltfviewer::pyramid_blur_t::create_downsample_resources(
         VK_SHADER_STAGE_COMPUTE_BIT,
         "pyramid_downsample.comp")};
     assert(shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
+    boost::scope::defer_guard destroy_shd{
         [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
     auto bindings{shader_set.descriptor_bindings(0)};
@@ -458,7 +458,7 @@ void gltfviewer::pyramid_blur_t::create_upsample_resources(
         VK_SHADER_STAGE_COMPUTE_BIT,
         "pyramid_upsample.comp")};
     assert(shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
+    boost::scope::defer_guard destroy_shd{
         [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
     deletion_queue_insert(

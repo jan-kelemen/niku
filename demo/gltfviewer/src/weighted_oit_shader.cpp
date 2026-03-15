@@ -336,8 +336,7 @@ void gltfviewer::weighted_oit_shader_t::load(
         VK_SHADER_STAGE_VERTEX_BIT,
         "pbr.vert")};
     assert(vertex_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, &shd = vertex_shader.value()]()
+    boost::scope::defer_guard destroy_vtx{[this, &shd = vertex_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
@@ -346,7 +345,7 @@ void gltfviewer::weighted_oit_shader_t::load(
         "pbr.frag",
         std::array{"OIT"sv})};
     assert(fragment_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+    boost::scope::defer_guard destroy_frag{
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
@@ -420,7 +419,7 @@ void gltfviewer::weighted_oit_shader_t::load(
             VK_SHADER_STAGE_VERTEX_BIT,
             "fullscreen.vert")};
     assert(composition_vertex_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_cvtx{
+    boost::scope::defer_guard destroy_cvtx{
         [this, &shd = composition_vertex_shader.value()]
         { destroy(backend_->device(), shd); }};
 
@@ -430,7 +429,7 @@ void gltfviewer::weighted_oit_shader_t::load(
             VK_SHADER_STAGE_FRAGMENT_BIT,
             "oit_composition.frag")};
     assert(composition_fragment_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_cfrag{
+    boost::scope::defer_guard destroy_cfrag{
         [this, &shd = composition_fragment_shader.value()]
         { destroy(backend_->device(), shd); }};
 

@@ -3,11 +3,8 @@
 #include <ngnwsi_fixed_timestep.hpp>
 #include <ngnwsi_sdl_guard.hpp>
 
-#include <cppext_numeric.hpp>
-
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
-#include <SDL3/SDL_timer.h>
 
 #include <cstdint>
 #include <memory>
@@ -100,7 +97,7 @@ void ngnwsi::application_t::fixed_update_interval(float const ups)
     impl_->timestep.update_interval = 1.0f / ups;
 }
 
-std::span<char const*> ngnwsi::application_t::command_line_parameters()
+std::span<char const*> ngnwsi::application_t::command_line_parameters() const
 {
     return impl_->command_line_parameters;
 }

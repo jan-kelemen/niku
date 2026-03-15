@@ -141,8 +141,7 @@ heatx::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
             VK_SHADER_STAGE_COMPUTE_BIT,
             "tone_mapping.comp")};
         assert(shader);
-        [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-            [this, &shd = shader.value()]()
+        boost::scope::defer_guard destroy_shd{[this, &shd = shader.value()]()
             { destroy(backend_->device(), shd); }};
 
         if (auto const layout{
@@ -176,8 +175,7 @@ heatx::postprocess_shader_t::postprocess_shader_t(vkrndr::backend_t& backend)
             VK_SHADER_STAGE_COMPUTE_BIT,
             "fxaa.comp")};
         assert(shader);
-        [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
-            [this, &shd = shader.value()]()
+        boost::scope::defer_guard destroy_shd{[this, &shd = shader.value()]()
             { destroy(backend_->device(), shd); }};
 
         if (auto const layout{

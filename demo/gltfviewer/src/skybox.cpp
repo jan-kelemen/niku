@@ -659,8 +659,7 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
         VK_SHADER_STAGE_VERTEX_BIT,
         "cubemap.vert")};
     assert(vertex_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, &shd = vertex_shader.value()]()
+    boost::scope::defer_guard destroy_vtx{[this, &shd = vertex_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
@@ -668,7 +667,7 @@ void gltfviewer::skybox_t::generate_cubemap_faces(VkDescriptorSetLayout layout,
         VK_SHADER_STAGE_FRAGMENT_BIT,
         "equirectangular_to_cubemap.frag")};
     assert(fragment_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+    boost::scope::defer_guard destroy_frag{
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
@@ -704,8 +703,7 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
         VK_SHADER_STAGE_VERTEX_BIT,
         "cubemap.vert")};
     assert(vertex_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, &shd = vertex_shader.value()]()
+    boost::scope::defer_guard destroy_vtx{[this, &shd = vertex_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
@@ -713,7 +711,7 @@ void gltfviewer::skybox_t::generate_irradiance_map(VkDescriptorSetLayout layout,
         VK_SHADER_STAGE_FRAGMENT_BIT,
         "irradiance.frag")};
     assert(fragment_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+    boost::scope::defer_guard destroy_frag{
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
@@ -753,8 +751,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
         VK_SHADER_STAGE_VERTEX_BIT,
         "cubemap.vert")};
     assert(vertex_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, &shd = vertex_shader.value()]()
+    boost::scope::defer_guard destroy_vtx{[this, &shd = vertex_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
@@ -762,7 +759,7 @@ void gltfviewer::skybox_t::generate_prefilter_map(VkDescriptorSetLayout layout,
         VK_SHADER_STAGE_FRAGMENT_BIT,
         "prefilter.frag")};
     assert(fragment_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+    boost::scope::defer_guard destroy_frag{
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
@@ -937,8 +934,7 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
         VK_SHADER_STAGE_VERTEX_BIT,
         "fullscreen.vert")};
     assert(vertex_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, &shd = vertex_shader.value()]()
+    boost::scope::defer_guard destroy_vtx{[this, &shd = vertex_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
     auto fragment_shader{add_shader_module_from_path(shader_set,
@@ -946,7 +942,7 @@ void gltfviewer::skybox_t::generate_brdf_lookup()
         VK_SHADER_STAGE_FRAGMENT_BIT,
         "brdf.frag")};
     assert(fragment_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+    boost::scope::defer_guard destroy_frag{
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 

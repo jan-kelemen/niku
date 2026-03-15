@@ -175,18 +175,18 @@ namespace
         VKRNDR_IF_DEBUG_UTILS(
             object_name(backend.device(), rv, "Primitives Buffer"));
 
-        [[maybe_unused]] boost::scope::scope_fail const destroy_rv{
+        boost::scope::scope_fail destroy_rv{
             [&backend, &rv]() { destroy(backend.device(), rv); }};
 
         {
             vkrndr::buffer_t staging{
                 vkrndr::create_staging_buffer(backend.device(), rv.size)};
-            [[maybe_unused]] boost::scope::defer_guard const destroy_staging{
+            boost::scope::defer_guard destroy_staging{
                 [&backend, &staging]() { destroy(backend.device(), staging); }};
 
             vkrndr::mapped_memory_t staging_map{
                 vkrndr::map_memory(backend.device(), staging)};
-            boost::scope::defer_guard const unmap_staging{
+            boost::scope::defer_guard unmap_staging{
                 [&device = backend.device(), &staging_map]()
                 { unmap_memory(device, &staging_map); }};
             std::ranges::transform(build_result.primitives,

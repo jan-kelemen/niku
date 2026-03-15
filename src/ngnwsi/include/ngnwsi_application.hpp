@@ -36,7 +36,7 @@ namespace ngnwsi
 
         void fixed_update_interval(float ups);
 
-        [[nodiscard]] std::span<char const*> command_line_parameters();
+        [[nodiscard]] std::span<char const*> command_line_parameters() const;
 
     private: // Callback interface
         [[nodiscard]] virtual bool should_run() { return true; }

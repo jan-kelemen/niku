@@ -241,7 +241,7 @@ ngnast::gpu::geometry_transfer_result_t ngnast::gpu::transfer_geometry(
     rv.vertex_buffer = vkrndr::create_staging_buffer(device,
         sizeof(gpu::vertex_t) * rv.vertex_count);
     auto vertex_map{vkrndr::map_memory(device, rv.vertex_buffer)};
-    boost::scope::defer_guard const unmap_vertex{
+    boost::scope::defer_guard unmap_vertex{
         [&device, &vertex_map]() { unmap_memory(device, &vertex_map); }};
 
     auto* const vertices{vertex_map.as<gpu::vertex_t>()};
@@ -293,8 +293,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
 
     geometry_transfer_result_t intermediate{
         transfer_geometry(backend.device(), model)};
-    [[maybe_unused]] boost::scope::defer_guard const destroy_transfer{
-        [&backend, &intermediate]()
+    boost::scope::defer_guard destroy_transfer{[&backend, &intermediate]()
         { destroy(backend.device(), intermediate); }};
 
     static_assert(sizeof(vertex_t) == 64, "Invalid vertex buffer alignment");
@@ -486,8 +485,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
 
     vkrndr::buffer_t scratch_buffer{
         vkrndr::create_scratch_buffer(backend.device(), scratch_size)};
-    [[maybe_unused]] boost::scope::scope_fail const destroy_scratch{
-        [&backend, &scratch_buffer]()
+    boost::scope::scope_fail destroy_scratch{[&backend, &scratch_buffer]()
         { destroy(backend.device(), scratch_buffer); }};
 
     VkDeviceSize scratch_offset{};
@@ -603,7 +601,7 @@ ngnast::gpu::build_acceleration_structures(vkrndr::backend_t& backend,
     vkrndr::buffer_t const staging{
         vkrndr::create_staging_buffer(backend.device(),
             rv.instance_buffer.size)};
-    [[maybe_unused]] boost::scope::defer_guard const destroy_staging{
+    boost::scope::defer_guard destroy_staging{
         [&backend, &staging]() { destroy(backend.device(), staging); }};
     {
         vkrndr::mapped_memory_t map{

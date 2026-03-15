@@ -15,7 +15,6 @@
 #include <ngnwsi_render_window.hpp>
 #include <ngnwsi_sdl_window.hpp>
 
-#include <stop_token>
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_cpu_pacing.hpp>
@@ -68,6 +67,7 @@
 #include <mutex>
 #include <optional>
 #include <stdexcept>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -622,10 +622,9 @@ void editor::application_t::render()
             0,
             nullptr);
 
-        [[maybe_unused]] vkrndr::render_pass_guard_t const guard{
-            grid_color_pass.begin(command_buffer,
-                VkRect2D{.offset = {0, 0},
-                    .extent = vkrndr::to_2d_extent(target_image->extent)})};
+        vkrndr::render_pass_guard_t guard{grid_color_pass.begin(command_buffer,
+            VkRect2D{.offset = {0, 0},
+                .extent = vkrndr::to_2d_extent(target_image->extent)})};
         draw(*grid_shader_, command_buffer);
     }
 

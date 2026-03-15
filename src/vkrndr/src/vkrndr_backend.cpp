@@ -206,7 +206,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_image(
 {
     buffer_t const staging_buffer{
         create_staging_buffer(*context_.device, image_data.size())};
-    boost::scope::defer_guard const rollback{[this, staging_buffer]() mutable
+    boost::scope::defer_guard rollback{[this, &staging_buffer]()
         { destroy(*context_.device, staging_buffer); }};
 
     {
@@ -242,7 +242,7 @@ vkrndr::image_t vkrndr::backend_t::transfer_buffer_to_image(
                 VK_IMAGE_USAGE_SAMPLED_BIT,
             .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
         VK_IMAGE_ASPECT_COLOR_BIT)};
-    boost::scope::scope_fail const rollback{
+    boost::scope::scope_fail rollback{
         [this, &image]() { destroy(*context_.device, image); }};
 
     std::expected<void, std::error_code> const result{execute_immediate(false,

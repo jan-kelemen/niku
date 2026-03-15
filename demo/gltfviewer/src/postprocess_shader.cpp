@@ -98,7 +98,7 @@ gltfviewer::postprocess_shader_t::postprocess_shader_t(
         VK_SHADER_STAGE_COMPUTE_BIT,
         "postprocess.comp")};
     assert(shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_shd{
+    boost::scope::defer_guard destroy_shd{
         [this, &shd = shader.value()]() { destroy(backend_->device(), shd); }};
 
     if (auto const layout{

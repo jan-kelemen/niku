@@ -115,7 +115,7 @@ namespace
         // Prepare staging buffer and the target bitmap image
         vkrndr::buffer_t const staging_buffer{
             vkrndr::create_staging_buffer(backend.device(), all_bitmaps_size)};
-        boost::scope::defer_guard const rollback{[&backend, staging_buffer]()
+        boost::scope::defer_guard rollback{[&backend, staging_buffer]()
             { destroy(backend.device(), staging_buffer); }};
         vkrndr::mapped_memory_t staging_map{
             vkrndr::map_memory(backend.device(), staging_buffer)};
@@ -130,8 +130,7 @@ namespace
                     VK_IMAGE_USAGE_SAMPLED_BIT,
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             VK_IMAGE_ASPECT_COLOR_BIT);
-        boost::scope::scope_fail const rollback_bitmap{
-            [&backend, &new_bitmap_image]()
+        boost::scope::scope_fail rollback_bitmap{[&backend, &new_bitmap_image]()
             { destroy(backend.device(), new_bitmap_image); }};
 
         std::vector<VkBufferImageCopy> regions;

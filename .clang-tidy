@@ -45,3 +45,5 @@ CheckOptions:
     value: true
   - key: readability-implicit-bool-conversion.AllowIntegerConditions
     value: true
+  - key: misc-const-correctness.AllowedTypes
+    value: 'std::(unique|shared)_lock;boost::scope::(scope_fail|defer_guard|scope_exit);vkrndr::render_pass_guard_t;vkglsl::guard_t;ngnwsi::sdl_(text_input_)?guard_t'

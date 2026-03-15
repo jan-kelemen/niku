@@ -70,7 +70,7 @@ vkrndr::cubemap_t vkrndr::create_cubemap(device_t const& device,
         &rv.image,
         &rv.allocation,
         nullptr));
-    boost::scope::scope_fail const rollback{
+    boost::scope::scope_fail rollback{
         [&device, &rv]() { destroy(device, rv); }};
 
     VkImageViewCreateInfo view_info{};
@@ -118,7 +118,7 @@ std::array<VkImageView, 6> vkrndr::face_views_for_mip(device_t const& device,
         VK_NULL_HANDLE,
         VK_NULL_HANDLE,
         VK_NULL_HANDLE};
-    boost::scope::scope_fail const rollback{[&device, &rv]()
+    boost::scope::scope_fail rollback{[&device, &rv]()
         {
             for (VkImageView const v : rv)
             {

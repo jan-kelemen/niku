@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <optional>
 #include <span>
 #include <system_error>
 #include <utility>
@@ -100,7 +101,7 @@ namespace
 
             unmap_memory(device, &map);
         }
-        [[maybe_unused]] boost::scope::defer_guard const destroy_staging_buffer{
+        boost::scope::defer_guard destroy_staging_buffer{
             [&device, &buffer = staging_buffer]() { destroy(device, buffer); }};
 
         vkrndr::buffer_t quad_buffer{create_buffer(device,
@@ -109,7 +110,7 @@ namespace
                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 .required_memory_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT})};
-        [[maybe_unused]] boost::scope::scope_fail const destroy_quad{
+        boost::scope::scope_fail destroy_quad{
             [&device, &buffer = quad_buffer]() { destroy(device, buffer); }};
         VKRNDR_IF_DEBUG_UTILS(
             object_name(device, quad_buffer, "Grid Vertex Buffer"));
@@ -156,7 +157,7 @@ editor::create_grid_shader(vkrndr::device_t const& device,
     {
         return std::unexpected{add_vertex_result.error()};
     }
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
+    boost::scope::defer_guard destroy_vtx{
         [&device, &shd = add_vertex_result.value()]()
         { destroy(device, shd); }};
     VKRNDR_IF_DEBUG_UTILS(
@@ -171,7 +172,7 @@ editor::create_grid_shader(vkrndr::device_t const& device,
     {
         return std::unexpected{add_fragment_result.error()};
     }
-    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+    boost::scope::defer_guard destroy_frag{
         [&device, &shd = add_fragment_result.value()]()
         { destroy(device, shd); }};
     VKRNDR_IF_DEBUG_UTILS(
@@ -183,7 +184,7 @@ editor::create_grid_shader(vkrndr::device_t const& device,
     {
         return std::unexpected{descriptor_layout_result.error()};
     }
-    [[maybe_unused]] boost::scope::scope_exit destroy_descriptor_layout{
+    boost::scope::scope_exit destroy_descriptor_layout{
         [&device, &layout = descriptor_layout_result.value()]()
         { vkDestroyDescriptorSetLayout(device, layout, nullptr); }};
     VKRNDR_IF_DEBUG_UTILS(object_name(device,
@@ -195,7 +196,7 @@ editor::create_grid_shader(vkrndr::device_t const& device,
         vkrndr::pipeline_layout_builder_t{device}
             .add_descriptor_set_layout(*descriptor_layout_result)
             .build()};
-    [[maybe_unused]] boost::scope::scope_exit destroy_pipeline_layout{
+    boost::scope::scope_exit destroy_pipeline_layout{
         [&device, &layout = pipeline_layout]() { destroy(device, layout); }};
     VKRNDR_IF_DEBUG_UTILS(
         object_name(device, pipeline_layout, "Grid Pipeline Layout"));
@@ -221,7 +222,7 @@ editor::create_grid_shader(vkrndr::device_t const& device,
             .add_shader(as_pipeline_shader(*add_fragment_result))
             .add_color_attachment(color_attachment_format, alpha_blend)
             .build()};
-    [[maybe_unused]] boost::scope::scope_exit destroy_pipeline{
+    boost::scope::scope_exit destroy_pipeline{
         [&device, &pipeline = pipeline]() { destroy(device, pipeline); }};
     VKRNDR_IF_DEBUG_UTILS(object_name(device, pipeline, "Grid Pipeline"));
 

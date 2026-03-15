@@ -239,8 +239,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         VK_SHADER_STAGE_VERTEX_BIT,
         "text.vert")};
     assert(vertex_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_vtx{
-        [this, &shd = vertex_shader.value()]()
+    boost::scope::defer_guard destroy_vtx{[this, &shd = vertex_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
     auto tesselation_control_shader{add_shader_module_from_path(shader_set,
@@ -248,7 +247,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
         "text.tesc")};
     assert(tesselation_control_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_tesc{
+    boost::scope::defer_guard destroy_tesc{
         [this, &shd = tesselation_control_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
@@ -257,7 +256,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
         "text.tese")};
     assert(tesselation_evaluation_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_tese{
+    boost::scope::defer_guard destroy_tese{
         [this, &shd = tesselation_evaluation_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
@@ -266,7 +265,7 @@ reshed::text_editor_t::text_editor_t(vkrndr::backend_t& backend,
         VK_SHADER_STAGE_FRAGMENT_BIT,
         "text.frag")};
     assert(fragment_shader);
-    [[maybe_unused]] boost::scope::defer_guard const destroy_frag{
+    boost::scope::defer_guard destroy_frag{
         [this, &shd = fragment_shader.value()]()
         { destroy(backend_->device(), shd); }};
 
