@@ -200,12 +200,26 @@ editor::create_grid_shader(vkrndr::device_t const& device,
     VKRNDR_IF_DEBUG_UTILS(
         object_name(device, pipeline_layout, "Grid Pipeline Layout"));
 
+    VkPipelineColorBlendAttachmentState const alpha_blend{
+        .blendEnable = VK_TRUE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+            VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT |
+            VK_COLOR_COMPONENT_A_BIT,
+    };
+
     vkrndr::pipeline_t pipeline{
         vkrndr::graphics_pipeline_builder_t{device, pipeline_layout}
             .add_vertex_input(binding_description(), attribute_description())
             .add_shader(as_pipeline_shader(*add_vertex_result))
             .add_shader(as_pipeline_shader(*add_fragment_result))
-            .add_color_attachment(color_attachment_format)
+            .add_color_attachment(color_attachment_format, alpha_blend)
             .build()};
     [[maybe_unused]] boost::scope::scope_exit destroy_pipeline{
         [&device, &pipeline = pipeline]() { destroy(device, pipeline); }};

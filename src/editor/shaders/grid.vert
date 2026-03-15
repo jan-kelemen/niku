@@ -13,6 +13,11 @@ layout(location = 0) out vec2 outCoords;
 
 void main()
 {
-    gl_Position = camera.projection * camera.view * inPosition;
-    outCoords = vec2(inPosition.x, inPosition.z);
+    vec4 worldPosition = inPosition;
+    worldPosition.xyz *= 1000;
+    worldPosition.xz += camera.position.xz;
+
+    gl_Position = camera.projection * camera.view * worldPosition;
+
+    outCoords = worldPosition.xz;
 }

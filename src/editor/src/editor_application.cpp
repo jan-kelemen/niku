@@ -106,7 +106,8 @@ namespace
             .binding = 0,
             .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
             .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .stageFlags =
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
         };
 
         return create_descriptor_set_layout(device,
@@ -565,6 +566,8 @@ bool editor::application_t::update()
 
 editor::application_t::application_t() : camera_controller_{camera_, mouse_}
 {
+    camera_.set_position({0.0f, 2.0f, 1.0f});
+    camera_.set_yaw_pitch({0.0f, 1.0f});
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
         throw std::runtime_error{SDL_GetError()};
