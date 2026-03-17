@@ -416,11 +416,7 @@ editor::application_t::application_t(
 
 editor::application_t::~application_t()
 {
-    if (render_thread_->joinable())
-    {
-        render_thread_->request_stop();
-        render_thread_->join();
-    }
+    render_thread_.reset();
 
     vkDeviceWaitIdle(*rendering_context_.device);
 
