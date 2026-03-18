@@ -3,8 +3,6 @@
 
 #include <volk.h>
 
-#include <vector>
-
 namespace vkrndr
 {
     class [[nodiscard]] window_t

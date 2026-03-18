@@ -2,13 +2,18 @@
 
 #include <ngnwsi_sdl_window.hpp>
 
+#include <cppext_numeric.hpp>
+
 #include <vkrndr_cpu_pacing.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_swapchain.hpp>
 
+#include <SDL3/SDL_timer.h>
 #include <SDL3/SDL_video.h>
 
 #include <spdlog/spdlog.h>
+
+#include <limits>
 
 ngnwsi::render_window_t::render_window_t(char const* title,
     SDL_WindowFlags window_flags,
@@ -53,7 +58,7 @@ vkrndr::frame_in_flight_t& ngnwsi::render_window_t::frame_in_flight()
 }
 
 std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image(
-    uint64_t const timeout)
+    uint64_t timeout)
 {
     std::optional<vkrndr::image_t> rv;
 
@@ -63,7 +68,8 @@ std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image(
         return rv;
     }
 
-    vkrndr::frame_in_flight_t const* const current{pacing_->pace()};
+    uint64_t const start{SDL_GetTicksNS()};
+    vkrndr::frame_in_flight_t const* const current{pacing_->pace(timeout)};
     if (!current)
     {
         return rv;
@@ -73,6 +79,23 @@ std::optional<vkrndr::image_t> ngnwsi::render_window_t::acquire_next_image(
     {
         spdlog::info("Recreating swapchain");
         swapchain_->recreate(current->index);
+    }
+
+    if (timeout != 0 && timeout != std::numeric_limits<uint64_t>::max())
+    {
+        uint64_t new_duration{};
+
+        // NOLINTBEGIN(readability-suspicious-call-argument)
+        if (cppext::sub(timeout, SDL_GetTicksNS() - start, new_duration))
+        {
+            timeout = new_duration;
+        }
+        else
+        {
+            // Exceeded the given budget try to do it immediately
+            timeout = 0;
+        }
+        // NOLINTEND(readability-suspicious-call-argument)
     }
 
     rv = swapchain_->acquire_next_image(current->index, timeout);
