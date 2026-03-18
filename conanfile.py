@@ -132,6 +132,7 @@ class NikuConan(ConanFile):
 
         component = "cppext"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
+        self.cpp_info.components[component].requires.extend(["boost::headers"])
 
         component = "vkrndr"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")

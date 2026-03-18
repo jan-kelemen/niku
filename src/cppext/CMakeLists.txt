@@ -21,6 +21,8 @@ target_include_directories(cppext
 )
 
 target_link_libraries(cppext
+    PUBLIC
+        Boost::headers
     PRIVATE
         $<BUILD_INTERFACE:project-options>
 )

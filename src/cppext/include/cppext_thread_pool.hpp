@@ -1,11 +1,12 @@
 #ifndef CPPEXT_THREAD_POOL_INCLUDED
 #define CPPEXT_THREAD_POOL_INCLUDED
 
+#include <boost/container/deque.hpp>
+
 #include <algorithm>
 #include <atomic>
 #include <concepts>
 #include <condition_variable>
-#include <deque>
 #include <functional>
 #include <future>
 #include <memory>
@@ -17,57 +18,6 @@
 
 namespace cppext::detail
 {
-    template<typename ThreadContainer>
-    class [[nodiscard]] join_threads_t final
-    {
-    public:
-        explicit join_threads_t(ThreadContainer& threads);
-
-        join_threads_t(join_threads_t const&) = delete;
-
-        join_threads_t(join_threads_t&& other) noexcept;
-
-    public:
-        ~join_threads_t();
-
-    public:
-        join_threads_t& operator=(join_threads_t const&) = delete;
-
-        join_threads_t& operator=(join_threads_t&& other) noexcept;
-
-    private:
-        ThreadContainer* threads_;
-    };
-
-    template<typename ThreadContainer>
-    join_threads_t<ThreadContainer>::join_threads_t(ThreadContainer& threads)
-        : threads_{&threads}
-    {
-    }
-
-    template<typename ThreadContainer>
-    join_threads_t<ThreadContainer>::join_threads_t(
-        join_threads_t&& other) noexcept
-        : threads_{std::exchange(other.threads_, nullptr)}
-    {
-    }
-
-    template<typename ThreadContainer>
-    join_threads_t<ThreadContainer>::~join_threads_t()
-    {
-        std::ranges::for_each(*threads_, std::mem_fn(&std::thread::join));
-    }
-
-    template<typename ThreadContainer>
-    // cppcheck-suppress operatorEqVarError
-    join_threads_t<ThreadContainer>& join_threads_t<ThreadContainer>::operator=(
-        join_threads_t&& other) noexcept
-    {
-        std::swap(threads_, other.threads_);
-
-        return *this;
-    }
-
     template<typename T>
     class [[nodiscard]] threadsafe_queue_t final
     {
@@ -341,7 +291,7 @@ namespace cppext::detail
 
     private:
         mutable std::mutex mutex_;
-        std::deque<function_wrapper_t> queue_;
+        boost::container::deque<function_wrapper_t> queue_;
     };
 } // namespace cppext::detail
 
@@ -396,8 +346,7 @@ namespace cppext
 
         detail::function_wrapper_t thread_exit_function_;
 
-        std::vector<std::thread> threads_;
-        detail::join_threads_t<std::vector<std::thread>> joiner_{threads_};
+        std::vector<std::jthread> threads_;
 
         static thread_local detail::work_stealing_queue_t* local_work_queue_;
         static thread_local unsigned local_index_;
