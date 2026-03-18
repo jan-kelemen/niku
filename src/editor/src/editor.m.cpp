@@ -10,7 +10,6 @@
 
 #include <cstddef>
 
-// IWYU pragma: no_include <SDL_events.h>
 // IWYU pragma: no_include <span>
 
 namespace

@@ -183,8 +183,7 @@ namespace ngnast
 constexpr auto ngnast::node_t::children(ngnast::scene_model_t& model)
 {
     return std::views::transform(child_indices,
-        [&model](size_t const child) mutable -> node_t&
-        { return model.nodes[child]; });
+        [&model](size_t const child) -> node_t& { return model.nodes[child]; });
 }
 
 constexpr auto ngnast::node_t::children(
@@ -198,8 +197,7 @@ constexpr auto ngnast::node_t::children(
 constexpr auto ngnast::scene_graph_t::roots(ngnast::scene_model_t& model)
 {
     return std::views::transform(root_indices,
-        [&model](size_t const root) mutable -> node_t&
-        { return model.nodes[root]; });
+        [&model](size_t const root) -> node_t& { return model.nodes[root]; });
 }
 
 constexpr auto ngnast::scene_graph_t::roots(

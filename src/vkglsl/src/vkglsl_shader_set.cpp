@@ -396,7 +396,7 @@ vkglsl::shader_set_t::descriptor_bindings(uint32_t const set) const
     std::vector<VkDescriptorSetLayoutBinding> rv;
 
     auto binding_for =
-        [&rv](uint32_t const binding) mutable -> VkDescriptorSetLayoutBinding&
+        [&rv](uint32_t const binding) -> VkDescriptorSetLayoutBinding&
     {
         if (auto it{std::ranges::find(rv,
                 binding,

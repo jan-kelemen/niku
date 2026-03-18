@@ -107,8 +107,8 @@ galileo::poly_mesh_t galileo::generate_poly_mesh(
 
     std::vector<float> vertices;
     std::vector<int> indices;
-    auto convert_indexed_primitive = [&vertices, &indices](
-                                         ngnast::primitive_t const& p) mutable
+    auto const convert_indexed_primitive = [&vertices, &indices](
+                                               ngnast::primitive_t const& p)
     {
         vertices.reserve(p.vertices.size() * 3);
         for (auto const& vertex : p.vertices)

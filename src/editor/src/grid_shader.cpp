@@ -36,6 +36,7 @@
 
 // IWYU pragma: no_include <boost/scope/exception_checker.hpp>
 // IWYU pragma: no_include <filesystem>
+// IWYU pragma: no_include <string_view>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
 struct VkDescriptorSetLayout_T;

@@ -79,6 +79,7 @@
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <map>
+// IWYU pragma: no_include <set>
 
 namespace
 {
@@ -563,6 +564,7 @@ void editor::application_t::render()
         ImGui::GetMainViewport(),
         ImGuiDockNodeFlags_PassthruCentralNode);
     ImGui::ShowMetricsWindow();
+    ImGui::ShowDemoWindow();
     camera_controller_.draw_imgui();
     imgui_->end_frame();
 
