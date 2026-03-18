@@ -55,9 +55,11 @@ namespace vkrndr
                     VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR>()};
     };
 
-    void link_required_feature_chain(feature_chain_t& chain);
+    void link_required_feature_chain(feature_chain_t& chain,
+        uint32_t max_api_version);
 
-    void link_optional_feature_chain(feature_chain_t& chain);
+    void link_optional_feature_chain(feature_chain_t& chain,
+        uint32_t max_api_version);
 
     struct [[nodiscard]] feature_flags_t final
     {
@@ -94,10 +96,12 @@ namespace vkrndr
             relaxed_extended_instruction_flags;
     };
 
-    void add_required_feature_flags(feature_flags_t& flags);
+    void add_required_feature_flags(feature_flags_t& flags,
+        uint32_t max_api_version);
 
     void set_feature_flags_on_chain(feature_chain_t& chain,
-        feature_flags_t const& flags);
+        feature_flags_t const& flags,
+        uint32_t max_api_version);
 
     [[nodiscard]] bool check_feature_flags(feature_chain_t const& chain,
         feature_flags_t const& flags);
@@ -132,6 +136,7 @@ namespace vkrndr
 
     [[nodiscard]] std::vector<physical_device_features_t>
     query_available_physical_devices(VkInstance instance,
+        uint32_t max_api_version,
         VkSurfaceKHR surface = VK_NULL_HANDLE);
 
     [[nodiscard]] bool enable_extension_for_device(char const* extension_name,

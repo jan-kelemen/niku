@@ -76,6 +76,8 @@ std::expected<vkrndr::instance_ptr_t, std::error_code> vkrndr::create_instance(
 
     volkLoadInstanceOnly(rv->handle);
 
+    rv->api_version = app_info.apiVersion;
+
     std::ranges::copy(create_info.layers,
         std::inserter(rv->layers, rv->layers.begin()));
 

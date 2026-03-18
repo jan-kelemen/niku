@@ -1,22 +1,21 @@
-#include <algorithm>
 #include <catch2/catch_config.hpp>
 #include <catch2/catch_session.hpp>
 
 #include <global_library_handle.hpp>
+#include <helpers.hpp>
 
 #include <vkrndr_device.hpp>
 #include <vkrndr_features.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
-#include <vkrndr_utility.hpp>
 
 #include <volk.h>
 
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <expected>
-#include <iterator>
 #include <optional>
 #include <print>
 #include <system_error>
@@ -55,7 +54,7 @@ int main(int argc, char* argv[])
     }
 
     if (std::expected<vkrndr::instance_ptr_t, std::error_code> in{
-            vkrndr::create_instance({})})
+            vkrndr::create_instance({.optional_extensions = {}})})
     {
         test::instance = *in;
     }
@@ -71,17 +70,9 @@ int main(int argc, char* argv[])
     if (std::optional<vkrndr::physical_device_features_t> const& pd{
             pick_best_physical_device(*test::instance, {}, VK_NULL_HANDLE)})
     {
-        auto const is_general_queue = [](vkrndr::queue_family_t const& q)
-        {
-            return vkrndr::supports_flags(q.properties.queueFlags,
-                VK_QUEUE_GRAPHICS_BIT |
-                    VK_QUEUE_TRANSFER_BIT |
-                    VK_QUEUE_COMPUTE_BIT);
-        };
-
-        auto const queue_it{
-            std::ranges::find_if(pd->queue_families, is_general_queue)};
-        if (queue_it == cend(pd->queue_families))
+        vkrndr::queue_family_t const* const queue{
+            find_general_queue(pd->queue_families)};
+        if (!queue)
         {
             std::print(
                 "Skipping tests, Vulkan device doesn't have a generic queue");
@@ -89,13 +80,14 @@ int main(int argc, char* argv[])
         }
 
         vkrndr::feature_chain_t chain;
-        link_required_feature_chain(chain);
+        link_required_feature_chain(chain,
+            std::min(test::instance->api_version, pd->properties.apiVersion));
         if (std::expected<vkrndr::device_ptr_t, std::error_code> ld{
                 create_device(*test::instance,
                     {},
                     *pd,
                     chain,
-                    std::to_array({*queue_it}))})
+                    std::to_array({*queue}))})
         {
             test::minimal_device = *ld;
         }

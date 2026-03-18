@@ -1,3 +1,6 @@
+#ifndef VKRNDR_TEST_GLOBAL_LIBRARY_HANDLE_INCLUDED
+#define VKRNDR_TEST_GLOBAL_LIBRARY_HANDLE_INCLUDED
+
 #include <vkrndr_device.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
@@ -10,3 +13,5 @@ namespace test
     extern vkrndr::device_ptr_t minimal_device;
     // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 } // namespace test
+
+#endif

@@ -116,18 +116,55 @@ std::vector<VkExtensionProperties> vkrndr::query_instance_extensions(
     return rv;
 }
 
-void vkrndr::link_required_feature_chain(feature_chain_t& chain)
+void vkrndr::link_required_feature_chain(feature_chain_t& chain,
+    uint32_t const max_api_version)
 {
     chain.device_10_features.pNext = &chain.device_11_features;
     chain.device_11_features.pNext = &chain.device_12_features;
     chain.device_12_features.pNext = &chain.device_13_features;
     chain.device_13_features.pNext = nullptr;
+
+    switch (max_api_version)
+    {
+    case VK_API_VERSION_1_0:
+        chain.device_10_features.pNext = nullptr;
+        return;
+    case VK_API_VERSION_1_1:
+        chain.device_11_features.pNext = nullptr;
+        return;
+    case VK_API_VERSION_1_2:
+        chain.device_12_features.pNext = nullptr;
+        return;
+    case VK_API_VERSION_1_3:
+    default:
+        chain.device_13_features.pNext = nullptr;
+        return;
+    }
 }
 
-void vkrndr::link_optional_feature_chain(feature_chain_t& chain)
+void vkrndr::link_optional_feature_chain(feature_chain_t& chain,
+    uint32_t const max_api_version)
 {
-    link_required_feature_chain(chain);
-    chain.device_13_features.pNext = &chain.swapchain_maintenance_1_features;
+    link_required_feature_chain(chain, max_api_version);
+
+    void* const next{&chain.swapchain_maintenance_1_features};
+    switch (max_api_version)
+    {
+    case VK_API_VERSION_1_0:
+        chain.device_10_features.pNext = next;
+        break;
+    case VK_API_VERSION_1_1:
+        chain.device_11_features.pNext = next;
+        break;
+    case VK_API_VERSION_1_2:
+        chain.device_12_features.pNext = next;
+        break;
+    case VK_API_VERSION_1_3:
+    default:
+        chain.device_13_features.pNext = next;
+        break;
+    }
+
     chain.swapchain_maintenance_1_features.pNext =
         &chain.memory_priority_features;
     chain.memory_priority_features.pNext =
@@ -138,7 +175,8 @@ void vkrndr::link_optional_feature_chain(feature_chain_t& chain)
         &chain.relaxed_extended_instruction_features;
 }
 
-void vkrndr::add_required_feature_flags(feature_flags_t& flags)
+void vkrndr::add_required_feature_flags(feature_flags_t& flags,
+    uint32_t const max_api_version)
 {
     flags.device_10_flags.insert(flags.device_10_flags.end(),
         {
@@ -149,36 +187,44 @@ void vkrndr::add_required_feature_flags(feature_flags_t& flags)
             &VkPhysicalDeviceFeatures::tessellationShader,
         });
 
-    flags.device_12_flags.insert(flags.device_12_flags.end(),
-        {
-            // clang-format off
-            &VkPhysicalDeviceVulkan12Features::descriptorIndexing,
-            &VkPhysicalDeviceVulkan12Features::shaderSampledImageArrayNonUniformIndexing,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingUniformBufferUpdateAfterBind,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingSampledImageUpdateAfterBind,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageImageUpdateAfterBind,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageBufferUpdateAfterBind,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingUniformTexelBufferUpdateAfterBind,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageTexelBufferUpdateAfterBind,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingUpdateUnusedWhilePending,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingPartiallyBound,
-            &VkPhysicalDeviceVulkan12Features::descriptorBindingVariableDescriptorCount,
-            &VkPhysicalDeviceVulkan12Features::runtimeDescriptorArray,
-            &VkPhysicalDeviceVulkan12Features::scalarBlockLayout,
-            &VkPhysicalDeviceVulkan12Features::bufferDeviceAddress,
-            // clang-format on
-        });
+    if (max_api_version >= VK_API_VERSION_1_2)
+    {
+        flags.device_12_flags.insert(flags.device_12_flags.end(),
+            {
+                // clang-format off
+                &VkPhysicalDeviceVulkan12Features::descriptorIndexing,
+                &VkPhysicalDeviceVulkan12Features::shaderSampledImageArrayNonUniformIndexing,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingUniformBufferUpdateAfterBind,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingSampledImageUpdateAfterBind,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageImageUpdateAfterBind,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageBufferUpdateAfterBind,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingUniformTexelBufferUpdateAfterBind,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingStorageTexelBufferUpdateAfterBind,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingUpdateUnusedWhilePending,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingPartiallyBound,
+                &VkPhysicalDeviceVulkan12Features::descriptorBindingVariableDescriptorCount,
+                &VkPhysicalDeviceVulkan12Features::runtimeDescriptorArray,
+                &VkPhysicalDeviceVulkan12Features::scalarBlockLayout,
+                &VkPhysicalDeviceVulkan12Features::bufferDeviceAddress,
+                // clang-format on
+            });
+    }
 
-    flags.device_13_flags.insert(flags.device_13_flags.end(),
-        {
-            &VkPhysicalDeviceVulkan13Features::synchronization2,
-            &VkPhysicalDeviceVulkan13Features::dynamicRendering,
-            &VkPhysicalDeviceVulkan13Features::shaderDemoteToHelperInvocation,
-        });
+    if (max_api_version >= VK_API_VERSION_1_3)
+    {
+        flags.device_13_flags.insert(flags.device_13_flags.end(),
+            {
+                &VkPhysicalDeviceVulkan13Features::synchronization2,
+                &VkPhysicalDeviceVulkan13Features::dynamicRendering,
+                &VkPhysicalDeviceVulkan13Features::
+                    shaderDemoteToHelperInvocation,
+            });
+    }
 }
 
 void vkrndr::set_feature_flags_on_chain(feature_chain_t& chain,
-    feature_flags_t const& flags)
+    feature_flags_t const& flags,
+    uint32_t max_api_version)
 {
     auto const set_flags = [](auto&& instance, std::ranges::range auto&& range)
     {
@@ -195,9 +241,18 @@ void vkrndr::set_feature_flags_on_chain(feature_chain_t& chain,
     };
 
     set_flags(chain.device_10_features.features, flags.device_10_flags);
-    set_flags(chain.device_11_features, flags.device_11_flags);
-    set_flags(chain.device_12_features, flags.device_12_flags);
-    set_flags(chain.device_13_features, flags.device_13_flags);
+    if (max_api_version >= VK_API_VERSION_1_1)
+    {
+        set_flags(chain.device_11_features, flags.device_11_flags);
+    }
+    if (max_api_version >= VK_API_VERSION_1_2)
+    {
+        set_flags(chain.device_12_features, flags.device_12_flags);
+    }
+    if (max_api_version >= VK_API_VERSION_1_3)
+    {
+        set_flags(chain.device_13_features, flags.device_13_flags);
+    }
     set_optional_flags(chain.swapchain_maintenance_1_features,
         flags.swapchain_maintenance_1_flags);
     set_optional_flags(chain.memory_priority_features,
@@ -319,6 +374,7 @@ vkrndr::query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
 
 std::vector<vkrndr::physical_device_features_t>
 vkrndr::query_available_physical_devices(VkInstance instance,
+    uint32_t const max_api_version,
     VkSurfaceKHR surface)
 {
     std::vector<physical_device_features_t> rv;
@@ -328,11 +384,12 @@ vkrndr::query_available_physical_devices(VkInstance instance,
             .extensions = query_device_extensions(device),
             .queue_families = query_queue_families(device, surface)};
 
-        link_optional_feature_chain(current.features);
+        vkGetPhysicalDeviceProperties(device, &current.properties);
+
+        link_optional_feature_chain(current.features,
+            std::min(current.properties.apiVersion, max_api_version));
         vkGetPhysicalDeviceFeatures2(device,
             &current.features.device_10_features);
-
-        vkGetPhysicalDeviceProperties(device, &current.properties);
 
         if (surface != VK_NULL_HANDLE)
         {

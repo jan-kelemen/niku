@@ -563,9 +563,26 @@ void editor::application_t::render()
     ImGui::DockSpaceOverViewport(0,
         ImGui::GetMainViewport(),
         ImGuiDockNodeFlags_PassthruCentralNode);
+
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            ImGui::Separator();
+            if (ImGui::MenuItem("Quit"))
+            {
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+
     ImGui::ShowMetricsWindow();
+
     ImGui::ShowDemoWindow();
+
     camera_controller_.draw_imgui();
+
     imgui_->end_frame();
 
     VkCommandBuffer& command_buffer{command_buffers_[index]};

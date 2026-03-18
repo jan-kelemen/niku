@@ -259,8 +259,11 @@ gltfviewer::application_t::application_t(int const argc,
 #endif
                     };
 
+                    uint32_t api_version{
+                        rendering_context_.instance->api_version};
                     vkrndr::feature_flags_t feature_flags;
-                    vkrndr::add_required_feature_flags(feature_flags);
+                    vkrndr::add_required_feature_flags(feature_flags,
+                        api_version);
 #if GLTFVIEWER_SHADER_DEBUG_SYMBOLS
                     feature_flags.relaxed_extended_instruction_flags.emplace(
                         &VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR::
@@ -283,10 +286,14 @@ gltfviewer::application_t::application_t(int const argc,
                     spdlog::info("Selected {} GPU",
                         physical_device->properties.deviceName);
 
+                    api_version = std::min(api_version,
+                        physical_device->properties.apiVersion);
                     vkrndr::feature_chain_t effective_features;
                     set_feature_flags_on_chain(effective_features,
-                        feature_flags);
-                    link_required_feature_chain(effective_features);
+                        feature_flags,
+                        api_version);
+                    link_required_feature_chain(effective_features,
+                        api_version);
 
 #if GLTFVIEWER_SHADER_DEBUG_SYMBOLS
                     if (!vkrndr::enable_extension_for_device(

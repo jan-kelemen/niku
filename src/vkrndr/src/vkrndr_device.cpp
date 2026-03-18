@@ -29,10 +29,8 @@
 namespace
 {
     [[nodiscard]] VkSampleCountFlagBits max_usable_sample_count(
-        VkPhysicalDevice device)
+        VkPhysicalDeviceProperties const& properties)
     {
-        VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(device, &properties);
         VkSampleCountFlags const counts =
             properties.limits.framebufferColorSampleCounts &
             properties.limits.framebufferDepthSampleCounts;
@@ -81,9 +79,13 @@ namespace
         device_create_info_t const& create_info)
     {
         vkrndr::device_ptr_t rv{new vkrndr::device_t};
-
         rv->physical_device = create_info.device;
-        rv->max_msaa_samples = max_usable_sample_count(*rv);
+
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(*rv, &properties);
+
+        rv->api_version = std::min(properties.apiVersion, instance.api_version);
+        rv->max_msaa_samples = max_usable_sample_count(properties);
 
         float const priority{1.0f};
         std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
@@ -178,7 +180,9 @@ namespace
         std::vector<vkrndr::physical_device_features_t> rv;
 
         for (vkrndr::physical_device_features_t& device :
-            vkrndr::query_available_physical_devices(instance, surface))
+            vkrndr::query_available_physical_devices(instance,
+                instance.api_version,
+                surface))
         {
             bool const device_extensions_supported{
                 std::ranges::all_of(required_extensions,
@@ -287,11 +291,13 @@ std::expected<vkrndr::device_ptr_t, std::error_code> vkrndr::create_device(
     std::span<queue_family_t const> const& queue_families)
 {
     feature_flags_t required_flags;
-    add_required_feature_flags(required_flags);
+    add_required_feature_flags(required_flags, instance.api_version);
 
     feature_chain_t effective_features;
-    set_feature_flags_on_chain(effective_features, required_flags);
-    link_required_feature_chain(effective_features);
+    set_feature_flags_on_chain(effective_features,
+        required_flags,
+        instance.api_version);
+    link_required_feature_chain(effective_features, instance.api_version);
 
     return create_device(instance,
         extensions,
@@ -310,7 +316,8 @@ std::expected<vkrndr::device_ptr_t, std::error_code> vkrndr::create_device(
     std::vector<char const*> effective_extensions{std::cbegin(extensions),
         std::cend(extensions)};
 
-    if (enable_extension_for_device(
+    if (features.swapchain_support &&
+        enable_extension_for_device(
             VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
             features,
             feature_chain))
@@ -347,7 +354,7 @@ vkrndr::pick_best_physical_device(instance_t const& instance,
     VkSurfaceKHR surface)
 {
     feature_flags_t required_flags;
-    add_required_feature_flags(required_flags);
+    add_required_feature_flags(required_flags, instance.api_version);
 
     return pick_best_physical_device(instance,
         extensions,

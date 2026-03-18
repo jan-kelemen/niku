@@ -31,6 +31,8 @@ namespace vkrndr
     public:
         VkInstance handle{VK_NULL_HANDLE};
 
+        uint32_t api_version{VK_API_VERSION_1_3};
+
         std::set<std::string, std::less<>> layers;
         std::set<std::string, std::less<>> extensions;
 

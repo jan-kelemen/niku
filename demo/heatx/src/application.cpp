@@ -272,8 +272,11 @@ heatx::application_t::application_t(int argc, char const** argv)
 #endif // HEATX_SHADER_DEBUG_SYMBOLS
                     };
 
+                    uint32_t api_version{
+                        rendering_context_.instance->api_version};
                     vkrndr::feature_flags_t feature_flags;
-                    vkrndr::add_required_feature_flags(feature_flags);
+                    vkrndr::add_required_feature_flags(feature_flags,
+                        api_version);
                     feature_flags.acceleration_structure_flags.push_back(
                         &VkPhysicalDeviceAccelerationStructureFeaturesKHR::
                             accelerationStructure);
@@ -302,10 +305,14 @@ heatx::application_t::application_t(int argc, char const** argv)
                     spdlog::info("Selected {} GPU",
                         physical_device->properties.deviceName);
 
+                    api_version = std::min(api_version,
+                        physical_device->properties.apiVersion);
                     vkrndr::feature_chain_t effective_features;
                     set_feature_flags_on_chain(effective_features,
-                        feature_flags);
-                    link_required_feature_chain(effective_features);
+                        feature_flags,
+                        api_version);
+                    link_required_feature_chain(effective_features,
+                        api_version);
 
                     if (!vkrndr::enable_extension_for_device(
                             VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,

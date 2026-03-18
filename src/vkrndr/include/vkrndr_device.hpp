@@ -11,6 +11,7 @@
 
 #include <volk.h>
 
+#include <cstdint>
 #include <expected>
 #include <functional>
 #include <optional>
@@ -32,6 +33,8 @@ namespace vkrndr
     {
         VkPhysicalDevice physical_device{VK_NULL_HANDLE};
         VkDevice logical_device{VK_NULL_HANDLE};
+
+        uint32_t api_version{VK_API_VERSION_1_3};
 
         std::set<std::string, std::less<>> extensions;
 
