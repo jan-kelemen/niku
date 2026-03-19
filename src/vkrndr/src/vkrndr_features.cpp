@@ -214,10 +214,11 @@ void vkrndr::add_required_feature_flags(feature_flags_t& flags,
     {
         flags.device_13_flags.insert(flags.device_13_flags.end(),
             {
+                // clang-format off
                 &VkPhysicalDeviceVulkan13Features::synchronization2,
                 &VkPhysicalDeviceVulkan13Features::dynamicRendering,
-                &VkPhysicalDeviceVulkan13Features::
-                    shaderDemoteToHelperInvocation,
+                &VkPhysicalDeviceVulkan13Features:: shaderDemoteToHelperInvocation,
+                // clang-format on
             });
     }
 }

@@ -47,6 +47,8 @@ namespace ngngfx
         aircraft_camera_t& operator=(aircraft_camera_t&&) noexcept = default;
 
     private:
+        void update_impl();
+
         void calculate_view_matrix();
 
     protected:

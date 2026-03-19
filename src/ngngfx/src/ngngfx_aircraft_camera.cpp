@@ -22,7 +22,7 @@ ngngfx::aircraft_camera_t::aircraft_camera_t(glm::vec3 const& position,
     , world_up_{world_up}
     , yaw_pitch_{yaw_pitch}
 {
-    calculate_view_matrix();
+    update_impl();
 }
 
 glm::vec2 ngngfx::aircraft_camera_t::yaw_pitch() const { return yaw_pitch_; }
@@ -47,7 +47,14 @@ glm::vec3 ngngfx::aircraft_camera_t::right_direction() const
     return right_direction_;
 }
 
-void ngngfx::aircraft_camera_t::update()
+void ngngfx::aircraft_camera_t::update() { update_impl(); }
+
+glm::mat4 const& ngngfx::aircraft_camera_t::view_matrix() const
+{
+    return view_matrix_;
+}
+
+void ngngfx::aircraft_camera_t::update_impl()
 {
     auto const& yaw{yaw_pitch_.x};
     auto const& pitch{yaw_pitch_.y};
@@ -61,11 +68,6 @@ void ngngfx::aircraft_camera_t::update()
         glm::normalize(glm::cross(right_direction_, front_direction_));
 
     calculate_view_matrix();
-}
-
-glm::mat4 const& ngngfx::aircraft_camera_t::view_matrix() const
-{
-    return view_matrix_;
 }
 
 void ngngfx::aircraft_camera_t::calculate_view_matrix()
