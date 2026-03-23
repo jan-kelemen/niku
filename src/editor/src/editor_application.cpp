@@ -407,6 +407,10 @@ editor::application_t::application_t(
         throw std::runtime_error{message};
     }
 
+    event_dispatcher_.sink<SDL_Event>()
+        .connect<&ngnwsi::imgui_layer_t::handle_event>(*imgui_);
+    event_dispatcher_.sink<SDL_Event>()
+        .connect<&camera_controller_t::handle_event>(camera_controller_);
     event_dispatcher_.sink<SDL_Event>().connect<&application_t::handle_event>(
         *this);
 
@@ -471,31 +475,12 @@ editor::application_t::~application_t()
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-bool editor::application_t::handle_event(SDL_Event const& event)
-{
-    {
-        std::unique_lock guard{state_mutex_};
-        [[maybe_unused]] auto const imgui_handled{imgui_->handle_event(event)};
-
-        camera_controller_.handle_event(event);
-    }
-
-    if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
-    {
-        render_thread_->request_stop();
-        continue_running_ = false;
-    }
-    else if (event.type == SDL_EVENT_QUIT)
-    {
-        continue_running_ = false;
-    }
-
-    return continue_running_;
-}
-
 bool editor::application_t::update()
 {
-    event_dispatcher_.update();
+    {
+        event_dispatcher_.update();
+        std::unique_lock guard{state_mutex_};
+    }
 
     if (uint64_t const steps{timestep_.pending_simulation_steps()})
     {
@@ -545,6 +530,25 @@ void editor::application_t::process_command_line(
     else if (has_argument("--debug"))
     {
         spdlog::set_level(spdlog::level::debug);
+    }
+}
+
+void editor::application_t::handle_event(SDL_Event const& event)
+{
+    {
+        [[maybe_unused]] auto const imgui_handled{imgui_->handle_event(event)};
+
+        camera_controller_.handle_event(event);
+    }
+
+    if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+    {
+        render_thread_->request_stop();
+        continue_running_ = false;
+    }
+    else if (event.type == SDL_EVENT_QUIT)
+    {
+        continue_running_ = false;
     }
 }
 

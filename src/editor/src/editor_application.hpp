@@ -66,7 +66,7 @@ namespace editor
     private:
         void process_command_line(std::span<char const*> const& parameters);
 
-        [[nodiscard]] bool handle_event(SDL_Event const& event);
+        void handle_event(SDL_Event const& event);
 
         void render();
 
