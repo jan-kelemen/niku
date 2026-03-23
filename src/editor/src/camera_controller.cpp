@@ -15,6 +15,7 @@
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_scancode.h>
 
 #include <algorithm>
@@ -30,7 +31,19 @@ editor::camera_controller_t::camera_controller_t(
 
 void editor::camera_controller_t::handle_event(SDL_Event const& event)
 {
-    if (event.type == SDL_EVENT_MOUSE_MOTION && mouse_->captured())
+    if ((SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_MMASK) !=
+        SDL_BUTTON_MMASK)
+    {
+        // Middle mouse button not pressed
+        return;
+    }
+
+    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+        event.button.button == SDL_BUTTON_MMASK)
+    {
+        static_cast<void>(mouse_->relative_offset()); // Reset relative state
+    }
+    else if (event.type == SDL_EVENT_MOUSE_MOTION && mouse_->captured())
     {
         auto const& yaw_pitch{camera_->yaw_pitch()};
         auto const& mouse_offset{mouse_->relative_offset()};
@@ -44,11 +57,6 @@ void editor::camera_controller_t::handle_event(SDL_Event const& event)
             std::clamp(pitch, glm::radians(-85.0f), glm::radians(85.0f))});
 
         update_needed_ = true;
-    }
-    else if (event.type == SDL_EVENT_KEY_DOWN &&
-        event.key.scancode == SDL_SCANCODE_F3)
-    {
-        mouse_->set_capture(!mouse_->captured());
     }
 }
 
