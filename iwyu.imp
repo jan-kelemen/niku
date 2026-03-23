@@ -64,9 +64,6 @@
   # Catch2 aliases
   { include: [ "<catch2/catch_message.hpp>", public, "<catch2/catch_test_macros.hpp>", public ] },
 
-  # EnTT aliases
-  { include: [ "@<entt/.*>", private, "<entt/entt.hpp>", public] },
-
   # freetype aliases
   { include: [ "@<freetype/.*>", private, "<ft2build.h>", public] },
 

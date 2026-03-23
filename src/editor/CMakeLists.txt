@@ -27,6 +27,7 @@ target_link_libraries(editor
         vkrndr
     PRIVATE
         Boost::headers
+        EnTT::EnTT
         spdlog::spdlog
         imgui::imgui
     PRIVATE

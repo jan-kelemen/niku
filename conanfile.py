@@ -31,6 +31,7 @@ class NikuConan(ConanFile):
     def requirements(self):
         self.requires("angelscript/2.38.0")
         self.requires("boost/1.90.0", transitive_headers=False)
+        self.requires("entt/3.16.0")
         self.requires("fastgltf/0.9.0", transitive_headers=False)
         self.requires("fmt/12.1.0")
         self.requires("freetype/2.14.1")
@@ -52,7 +53,6 @@ class NikuConan(ConanFile):
         self.requires("vulkan-utility-libraries/1.4.341.0")
 
         if self.options.develop:
-            self.requires("entt/3.16.0")
             self.requires("recastnavigation/1.6.0")
             self.requires("simdjson/4.3.1")
             self.requires("tree-sitter-glsl/0.2.0")

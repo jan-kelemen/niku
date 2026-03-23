@@ -2,6 +2,8 @@
 
 #include <cppext_numeric.hpp>
 
+#include <entt/signal/dispatcher.hpp>
+
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 
@@ -33,12 +35,8 @@ SDL_AppInit(void** const appstate, int const argc, char** const argv)
 
 SDL_AppResult SDL_AppEvent(void* const appstate, SDL_Event* const event)
 {
-    if (to_app(appstate)->handle_event(*event))
-    {
-        return SDL_APP_CONTINUE;
-    }
-
-    return SDL_APP_SUCCESS;
+    to_app(appstate)->event_dispatcher().trigger(*event);
+    return SDL_APP_CONTINUE;
 }
 
 SDL_AppResult SDL_AppIterate([[maybe_unused]] void* const appstate)

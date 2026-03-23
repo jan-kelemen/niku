@@ -35,6 +35,8 @@
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <entt/signal/sigh.hpp>
+
 #include <fmt/ranges.h>
 
 #include <glm/mat4x4.hpp>
@@ -405,6 +407,9 @@ editor::application_t::application_t(
         throw std::runtime_error{message};
     }
 
+    event_dispatcher_.sink<SDL_Event>().connect<&application_t::handle_event>(
+        *this);
+
     render_thread_ = std::make_unique<std::jthread>(
         [this](std::stop_token const& token)
         {
@@ -478,14 +483,20 @@ bool editor::application_t::handle_event(SDL_Event const& event)
     if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
     {
         render_thread_->request_stop();
+        continue_running_ = false;
+    }
+    else if (event.type == SDL_EVENT_QUIT)
+    {
+        continue_running_ = false;
     }
 
-    return event.type != SDL_EVENT_QUIT &&
-        event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED;
+    return continue_running_;
 }
 
 bool editor::application_t::update()
 {
+    event_dispatcher_.update();
+
     if (uint64_t const steps{timestep_.pending_simulation_steps()})
     {
         std::unique_lock guard{state_mutex_};
@@ -496,7 +507,7 @@ bool editor::application_t::update()
         projection_.update(camera_.view_matrix());
     }
 
-    return true;
+    return continue_running_;
 }
 
 editor::application_t::application_t() : camera_controller_{camera_, mouse_}
@@ -571,6 +582,8 @@ void editor::application_t::render()
             ImGui::Separator();
             if (ImGui::MenuItem("Quit"))
             {
+                event_dispatcher_.enqueue<SDL_Event>(
+                    {.quit = {.type = SDL_EVENT_QUIT}});
             }
             ImGui::EndMenu();
         }

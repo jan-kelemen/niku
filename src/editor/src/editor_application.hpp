@@ -3,6 +3,7 @@
 
 #include <camera_controller.hpp>
 
+#include <entt/signal/fwd.hpp>
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
@@ -11,6 +12,8 @@
 
 #include <vkrndr_buffer.hpp> // IWYU pragma: keep
 #include <vkrndr_rendering_context.hpp>
+
+#include <entt/signal/dispatcher.hpp>
 
 #include <volk.h>
 
@@ -48,7 +51,7 @@ namespace editor
         ~application_t();
 
     public:
-        [[nodiscard]] bool handle_event(SDL_Event const& event);
+        [[nodiscard]] entt::dispatcher& event_dispatcher();
 
         [[nodiscard]] bool update();
 
@@ -63,9 +66,14 @@ namespace editor
     private:
         void process_command_line(std::span<char const*> const& parameters);
 
+        [[nodiscard]] bool handle_event(SDL_Event const& event);
+
         void render();
 
     private:
+        entt::dispatcher event_dispatcher_;
+        bool continue_running_{true};
+
         std::unique_ptr<ngnwsi::render_window_t> main_window_;
         vkrndr::rendering_context_t rendering_context_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
@@ -90,5 +98,10 @@ namespace editor
         std::unique_ptr<std::jthread> render_thread_;
     };
 } // namespace editor
+
+inline entt::dispatcher& editor::application_t::event_dispatcher()
+{
+    return event_dispatcher_;
+}
 
 #endif // !EDITOR_APPLICATION_INCLUDED
