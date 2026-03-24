@@ -3,7 +3,6 @@
 
 #include <camera_controller.hpp>
 
-#include <entt/signal/fwd.hpp>
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
@@ -14,6 +13,7 @@
 #include <vkrndr_rendering_context.hpp>
 
 #include <entt/signal/dispatcher.hpp>
+#include <entt/signal/fwd.hpp>
 
 #include <volk.h>
 

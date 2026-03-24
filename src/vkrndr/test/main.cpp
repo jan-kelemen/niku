@@ -1,9 +1,6 @@
 #include <catch2/catch_config.hpp>
 #include <catch2/catch_session.hpp>
 
-#include <global_library_handle.hpp>
-#include <helpers.hpp>
-
 #include <vkrndr_device.hpp>
 #include <vkrndr_features.hpp>
 #include <vkrndr_instance.hpp>
@@ -19,6 +16,9 @@
 #include <optional>
 #include <print>
 #include <system_error>
+
+#include <global_library_handle.hpp>
+#include <helpers.hpp>
 
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 // IWYU pragma: no_include <span>

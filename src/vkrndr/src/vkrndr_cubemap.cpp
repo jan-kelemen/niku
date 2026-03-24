@@ -4,9 +4,9 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
-#include <vma_impl.hpp>
-
 #include <boost/scope/scope_fail.hpp>
+
+#include <vma_impl.hpp>
 
 #include <volk.h>
 

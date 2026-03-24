@@ -1,7 +1,6 @@
 #ifndef CPPEXT_CONTAINER_INCLUDED
 #define CPPEXT_CONTAINER_INCLUDED
 
-#include <concepts>
 #include <span>
 
 namespace cppext
