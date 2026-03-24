@@ -5,10 +5,12 @@
 
 #include <angelscript.h>
 
-#include <entt/entt.hpp> // IWYU pragma: keep
+#include <entt/entity/fwd.hpp> // IWYU pragma: keep
 
 #include <chrono>
 #include <expected>
+
+// IWYU pragma: no_forward_declare entt::entt
 
 namespace ngnscr
 {

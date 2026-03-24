@@ -11,6 +11,8 @@
 
 #include <angelscript.h>
 
+#include <entt/entt.hpp>
+
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Core/Reference.h>

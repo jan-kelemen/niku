@@ -24,13 +24,16 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_rendering_context.hpp>
 
-#include <entt/entt.hpp>
+#include <entt/entity/entity.hpp>
+#include <entt/entity/registry.hpp>
 
 #include <SDL3/SDL_events.h>
 
 #include <cstdint>
 #include <memory>
 #include <random>
+
+// IWYU pragma: no_include <entt/entity/fwd.hpp>
 
 namespace ngnwsi
 {

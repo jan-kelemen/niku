@@ -3,7 +3,7 @@
 
 #include <navmesh.hpp>
 
-#include <entt/entt.hpp>
+#include <entt/entity/fwd.hpp>
 
 #include <glm/vec3.hpp>
 

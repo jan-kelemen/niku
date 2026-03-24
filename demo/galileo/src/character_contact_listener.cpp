@@ -7,6 +7,8 @@
 
 #include <angelscript.h>
 
+#include <entt/entity/registry.hpp>
+
 #include <Jolt/Math/Vec3.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
 

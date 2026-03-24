@@ -6,6 +6,8 @@
 
 #include <angelscript.h>
 
+#include <entt/entity/registry.hpp>
+
 #include <Jolt/Physics/Body/Body.h>
 
 #include <spdlog/spdlog.h>

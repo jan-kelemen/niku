@@ -1,7 +1,7 @@
 #ifndef GALILEO_WORLD_CONTACT_LISTENER_INCLUDED
 #define GALILEO_WORLD_CONTACT_LISTENER_INCLUDED
 
-#include <entt/entt.hpp>
+#include <entt/entity/fwd.hpp>
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
