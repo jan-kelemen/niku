@@ -25,16 +25,11 @@ jobs:
       - name: Install gcc-${{ env.GCC_VER }}
         uses: ./.github/actions/install-gcc
 
-      - name: Install clang-21
-        uses: ./.github/actions/install-clang
-        with:
-          version: 21
-          dev: true
-
       - name: Install clang-${{ env.CLANG_VER }}
         uses: ./.github/actions/install-clang
         with:
           version: ${{ env.CLANG_VER }}
+          dev: true
           clang-tidy: true
 
       - name: Install APT packages

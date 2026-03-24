@@ -36,6 +36,7 @@
 
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <Jolt/Physics/Collision/Shape/Shape.h>
 // IWYU pragma: no_include <expected>
 
 entt::entity galileo::create_sphere(entt::registry& registry,

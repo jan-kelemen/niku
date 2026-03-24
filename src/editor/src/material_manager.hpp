@@ -22,6 +22,7 @@
 #include <vector>
 
 // IWYU pragma: no_include <boost/core/allocator_access.hpp>
+// IWYU pragma: no_include <boost/unordered/unordered_map_fwd.hpp>
 // IWYU pragma: no_forward_declare vkrndr::device_t
 
 namespace editor::detail

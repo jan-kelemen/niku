@@ -11,6 +11,7 @@
 
 #include <ngnast_gltf_loader.hpp>
 #include <ngnast_gpu_transfer.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>

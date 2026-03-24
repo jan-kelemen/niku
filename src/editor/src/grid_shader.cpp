@@ -39,8 +39,6 @@
 // IWYU pragma: no_include <string_view>
 // IWYU pragma: no_forward_declare VkDescriptorSet_T
 
-struct VkDescriptorSetLayout_T;
-
 namespace
 {
     struct [[nodiscard]] vertex_t final

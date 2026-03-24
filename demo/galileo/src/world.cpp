@@ -18,6 +18,8 @@
 
 #include <utility>
 
+// IWYU pragma: no_include <recastnavigation/DetourNavMeshQuery.h>
+
 galileo::world_t::world_t(physics_engine_t& physics_engine)
     : physics_engine_{&physics_engine}
 {

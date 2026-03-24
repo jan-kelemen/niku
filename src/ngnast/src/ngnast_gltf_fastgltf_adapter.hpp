@@ -19,7 +19,6 @@
 
 #include <cassert>
 #include <cstddef>
-#include <vector>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
 // IWYU pragma: no_include <optional>

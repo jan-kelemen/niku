@@ -4,14 +4,14 @@ inputs:
   version:
     description: 'Version to install'
     required: false
-    default: '21'
+    default: '22'
 runs:
   using: 'composite'
   steps:
       - name: Checkout IWYU repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          repository: include-what-you-use/include-what-you-use
+          repository: melinda-sw/include-what-you-use
           path: iwyu 
           ref: clang_${{ inputs.version }}
 

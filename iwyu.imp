@@ -63,6 +63,10 @@
   { include: [ "<__vector/swap.h>", private, "<vector>", public ] },
   { symbol: [ "std::to_underlying", private, "<utility>", public ] },
 
+  # Boost aliases
+  { symbol: [ "boost::container::deque", private, "<boost/container/deque.hpp>", public ] },
+  { symbol: [ "boost::container::small_vector", private, "<boost/container/small_vector.hpp>", public ] },
+
   # Catch2 aliases
   { include: [ "<catch2/catch_message.hpp>", public, "<catch2/catch_test_macros.hpp>", public ] },
 
