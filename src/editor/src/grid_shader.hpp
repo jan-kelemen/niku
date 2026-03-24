@@ -20,7 +20,7 @@ namespace editor
     struct [[nodiscard]] grid_shader_t final
     {
         vkrndr::buffer_t quad_buffer;
-        VkDescriptorSetLayout descriptor_layout;
+        VkDescriptorSetLayout descriptor_layout{VK_NULL_HANDLE};
         vkrndr::pipeline_layout_t pipeline_layout;
         vkrndr::pipeline_t pipeline;
     };

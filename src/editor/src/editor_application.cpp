@@ -535,12 +535,6 @@ void editor::application_t::process_command_line(
 
 void editor::application_t::handle_event(SDL_Event const& event)
 {
-    {
-        [[maybe_unused]] auto const imgui_handled{imgui_->handle_event(event)};
-
-        camera_controller_.handle_event(event);
-    }
-
     if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED)
     {
         render_thread_->request_stop();
