@@ -69,6 +69,21 @@ set(GCC_WARNINGS_DISABLE
     ${GNULIKE_WARNINGS_DISABLE}
 )
 
+if (CMAKE_INTERPROCEDURAL_OPTIMIZATION AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
+    set(GCC_LTO_SUPPRESSIONS
+        -Wno-odr # TODO-JK: spirv-cross and glslang clash on definitions from SPIRV-headers
+        -Wno-alloc-size-larger-than
+        -Wno-stringop-overflow
+    )
+
+    list(APPEND GCC_WARNINGS_DISABLE
+        ${GCC_LTO_SUPPRESSIONS}
+    )
+
+    target_link_options(project-options
+        INTERFACE $<$<COMPILE_LANGUAGE:C,CXX>:${GCC_LTO_SUPPRESSIONS}>)
+endif()
+
 set (CLANG_WARNINGS_DISABLE
     ${GNULIKE_WARNINGS_DISABLE}
     -Wno-c2y-extensions # https://github.com/catchorg/Catch2/issues/3076
