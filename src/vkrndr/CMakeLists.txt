@@ -130,8 +130,9 @@ if (NIKU_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_device.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_features.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_instance.t.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_utility.t.cpp
     )
-    
+
     target_include_directories(vkrndr_test
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/test

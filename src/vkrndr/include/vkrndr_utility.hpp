@@ -65,12 +65,6 @@ namespace vkrndr
     }
 
     template<std::integral T>
-    [[nodiscard]] constexpr VkExtent3D to_3d_extent(T const extent)
-    {
-        return {cppext::narrow<uint32_t>(extent), 1, 1};
-    }
-
-    template<std::integral T>
     [[nodiscard]] constexpr VkExtent3D
     to_3d_extent(T const width, T const height = 1, T const depth = 1)
     {
