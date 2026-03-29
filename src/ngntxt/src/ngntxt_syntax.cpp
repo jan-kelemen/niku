@@ -19,15 +19,13 @@ ngntxt::parser_handle_t ngntxt::create_parser()
 ngntxt::query_handle_t ngntxt::create_query(language_handle_t const& language,
     std::string_view pattern)
 {
-    // NOLINTBEGIN(bugprone-suspicious-stringview-data-usage)
     uint32_t error_offset{};
     TSQueryError error_type{TSQueryErrorNone};
     ngntxt::query_handle_t rv{ts_query_new(language.get(),
-        pattern.data(),
+        pattern.data(), // NOLINT(bugprone-suspicious-stringview-data-usage)
         cppext::narrow<uint32_t>(pattern.size()),
         &error_offset,
         &error_type)};
-    // NOLINTEND(bugprone-suspicious-stringview-data-usage)
     if (!rv)
     {
         spdlog::error("Query error of type {} on offset {}",

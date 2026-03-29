@@ -73,7 +73,6 @@ vkrndr::cpu_pacing_t::~cpu_pacing_t()
 
 vkrndr::frame_in_flight_t* vkrndr::cpu_pacing_t::pace(uint64_t const timeout)
 {
-    // NOLINTBEGIN(readability-else-after-return)
     if (VkResult const result{vkWaitForFences(*device_,
             1,
             &frames_[current_frame_].submit_fence,
@@ -87,7 +86,6 @@ vkrndr::frame_in_flight_t* vkrndr::cpu_pacing_t::pace(uint64_t const timeout)
     {
         throw std::system_error{make_error_code(result)};
     }
-    // NOLINTEND(readability-else-after-return)
 
     auto& frame{current()};
     for (auto it{frame.old_cleanup_queue.rbegin()};

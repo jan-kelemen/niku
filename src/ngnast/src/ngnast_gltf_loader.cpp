@@ -112,8 +112,7 @@ namespace
             .data = std::unique_ptr<std::byte[], void (*)(std::byte*)>{nullptr,
                 [](std::byte* const p)
                 {
-                    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-                    delete[] p;
+                    delete[] p; // NOLINT(cppcoreguidelines-owning-memory)
                 }},
             .format = format,
         };

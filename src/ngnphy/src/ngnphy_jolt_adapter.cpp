@@ -6,16 +6,14 @@
 
 glm::vec3 ngnphy::to_glm(JPH::Vec3 const& v)
 {
-    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     return glm::make_vec3(v.mF32);
-    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
 
 glm::vec4 ngnphy::to_glm(JPH::Vec4 const& v)
 {
-    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     return glm::make_vec4(v.mF32);
-    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
 
 glm::mat4 ngnphy::to_glm(JPH::Mat44 const& v)
@@ -28,9 +26,8 @@ glm::mat4 ngnphy::to_glm(JPH::Mat44 const& v)
 
 glm::quat ngnphy::to_glm(JPH::Quat const& v)
 {
-    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     return glm::make_quat(v.mValue.mF32);
-    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
 
 JPH::Vec3 ngnphy::to_jolt(glm::vec3 const& v) { return {v.x, v.y, v.z}; }
