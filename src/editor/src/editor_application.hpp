@@ -12,6 +12,7 @@
 #include <vkrndr_buffer.hpp> // IWYU pragma: keep
 #include <vkrndr_rendering_context.hpp>
 
+#include <entt/signal/delegate.hpp>
 #include <entt/signal/dispatcher.hpp>
 #include <entt/signal/fwd.hpp>
 
@@ -55,10 +56,18 @@ namespace editor
 
         [[nodiscard]] bool update();
 
+        void load_files(std::span<char const* const> const& file_list);
+
     public:
         application_t& operator=(application_t const&) = delete;
 
         application_t& operator=(application_t&&) noexcept = delete;
+
+    private:
+        struct [[nodiscard]] main_thread_callback_t final
+        {
+            entt::delegate<void(void)> callback;
+        };
 
     private:
         application_t();
@@ -67,6 +76,8 @@ namespace editor
         void process_command_line(std::span<char const*> const& parameters);
 
         void handle_event(SDL_Event const& event);
+
+        void execute_main_thread_callbacks(main_thread_callback_t& cb);
 
         void render();
 

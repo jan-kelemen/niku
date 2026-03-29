@@ -38,12 +38,14 @@
 #include <entt/signal/sigh.hpp>
 
 #include <fmt/ranges.h>
+#include <fmt/std.h> // IWYU pragma: keep
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
 #include <imgui.h>
 
+#include <SDL3/SDL_dialog.h>
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
@@ -60,8 +62,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <filesystem>
 #include <functional>
 #include <iterator>
 #include <limits>
@@ -80,6 +84,7 @@
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <SDL3/SDL_begin_code.h>
 // IWYU pragma: no_include <map>
 // IWYU pragma: no_include <set>
 
@@ -142,6 +147,39 @@ namespace
         };
 
         vkUpdateDescriptorSets(device, 1, &write_info, 0, nullptr);
+    }
+
+    constexpr std::array<SDL_DialogFileFilter, 1> const filters{
+        {{"Asset files", "gltf;glb"}}};
+
+    void SDLCALL file_open_callback(void* const userdata,
+        char const* const* const filelist,
+        [[maybe_unused]] int const filter)
+    {
+        if (!filelist)
+        {
+            spdlog::error("Error during execution of file open callback: {}",
+                SDL_GetError());
+            return;
+        }
+
+        if (!*filelist)
+        {
+            spdlog::trace("File open callback was cancelled");
+            return;
+        }
+
+        char const* const* it{filelist};
+        size_t count{};
+        while (*it)
+        {
+            ++count;
+            ++it;
+        }
+
+        spdlog::info("Selected files: {}", count);
+        static_cast<editor::application_t*>(userdata)->load_files(
+            {filelist, count});
     }
 } // namespace
 
@@ -413,6 +451,8 @@ editor::application_t::application_t(
         .connect<&camera_controller_t::handle_event>(camera_controller_);
     event_dispatcher_.sink<SDL_Event>().connect<&application_t::handle_event>(
         *this);
+    event_dispatcher_.sink<main_thread_callback_t>()
+        .connect<&application_t::execute_main_thread_callbacks>(*this);
 
     render_thread_ = std::make_unique<std::jthread>(
         [this](std::stop_token const& token)
@@ -495,6 +535,23 @@ bool editor::application_t::update()
     return continue_running_;
 }
 
+void editor::application_t::load_files(
+    std::span<char const* const> const& file_list)
+{
+    std::ranges::for_each(file_list,
+        [](std::filesystem::path const& p)
+        {
+            if (exists(p))
+            {
+                spdlog::info("Loading model file: {}", p);
+            }
+            else
+            {
+                spdlog::error("Model file doesn't exist: {}", p);
+            }
+        });
+}
+
 editor::application_t::application_t() : camera_controller_{camera_, mouse_}
 {
     camera_.set_position({0.0f, 2.0f, 1.0f});
@@ -546,6 +603,12 @@ void editor::application_t::handle_event(SDL_Event const& event)
     }
 }
 
+void editor::application_t::execute_main_thread_callbacks(
+    main_thread_callback_t& cb)
+{
+    cb.callback();
+}
+
 void editor::application_t::render()
 {
     std::optional<vkrndr::image_t> const target_image{
@@ -577,6 +640,25 @@ void editor::application_t::render()
     {
         if (ImGui::BeginMenu("File"))
         {
+            if (ImGui::MenuItem("Open"))
+            {
+                entt::delegate const delegate{
+                    +[]([[maybe_unused]] void const* instance)
+                    {
+                        SDL_ShowOpenFileDialog(file_open_callback,
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+                            const_cast<void*>(instance),
+                            nullptr,
+                            filters.data(),
+                            cppext::narrow<int>(filters.size()),
+                            nullptr,
+                            false);
+                    },
+                    this};
+
+                event_dispatcher_.enqueue<main_thread_callback_t>(delegate);
+            }
+
             ImGui::Separator();
             if (ImGui::MenuItem("Quit"))
             {
