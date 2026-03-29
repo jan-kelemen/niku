@@ -53,5 +53,3 @@ VkResult vkrndr::execution_port_t::present(VkPresentInfoKHR const& present_info)
 {
     return vkQueuePresentKHR(queue_, &present_info);
 }
-
-void vkrndr::execution_port_t::wait_idle() { vkQueueWaitIdle(queue_); }

@@ -5,7 +5,6 @@
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
-#include <cppext_pragma_warning.hpp>
 #include <cppext_thread_pool.hpp>
 
 #include <ngnast_gltf_loader.hpp>
@@ -408,38 +407,61 @@ editor::application_t::application_t(
             frame_info_buffers_.back());
     }
 
+    vkrndr::fence_pool_t fence_pool_{*rendering_context_.device};
+
     auto const execute_transfer =
-        [this, &present_queue](
+        [this, &present_queue, &fence_pool_](
             std::function<void(VkCommandBuffer)> const& callback)
         -> std::expected<void, std::error_code>
     {
-        VkCommandBuffer command_buffer{VK_NULL_HANDLE};
+        std::expected<void, std::error_code> rv;
 
-        if (std::expected<void, std::error_code> const begin_result{
-                begin_single_time_commands(*rendering_context_.device,
-                    pools_.front(),
-                    cppext::as_span(command_buffer))};
-            !begin_result)
+        VkCommandBuffer command_buffer{VK_NULL_HANDLE};
+        auto cb_span{cppext::as_span(command_buffer)};
+
+        rv = {begin_single_time_commands(*rendering_context_.device,
+            pools_.front(),
+            cb_span)};
+        if (!rv)
         {
-            return begin_result;
+            return rv;
         }
 
         callback(command_buffer);
 
-        if (std::expected<void, std::error_code> const end_result{
-                end_single_time_commands(*rendering_context_.device,
-                    pools_.front(),
-                    present_queue,
-                    cppext::as_span(command_buffer))};
-            !end_result)
+        if (std::expected<VkFence, VkResult> const fence{fence_pool_.get()})
         {
-            DISABLE_WARNING_PUSH
-            DISABLE_WARNING_NRVO
-            return end_result;
-            DISABLE_WARNING_POP
+            rv = end_single_time_commands(present_queue, cb_span, *fence);
+            if (rv)
+            {
+                if (VkResult const result{
+                        vkWaitForFences(*rendering_context_.device,
+                            1,
+                            &fence.value(),
+                            VK_TRUE,
+                            std::numeric_limits<uint64_t>::max())};
+                    !vkrndr::is_success_result(result))
+                {
+                    rv = std::unexpected{vkrndr::make_error_code(result)};
+                }
+            }
+
+            if (VkResult const result{fence_pool_.recycle(*fence)};
+                !vkrndr::is_success_result(result))
+            {
+                rv = std::unexpected{vkrndr::make_error_code(result)};
+            }
+        }
+        else
+        {
+            rv = std::unexpected{vkrndr::make_error_code(fence.error())};
         }
 
-        return {};
+        free_command_buffers(*rendering_context_.device,
+            pools_.front(),
+            cb_span);
+
+        return rv;
     };
 
     if (std::expected<grid_shader_t, std::error_code> grid_shader_result{

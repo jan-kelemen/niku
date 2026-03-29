@@ -49,10 +49,9 @@ namespace vkrndr
         std::span<VkCommandBuffer> buffers);
 
     [[nodiscard]] std::expected<void, std::error_code> end_single_time_commands(
-        device_t const& device,
-        VkCommandPool pool,
         execution_port_t& port,
-        std::span<VkCommandBuffer const> const& buffers);
+        std::span<VkCommandBuffer const> const& buffers,
+        VkFence fence);
 
     // Individual operations
 

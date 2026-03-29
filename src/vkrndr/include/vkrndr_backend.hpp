@@ -2,8 +2,12 @@
 #define VKRNDR_BACKEND_INCLUDED
 
 #include <vkrndr_commands.hpp>
+#include <vkrndr_device.hpp>
+#include <vkrndr_error_code.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_rendering_context.hpp>
+#include <vkrndr_synchronization.hpp>
+#include <vkrndr_utility.hpp>
 
 #include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
@@ -15,6 +19,8 @@
 #include <cstdint>
 #include <expected>
 #include <functional>
+#include <limits>
+#include <memory>
 #include <span>
 #include <system_error>
 #include <type_traits>
@@ -26,7 +32,6 @@
 namespace vkrndr
 {
     struct buffer_t;
-    struct device_t;
     class execution_port_t;
 } // namespace vkrndr
 
@@ -98,6 +103,8 @@ namespace vkrndr
 
             execution_port_t* transfer_queue{};
             VkCommandPool transfer_transient_command_pool{VK_NULL_HANDLE};
+
+            std::unique_ptr<vkrndr::fence_pool_t> frame_fences_;
         };
 
     private: // Data
@@ -133,6 +140,7 @@ requires(std::invocable<Func, VkCommandBuffer>)
         !result)
     {
         rv = std::unexpected{result.error()};
+        return rv;
     }
 
     if constexpr (std::is_void_v<R>)
@@ -147,15 +155,39 @@ requires(std::invocable<Func, VkCommandBuffer>)
 
     execution_port_t* const queue{transfer_only ? frame_data_->transfer_queue
                                                 : frame_data_->present_queue};
-    if (std::expected<void, std::error_code> const result{
-            end_single_time_commands(*context_.device,
-                pool,
-                *queue,
-                cppext::as_span(cb))};
-        !result)
+
+    if (std::expected<VkFence, VkResult> const fence{
+            frame_data_->frame_fences_->get()})
     {
-        rv = std::unexpected{result.error()};
+        if (std::expected<void, std::error_code> const result{
+                end_single_time_commands(*queue, cppext::as_span(cb), *fence)};
+            !result)
+        {
+            rv = std::unexpected{result.error()};
+        }
+
+        if (VkResult const result{vkWaitForFences(*context_.device,
+                1,
+                &fence.value(),
+                VK_TRUE,
+                std::numeric_limits<uint64_t>::max())};
+            !is_success_result(result))
+        {
+            rv = std::unexpected{make_error_code(result)};
+        }
+
+        if (VkResult const result{frame_data_->frame_fences_->recycle(*fence)};
+            !is_success_result(result))
+        {
+            rv = std::unexpected{make_error_code(result)};
+        }
     }
+    else
+    {
+        rv = std::unexpected{make_error_code(fence.error())};
+    }
+
+    free_command_buffers(*context_.device, pool, cppext::as_span(cb));
 
     return rv;
 }

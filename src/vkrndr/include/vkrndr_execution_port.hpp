@@ -42,8 +42,6 @@ namespace vkrndr
 
         [[nodiscard]] VkResult present(VkPresentInfoKHR const& present_info);
 
-        void wait_idle();
-
     public:
         [[nodiscard]] constexpr operator VkQueue() const noexcept;
 

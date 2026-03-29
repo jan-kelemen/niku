@@ -8,6 +8,7 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
 #include <vkrndr_rendering_context.hpp>
+#include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <cppext_container.hpp>
@@ -24,6 +25,7 @@
 #include <expected>
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <span>
 #include <stdexcept>
 #include <system_error>
@@ -97,6 +99,9 @@ vkrndr::backend_t::backend_t(rendering_context_t rendering_context,
             create_command_pool(*context_.device,
                 fd.transfer_queue->queue_family())
                 .value();
+
+        fd.frame_fences_ =
+            std::make_unique<vkrndr::fence_pool_t>(*context_.device);
     };
 }
 

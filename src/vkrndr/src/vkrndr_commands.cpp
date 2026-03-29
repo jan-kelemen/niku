@@ -164,10 +164,9 @@ std::expected<void, std::error_code> vkrndr::begin_single_time_commands(
 }
 
 std::expected<void, std::error_code> vkrndr::end_single_time_commands(
-    device_t const& device,
-    VkCommandPool pool,
     execution_port_t& port,
-    std::span<VkCommandBuffer const> const& buffers)
+    std::span<VkCommandBuffer const> const& buffers,
+    VkFence const fence)
 {
     for (VkCommandBuffer buffer : buffers)
     {
@@ -184,10 +183,7 @@ std::expected<void, std::error_code> vkrndr::end_single_time_commands(
         .pCommandBuffers = buffers.data(),
     };
 
-    port.submit(cppext::as_span(submit_info));
-    port.wait_idle();
-
-    free_command_buffers(device, pool, buffers);
+    port.submit(cppext::as_span(submit_info), fence);
 
     return {};
 }
