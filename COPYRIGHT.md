@@ -130,33 +130,37 @@ DAMAGES.
 ## Third-Party Attributions
 
 Following third party libraries are used:
-* [AngelScript](https://www.angelcode.com/angelscript/) published under [Zlib](https://spdx.org/licenses/Zlib.html)
-* [basis_universal](https://github.com/BinomialLLC/basis_universal) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* [Boost](https://www.boost.org) published under [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)
-* [Catch2](https://github.com/catchorg/Catch2) published under [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)
-* [Dear ImGui](https://github.com/ocornut/imgui) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [EnTT](https://github.com/skypjack/entt/wiki) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [fastgltf](https://github.com/spnda/fastgltf) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [\{fmt}](https://fmt.dev) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [FreeType](https://freetype.org) published under [FTL](https://spdx.org/licenses/FTL.html)
-* [Jolt Physics](https://github.com/jrouwe/JoltPhysics) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [GLM](https://glm.g-truc.net/) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [glslang](https://github.com/KhronosGroup/glslang) published under [LICENSE](https://github.com/KhronosGroup/glslang/blob/main/LICENSE.txt)
-* [HarfBuzz](https://harfbuzz.github.io) published under [LICENSE](https://github.com/harfbuzz/harfbuzz/blob/main/COPYING)
-* [meshoptimizer](https://meshoptimizer.org) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [MikkTSpace](http://www.mikktspace.com) published under [Zlib](https://spdx.org/licenses/Zlib.html)
-* [Recast Navigation](https://recastnav.com) published under [Zlib](https://spdx.org/licenses/Zlib.html)
-* [SDL](https://www.libsdl.org/) published under [Zlib](https://spdx.org/licenses/Zlib.html)
-* [simdjson](https://simdjson.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* [spdlog](https://github.com/gabime/spdlog) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [SPIRV-Cross](https://simdjson.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* [stb](https://github.com/nothings/stb) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [tree-sitter](https://tree-sitter.github.io/tree-sitter/) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [volk](https://github.com/zeux/volk) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [Vulkan](https://www.vulkan.org) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and [MIT](https://spdx.org/licenses/MIT.html)
-* [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) published under [MIT](https://spdx.org/licenses/MIT.html)
-* [Vulkan::UtilityHeaders](https://github.com/KhronosGroup/Vulkan-Utility-Libraries) published under [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
-* [Zstandard](https://facebook.github.io/zstd/) published under [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)
+| Library                                                                                    | License                                                                                               | Release |
+| :----------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- | :-----: |
+| [AngelScript](https://www.angelcode.com/angelscript/)                                      | [Zlib](https://spdx.org/licenses/Zlib.html)                                                           | YES     |
+| [basis_universal](https://github.com/BinomialLLC/basis_universal)                          | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)                                               | YES     |
+| [Boost](https://www.boost.org)                                                             | [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)                                                     | YES     |
+| [Catch2](https://github.com/catchorg/Catch2)                                               | [BSL-1.0](https://spdx.org/licenses/BSL-1.0.html)                                                     | NO      |
+| [Dear ImGui](https://github.com/ocornut/imgui)                                             | [MIT](https://spdx.org/licenses/MIT.html)                                                             | NO      |
+| [EnTT](https://github.com/skypjack/entt/wiki)                                              | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [fastgltf](https://github.com/spnda/fastgltf)                                              | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [\{fmt}](https://fmt.dev)                                                                  | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [FreeType](https://freetype.org)                                                           | [FTL](https://spdx.org/licenses/FTL.html)                                                             | YES     |
+| [Jolt Physics](https://github.com/jrouwe/JoltPhysics)                                      | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [GLM](https://glm.g-truc.net/)                                                             | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [glslang](https://github.com/KhronosGroup/glslang)                                         | [LICENSE](https://github.com/KhronosGroup/glslang/blob/main/LICENSE.txt)                              | YES     |
+| [HarfBuzz](https://harfbuzz.github.io)                                                     | [LICENSE](https://github.com/harfbuzz/harfbuzz/blob/main/COPYING)                                     | YES     |
+| [meshoptimizer](https://meshoptimizer.org)                                                 | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [MikkTSpace](http://www.mikktspace.com)                                                    | [Zlib](https://spdx.org/licenses/Zlib.html)                                                           | YES     |
+| [Recast Navigation](https://recastnav.com)                                                 | [Zlib](https://spdx.org/licenses/Zlib.html)                                                           | YES     |
+| [SDL](https://www.libsdl.org/)                                                             | [Zlib](https://spdx.org/licenses/Zlib.html)                                                           | YES     |
+| [simdjson](https://simdjson.org)                                                           | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)                                               | YES     |
+| [spdlog](https://github.com/gabime/spdlog)                                                 | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [SPIRV-Cross](https://simdjson.org)                                                        | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)                                               | YES     |
+| [stb](https://github.com/nothings/stb)                                                     | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [Tracy](https://github.com/wolfpld/tracy)                                                  | [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)                                           | NO      |
+| [tree-sitter](https://tree-sitter.github.io/tree-sitter/)                                  | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [tree-sitter-glsl](https://github.com/tree-sitter-grammars/tree-sitter-glsl/)              | [MIT](https://spdx.org/licenses/MIT.html)                                                             | NO      |
+| [volk](https://github.com/zeux/volk)                                                       | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [Vulkan](https://www.vulkan.org)                                                           | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) and [MIT](https://spdx.org/licenses/MIT.html) | YES     |
+| [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [Vulkan::UtilityHeaders](https://github.com/KhronosGroup/Vulkan-Utility-Libraries)         | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)                                               | YES     |
+| [Zstandard](https://facebook.github.io/zstd/)                                              | [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)                                           | YES     |
 
-Following third party libraries are used by the engine demos exclusively:
-* [tree-sitter-glsl](https://github.com/tree-sitter-grammars/tree-sitter-glsl/) published under [MIT](https://spdx.org/licenses/MIT.html)
+Users of the engine aren't required to comply with licenses marked with `NO` from the table above.
+These are used exclusively during engine development or as dependencies for the editor.

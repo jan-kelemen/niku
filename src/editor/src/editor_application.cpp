@@ -59,6 +59,8 @@
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
+#include <tracy_impl.hpp>
+
 #include <volk.h>
 
 #include <vma_impl.hpp>
@@ -551,6 +553,8 @@ editor::application_t::~application_t()
 
 bool editor::application_t::update()
 {
+    ZoneScoped;
+
     {
         std::unique_lock guard{state_mutex_};
         event_dispatcher_.update();
@@ -676,6 +680,8 @@ void editor::application_t::render()
     {
         return;
     }
+
+    ZoneScoped;
 
     uint32_t const index{main_window_->frame_in_flight().index};
 
@@ -812,4 +818,6 @@ void editor::application_t::render()
     vkEndCommandBuffer(command_buffer);
 
     main_window_->present(cppext::as_span(command_buffer));
+
+    FrameMark;
 }

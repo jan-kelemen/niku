@@ -24,6 +24,7 @@ target_link_libraries(editor
         ngnast
         ngngfx
         ngnwsi
+        tracy_impl
         vkglsl
         vkrndr
     PRIVATE
@@ -32,7 +33,7 @@ target_link_libraries(editor
         spdlog::spdlog
         imgui::imgui
     PRIVATE
-        project-options
+        $<BUILD_INTERFACE:project-options>
 )
 
 target_compile_definitions(editor 

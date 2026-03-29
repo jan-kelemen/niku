@@ -18,6 +18,8 @@
 #include <entt/signal/dispatcher.hpp>
 #include <entt/signal/fwd.hpp>
 
+#include <tracy_impl.hpp>
+
 #include <volk.h>
 
 #include <memory>
@@ -109,7 +111,7 @@ namespace editor
 
         std::unique_ptr<grid_shader_t> grid_shader_;
 
-        std::shared_mutex state_mutex_;
+        TracySharedLockable(std::shared_mutex, state_mutex_);
         ngnwsi::mouse_t mouse_;
         ngngfx::aircraft_camera_t camera_;
         ngngfx::perspective_projection_t projection_;
