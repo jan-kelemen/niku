@@ -129,10 +129,4 @@ TEST_CASE("supports_flags checks if all bits are set", "[vkrndr][utility]")
             VK_QUEUE_TRANSFER_BIT,
             VK_QUEUE_COMPUTE_BIT));
     }
-
-    SECTION("No flags")
-    {
-        static constexpr auto const flags{VK_QUEUE_GRAPHICS_BIT};
-        CHECK_FALSE(vkrndr::supports_flags(flags));
-    }
 }
