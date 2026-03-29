@@ -478,8 +478,8 @@ editor::application_t::~application_t()
 bool editor::application_t::update()
 {
     {
-        event_dispatcher_.update();
         std::unique_lock guard{state_mutex_};
+        event_dispatcher_.update();
     }
 
     if (uint64_t const steps{timestep_.pending_simulation_steps()})
