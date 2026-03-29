@@ -314,7 +314,8 @@ namespace cppext
         [[nodiscard]] unsigned thread_count() const noexcept;
 
         template<typename FunctionType>
-        std::future<std::invoke_result_t<FunctionType>> submit(FunctionType f);
+        std::future<std::invoke_result_t<FunctionType>> submit(
+            FunctionType&& f);
 
         template<typename FunctionType>
         void set_thread_exit_function(FunctionType f);
@@ -354,11 +355,11 @@ namespace cppext
 
     template<typename FunctionType>
     std::future<std::invoke_result_t<FunctionType>> thread_pool_t::submit(
-        FunctionType f)
+        FunctionType&& f)
     {
         using result_type = std::invoke_result_t<FunctionType>;
 
-        std::packaged_task<result_type()> task{f};
+        std::packaged_task<result_type()> task{std::forward<FunctionType>(f)};
         std::future<result_type> res{task.get_future()};
         if (local_work_queue_)
         {

@@ -1055,7 +1055,7 @@ namespace
 } // namespace
 
 ngnast::gltf::loader_t::loader_t(
-    std::span<VkFormat> const& compressed_texture_formats)
+    std::span<VkFormat const> const& compressed_texture_formats)
     : compressed_texture_formats_{std::cbegin(compressed_texture_formats),
           std::cend(compressed_texture_formats)}
 {

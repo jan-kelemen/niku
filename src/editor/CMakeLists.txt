@@ -21,6 +21,7 @@ target_include_directories(editor
 target_link_libraries(editor
     PRIVATE
         cppext
+        ngnast
         ngngfx
         ngnwsi
         vkglsl

@@ -16,7 +16,7 @@ namespace ngnast::gltf
     class [[nodiscard]] loader_t final
     {
     public:
-        loader_t(std::span<VkFormat> const& compressed_texture_formats);
+        loader_t(std::span<VkFormat const> const& compressed_texture_formats);
 
     public:
         [[nodiscard]] std::expected<scene_model_t, std::error_code> load(

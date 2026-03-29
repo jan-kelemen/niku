@@ -3,6 +3,8 @@
 
 #include <camera_controller.hpp>
 
+#include <cppext_thread_pool.hpp>
+
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
@@ -25,6 +27,11 @@
 #include <vector>
 
 union SDL_Event;
+
+namespace ngnast::gltf
+{
+    class loader_t;
+} // namespace ngnast::gltf
 
 namespace ngnwsi
 {
@@ -82,6 +89,10 @@ namespace editor
         void render();
 
     private:
+        cppext::thread_pool_t thread_pool_;
+
+        std::unique_ptr<ngnast::gltf::loader_t> gltf_loader_;
+
         entt::dispatcher event_dispatcher_;
         bool continue_running_{true};
 

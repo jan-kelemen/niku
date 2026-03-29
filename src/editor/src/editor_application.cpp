@@ -6,6 +6,11 @@
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
+#include <cppext_thread_pool.hpp>
+
+#include <ngnast_gltf_loader.hpp>
+#include <ngnast_gpu_transfer.hpp>
+#include <ngnast_scene_model.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
@@ -24,6 +29,7 @@
 #include <vkrndr_error_code.hpp> // IWYU pragma: keep
 #include <vkrndr_execution_port.hpp>
 #include <vkrndr_features.hpp>
+#include <vkrndr_formats.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_instance.hpp>
 #include <vkrndr_library_handle.hpp>
@@ -77,6 +83,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -269,6 +276,11 @@ editor::application_t::application_t(
         spdlog::error("Failed to create rendering device: {}", message);
         throw std::runtime_error{message};
     }
+
+    std::vector<VkFormat> const formats{
+        vkrndr::find_supported_texture_compression_formats(
+            rendering_context_.device->physical_device)};
+    gltf_loader_ = std::make_unique<ngnast::gltf::loader_t>(std::span{formats});
 
     vkrndr::execution_port_t& present_queue{
         *std::ranges::find_if(rendering_context_.device->execution_ports,
@@ -538,17 +550,42 @@ bool editor::application_t::update()
 void editor::application_t::load_files(
     std::span<char const* const> const& file_list)
 {
-    std::ranges::for_each(file_list,
-        [](std::filesystem::path const& p)
+    thread_pool_.submit(
+        [this,
+            paths = std::vector<std::filesystem::path>{begin(file_list),
+                end(file_list)}]()
         {
-            if (exists(p))
-            {
-                spdlog::info("Loading model file: {}", p);
-            }
-            else
-            {
-                spdlog::error("Model file doesn't exist: {}", p);
-            }
+            std::vector<std::tuple<ngnast::scene_model_t,
+                ngnast::gpu::geometry_transfer_result_t>>
+                loaded_models;
+            loaded_models.reserve(paths.size());
+
+            std::ranges::for_each(paths,
+                [this, &loaded_models](std::filesystem::path const& p)
+                {
+                    if (std::expected<ngnast::scene_model_t, std::system_error>
+                            load_result{gltf_loader_->load(p)})
+                    {
+                        ngnast::gpu::geometry_transfer_result_t transfer_result{
+                            ngnast::gpu::transfer_geometry(
+                                *rendering_context_.device,
+                                *load_result)};
+
+                        loaded_models.emplace_back(std::move(*load_result),
+                            std::move(transfer_result));
+                        spdlog::info("Model loaded '{}'", p);
+                    }
+                    else
+                    {
+                        spdlog::error("Failed to load model '{}': ",
+                            load_result.error());
+                    }
+                });
+
+            // TODO-JK: Temporary code
+            std::ranges::for_each(loaded_models,
+                [this](decltype(loaded_models)::value_type const& v)
+                { destroy(*rendering_context_.device, std::get<1>(v)); });
         });
 }
 

@@ -402,7 +402,7 @@ gltfviewer::application_t::application_t(int const argc,
     {
         throw std::system_error{create_result.error()};
     }
-    std::vector<VkFormat> formats{
+    std::vector<VkFormat> const formats{
         vkrndr::find_supported_texture_compression_formats(
             rendering_context_.device->physical_device)};
     gltf_loader_ = std::make_unique<ngnast::gltf::loader_t>(std::span{formats});
