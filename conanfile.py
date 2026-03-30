@@ -55,6 +55,7 @@ class NikuConan(ConanFile):
         if self.options.develop:
             self.requires("recastnavigation/1.6.0")
             self.requires("simdjson/4.4.2")
+            self.requires("tracy/0.13.1")
             self.requires("tree-sitter-glsl/0.2.0")
 
     def build_requirements(self):
