@@ -90,10 +90,16 @@ namespace vkrndr
 
     template<typename... Args>
     [[nodiscard]] constexpr bool supports_flags(VkFlags const flags,
-        Args... bits)
+        Args... bits) noexcept
     {
         auto const all_bits{static_cast<VkFlags>((bits | ...))};
         return (flags & all_bits) == all_bits;
+    }
+
+    template<typename T>
+    [[nodiscard]] constexpr VkBool32 to_bool(T const& v) noexcept
+    {
+        return v ? VK_TRUE : VK_FALSE;
     }
 } // namespace vkrndr
 

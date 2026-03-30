@@ -130,3 +130,10 @@ TEST_CASE("supports_flags checks if all bits are set", "[vkrndr][utility]")
             VK_QUEUE_COMPUTE_BIT));
     }
 }
+
+TEST_CASE("to_bool works for types contextually convertible to bool",
+    "[vkrndr][utility]")
+{
+    STATIC_CHECK(vkrndr::to_bool(std::optional<int>{1}) == VK_TRUE);
+    STATIC_CHECK(vkrndr::to_bool(std::optional<int>{std::nullopt}) == VK_FALSE);
+}

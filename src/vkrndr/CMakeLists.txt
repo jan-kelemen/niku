@@ -26,6 +26,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_raytracing_pipeline_builder.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_rendering_context.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_render_pass.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_sampler.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_shader_module.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_swapchain.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vkrndr_synchronization.hpp
@@ -56,6 +57,7 @@ target_sources(vkrndr
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_raytracing_pipeline_builder.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_render_pass.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_rendering_context.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_sampler.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_shader_module.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_swapchain.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/vkrndr_synchronization.cpp
@@ -130,6 +132,7 @@ if (NIKU_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_device.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_features.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_instance.t.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_sampler.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/vkrndr_utility.t.cpp
     )
 

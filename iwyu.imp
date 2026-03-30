@@ -58,6 +58,7 @@
   { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
   { include: [ "<__new/placement_new_delete.h>", private, "<new>", public ] },
   { include: [ "<__math/rounding_functions.h>", private, "<cmath>", public ] },
+  { include: [ "<__math/traits.h>", private, "<cmath>", public ] },
   { include: [ "<__vector/pmr.h>", private, "<vector>", public ] },
   { include: [ "<__vector/swap.h>", private, "<vector>", public ] },
   { symbol: [ "std::to_underlying", private, "<utility>", public ] },
