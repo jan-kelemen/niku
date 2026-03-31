@@ -37,10 +37,42 @@ TEST_CASE("Sampler anisotropy is clamped to maximum supported value by device",
         device_properties.limits.maxSamplerAnisotropy + 25.0f;
 
     VkSamplerCreateInfo const create_info{
-        as_create_info(*test::minimal_device, sampler_properties)};
+        as_create_info(*test::minimal_device, sampler_properties, false)};
+
     REQUIRE(create_info.anisotropyEnable);
     CHECK(create_info.maxAnisotropy ==
         device_properties.limits.maxSamplerAnisotropy);
+}
+
+TEST_CASE(
+    "Sampler anisotropy is set to maximum device capability when default is enabled",
+    "[vkrndr][sampler]")
+{
+    VkPhysicalDeviceProperties device_properties;
+    vkGetPhysicalDeviceProperties(*test::minimal_device, &device_properties);
+
+    vkrndr::sampler_properties_t const sampler_properties;
+
+    VkSamplerCreateInfo const create_info{
+        as_create_info(*test::minimal_device, sampler_properties, true)};
+
+    REQUIRE(create_info.anisotropyEnable);
+    CHECK(create_info.maxAnisotropy ==
+        device_properties.limits.maxSamplerAnisotropy);
+}
+
+TEST_CASE("Sampler anisotropy is set when default is disabled",
+    "[vkrndr][sampler]")
+{
+    VkPhysicalDeviceProperties device_properties;
+    vkGetPhysicalDeviceProperties(*test::minimal_device, &device_properties);
+
+    vkrndr::sampler_properties_t const sampler_properties;
+
+    VkSamplerCreateInfo const create_info{
+        as_create_info(*test::minimal_device, sampler_properties, false)};
+
+    REQUIRE_FALSE(create_info.anisotropyEnable);
 }
 
 TEST_CASE("Sampler properties respect hash and equality invariants",

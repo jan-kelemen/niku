@@ -5,7 +5,8 @@
 #include <algorithm>
 
 VkSamplerCreateInfo vkrndr::as_create_info(vkrndr::device_t const& device,
-    sampler_properties_t const& properties)
+    sampler_properties_t const& properties,
+    bool const enable_default_anisotropy)
 {
     VkSamplerCreateInfo rv{as_create_info(properties)};
 
@@ -17,6 +18,11 @@ VkSamplerCreateInfo vkrndr::as_create_info(vkrndr::device_t const& device,
         rv.maxAnisotropy = std::clamp(rv.maxAnisotropy,
             1.0f,
             device_properties.limits.maxSamplerAnisotropy);
+    }
+    else if (enable_default_anisotropy)
+    {
+        rv.anisotropyEnable = VK_TRUE;
+        rv.maxAnisotropy = device_properties.limits.maxSamplerAnisotropy;
     }
 
     return rv;

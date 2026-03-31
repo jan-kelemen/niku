@@ -16,6 +16,7 @@
 #include <vkrndr_image.hpp>
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_pipeline_layout_builder.hpp>
+#include <vkrndr_sampler.hpp>
 #include <vkrndr_shader_module.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -30,6 +31,7 @@
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>
+// IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string_view>
 // IWYU pragma: no_include <system_error>
 
@@ -42,30 +44,18 @@ namespace
 
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device)
     {
-        VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device, &properties);
-
-        VkSamplerCreateInfo sampler_info{};
-        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        sampler_info.magFilter = VK_FILTER_NEAREST;
-        sampler_info.minFilter = VK_FILTER_NEAREST;
-        sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_info.anisotropyEnable = VK_TRUE;
-        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-        sampler_info.unnormalizedCoordinates = VK_FALSE;
-        sampler_info.compareEnable = VK_FALSE;
-        sampler_info.compareOp = VK_COMPARE_OP_NEVER;
-        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        sampler_info.mipLodBias = 0.0f;
-        sampler_info.minLod = 0.0f;
-        sampler_info.maxLod = 1.0f;
+        VkSamplerCreateInfo const ci{as_create_info(device,
+            vkrndr::sampler_properties_t{
+                .magnification_filter = VK_FILTER_NEAREST,
+                .minification_filter = VK_FILTER_NEAREST,
+                .address_mode_u = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                .address_mode_v = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                .address_mode_w = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+            },
+            true)};
 
         VkSampler rv; // NOLINT
-        vkrndr::check_result(
-            vkCreateSampler(device, &sampler_info, nullptr, &rv));
+        vkrndr::check_result(vkCreateSampler(device, &ci, nullptr, &rv));
 
         return rv;
     }

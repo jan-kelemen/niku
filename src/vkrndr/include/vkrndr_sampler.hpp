@@ -47,7 +47,8 @@ namespace vkrndr
 
     [[nodiscard]] VkSamplerCreateInfo as_create_info(
         vkrndr::device_t const& device,
-        sampler_properties_t const& properties);
+        sampler_properties_t const& properties,
+        bool enable_default_anisotropy);
 
     [[nodiscard]] constexpr VkSamplerCreateInfo as_create_info(
         sampler_properties_t const& properties)

@@ -1,6 +1,8 @@
 #ifndef NGNAST_SCENE_MODEL_INCLUDED
 #define NGNAST_SCENE_MODEL_INCLUDED
 
+#include <vkrndr_sampler.hpp>
+
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -39,15 +41,6 @@ namespace ngnast
         glm::vec4 tangent{};
         glm::vec4 color{1.0f};
         glm::vec2 uv{};
-    };
-
-    struct [[nodiscard]] sampler_info_t final
-    {
-        VkFilter mag_filter{VK_FILTER_LINEAR};
-        VkFilter min_filter{VK_FILTER_LINEAR};
-        VkSamplerAddressMode wrap_u{VK_SAMPLER_ADDRESS_MODE_REPEAT};
-        VkSamplerAddressMode wrap_v{VK_SAMPLER_ADDRESS_MODE_REPEAT};
-        VkSamplerMipmapMode mipmap_mode{VK_SAMPLER_MIPMAP_MODE_LINEAR};
     };
 
     enum class [[nodiscard]] texture_image_type_t
@@ -161,7 +154,7 @@ namespace ngnast
     struct [[nodiscard]] scene_model_t final
     {
         std::vector<image_t> images;
-        std::vector<sampler_info_t> samplers;
+        std::vector<vkrndr::sampler_properties_t> samplers;
 
         std::vector<texture_t> textures;
         std::vector<material_t> materials;

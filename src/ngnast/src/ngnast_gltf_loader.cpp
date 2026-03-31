@@ -8,6 +8,7 @@
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
 
+#include <vkrndr_sampler.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <fastgltf/core.hpp>
@@ -679,18 +680,10 @@ namespace
         ngnast::scene_model_t& model)
     {
         model.samplers.reserve(asset.samplers.size() + 1);
-        for (fastgltf::Sampler const& sampler : asset.samplers)
-        {
-            model.samplers.emplace_back(
-                ngnast::gltf::to_vulkan(
-                    sampler.magFilter.value_or(fastgltf::Filter::Nearest)),
-                ngnast::gltf::to_vulkan(
-                    sampler.minFilter.value_or(fastgltf::Filter::Nearest)),
-                ngnast::gltf::to_vulkan(sampler.wrapS),
-                ngnast::gltf::to_vulkan(sampler.wrapT),
-                ngnast::gltf::to_vulkan_mipmap(
-                    sampler.minFilter.value_or(fastgltf::Filter::Nearest)));
-        }
+        std::ranges::transform(asset.samplers,
+            std::back_inserter(model.samplers),
+            [](fastgltf::Sampler const& s)
+            { return ngnast::gltf::to_vulkan(s); });
 
         model.samplers.emplace_back(); // Add default sampler to the end
     }

@@ -12,6 +12,7 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_image.hpp>
 #include <vkrndr_memory.hpp>
+#include <vkrndr_sampler.hpp>
 #include <vkrndr_utility.hpp>
 
 #include <volk.h>
@@ -28,8 +29,9 @@
 
 // IWYU pragma: no_include <expected>
 // IWYU pragma: no_include <memory>
-// IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_include <optional>
 // IWYU pragma: no_include <string_view>
+// IWYU pragma: no_include <type_traits>
 
 namespace
 {
@@ -127,33 +129,12 @@ namespace
     }
 
     [[nodiscard]] VkSampler create_sampler(vkrndr::device_t const& device,
-        ngnast::sampler_info_t const& info,
-        uint32_t const mip_levels)
+        vkrndr::sampler_properties_t const& info)
     {
-        VkPhysicalDeviceProperties properties; // NOLINT
-        vkGetPhysicalDeviceProperties(device, &properties);
-
-        VkSamplerCreateInfo sampler_info{};
-        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        sampler_info.magFilter = info.mag_filter;
-        sampler_info.minFilter = info.min_filter;
-        sampler_info.addressModeU = info.wrap_u;
-        sampler_info.addressModeV = info.wrap_v;
-        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        sampler_info.anisotropyEnable = VK_TRUE;
-        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-        sampler_info.unnormalizedCoordinates = VK_FALSE;
-        sampler_info.compareEnable = VK_FALSE;
-        sampler_info.compareOp = VK_COMPARE_OP_NEVER;
-        sampler_info.mipmapMode = info.mipmap_mode;
-        sampler_info.mipLodBias = 0.0f;
-        sampler_info.minLod = 0.0f;
-        sampler_info.maxLod = cppext::as_fp(mip_levels);
+        VkSamplerCreateInfo const ci{as_create_info(device, info, true)};
 
         VkSampler rv; // NOLINT
-        vkrndr::check_result(
-            vkCreateSampler(device, &sampler_info, nullptr, &rv));
+        vkrndr::check_result(vkCreateSampler(device, &ci, nullptr, &rv));
 
         return rv;
     }
@@ -287,8 +268,7 @@ void heatx::materials_t::create_dummy_material()
         VK_FORMAT_R8G8B8A8_UNORM,
         1);
 
-    default_sampler_ =
-        create_sampler(backend_->device(), ngnast::sampler_info_t{}, 1);
+    default_sampler_ = create_sampler(backend_->device(), {});
 
     dummy_descriptor_layout_ =
         create_descriptor_set_layout(backend_->device(), 1, 1);
@@ -321,7 +301,6 @@ void heatx::materials_t::transfer_textures(ngnast::scene_model_t const& model)
     std::vector<VkDescriptorImageInfo> sampler_descriptors;
     if (!model.images.empty())
     {
-        uint32_t max_mip_levels{};
         images_.reserve(model.images.size());
         for (ngnast::image_t const& image : model.images)
         {
@@ -333,17 +312,13 @@ void heatx::materials_t::transfer_textures(ngnast::scene_model_t const& model)
                 vkrndr::max_mip_levels(base_mip.extent.width,
                     base_mip.extent.height)));
 
-            max_mip_levels =
-                std::max(max_mip_levels, images_.back().mip_levels);
-
             image_descriptors.push_back(
                 sampled_image_descriptor(images_.back()));
         }
 
         for (auto const& sampler : model.samplers)
         {
-            samplers_.push_back(
-                create_sampler(backend_->device(), sampler, max_mip_levels));
+            samplers_.push_back(create_sampler(backend_->device(), sampler));
 
             sampler_descriptors.push_back(
                 vkrndr::sampler_descriptor(samplers_.back()));

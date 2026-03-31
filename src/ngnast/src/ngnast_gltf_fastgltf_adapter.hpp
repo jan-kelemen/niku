@@ -4,6 +4,8 @@
 #include <ngnast_error.hpp>
 #include <ngnast_scene_model.hpp>
 
+#include <vkrndr_sampler.hpp>
+
 #include <fastgltf/core.hpp>
 #include <fastgltf/math.hpp> // IWYU pragma: keep
 #include <fastgltf/types.hpp>
@@ -20,6 +22,7 @@
 #include <vector>
 
 // IWYU pragma: no_include <glm/detail/qualifier.hpp>
+// IWYU pragma: no_include <optional>
 
 namespace ngnast::gltf
 {
@@ -148,6 +151,21 @@ namespace ngnast::gltf
             assert(false);
             return VK_SAMPLER_ADDRESS_MODE_REPEAT;
         }
+    }
+
+    [[nodiscard]] constexpr vkrndr::sampler_properties_t to_vulkan(
+        fastgltf::Sampler const& s)
+    {
+        return {
+            .magnification_filter =
+                to_vulkan(s.magFilter.value_or(fastgltf::Filter::Nearest)),
+            .minification_filter =
+                to_vulkan(s.minFilter.value_or(fastgltf::Filter::Nearest)),
+            .mipmap_mode = to_vulkan_mipmap(
+                s.minFilter.value_or(fastgltf::Filter::Nearest)),
+            .address_mode_u = to_vulkan(s.wrapS),
+            .address_mode_v = to_vulkan(s.wrapT),
+        };
     }
 
     [[nodiscard]] constexpr alpha_mode_t to_alpha_mode(
