@@ -6,6 +6,7 @@
 #include <volk.h>
 
 #include <array>
+#include <optional>
 
 TEST_CASE("is_success_result returns true for positive VkResult values",
     "[vkrndr][utility]")

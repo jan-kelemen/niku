@@ -100,7 +100,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON -DNIKU_ENABLE_CPPCHECK=ON -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset relwithdebinfo
+          cmake -DNIKU_ENABLE_COMPILER_STATIC_ANALYSIS=ON -DNIKU_ENABLE_CPPCHECK=ON -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF -DNIKU_DISABLE_TRACY=ON --preset relwithdebinfo
 
       - name: Build
         run: |

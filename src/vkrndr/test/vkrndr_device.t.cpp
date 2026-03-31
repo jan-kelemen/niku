@@ -38,7 +38,7 @@ namespace
     }
 } // namespace
 
-TEST_CASE("Device extension is added when available", "[vkrndr][device]")
+TEST_CASE("Device extension is added when available", "[vkrndr][device][gpu]")
 {
     static constexpr auto extension{VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME};
 
@@ -80,7 +80,7 @@ TEST_CASE("Device extension is added when available", "[vkrndr][device]")
 }
 
 TEST_CASE("Device API version is clamped to maximum supported instance version",
-    "[vkrndr][device]")
+    "[vkrndr][device][gpu]")
 {
     std::expected<vkrndr::instance_ptr_t, std::system_error> instance_result{
         vkrndr::create_instance({.maximum_vulkan_version = VK_API_VERSION_1_1,

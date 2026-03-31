@@ -27,7 +27,7 @@ namespace
 } // namespace
 
 TEST_CASE("Sampler anisotropy is clamped to maximum supported value by device",
-    "[vkrndr][sampler]")
+    "[vkrndr][sampler][gpu]")
 {
     VkPhysicalDeviceProperties device_properties;
     vkGetPhysicalDeviceProperties(*test::minimal_device, &device_properties);
@@ -46,7 +46,7 @@ TEST_CASE("Sampler anisotropy is clamped to maximum supported value by device",
 
 TEST_CASE(
     "Sampler anisotropy is set to maximum device capability when default is enabled",
-    "[vkrndr][sampler]")
+    "[vkrndr][sampler][gpu]")
 {
     VkPhysicalDeviceProperties device_properties;
     vkGetPhysicalDeviceProperties(*test::minimal_device, &device_properties);
@@ -62,7 +62,7 @@ TEST_CASE(
 }
 
 TEST_CASE("Sampler anisotropy is set when default is disabled",
-    "[vkrndr][sampler]")
+    "[vkrndr][sampler][gpu]")
 {
     VkPhysicalDeviceProperties device_properties;
     vkGetPhysicalDeviceProperties(*test::minimal_device, &device_properties);

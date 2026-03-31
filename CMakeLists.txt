@@ -12,6 +12,7 @@ option(NIKU_ENABLE_COMPILER_STATIC_ANALYSIS "Enable static analysis provided by 
 option(NIKU_ENABLE_CPPCHECK "Enable cppcheck in build" OFF)
 option(NIKU_ENABLE_IWYU "Enable include-what-you-use in build" OFF)
 option(NIKU_REGISTER_GPU_UNIT_TESTS "Register tests that require GPU support to CTest" ON)
+option(NIKU_DISABLE_TRACY "Disable building with Tracy" OFF)
 
 option(NIKU_BUILD_DEMOS "Building demo examples" ON)
 
@@ -33,11 +34,14 @@ find_package(SDL3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(spirv-cross REQUIRED)
 find_package(stb REQUIRED)
-find_package(Tracy)
 find_package(tree-sitter REQUIRED)
 find_package(volk REQUIRED)
 find_package(VulkanMemoryAllocator REQUIRED)
 find_package(VulkanUtilityLibraries REQUIRED)
+
+if (NOT NIKU_DISABLE_TRACY)
+    find_package(Tracy)
+endif()
 
 if (NIKU_BUILD_DEMOS)
     find_package(recastnavigation REQUIRED)
