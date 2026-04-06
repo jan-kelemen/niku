@@ -6,6 +6,7 @@ target_sources(cppext
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_container.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_cycled_buffer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_hash.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_hash_adapter.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_numeric.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_overloaded.hpp
@@ -51,6 +52,7 @@ if (NIKU_BUILD_TESTS)
         PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_cycled_buffer.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_hash.t.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_hash_adapter.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_numeric.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_thread_pool.t.cpp
     )
