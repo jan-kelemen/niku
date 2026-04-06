@@ -117,10 +117,6 @@ jobs:
       - name: Checkout repository from github
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
-      - name: Install Chocolatey packages
-        run: |
-          choco install cmake --version 4.2.3 -y
-
       - name: Setup Conan
         id: setup-conan
         uses: ./.github/actions/setup-conan
