@@ -14,6 +14,7 @@
 #include <expected>
 #include <optional>
 #include <print>
+#include <string_view>
 #include <system_error>
 
 #include <global_library_handle.hpp>
@@ -33,69 +34,84 @@ namespace test
     // NOLINTEND(cppcoreguidelines-avoid-non-const-global-variables)
 } // namespace test
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
-int main(int argc, char* argv[])
+namespace
 {
-    if (std::expected<vkrndr::library_handle_ptr_t, std::error_code> lh{
-            vkrndr::initialize()})
+    void initialize_global_instances()
     {
-        test::library = *lh;
-        if (std::expected<vkrndr::instance_ptr_t, std::error_code> in{
-                vkrndr::create_instance({.optional_extensions = {}})})
+        if (std::expected<vkrndr::library_handle_ptr_t, std::error_code> lh{
+                vkrndr::initialize()})
         {
-            test::instance = *in;
-            if (std::optional<vkrndr::physical_device_features_t> const& pd{
-                    pick_best_physical_device(*test::instance,
-                        {},
-                        VK_NULL_HANDLE)})
+            test::library = *lh;
+            if (std::expected<vkrndr::instance_ptr_t, std::error_code> in{
+                    vkrndr::create_instance({.optional_extensions = {}})})
             {
-                vkrndr::queue_family_t const* const queue{
-                    find_general_queue(pd->queue_families)};
-                if (!queue)
-                {
-                    std::print("Vulkan device doesn't have a generic queue");
-                }
-
-                vkrndr::feature_chain_t chain;
-                link_required_feature_chain(chain,
-                    std::min(test::instance->api_version,
-                        pd->properties.apiVersion));
-                if (std::expected<vkrndr::device_ptr_t, std::error_code> ld{
-                        create_device(*test::instance,
+                test::instance = *in;
+                if (std::optional<vkrndr::physical_device_features_t> const& pd{
+                        pick_best_physical_device(*test::instance,
                             {},
-                            *pd,
-                            chain,
-                            std::to_array({*queue}))})
+                            VK_NULL_HANDLE)})
                 {
-                    test::minimal_device = *ld;
+                    vkrndr::queue_family_t const* const queue{
+                        find_general_queue(pd->queue_families)};
+                    if (!queue)
+                    {
+                        std::print(
+                            "Vulkan device doesn't have a generic queue");
+                    }
+
+                    vkrndr::feature_chain_t chain;
+                    link_required_feature_chain(chain,
+                        std::min(test::instance->api_version,
+                            pd->properties.apiVersion));
+                    if (std::expected<vkrndr::device_ptr_t, std::error_code> ld{
+                            create_device(*test::instance,
+                                {},
+                                *pd,
+                                chain,
+                                std::to_array({*queue}))})
+                    {
+                        test::minimal_device = *ld;
+                    }
+                    else
+                    {
+                        std::print(stderr,
+                            "Minimal Vulkan device can't be initialized (): {}",
+                            ld.error().value(),
+                            ld.error().message());
+                    }
                 }
                 else
                 {
                     std::print(stderr,
-                        "Minimal Vulkan device can't be initialized (): {}",
-                        ld.error().value(),
-                        ld.error().message());
+                        "Physical Vulkan device can't be selected");
                 }
             }
             else
             {
-                std::print(stderr, "Physical Vulkan device can't be selected");
+                std::print(stderr,
+                    "Vulkan instance can't be initialized (): {}",
+                    in.error().value(),
+                    in.error().message());
             }
         }
         else
         {
             std::print(stderr,
-                "Vulkan instance can't be initialized (): {}",
-                in.error().value(),
-                in.error().message());
+                "Vulkan can't be initialized (): {}",
+                lh.error().value(),
+                lh.error().message());
         }
     }
-    else
+} // namespace
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+int main(int argc, char* argv[])
+{
+    bool const list_only{std::ranges::any_of(std::span{argv, argv + argc},
+        [](std::string_view const v) { return v.starts_with("--list"); })};
+    if (!list_only)
     {
-        std::print(stderr,
-            "Vulkan can't be initialized (): {}",
-            lh.error().value(),
-            lh.error().message());
+        initialize_global_instances();
     }
 
     Catch::ConfigData const config{.allowZeroTests = true};
