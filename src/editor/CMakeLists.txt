@@ -6,11 +6,13 @@ target_sources(editor
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/editor_application.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/grid_shader.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/material_manager.hpp
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/camera_controller.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/editor_application.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/editor.m.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/grid_shader.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/material_manager.cpp
 )
 
 target_include_directories(editor

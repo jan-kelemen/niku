@@ -2,6 +2,7 @@
 #define EDITOR_EDITOR_APPLICATION_INCLUDED
 
 #include <camera_controller.hpp>
+#include <material_manager.hpp>
 
 #include <cppext_thread_pool.hpp>
 
@@ -108,6 +109,8 @@ namespace editor
         VkDescriptorSetLayout frame_info_layout_{VK_NULL_HANDLE};
         std::vector<VkDescriptorSet> frame_info_descriptors_;
         std::vector<vkrndr::buffer_t> frame_info_buffers_;
+
+        material_manager_t material_manager_;
 
         std::unique_ptr<grid_shader_t> grid_shader_;
 

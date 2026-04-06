@@ -1,5 +1,7 @@
 #include <editor_application.hpp>
 
+#include <material_manager.hpp>
+
 #include <camera_controller.hpp>
 #include <grid_shader.hpp>
 
@@ -88,6 +90,7 @@
 #include <utility>
 #include <vector>
 
+// IWYU pragma: no_include <boost/core/allocator_access.hpp>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ptr.hpp>
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
 // IWYU pragma: no_include <fmt/base.h>
@@ -481,6 +484,19 @@ editor::application_t::application_t(
         throw std::runtime_error{message};
     }
 
+    if (std::expected<material_manager_t, std::error_code>
+            material_manager_result{
+                create_material_manager(*rendering_context_.device)})
+    {
+        material_manager_ = std::move(material_manager_result).value();
+    }
+    else
+    {
+        auto const& message{material_manager_result.error().message()};
+        spdlog::error("Failed to create grid shader: {}", message);
+        throw std::runtime_error{message};
+    }
+
     event_dispatcher_.sink<SDL_Event>()
         .connect<&ngnwsi::imgui_layer_t::handle_event>(*imgui_);
     event_dispatcher_.sink<SDL_Event>()
@@ -510,6 +526,8 @@ editor::application_t::~application_t()
     {
         destroy(*rendering_context_.device, *grid_shader_);
     }
+
+    destroy(*rendering_context_.device, material_manager_);
 
     std::ranges::for_each(frame_info_buffers_,
         [&d = *rendering_context_.device](vkrndr::buffer_t const& b)
@@ -581,6 +599,7 @@ void editor::application_t::load_files(
             paths = std::vector<std::filesystem::path>{begin(file_list),
                 end(file_list)}]()
         {
+            ZoneScoped;
             std::vector<std::tuple<ngnast::scene_model_t,
                 ngnast::gpu::geometry_transfer_result_t>>
                 loaded_models;
@@ -592,14 +611,35 @@ void editor::application_t::load_files(
                     if (std::expected<ngnast::scene_model_t, std::system_error>
                             load_result{gltf_loader_->load(p)})
                     {
-                        ngnast::gpu::geometry_transfer_result_t transfer_result{
-                            ngnast::gpu::transfer_geometry(
-                                *rendering_context_.device,
-                                *load_result)};
+                        if (std::expected<std::vector<size_t>, std::error_code>
+                                samplers_result{add_samplers(material_manager_,
+                                    *rendering_context_.device,
+                                    load_result->samplers)})
+                        {
+                            spdlog::info(
+                                "Loaded samplers for model {}, indices {}",
+                                p,
+                                fmt::join(*samplers_result, ", "));
 
-                        loaded_models.emplace_back(std::move(*load_result),
-                            std::move(transfer_result));
-                        spdlog::info("Model loaded '{}'", p);
+                            ngnast::gpu::geometry_transfer_result_t
+                                transfer_result{ngnast::gpu::transfer_geometry(
+                                    *rendering_context_.device,
+                                    *load_result)};
+
+                            loaded_models.emplace_back(
+                                std::move(load_result).value(),
+                                std::move(transfer_result));
+                            spdlog::info("Model loaded '{}'", p);
+                        }
+                        else
+                        {
+                            auto const& message{
+                                samplers_result.error().message()};
+                            spdlog::error(
+                                "Failed to register samplers for model {}: {}",
+                                p,
+                                message);
+                        }
                     }
                     else
                     {
@@ -615,7 +655,9 @@ void editor::application_t::load_files(
         });
 }
 
-editor::application_t::application_t() : camera_controller_{camera_, mouse_}
+editor::application_t::application_t()
+    : thread_pool_{1}
+    , camera_controller_{camera_, mouse_}
 {
     camera_.set_position({0.0f, 2.0f, 1.0f});
     camera_.set_yaw_pitch({0.0f, 1.0f});
