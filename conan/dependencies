@@ -38,4 +38,5 @@ spirv-cross*:hlsl=False
 spirv-cross*:msl=False
 spirv-cross*:cpp=False
 spirv-tools*:build_executables=False
+tracy*:on_demand=True
 zstd*:build_programs=False
