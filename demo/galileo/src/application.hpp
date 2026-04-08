@@ -7,8 +7,6 @@
 #include <physics_engine.hpp>
 #include <world.hpp>
 
-#include <cppext_thread_pool.hpp>
-
 #include <ngnast_scene_model.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
@@ -23,6 +21,8 @@
 
 #include <vkrndr_image.hpp>
 #include <vkrndr_rendering_context.hpp>
+
+#include <BS_thread_pool.hpp>
 
 #include <entt/entity/entity.hpp>
 #include <entt/entity/registry.hpp>
@@ -116,7 +116,7 @@ namespace galileo
         vkglsl::guard_t glsl_guard_;
 
         ngnscr::scripting_engine_t scripting_engine_;
-        cppext::thread_pool_t thread_pool_;
+        BS::thread_pool<> thread_pool_;
 
         ngnwsi::mouse_t mouse_;
         ngngfx::aircraft_camera_t camera_;

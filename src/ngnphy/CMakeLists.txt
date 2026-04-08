@@ -24,6 +24,7 @@ target_link_libraries(ngnphy
         cppext
         glm_impl
     PUBLIC
+        bshoshany-thread-pool::bshoshany-thread-pool
         Jolt::Jolt
     PRIVATE
         $<BUILD_INTERFACE:project-options>

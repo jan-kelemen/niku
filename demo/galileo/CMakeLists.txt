@@ -72,6 +72,7 @@ target_link_libraries(galileo
         vkglsl
     PRIVATE
         Boost::headers
+        bshoshany-thread-pool::bshoshany-thread-pool
         EnTT::EnTT
         fmt::fmt
         imgui::imgui

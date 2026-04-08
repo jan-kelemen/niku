@@ -24,7 +24,6 @@
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
-#include <cppext_thread_pool.hpp>
 
 #include <ngnast_gltf_loader.hpp>
 #include <ngnast_scene_model.hpp>
@@ -406,7 +405,7 @@ galileo::application_t::application_t()
         throw std::system_error{create_result.error()};
     }
 
-    thread_pool_.set_thread_exit_function([]() { asThreadCleanup(); });
+    thread_pool_.set_cleanup_func(asThreadCleanup);
 
     camera_.set_position({-25.0f, 5.0f, -25.0f});
 

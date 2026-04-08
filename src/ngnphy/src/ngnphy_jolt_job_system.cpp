@@ -1,13 +1,13 @@
 #include <ngnphy_jolt_job_system.hpp>
 
-#include <cppext_thread_pool.hpp>
+#include <BS_thread_pool.hpp>
 
 #include <Jolt/Core/JobSystem.h>
 #include <Jolt/Core/JobSystemWithBarrier.h>
 
 #include <algorithm>
 
-ngnphy::job_system_t::job_system_t(cppext::thread_pool_t& thread_pool,
+ngnphy::job_system_t::job_system_t(BS::thread_pool<>& thread_pool,
     unsigned int const max_barriers)
     : JPH::JobSystemWithBarrier(max_barriers)
     , pool_{&thread_pool}
@@ -16,7 +16,7 @@ ngnphy::job_system_t::job_system_t(cppext::thread_pool_t& thread_pool,
 
 int ngnphy::job_system_t::GetMaxConcurrency() const
 {
-    return static_cast<int>(pool_->thread_count());
+    return static_cast<int>(pool_->get_thread_count());
 }
 
 JPH::JobSystem::JobHandle ngnphy::job_system_t::CreateJob(
@@ -43,7 +43,7 @@ void ngnphy::job_system_t::QueueJob(JPH::JobSystem::Job* const inJob)
 {
     inJob->AddRef();
 
-    pool_->submit(
+    pool_->detach_task(
         [inJob]()
         {
             inJob->Execute();

@@ -1,6 +1,8 @@
 #ifndef GALILEO_PHYSICS_ENGINE_INCLUDED
 #define GALILEO_PHYSICS_ENGINE_INCLUDED
 
+#include <BS_thread_pool.hpp> // IWYU pragma: keep
+
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Physics/Body/BodyID.h>
@@ -15,11 +17,6 @@ namespace JPH
     class PhysicsSystem;
 } // namespace JPH
 
-namespace cppext
-{
-    class thread_pool_t;
-} // namespace cppext
-
 namespace galileo
 {
     namespace object_layers
@@ -32,7 +29,7 @@ namespace galileo
     class [[nodiscard]] physics_engine_t final
     {
     public:
-        explicit physics_engine_t(cppext::thread_pool_t& thread_pool);
+        explicit physics_engine_t(BS::thread_pool<>& thread_pool);
 
         physics_engine_t(physics_engine_t const&) = delete;
 

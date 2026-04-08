@@ -7,7 +7,6 @@
 
 #include <cppext_container.hpp>
 #include <cppext_numeric.hpp>
-#include <cppext_thread_pool.hpp>
 
 #include <ngnast_gltf_loader.hpp>
 #include <ngnast_gpu_transfer.hpp>
@@ -594,7 +593,7 @@ bool editor::application_t::update()
 void editor::application_t::load_files(
     std::span<char const* const> const& file_list)
 {
-    thread_pool_.submit(
+    thread_pool_.detach_task(
         [this,
             paths = std::vector<std::filesystem::path>{begin(file_list),
                 end(file_list)}]()
@@ -655,9 +654,7 @@ void editor::application_t::load_files(
         });
 }
 
-editor::application_t::application_t()
-    : thread_pool_{1}
-    , camera_controller_{camera_, mouse_}
+editor::application_t::application_t() : camera_controller_{camera_, mouse_}
 {
     camera_.set_position({0.0f, 2.0f, 1.0f});
     camera_.set_yaw_pitch({0.0f, 1.0f});

@@ -1,6 +1,8 @@
 #ifndef NGNPHY_JOLT_JOB_SYSTEM_INCLUDED
 #define NGNPHY_JOLT_JOB_SYSTEM_INCLUDED
 
+#include <BS_thread_pool.hpp> // IWYU pragma: keep
+
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Core/Color.h>
@@ -8,17 +10,12 @@
 #include <Jolt/Core/JobSystem.h>
 #include <Jolt/Core/JobSystemWithBarrier.h>
 
-namespace cppext
-{
-    class thread_pool_t;
-} // namespace cppext
-
 namespace ngnphy
 {
     class [[nodiscard]] job_system_t final : public JPH::JobSystemWithBarrier
     {
     public:
-        explicit job_system_t(cppext::thread_pool_t& thread_pool,
+        explicit job_system_t(BS::thread_pool<>& thread_pool,
             unsigned int max_barriers = 1);
 
         job_system_t(job_system_t const&) = delete;
@@ -50,7 +47,7 @@ namespace ngnphy
         void FreeJob(JPH::JobSystem::Job* inJob) override;
 
     private:
-        cppext::thread_pool_t* pool_;
+        BS::thread_pool<>* pool_;
     };
 } // namespace ngnphy
 

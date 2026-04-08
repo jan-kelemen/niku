@@ -211,7 +211,7 @@ namespace
 struct [[nodiscard]] galileo::physics_engine_t::impl final
 {
 public:
-    impl(cppext::thread_pool_t& thread_pool);
+    impl(BS::thread_pool<>& thread_pool);
 
     impl(impl const&) = delete;
 
@@ -239,7 +239,7 @@ public:
     std::unique_ptr<JPH::PhysicsSystem> physics_system_;
 };
 
-galileo::physics_engine_t::impl::impl(cppext::thread_pool_t& thread_pool)
+galileo::physics_engine_t::impl::impl(BS::thread_pool<>& thread_pool)
 {
     JPH::RegisterDefaultAllocator();
 
@@ -292,7 +292,7 @@ void galileo::physics_engine_t::impl::fixed_update(float const delta_time)
         job_system_.get());
 }
 
-galileo::physics_engine_t::physics_engine_t(cppext::thread_pool_t& thread_pool)
+galileo::physics_engine_t::physics_engine_t(BS::thread_pool<>& thread_pool)
     : impl_{std::make_unique<impl>(thread_pool)}
 {
 }

@@ -153,6 +153,7 @@ Following third party libraries are used:
 | [spdlog](https://github.com/gabime/spdlog)                                                 | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
 | [SPIRV-Cross](https://simdjson.org)                                                        | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)                                               | YES     |
 | [stb](https://github.com/nothings/stb)                                                     | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
+| [thread-pool](https://github.com/bshoshany/thread-pool)                                    | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
 | [Tracy](https://github.com/wolfpld/tracy)                                                  | [BSD-3-Clause](https://spdx.org/licenses/BSD-3-Clause.html)                                           | NO      |
 | [tree-sitter](https://tree-sitter.github.io/tree-sitter/)                                  | [MIT](https://spdx.org/licenses/MIT.html)                                                             | YES     |
 | [tree-sitter-glsl](https://github.com/tree-sitter-grammars/tree-sitter-glsl/)              | [MIT](https://spdx.org/licenses/MIT.html)                                                             | NO      |

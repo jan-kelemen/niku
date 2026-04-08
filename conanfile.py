@@ -31,6 +31,7 @@ class NikuConan(ConanFile):
     def requirements(self):
         self.requires("angelscript/2.38.0")
         self.requires("boost/1.90.0", transitive_headers=False)
+        self.requires("bshoshany-thread-pool/5.1.0")
         self.requires("entt/3.16.0")
         self.requires("fastgltf/0.9.0", transitive_headers=False)
         self.requires("fmt/12.1.0")
@@ -89,6 +90,12 @@ class NikuConan(ConanFile):
         rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
 
     def package_info(self):
+        component = "thread_pool_impl"
+        self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
+        self.cpp_info.components[component].defines = ["BS_THREAD_POOL_NATIVE_EXTENSIONS"]
+        self.cpp_info.components[component].libs = [component]
+        self.cpp_info.components[component].requires.extend(["bshoshany-thread-pool::bshoshany-thread-pool"])
+
         component = "vma_impl"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].defines = ["VK_NO_PROTOTYPES"]
@@ -165,7 +172,7 @@ class NikuConan(ConanFile):
         component = "ngnphy"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].libs = [component]
-        self.cpp_info.components[component].requires.extend(["cppext", "glm_impl"])
+        self.cpp_info.components[component].requires.extend(["cppext", "glm_impl", "thread_pool_impl"])
         self.cpp_info.components[component].requires.extend(["joltphysics::joltphysics"])
 
         component = "ngnscr"

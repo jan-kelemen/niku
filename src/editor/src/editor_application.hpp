@@ -4,8 +4,6 @@
 #include <camera_controller.hpp>
 #include <material_manager.hpp>
 
-#include <cppext_thread_pool.hpp>
-
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
 
@@ -14,6 +12,8 @@
 
 #include <vkrndr_buffer.hpp> // IWYU pragma: keep
 #include <vkrndr_rendering_context.hpp>
+
+#include <BS_thread_pool.hpp>
 
 #include <entt/signal/delegate.hpp>
 #include <entt/signal/dispatcher.hpp>
@@ -92,7 +92,7 @@ namespace editor
         void render();
 
     private:
-        cppext::thread_pool_t thread_pool_;
+        BS::thread_pool<> thread_pool_;
 
         std::unique_ptr<ngnast::gltf::loader_t> gltf_loader_;
 

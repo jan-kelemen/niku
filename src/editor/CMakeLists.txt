@@ -26,6 +26,7 @@ target_link_libraries(editor
         ngnast
         ngngfx
         ngnwsi
+        thread_pool_impl
         tracy_impl
         vkglsl
         vkrndr

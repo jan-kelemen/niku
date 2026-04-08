@@ -11,9 +11,6 @@ target_sources(cppext
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_numeric.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_overloaded.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_pragma_warning.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_thread_pool.hpp
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/cppext_thread_pool.cpp
 )
 
 target_include_directories(cppext 
@@ -28,6 +25,8 @@ target_link_libraries(cppext
     PRIVATE
         $<BUILD_INTERFACE:project-options>
 )
+
+set_target_properties(cppext PROPERTIES LINKER_LANGUAGE CXX)
 
 install(TARGETS cppext
     EXPORT ${PROJECT_NAME}-config
@@ -54,7 +53,6 @@ if (NIKU_BUILD_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_hash.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_hash_adapter.t.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_numeric.t.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/test/cppext_thread_pool.t.cpp
     )
 
     target_link_libraries(cppext_test
