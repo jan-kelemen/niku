@@ -11,7 +11,7 @@
 #include <system_error>
 #include <vector>
 
-#include <global_library_handle.hpp>
+#include <global_handles.hpp>
 
 TEST_CASE("VkCommandPool utilities", "[vkrndr][commands][gpu]")
 {

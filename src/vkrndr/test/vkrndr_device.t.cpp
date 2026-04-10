@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-#include <global_library_handle.hpp>
+#include <global_handles.hpp>
 #include <helpers.hpp>
 
 // IWYU pragma: no_include "vkrndr_instance.hpp"

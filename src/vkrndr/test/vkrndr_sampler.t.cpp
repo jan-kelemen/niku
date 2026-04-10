@@ -10,7 +10,7 @@
 
 #include <volk.h>
 
-#include <global_library_handle.hpp>
+#include <global_handles.hpp>
 
 // IWYU pragma: no_include <boost/hash2/digest.hpp>
 // IWYU pragma: no_include <boost/hash2/flavor.hpp>

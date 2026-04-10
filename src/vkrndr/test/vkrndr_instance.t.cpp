@@ -15,7 +15,7 @@
 // IWYU pragma: no_include <span>
 
 TEST_CASE("Optional instance extension is added when available",
-    "[vkrndr][instance]")
+    "[vkrndr][instance][gpu]")
 {
     static constexpr auto extension{
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};

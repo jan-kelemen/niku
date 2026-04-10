@@ -48,7 +48,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset debug
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON --preset debug
 
       - name: Build
         run: |

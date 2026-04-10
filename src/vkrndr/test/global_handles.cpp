@@ -1,5 +1,6 @@
-#include <catch2/catch_config.hpp>
-#include <catch2/catch_session.hpp>
+#include <catch2/catch_test_case_info.hpp>
+#include <catch2/reporters/catch_reporter_event_listener.hpp>
+#include <catch2/reporters/catch_reporter_registrars.hpp>
 
 #include <vkrndr_device.hpp>
 #include <vkrndr_features.hpp>
@@ -14,10 +15,9 @@
 #include <expected>
 #include <optional>
 #include <print>
-#include <string_view>
 #include <system_error>
 
-#include <global_library_handle.hpp>
+#include <global_handles.hpp>
 #include <helpers.hpp>
 
 // IWYU pragma: no_include <boost/smart_ptr/intrusive_ref_counter.hpp>
@@ -102,27 +102,21 @@ namespace
                 lh.error().message());
         }
     }
-} // namespace
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
-int main(int argc, char* argv[])
-{
-    bool const list_only{std::ranges::any_of(std::span{argv, argv + argc},
-        [](std::string_view const v) { return v.starts_with("--list"); })};
-    if (!list_only)
+    class gpu_init_listener_t final : public Catch::EventListenerBase
     {
-        initialize_global_instances();
-    }
+    public:
+        using Catch::EventListenerBase::EventListenerBase;
 
-    Catch::ConfigData const config{.allowZeroTests = true};
-    Catch::Session session;
-    session.useConfigData(config);
+        void testCaseStarting(Catch::TestCaseInfo const& info) override
+        {
+            if (!test::instance &&
+                std::ranges::contains(info.tags, Catch::Tag("gpu")))
+            {
+                initialize_global_instances();
+            }
+        }
+    };
 
-    int const rv{session.run(argc, argv)};
-
-    test::minimal_device.reset();
-    test::instance.reset();
-    test::library.reset();
-
-    return rv;
-}
+    CATCH_REGISTER_LISTENER(gpu_init_listener_t)
+} // namespace

@@ -52,7 +52,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} -DNIKU_REGISTER_GPU_UNIT_TESTS=OFF --preset release
+          cmake -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DCMAKE_INSTALL_PREFIX=${{ matrix.profile }} --preset release
 
       - name: Build
         run: |
