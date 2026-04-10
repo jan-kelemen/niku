@@ -7,6 +7,7 @@
 
 #include <cppext_numeric.hpp>
 #include <cppext_overloaded.hpp>
+#include <cppext_read_file.hpp>
 
 #include <vkrndr_sampler.hpp>
 #include <vkrndr_utility.hpp>
@@ -43,7 +44,6 @@
 #include <cstdint>
 #include <exception> // IWYU pragma: keep
 #include <expected>
-#include <fstream>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -51,7 +51,6 @@
 #include <optional>
 #include <ranges>
 #include <set>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -71,25 +70,6 @@
 
 namespace
 {
-    [[nodiscard]] std::vector<char> read_file(std::filesystem::path const& file)
-    {
-        std::ifstream stream{file, std::ios::ate | std::ios::binary};
-
-        if (!stream.is_open())
-        {
-            throw std::runtime_error{"failed to open file!"};
-        }
-
-        auto const eof{stream.tellg()};
-
-        std::vector<char> buffer(static_cast<size_t>(eof));
-        stream.seekg(0);
-
-        stream.read(buffer.data(), eof);
-
-        return buffer;
-    }
-
     [[nodiscard]] std::expected<ngnast::image_t, std::error_code>
     load_ktx_image(VkFormat const format,
         std::span<char const> const& raw_bytes)
@@ -577,7 +557,7 @@ namespace
                         ngnast::error_t::load_transform_failed)};
                 }
 
-                std::vector<char> raw_bytes{read_file(path)};
+                std::vector<char> raw_bytes{cppext::read_file(path)};
                 return load_ktx_image(*format, raw_bytes);
             }
             default:

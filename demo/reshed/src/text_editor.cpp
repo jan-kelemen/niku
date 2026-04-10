@@ -6,6 +6,7 @@
 #include <cppext_container.hpp>
 #include <cppext_cycled_buffer.hpp>
 #include <cppext_numeric.hpp>
+#include <cppext_read_file.hpp>
 
 #include <ngngfx_orthographic_projection.hpp>
 
@@ -54,12 +55,10 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <fstream>
 #include <iterator>
 #include <map>
 #include <optional>
 #include <random>
-#include <stdexcept>
 #include <string_view>
 #include <utility>
 
@@ -160,32 +159,12 @@ namespace
         return rv;
     }
 
-    [[nodiscard]] std::string read_highlights(std::filesystem::path const& file)
-    {
-        std::ifstream stream{file, std::ios::ate | std::ios::binary};
-
-        if (!stream.is_open())
-        {
-            throw std::runtime_error{"failed to open file!"};
-        }
-
-        auto const eof{stream.tellg()};
-
-        std::string buffer;
-        buffer.resize(static_cast<size_t>(eof));
-
-        stream.seekg(0);
-
-        stream.read(buffer.data(), eof);
-
-        return buffer;
-    }
-
     ngntxt::query_handle_t create_highlight_query(
         ngntxt::language_handle_t const& language)
     {
-        std::string const queries{read_highlights("highlights.scm")};
-        return ngntxt::create_query(language, queries);
+        std::vector<char> const queries{cppext::read_file("highlights.scm")};
+        return ngntxt::create_query(language,
+            std::string_view{cbegin(queries), cend(queries)});
     }
 
     struct [[nodiscard]] shaped_line_t final

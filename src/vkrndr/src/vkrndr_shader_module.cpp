@@ -4,35 +4,12 @@
 #include <vkrndr_device.hpp>
 #include <vkrndr_utility.hpp>
 
+#include <cppext_read_file.hpp>
+
 #include <bit>
-#include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
-#include <stdexcept>
 #include <vector>
-
-namespace
-{
-    [[nodiscard]] std::vector<char> read_file(std::filesystem::path const& file)
-    {
-        std::ifstream stream{file, std::ios::ate | std::ios::binary};
-
-        if (!stream.is_open())
-        {
-            throw std::runtime_error{"failed to open file!"};
-        }
-
-        auto const eof{stream.tellg()};
-
-        std::vector<char> buffer(static_cast<size_t>(eof));
-        stream.seekg(0);
-
-        stream.read(buffer.data(), eof);
-
-        return buffer;
-    }
-} // namespace
 
 void vkrndr::destroy(device_t const& device,
     shader_module_t const& shader_module)
@@ -45,7 +22,7 @@ vkrndr::shader_module_t vkrndr::create_shader_module(device_t const& device,
     VkShaderStageFlagBits const stage,
     std::string_view const entry_point)
 {
-    std::vector<char> const code{read_file(path)};
+    std::vector<char> const code{cppext::read_file(path)};
 
     return create_shader_module(device,
         // NOLINTNEXTLINE(bugprone-bitwise-pointer-cast)

@@ -11,6 +11,9 @@ target_sources(cppext
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_numeric.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_overloaded.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_pragma_warning.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/cppext_read_file.hpp
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/cppext_read_file.cpp
 )
 
 target_include_directories(cppext 

@@ -5,6 +5,7 @@
 
 #include <cppext_numeric.hpp>
 #include <cppext_pragma_warning.hpp>
+#include <cppext_read_file.hpp>
 
 #include <vkrndr_descriptors.hpp>
 #include <vkrndr_shader_module.hpp>
@@ -29,7 +30,6 @@ DISABLE_WARNING_POP
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -58,25 +58,6 @@ namespace
         std::string entry_point;
         std::vector<uint32_t> code;
     };
-
-    [[nodiscard]] std::vector<char> read_file(std::filesystem::path const& file)
-    {
-        std::ifstream stream{file, std::ios::ate | std::ios::binary};
-
-        if (!stream.is_open())
-        {
-            throw std::runtime_error{"failed to open file!"};
-        }
-
-        auto const eof{stream.tellg()};
-
-        std::vector<char> buffer(static_cast<size_t>(eof));
-        stream.seekg(0);
-
-        stream.read(buffer.data(), eof);
-
-        return buffer;
-    }
 
     [[nodiscard]] std::string preamble(
         std::span<std::string_view const> const& defines)
@@ -202,7 +183,8 @@ namespace
     glslang::TShader::Includer::IncludeResult* includer_t::result_for_path(
         std::filesystem::path const& path)
     {
-        auto user_data{std::make_unique<include_data_t>(read_file(path))};
+        auto user_data{
+            std::make_unique<include_data_t>(cppext::read_file(path))};
         auto rv{std::make_unique<IncludeResult>(path.string(),
             user_data->data.data(),
             user_data->data.size(),
@@ -274,7 +256,7 @@ std::expected<void, std::error_code> vkglsl::shader_set_t::add_shader(
     shader.setDebugInfo(impl_->with_debug_info);
 
     auto const path_str{file.string()};
-    std::vector<char> const glsl_source{read_file(file)};
+    std::vector<char> const glsl_source{cppext::read_file(file)};
 
     std::array const strings{glsl_source.data()};
     std::array const lengths{cppext::narrow<int>(glsl_source.size())};
@@ -489,7 +471,7 @@ vkglsl::add_shader_binary_from_path(shader_set_t& shader_set,
     std::vector<char> binary;
     try
     {
-        binary = read_file(file);
+        binary = cppext::read_file(file);
     }
     catch (std::runtime_error const& ex)
     {
