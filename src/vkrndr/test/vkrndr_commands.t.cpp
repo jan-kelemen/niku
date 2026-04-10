@@ -16,7 +16,7 @@
 TEST_CASE("VkCommandPool utilities", "[vkrndr][commands][gpu]")
 {
     vkrndr::execution_port_t const& port{
-        test::minimal_device->execution_ports.front()};
+        *test::minimal_device->execution_ports.front()};
 
     std::expected<VkCommandPool, std::system_error> const create_result{
         create_command_pool(*test::minimal_device, port.queue_family())};

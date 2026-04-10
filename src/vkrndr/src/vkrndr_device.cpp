@@ -161,11 +161,12 @@ namespace
         rv->execution_ports.reserve(queue_create_infos.size());
         for (auto const& family : create_info.queues)
         {
-            rv->execution_ports.emplace_back(*rv,
+            rv->execution_ports.push_back(create_execution_port(*rv,
                 family.properties.queueFlags,
                 family.index,
                 0,
-                family.supports_present);
+                family.supports_present,
+                false));
         }
 
         return rv;

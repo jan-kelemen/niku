@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <expected>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <set>
 #include <span>
@@ -40,7 +41,7 @@ namespace vkrndr
 
         VkSampleCountFlagBits max_msaa_samples{VK_SAMPLE_COUNT_1_BIT};
 
-        std::vector<execution_port_t> execution_ports;
+        std::vector<std::unique_ptr<execution_port_t>> execution_ports;
 
         VmaAllocator allocator{VK_NULL_HANDLE};
 

@@ -4,6 +4,36 @@
 
 #include <volk.h>
 
+#include <memory>
+#include <mutex>
+
+namespace
+{
+    class [[nodiscard]] externally_synchronized_execution_port_t final
+        : public vkrndr::execution_port_t
+    {
+    public:
+        using vkrndr::execution_port_t::execution_port_t;
+
+    protected:
+        VkResult submit_impl(std::span<VkSubmitInfo const> const& submits,
+            VkFence fence) override
+        {
+            std::scoped_lock g{mutex_};
+            return vkrndr::execution_port_t::submit_impl(submits, fence);
+        }
+
+        VkResult present_impl(VkPresentInfoKHR const& present_info) override
+        {
+            std::scoped_lock g{mutex_};
+            return vkrndr::execution_port_t::present_impl(present_info);
+        }
+
+    private:
+        std::mutex mutex_;
+    };
+} // namespace
+
 vkrndr::execution_port_t::execution_port_t(VkDevice const device,
     VkQueueFlags const queue_flags,
     uint32_t const queue_family,
@@ -41,15 +71,51 @@ uint32_t vkrndr::execution_port_t::queue_family() const noexcept
     return queue_family_;
 }
 
-void vkrndr::execution_port_t::submit(
+VkResult vkrndr::execution_port_t::submit(
     std::span<VkSubmitInfo const> const& submits,
     VkFence const fence)
 {
-    check_result(
-        vkQueueSubmit(queue_, count_cast(submits), submits.data(), fence));
+    return submit_impl(submits, fence);
 }
 
 VkResult vkrndr::execution_port_t::present(VkPresentInfoKHR const& present_info)
 {
+    return present_impl(present_info);
+}
+
+VkResult vkrndr::execution_port_t::submit_impl(
+    std::span<VkSubmitInfo const> const& submits,
+    VkFence const fence)
+{
+    return vkQueueSubmit(queue_, count_cast(submits), submits.data(), fence);
+}
+
+VkResult vkrndr::execution_port_t::present_impl(
+    VkPresentInfoKHR const& present_info)
+{
     return vkQueuePresentKHR(queue_, &present_info);
+}
+
+std::unique_ptr<vkrndr::execution_port_t> vkrndr::create_execution_port(
+    VkDevice device,
+    VkQueueFlags queue_flags,
+    uint32_t queue_family,
+    uint32_t queue_index,
+    bool present_flag,
+    bool externally_synchronized)
+{
+    if (!externally_synchronized)
+    {
+        return std::make_unique<execution_port_t>(device,
+            queue_flags,
+            queue_family,
+            queue_index,
+            present_flag);
+    }
+
+    return std::make_unique<externally_synchronized_execution_port_t>(device,
+        queue_flags,
+        queue_family,
+        queue_index,
+        present_flag);
 }

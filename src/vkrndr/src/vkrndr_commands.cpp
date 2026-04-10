@@ -183,7 +183,11 @@ std::expected<void, std::error_code> vkrndr::end_single_time_commands(
         .pCommandBuffers = buffers.data(),
     };
 
-    port.submit(cppext::as_span(submit_info), fence);
+    if (VkResult const result{port.submit(cppext::as_span(submit_info), fence)};
+        !is_success_result(result))
+    {
+        return std::unexpected{make_error_code(result)};
+    }
 
     return {};
 }

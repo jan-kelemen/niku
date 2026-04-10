@@ -71,8 +71,8 @@ vkrndr::backend_t::backend_t(rendering_context_t rendering_context,
 {
     auto const execution_port{
         std::ranges::find_if(context_.device->execution_ports,
-            [](execution_port_t const& port)
-            { return port.has_graphics() && port.has_transfer(); })};
+            [](std::unique_ptr<execution_port_t> const& port)
+            { return port->has_graphics() && port->has_transfer(); })};
     if (execution_port == std::cend(context_.device->execution_ports))
     {
         throw std::runtime_error{"no suitable execution port found"};
@@ -84,7 +84,7 @@ vkrndr::backend_t::backend_t(rendering_context_t rendering_context,
 
     for (frame_data_t& fd : cppext::as_span(frame_data_))
     {
-        fd.present_queue = &(*execution_port);
+        fd.present_queue = execution_port->get();
         fd.present_command_pool = create_command_pool(*context_.device,
             fd.present_queue->queue_family())
                                       .value();
@@ -94,7 +94,7 @@ vkrndr::backend_t::backend_t(rendering_context_t rendering_context,
                 VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
                 .value();
 
-        fd.transfer_queue = &(*execution_port);
+        fd.transfer_queue = execution_port->get();
         fd.transfer_transient_command_pool =
             create_command_pool(*context_.device,
                 fd.transfer_queue->queue_family())

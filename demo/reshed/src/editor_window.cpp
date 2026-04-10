@@ -63,7 +63,7 @@ reshed::editor_window_t::editor_window_t(
     static_cast<void>(render_window_->create_surface(*instance_));
 
     vkrndr::execution_port_t& present_queue{
-        *std::ranges::find_if(context.device->execution_ports,
+        **std::ranges::find_if(context.device->execution_ports,
             &vkrndr::execution_port_t::has_present)};
 
     vkrndr::swapchain_t const* const swapchain{

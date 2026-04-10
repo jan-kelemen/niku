@@ -396,7 +396,7 @@ heatx::application_t::application_t(int argc, char const** argv)
                             2);
 
                     vkrndr::execution_port_t& present_queue{
-                        *std::ranges::find_if(
+                        **std::ranges::find_if(
                             rendering_context_.device->execution_ports,
                             &vkrndr::execution_port_t::has_present)};
 

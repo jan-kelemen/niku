@@ -286,7 +286,7 @@ editor::application_t::application_t(
     gltf_loader_ = std::make_unique<ngnast::gltf::loader_t>(std::span{formats});
 
     vkrndr::execution_port_t& present_queue{
-        *std::ranges::find_if(rendering_context_.device->execution_ports,
+        **std::ranges::find_if(rendering_context_.device->execution_ports,
             &vkrndr::execution_port_t::has_present)};
 
     vkrndr::swapchain_t const* const swapchain{
