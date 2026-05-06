@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <expected>
 #include <ranges>
+#include <span>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -24,6 +25,16 @@
 // IWYU pragma: no_include <boost/core/allocator_access.hpp>
 // IWYU pragma: no_include <boost/unordered/unordered_map_fwd.hpp>
 // IWYU pragma: no_forward_declare vkrndr::device_t
+
+namespace ngnast
+{
+    struct image_t;
+} // namespace ngnast
+
+namespace vkrndr
+{
+    class execution_port_t;
+} // namespace vkrndr
 
 namespace editor::detail
 {
@@ -48,6 +59,13 @@ namespace editor
 
     void destroy(vkrndr::device_t const& device,
         material_manager_t const& materials);
+
+    [[nodiscard]] std::expected<std::vector<size_t>, std::error_code>
+    transfer_images(material_manager_t& manager,
+        vkrndr::device_t const& device,
+        vkrndr::execution_port_t& transfer_queue,
+        vkrndr::execution_port_t& graphics_queue,
+        std::span<ngnast::image_t> const& images);
 
     // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     template<typename Range>

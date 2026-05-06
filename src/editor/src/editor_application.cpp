@@ -231,7 +231,7 @@ editor::application_t::application_t(
     // Pick a device that has suitable features
     static constexpr std::array const device_extensions{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    std::optional<vkrndr::physical_device_features_t> const physical_device{
+    std::optional<vkrndr::physical_device_features_t> physical_device{
         pick_best_physical_device(*rendering_context_.instance,
             device_extensions,
             main_window_->create_surface(*rendering_context_.instance))};
@@ -244,7 +244,7 @@ editor::application_t::application_t(
     spdlog::info("Selected {} GPU", physical_device->properties.deviceName);
 
     // Pick the rendering queue that is able to present
-    auto const queue_with_present{
+    auto queue_with_present{
         std::ranges::find_if(physical_device->queue_families,
             [](vkrndr::queue_family_t const& f)
             {
@@ -258,6 +258,8 @@ editor::application_t::application_t(
         spdlog::error(message);
         throw std::runtime_error{message};
     }
+
+    queue_with_present->synchronized = true;
 
     // Create the Vulkan device
     if (std::expected<vkrndr::device_ptr_t, std::error_code> device{
@@ -619,16 +621,6 @@ void editor::application_t::load_files(
                                 "Loaded samplers for model {}, indices {}",
                                 p,
                                 fmt::join(*samplers_result, ", "));
-
-                            ngnast::gpu::geometry_transfer_result_t
-                                transfer_result{ngnast::gpu::transfer_geometry(
-                                    *rendering_context_.device,
-                                    *load_result)};
-
-                            loaded_models.emplace_back(
-                                std::move(load_result).value(),
-                                std::move(transfer_result));
-                            spdlog::info("Model loaded '{}'", p);
                         }
                         else
                         {
@@ -639,6 +631,41 @@ void editor::application_t::load_files(
                                 p,
                                 message);
                         }
+
+                        if (std::expected<std::vector<size_t>, std::error_code>
+                                images_result{transfer_images(material_manager_,
+                                    *rendering_context_.device,
+                                    *rendering_context_.device->execution_ports
+                                        .front(),
+                                    *rendering_context_.device->execution_ports
+                                        .front(),
+                                    load_result->images)})
+                        {
+                            spdlog::info(
+                                "Loaded images for model {}, indices {}",
+                                p,
+                                fmt::join(*images_result, ", "));
+                        }
+                        else
+                        {
+                            auto const& message{
+                                images_result.error().message()};
+                            spdlog::error(
+                                "Failed to register images for model {}: {}",
+                                p,
+                                message);
+                        }
+
+                        ngnast::gpu::geometry_transfer_result_t transfer_result{
+                            ngnast::gpu::transfer_geometry(
+                                *rendering_context_.device,
+                                *load_result)};
+
+                        loaded_models.emplace_back(
+                            std::move(load_result).value(),
+                            std::move(transfer_result));
+
+                        spdlog::info("Model loaded '{}'", p);
                     }
                     else
                     {
