@@ -13,6 +13,8 @@
 
 #include <global_handles.hpp>
 
+// IWYU pragma: no_include <memory>
+
 TEST_CASE("VkCommandPool utilities", "[vkrndr][commands][gpu]")
 {
     vkrndr::execution_port_t const& port{

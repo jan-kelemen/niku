@@ -14,13 +14,15 @@
 #include <optional>
 #include <span>
 
+// IWYU pragma: no_include "vkrndr_swapchain.hpp"
+
 namespace vkrndr
 {
     class cpu_pacing_t;
     struct device_t;
     struct frame_in_flight_t;
-    struct swapchain_settings_t;
-    class swapchain_t;
+    struct swapchain_settings_t; // IWYU pragma: keep
+    class swapchain_t; // IWYU pragma: keep
 } // namespace vkrndr
 
 namespace ngnwsi

@@ -347,7 +347,10 @@ void vkrndr::swapchain_t::submit_command_buffers(
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &frame.present_semaphore};
 
-    settings_.present_queue->submit(cppext::as_span(submit_info), submit_fence);
+    VkResult result{
+        settings_.present_queue->submit(cppext::as_span(submit_info),
+            submit_fence)};
+    check_result(result);
 
     VkPresentInfoKHR present_info{.sType = vku::GetSType<VkPresentInfoKHR>(),
         .waitSemaphoreCount = 1,
@@ -387,7 +390,7 @@ void vkrndr::swapchain_t::submit_command_buffers(
         }
     }
 
-    VkResult const result{settings_.present_queue->present(present_info)};
+    result = settings_.present_queue->present(present_info);
     swapchain_refresh_needed_ =
         result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR;
 
