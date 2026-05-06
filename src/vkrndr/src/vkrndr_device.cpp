@@ -166,7 +166,7 @@ namespace
                 family.index,
                 0,
                 family.supports_present,
-                false));
+                family.synchronized));
         }
 
         return rv;

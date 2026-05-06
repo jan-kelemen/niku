@@ -54,6 +54,9 @@ namespace
         uint32_t index{};
         for (auto const& properties : family_properties)
         {
+            bool present_supported{false};
+            bool const synchronized{false};
+
             if (surface != VK_NULL_HANDLE)
             {
                 VkBool32 present_support{VK_FALSE};
@@ -62,13 +65,10 @@ namespace
                         index,
                         surface,
                         &present_support));
+                present_supported = present_support == VK_TRUE;
+            }
 
-                rv.emplace_back(index, properties, present_support == VK_TRUE);
-            }
-            else
-            {
-                rv.emplace_back(index, properties, false);
-            }
+            rv.emplace_back(index, properties, present_supported, synchronized);
 
             ++index;
         }

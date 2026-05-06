@@ -111,6 +111,7 @@ namespace vkrndr
         uint32_t index;
         VkQueueFamilyProperties properties;
         bool supports_present;
+        bool synchronized;
     };
 
     struct [[nodiscard]] swapchain_support_t final
