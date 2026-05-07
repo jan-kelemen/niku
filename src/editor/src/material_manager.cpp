@@ -30,6 +30,7 @@
 #include <vulkan/vk_enum_string_helper.h>
 
 #include <algorithm>
+#include <bit>
 #include <cstdint>
 #include <cstring>
 #include <expected>
@@ -410,10 +411,20 @@ void editor::draw_material_manager(entt::handle manager_entity,
                 manager.images[texture.image_index]));
     }
 
-    ImGui::Begin("Material manager");
+    ImGui::Begin("Material Manager");
+    if (int index{cppext::narrow<int>(ui.displayed_texture_index)},
+        size{std::max(0, cppext::narrow<int>(ui.image_descriptors.size()) - 1)};
+        ImGui::SliderInt("Texture Index", &index, 0, size))
+    {
+        ui.displayed_texture_index =
+            cppext::narrow<size_t>(std::clamp(index, 0, size));
+    }
+
     if (!ui.image_descriptors.empty())
     {
-        auto const& [image_index, descriptor] = ui.image_descriptors.front();
+        auto const& [image_index, descriptor] =
+            ui.image_descriptors[cppext::narrow<size_t>(
+                ui.displayed_texture_index)];
         auto const& image = manager.images[image_index];
 
         ImGui::Image(std::bit_cast<ImTextureID>(descriptor),

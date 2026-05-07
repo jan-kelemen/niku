@@ -17,6 +17,7 @@
 
 #include <volk.h> // IWYU pragma: keep
 
+#include <bit>
 #include <cstddef>
 #include <expected>
 #include <ranges>
@@ -72,6 +73,7 @@ namespace editor
 
     struct [[nodiscard]] material_manager_ui_t final
     {
+        size_t displayed_texture_index{};
         std::vector<std::pair<size_t, VkDescriptorSet>> image_descriptors;
     };
 
