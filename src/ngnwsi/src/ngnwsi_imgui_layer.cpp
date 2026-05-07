@@ -28,14 +28,14 @@ namespace
     {
         VkDescriptorPoolSize pool_size{};
         pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        pool_size.descriptorCount = 1;
+        pool_size.descriptorCount = 1000;
 
         VkDescriptorPoolCreateInfo pool_info{};
         pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         pool_info.poolSizeCount = 1;
         pool_info.pPoolSizes = &pool_size;
-        pool_info.maxSets = 1;
+        pool_info.maxSets = 1000;
 
         VkDescriptorPool rv; // NOLINT
         vkrndr::check_result(
@@ -186,4 +186,21 @@ void ngnwsi::imgui_layer_t::end_frame()
         ImGui::SetCurrentContext(context_);
         ImGui::EndFrame();
     }
+}
+
+// NOLINTNEXTLINE(readability-make-member-function-const)
+VkDescriptorSet ngnwsi::imgui_layer_t::create_texture(VkSampler const sampler,
+    vkrndr::image_t const& image)
+{
+    ImGui::SetCurrentContext(context_);
+    return ImGui_ImplVulkan_AddTexture(sampler,
+        image.view,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+// NOLINTNEXTLINE(readability-make-member-function-const)
+void ngnwsi::imgui_layer_t::remove_texture(VkDescriptorSet const texture)
+{
+    ImGui::SetCurrentContext(context_);
+    ImGui_ImplVulkan_RemoveTexture(texture);
 }

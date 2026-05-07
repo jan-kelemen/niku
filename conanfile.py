@@ -118,6 +118,11 @@ class NikuConan(ConanFile):
         self.cpp_info.components[component].libs = [component]
         self.cpp_info.components[component].requires.extend(["imgui::imgui", "sdl::sdl"])
 
+        component = "entt_impl"
+        self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
+        self.cpp_info.components[component].defines = ["ENTT_USE_ATOMIC"]
+        self.cpp_info.components[component].requires.extend(["EnTT::EnTT"])
+
         component = "glm_impl"
         self.cpp_info.components[component].set_property("cmake_target_name", f"niku::{component}")
         self.cpp_info.components[component].defines = ["GLM_FORCE_RADIANS", "GLM_ENABLE_EXPERIMENTAL"]

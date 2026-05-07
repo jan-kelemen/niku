@@ -53,6 +53,11 @@ namespace ngnwsi
 
         void set_enabled(bool state);
 
+        VkDescriptorSet create_texture(VkSampler sampler,
+            vkrndr::image_t const& image);
+
+        void remove_texture(VkDescriptorSet texture);
+
     public:
         imgui_layer_t& operator=(imgui_layer_t const&) = delete;
 

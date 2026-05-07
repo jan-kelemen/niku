@@ -2,7 +2,6 @@
 #define EDITOR_EDITOR_APPLICATION_INCLUDED
 
 #include <camera_controller.hpp>
-#include <material_manager.hpp>
 
 #include <ngngfx_aircraft_camera.hpp>
 #include <ngngfx_perspective_projection.hpp>
@@ -15,6 +14,8 @@
 
 #include <BS_thread_pool.hpp>
 
+#include <entt/entity/entity.hpp>
+#include <entt/entity/registry.hpp>
 #include <entt/signal/delegate.hpp>
 #include <entt/signal/dispatcher.hpp>
 #include <entt/signal/fwd.hpp>
@@ -28,6 +29,8 @@
 #include <span>
 #include <thread>
 #include <vector>
+
+// IWYU pragma: no_forward_declare entt::entity
 
 union SDL_Event;
 
@@ -99,6 +102,8 @@ namespace editor
         entt::dispatcher event_dispatcher_;
         bool continue_running_{true};
 
+        entt::registry registry_;
+
         std::unique_ptr<ngnwsi::render_window_t> main_window_;
         vkrndr::rendering_context_t rendering_context_;
         std::unique_ptr<ngnwsi::imgui_layer_t> imgui_;
@@ -110,7 +115,7 @@ namespace editor
         std::vector<VkDescriptorSet> frame_info_descriptors_;
         std::vector<vkrndr::buffer_t> frame_info_buffers_;
 
-        material_manager_t material_manager_;
+        entt::entity material_manager_{entt::null};
 
         std::unique_ptr<grid_shader_t> grid_shader_;
 

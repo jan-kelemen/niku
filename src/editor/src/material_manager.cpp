@@ -5,6 +5,8 @@
 
 #include <ngnast_scene_model.hpp>
 
+#include <ngnwsi_imgui_layer.hpp>
+
 #include <vkrndr_buffer.hpp>
 #include <vkrndr_commands.hpp>
 #include <vkrndr_device.hpp>
@@ -17,6 +19,8 @@
 
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_exit.hpp> // for boost::scope::scope_exit
+
+#include <imgui.h>
 
 #include <spdlog/spdlog.h>
 
@@ -380,4 +384,41 @@ editor::transfer_images(vkrndr::device_t const& device,
     rollback_gpu_images.set_active(false);
 
     return rv;
+}
+
+size_t editor::add_texture(entt::handle manager_entity,
+    size_t const sampler_index,
+    size_t const image_index)
+{
+    auto& manager{manager_entity.get<material_manager_t>()};
+    manager.textures.emplace_back(image_index, sampler_index);
+
+    return manager.textures.size();
+}
+
+void editor::draw_material_manager(entt::handle manager_entity,
+    ngnwsi::imgui_layer_t& imgui)
+{
+    auto& ui{manager_entity.get<material_manager_ui_t>()};
+    auto& manager{manager_entity.get<material_manager_t>()};
+
+    for (texture_t const& texture :
+        manager.textures | std::views::drop(ui.image_descriptors.size()))
+    {
+        ui.image_descriptors.emplace_back(texture.image_index,
+            imgui.create_texture(manager.samplers[texture.sampler_index],
+                manager.images[texture.image_index]));
+    }
+
+    ImGui::Begin("Material manager");
+    if (!ui.image_descriptors.empty())
+    {
+        auto const& [image_index, descriptor] = ui.image_descriptors.front();
+        auto const& image = manager.images[image_index];
+
+        ImGui::Image(std::bit_cast<ImTextureID>(descriptor),
+            ImVec2(cppext::as_fp(image.extent.width),
+                cppext::as_fp(image.extent.height)));
+    }
+    ImGui::End();
 }

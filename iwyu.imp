@@ -70,6 +70,11 @@
   # Catch2 aliases
   { include: [ "<catch2/catch_message.hpp>", public, "<catch2/catch_test_macros.hpp>", public ] },
 
+  # EnTT aliases
+  { symbol: [ "entt::entity", private, "<entt/entity/entity.hpp>", public ] },
+  { symbol: [ "entt::registry", private, "<entt/entity/registry.hpp>", public ] },
+  { symbol: [ "entt::handle", private, "<entt/entity/handle.hpp>", public ] },
+
   # freetype aliases
   { include: [ "@<freetype/.*>", private, "<ft2build.h>", public] },
 

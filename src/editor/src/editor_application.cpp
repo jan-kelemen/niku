@@ -43,6 +43,8 @@
 
 #include <entt/signal/sigh.hpp>
 
+#include <entt/entity/handle.hpp>
+
 #include <fmt/ranges.h>
 #include <fmt/std.h> // IWYU pragma: keep
 
@@ -489,7 +491,10 @@ editor::application_t::application_t(
             material_manager_result{
                 create_material_manager(*rendering_context_.device)})
     {
-        material_manager_ = std::move(material_manager_result).value();
+        material_manager_ = registry_.create();
+        registry_.emplace<material_manager_t>(material_manager_,
+            std::move(material_manager_result).value());
+        registry_.emplace<material_manager_ui_t>(material_manager_);
     }
     else
     {
@@ -528,7 +533,11 @@ editor::application_t::~application_t()
         destroy(*rendering_context_.device, *grid_shader_);
     }
 
-    destroy(*rendering_context_.device, material_manager_);
+    if (material_manager_t const* const manager{
+            registry_.try_get<material_manager_t>(material_manager_)})
+    {
+        destroy(*rendering_context_.device, *manager);
+    }
 
     std::ranges::for_each(frame_info_buffers_,
         [&d = *rendering_context_.device](vkrndr::buffer_t const& b)
@@ -612,18 +621,27 @@ void editor::application_t::load_files(
                     if (std::expected<ngnast::scene_model_t, std::system_error>
                             load_result{gltf_loader_->load(p)})
                     {
+                        entt::handle const manager{registry_,
+                            material_manager_};
+
+                        std::vector<size_t> sampler_indices;
+                        std::vector<size_t> image_indices;
+
                         {
                             std::unique_lock guard{state_mutex_};
                             if (std::expected<std::vector<size_t>,
                                     std::error_code> samplers_result{
-                                    add_samplers(material_manager_,
+                                    add_samplers(manager,
                                         *rendering_context_.device,
                                         load_result->samplers)})
                             {
+                                sampler_indices =
+                                    std::move(samplers_result).value();
+
                                 spdlog::info(
                                     "Loaded samplers for model {}, indices {}",
                                     p,
-                                    fmt::join(*samplers_result, ", "));
+                                    fmt::join(sampler_indices, ", "));
                             }
                             else
                             {
@@ -647,9 +665,8 @@ void editor::application_t::load_files(
                         {
                             std::unique_lock guard{state_mutex_};
 
-                            std::vector<size_t> const image_indices{
-                                add_images(material_manager_,
-                                    std::move(images_result.value()))};
+                            image_indices = add_images(manager,
+                                std::move(images_result.value()));
 
                             spdlog::info(
                                 "Loaded images for model {}, indices {}",
@@ -664,6 +681,28 @@ void editor::application_t::load_files(
                                 "Failed to register images for model {}: {}",
                                 p,
                                 message);
+                        }
+
+                        {
+                            std::unique_lock guard{state_mutex_};
+                            for (ngnast::texture_t const& texture :
+                                load_result->textures)
+                            {
+                                size_t image_index{};
+                                if (auto it{texture.image_indices.find(
+                                        ngnast::texture_image_type_t::basisu)};
+                                    it != texture.image_indices.cend())
+                                {
+                                    image_index = it->second;
+                                }
+                                image_index = texture.image_indices.at(
+                                    ngnast::texture_image_type_t::regular);
+
+                                [[maybe_unused]] size_t const texture_index{
+                                    add_texture(manager,
+                                        sampler_indices[texture.sampler_index],
+                                        image_indices[image_index])};
+                            }
                         }
 
                         ngnast::gpu::geometry_transfer_result_t transfer_result{
@@ -816,6 +855,8 @@ void editor::application_t::render()
     ImGui::ShowDemoWindow();
 
     camera_controller_.draw_imgui();
+
+    draw_material_manager({registry_, material_manager_}, *imgui_);
 
     imgui_->end_frame();
 

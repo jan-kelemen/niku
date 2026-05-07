@@ -12,6 +12,9 @@
 #include <boost/hash2/md5.hpp>
 #include <boost/unordered/unordered_map.hpp>
 
+#include <entt/entity/handle.hpp>
+#include <entt/entity/registry.hpp>
+
 #include <volk.h> // IWYU pragma: keep
 
 #include <cstddef>
@@ -31,6 +34,11 @@ namespace ngnast
     struct image_t;
 } // namespace ngnast
 
+namespace ngnwsi
+{
+    class imgui_layer_t;
+} // namespace ngnwsi
+
 namespace vkrndr
 {
     class execution_port_t;
@@ -47,11 +55,24 @@ namespace editor::detail
 
 namespace editor
 {
+    struct [[nodiscard]] texture_t final
+    {
+        size_t image_index;
+        size_t sampler_index;
+    };
+
     struct [[nodiscard]] material_manager_t final
     {
         std::vector<vkrndr::image_t> images;
         std::vector<VkSampler> samplers;
         detail::sampler_index_map_t sampler_lookup;
+
+        std::vector<texture_t> textures;
+    };
+
+    struct [[nodiscard]] material_manager_ui_t final
+    {
+        std::vector<std::pair<size_t, VkDescriptorSet>> image_descriptors;
     };
 
     [[nodiscard]] std::expected<material_manager_t, std::error_code>
@@ -68,10 +89,12 @@ namespace editor
 
     // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     template<typename Range>
-    [[nodiscard]] std::vector<size_t> add_images(material_manager_t& manager,
+    [[nodiscard]] std::vector<size_t> add_images(entt::handle manager_entity,
         Range&& images)
     requires(std::ranges::input_range<Range>)
     {
+        auto& manager{manager_entity.get<material_manager_t>()};
+
         std::vector<size_t> rv;
         if constexpr (std::ranges::sized_range<Range>)
         {
@@ -94,7 +117,7 @@ namespace editor
     // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     template<typename Range>
     [[nodiscard]] std::expected<std::vector<size_t>, std::error_code>
-    add_samplers(material_manager_t& manager,
+    add_samplers(entt::handle manager_entity,
         vkrndr::device_t const& device,
         Range&& sampler_properties)
     requires(std::ranges::input_range<Range>)
@@ -107,6 +130,7 @@ namespace editor
             indices.reserve(std::ranges::size(sampler_properties));
         }
 
+        auto& manager{manager_entity.get<material_manager_t>()};
         for (auto&& properties : sampler_properties)
         {
             auto const& [it, inserted] = manager.sampler_lookup.try_emplace(
@@ -139,6 +163,13 @@ namespace editor
     }
 
     // NOLINTEND(cppcoreguidelines-missing-std-forward)
+
+    [[nodiscard]] size_t add_texture(entt::handle manager_entity,
+        size_t sampler_index,
+        size_t image_index);
+
+    void draw_material_manager(entt::handle manager_entity,
+        ngnwsi::imgui_layer_t& imgui);
 } // namespace editor
 
 #endif

@@ -23,6 +23,7 @@ target_include_directories(editor
 target_link_libraries(editor
     PRIVATE
         cppext
+        entt_impl
         ngnast
         ngngfx
         ngnwsi
@@ -32,7 +33,6 @@ target_link_libraries(editor
         vkrndr
     PRIVATE
         Boost::headers
-        EnTT::EnTT
         spdlog::spdlog
         imgui::imgui
     PRIVATE
