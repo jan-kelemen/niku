@@ -75,19 +75,19 @@ void editor::destroy(vkrndr::device_t const& device,
         [&device](vkrndr::image_t const& image) { destroy(device, image); });
 }
 
-std::expected<std::vector<size_t>, std::error_code> editor::transfer_images(
-    material_manager_t& manager,
-    vkrndr::device_t const& device,
+std::expected<std::vector<vkrndr::image_t>, std::error_code>
+editor::transfer_images(vkrndr::device_t const& device,
     vkrndr::execution_port_t& transfer_queue,
     vkrndr::execution_port_t& graphics_queue,
     std::span<ngnast::image_t> const& images)
 {
-    std::expected<std::vector<size_t>, std::error_code> rv{std::unexpected{
-        vkrndr::make_error_code(VK_ERROR_INITIALIZATION_FAILED)}};
+    std::expected<std::vector<vkrndr::image_t>, std::error_code> rv{
+        std::unexpected{
+            vkrndr::make_error_code(VK_ERROR_INITIALIZATION_FAILED)}};
 
     std::vector<vkrndr::image_t> gpu_images;
     gpu_images.reserve(images.size());
-    boost::scope::defer_guard rollback_gpu_images{[&device, &gpu_images]()
+    boost::scope::scope_exit rollback_gpu_images{[&device, &gpu_images]()
         {
             std::ranges::for_each(gpu_images,
                 [&device](auto const& image) { destroy(device, image); });
@@ -376,8 +376,8 @@ std::expected<std::vector<size_t>, std::error_code> editor::transfer_images(
         }
     }
 
-    rv = add_images(manager, gpu_images);
-    gpu_images.clear();
+    rv = std::move(gpu_images);
+    rollback_gpu_images.set_active(false);
 
     return rv;
 }

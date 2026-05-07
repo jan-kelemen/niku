@@ -612,39 +612,49 @@ void editor::application_t::load_files(
                     if (std::expected<ngnast::scene_model_t, std::system_error>
                             load_result{gltf_loader_->load(p)})
                     {
-                        if (std::expected<std::vector<size_t>, std::error_code>
-                                samplers_result{add_samplers(material_manager_,
-                                    *rendering_context_.device,
-                                    load_result->samplers)})
                         {
-                            spdlog::info(
-                                "Loaded samplers for model {}, indices {}",
-                                p,
-                                fmt::join(*samplers_result, ", "));
-                        }
-                        else
-                        {
-                            auto const& message{
-                                samplers_result.error().message()};
-                            spdlog::error(
-                                "Failed to register samplers for model {}: {}",
-                                p,
-                                message);
+                            std::unique_lock guard{state_mutex_};
+                            if (std::expected<std::vector<size_t>,
+                                    std::error_code> samplers_result{
+                                    add_samplers(material_manager_,
+                                        *rendering_context_.device,
+                                        load_result->samplers)})
+                            {
+                                spdlog::info(
+                                    "Loaded samplers for model {}, indices {}",
+                                    p,
+                                    fmt::join(*samplers_result, ", "));
+                            }
+                            else
+                            {
+                                auto const& message{
+                                    samplers_result.error().message()};
+                                spdlog::error(
+                                    "Failed to register samplers for model {}: {}",
+                                    p,
+                                    message);
+                            }
                         }
 
-                        if (std::expected<std::vector<size_t>, std::error_code>
-                                images_result{transfer_images(material_manager_,
-                                    *rendering_context_.device,
+                        if (std::expected<std::vector<vkrndr::image_t>,
+                                std::error_code> images_result{
+                                transfer_images(*rendering_context_.device,
                                     *rendering_context_.device->execution_ports
                                         .front(),
                                     *rendering_context_.device->execution_ports
                                         .front(),
                                     load_result->images)})
                         {
+                            std::unique_lock guard{state_mutex_};
+
+                            std::vector<size_t> const image_indices{
+                                add_images(material_manager_,
+                                    std::move(images_result.value()))};
+
                             spdlog::info(
                                 "Loaded images for model {}, indices {}",
                                 p,
-                                fmt::join(*images_result, ", "));
+                                fmt::join(image_indices, ", "));
                         }
                         else
                         {

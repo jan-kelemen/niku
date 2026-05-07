@@ -60,9 +60,8 @@ namespace editor
     void destroy(vkrndr::device_t const& device,
         material_manager_t const& materials);
 
-    [[nodiscard]] std::expected<std::vector<size_t>, std::error_code>
-    transfer_images(material_manager_t& manager,
-        vkrndr::device_t const& device,
+    [[nodiscard]] std::expected<std::vector<vkrndr::image_t>, std::error_code>
+    transfer_images(vkrndr::device_t const& device,
         vkrndr::execution_port_t& transfer_queue,
         vkrndr::execution_port_t& graphics_queue,
         std::span<ngnast::image_t> const& images);
