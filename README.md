@@ -24,7 +24,7 @@ Necessary build tools are:
 * One of supported compilers:
   * Clang-22 (libstdc++ or libc++)
   * GCC-15
-  * Visual Studio 2022 (MSVC v194) or 2026 (MSVC v195)
+  * Visual Studio 2026 (MSVC v195)
 * Ninja (if using Clang on Windows)
 
 See [doc/DEVELOPMENT.md](doc/DEVELOPMENT.md) for details.
