@@ -62,7 +62,7 @@ class fastgltf(ConanFile):
         if self.options.get_safe("use_64bit_float"):
             tc.variables["FASTGLTF_USE_64BIT_FLOAT"] = True
 
-        tc.variables["FASTGLTF_COMPILE_AS_CPP20"] = str(self.settings.get_safe("compiler.cppstd")) in ("20", "23")
+        tc.variables["FASTGLTF_COMPILE_AS_CPP20"] = str(self.settings.get_safe("compiler.cppstd")) in ("20", "23", "26")
         tc.generate()
         deps = CMakeDeps(self)
         deps.generate()
@@ -84,8 +84,5 @@ class fastgltf(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["fastgltf"]
-        self.cpp_info.defines.append("FASTGLTF_CPP_17")
-        if str(self.settings.get_safe("compiler.cppstd")) in ("20", "23"):
+        if str(self.settings.get_safe("compiler.cppstd")) in ("20", "23", "26"):
             self.cpp_info.defines.append("FASTGLTF_CPP_20")
-        if str(self.settings.get_safe("compiler.cppstd")) in ("23"):
-            self.cpp_info.defines.append("FASTGLTF_CPP_23")

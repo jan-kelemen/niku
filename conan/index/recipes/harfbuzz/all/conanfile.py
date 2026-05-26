@@ -95,9 +95,9 @@ class HarfbuzzConan(ConanFile):
             )
 
     def build_requirements(self):
-        self.tool_requires("meson/1.8.2")
+        self.tool_requires("meson/[^1.11]")
         if not self.conf.get("tools.gnu:pkg_config", check_type=str):
-            self.tool_requires("pkgconf/2.2.0")
+            self.tool_requires("pkgconf/[^2.5]")
         if self.options.with_glib:
             self.tool_requires("glib/<host_version>")
         if self.settings.os == "Macos":
@@ -153,7 +153,8 @@ class HarfbuzzConan(ConanFile):
             "icu_builtin": "false",
             "subset": "disabled",
             "raster": "disabled",
-            "vector": "disabled"
+            "vector": "disabled",
+            "gpu": "disabled"
         })
         tc.cpp_args += cxxflags
         if self.settings.os == "Windows":

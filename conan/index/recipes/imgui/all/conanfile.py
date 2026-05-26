@@ -56,6 +56,7 @@ class IMGUIConan(ConanFile):
     def generate(self):
         tc = CMakeToolchain(self)
         tc.variables["IMGUI_SRC_DIR"] = self.source_folder.replace("\\", "/")
+        tc.preprocessor_definitions["IMGUI_DISABLE_OBSOLETE_FUNCTIONS"] = "1"
         # test engine is not available for all versions
         if self.options.get_safe("enable_test_engine"):
             tc.preprocessor_definitions["IMGUI_ENABLE_TEST_ENGINE"] = "1"
@@ -105,6 +106,7 @@ class IMGUIConan(ConanFile):
         _is_docking_branch = "docking" in str(self.version)
         self.conf_info.define("user.imgui:with_docking", _is_docking_branch)
         self.cpp_info.libs = ["imgui"]
+        self.cpp_info.defines = ["IMGUI_DISABLE_OBSOLETE_FUNCTIONS"]
         if self.settings.os == "Linux":
             self.cpp_info.system_libs.append("m")
         if self.settings.os == "Windows":
