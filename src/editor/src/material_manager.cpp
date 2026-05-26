@@ -407,8 +407,7 @@ void editor::draw_material_manager(entt::handle manager_entity,
         manager.textures | std::views::drop(ui.image_descriptors.size()))
     {
         ui.image_descriptors.emplace_back(texture.image_index,
-            imgui.create_texture(manager.samplers[texture.sampler_index],
-                manager.images[texture.image_index]));
+            imgui.create_texture(manager.images[texture.image_index]));
     }
 
     ImGui::Begin("Material Manager");

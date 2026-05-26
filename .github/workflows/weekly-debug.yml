@@ -97,7 +97,7 @@ jobs:
           ctest --preset multi-debug
 
   windows-clang:
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     environment: Conan
     
     env:
@@ -118,8 +118,8 @@ jobs:
 
       - name: Install Chocolatey packages
         run: |
-          choco install cmake --version 4.2.3 -y
-          choco install ninja
+          choco install cmake --version 4.3.2 -y
+          choco install ninja --version 1.13.2 -y
           choco install llvm --version 22.1.0 -y
           
       - name: Setup Conan

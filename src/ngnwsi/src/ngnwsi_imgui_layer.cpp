@@ -189,12 +189,11 @@ void ngnwsi::imgui_layer_t::end_frame()
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
-VkDescriptorSet ngnwsi::imgui_layer_t::create_texture(VkSampler const sampler,
+VkDescriptorSet ngnwsi::imgui_layer_t::create_texture(
     vkrndr::image_t const& image)
 {
     ImGui::SetCurrentContext(context_);
-    return ImGui_ImplVulkan_AddTexture(sampler,
-        image.view,
+    return ImGui_ImplVulkan_AddTexture(image.view,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 

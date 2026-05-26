@@ -1,3 +1,0 @@
-compiler:
-    clang:
-        version: ["22"]
