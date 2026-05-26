@@ -239,9 +239,9 @@ class SDLConan(ConanFile):
             self.requires("xorg/system")
 
     def build_requirements(self):
-        self.tool_requires("cmake/[^4.2]")
+        self.tool_requires("cmake/[^4.3]")
         if self._is_unix_sys and not self.conf.get("tools.gnu:pkg_config", check_type=str):
-            self.tool_requires("pkgconf/2.2.0")
+            self.tool_requires("pkgconf/[^2.5]")
         if self.options.get_safe("wayland"):
             self.tool_requires("wayland/<host_version>")  # Provides wayland-scanner
 

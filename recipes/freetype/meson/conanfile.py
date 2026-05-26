@@ -74,9 +74,9 @@ class FreetypeConan(ConanFile):
             self.requires("brotli/1.1.0")
 
     def build_requirements(self):
-        self.tool_requires("meson/1.8.2")
+        self.tool_requires("meson/[^1.11]")
         if not self.conf.get("tools.gnu:pkg_config", default=False, check_type=str):
-            self.tool_requires("pkgconf/2.2.0")
+            self.tool_requires("pkgconf/[^2.5]")
 
     def source(self):
         get(self, **self.conan_data["sources"][self.version], strip_root=True)
@@ -92,7 +92,7 @@ class FreetypeConan(ConanFile):
 
         tc = MesonToolchain(self)
         tc.properties["skip_sanity_check"] = True
-        
+
         tc.project_options["brotli"] = feature(self.options.with_brotli)
         tc.project_options["bzip2"] = feature(self.options.with_bzip2)
         # Harfbuzz support introduces a circular dependency between Harfbuzz and Freetype.
