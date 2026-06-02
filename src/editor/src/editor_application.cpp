@@ -624,12 +624,14 @@ void editor::application_t::load_files(
                         entt::handle const manager{registry_,
                             material_manager_};
 
-                        std::vector<size_t> sampler_indices;
-                        std::vector<size_t> image_indices;
+                        std::vector<uint32_t> sampler_indices;
+                        std::vector<uint32_t> image_indices;
+                        std::vector<uint32_t> texture_indices;
+                        std::vector<uint32_t> material_indices;
 
                         {
                             std::unique_lock guard{state_mutex_};
-                            if (std::expected<std::vector<size_t>,
+                            if (std::expected<std::vector<uint32_t>,
                                     std::error_code> samplers_result{
                                     add_samplers(manager,
                                         *rendering_context_.device,
@@ -698,12 +700,30 @@ void editor::application_t::load_files(
                                 image_index = texture.image_indices.at(
                                     ngnast::texture_image_type_t::regular);
 
-                                [[maybe_unused]] size_t const texture_index{
-                                    add_texture(manager,
-                                        sampler_indices[texture.sampler_index],
-                                        image_indices[image_index])};
+                                texture_indices.push_back(add_texture(manager,
+                                    sampler_indices[texture.sampler_index],
+                                    image_indices[image_index]));
                             }
                         }
+                        spdlog::info("Loaded textures for model {}, indices {}",
+                            p,
+                            fmt::join(texture_indices, ", "));
+
+                        {
+                            std::unique_lock guard{state_mutex_};
+                            for (ngnast::material_t const& material :
+                                load_result->materials)
+                            {
+                                material_indices.push_back(add_material(manager,
+                                    material,
+                                    texture_indices));
+                            }
+                        }
+
+                        spdlog::info(
+                            "Loaded materials for model {}, indices {}",
+                            p,
+                            fmt::join(material_indices, ", "));
 
                         ngnast::gpu::geometry_transfer_result_t transfer_result{
                             ngnast::gpu::transfer_geometry(

@@ -671,9 +671,11 @@ namespace
     void load_textures(fastgltf::Asset const& asset,
         ngnast::scene_model_t& model)
     {
+        size_t index{};
         for (fastgltf::Texture const& texture : asset.textures)
         {
-            ngnast::texture_t t{.name = std::string{texture.name}};
+            ngnast::texture_t t{.texture_index = index++,
+                .name = std::string{texture.name}};
 
             if (texture.imageIndex)
             {

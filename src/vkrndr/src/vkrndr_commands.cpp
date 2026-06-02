@@ -154,10 +154,10 @@ std::expected<void, std::error_code> vkrndr::begin_single_time_commands(
         if (VkResult const result{vkBeginCommandBuffer(buffer, &begin_info)};
             !is_success_result(result))
         {
-        DISABLE_WARNING_PUSH
-        DISABLE_WARNING_NRVO
+            DISABLE_WARNING_PUSH
+            DISABLE_WARNING_NRVO
             return std::unexpected{make_error_code(result)};
-        DISABLE_WARNING_POP
+            DISABLE_WARNING_POP
         }
     }
 

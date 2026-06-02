@@ -52,6 +52,7 @@ namespace ngnast
     // NOLINTNEXTLINE(bugprone-exception-escape)
     struct [[nodiscard]] texture_t final
     {
+        size_t texture_index;
         std::string name;
         std::map<texture_image_type_t, size_t> image_indices;
         size_t sampler_index;

@@ -22,6 +22,8 @@
 
 #include <imgui.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <spdlog/spdlog.h>
 
 #include <volk.h>
@@ -31,6 +33,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <expected>
@@ -61,6 +64,69 @@ namespace
                 },
             .imageExtent = {level.extent.width, level.extent.height, 1},
         };
+    }
+
+    editor::material_t to_gpu_material(ngnast::material_t const& m,
+        std::span<editor::texture_t> const& textures,
+        std::span<uint32_t> const& texture_remap_table)
+    {
+        auto const to_private_indices = [&texture_remap_table, &textures](
+                                            ngnast::texture_t const& tex)
+        {
+            assert(tex.texture_index < texture_remap_table.size());
+            editor::texture_t const& actual_indices{
+                textures[texture_remap_table[tex.texture_index]]};
+            return std::make_pair(actual_indices.image_index,
+                actual_indices.sampler_index);
+        };
+
+        editor::material_t rv{
+            .base_color_factor = m.pbr_metallic_roughness.base_color_factor,
+            .emissive_factor = m.emissive_factor,
+            .alpha_cutoff = m.alpha_mode == ngnast::alpha_mode_t::mask
+                ? m.alpha_cutoff
+                : 0.0f,
+            .metallic_factor = m.pbr_metallic_roughness.metallic_factor,
+            .roughness_factor = m.pbr_metallic_roughness.roughness_factor,
+            .occlusion_strength = m.occlusion_strength,
+            .normal_scale = m.normal_scale,
+            .double_sided = static_cast<uint32_t>(m.double_sided),
+            .emissive_strength = m.emissive_strength};
+
+        if (auto const* const texture{
+                m.pbr_metallic_roughness.base_color_texture})
+        {
+            std::tie(rv.base_color_texture_index, rv.base_color_sampler_index) =
+                to_private_indices(*texture);
+        }
+
+        if (auto const* const texture{
+                m.pbr_metallic_roughness.metallic_roughness_texture})
+        {
+            std::tie(rv.metallic_roughness_texture_index,
+                rv.metallic_roughness_sampler_index) =
+                to_private_indices(*texture);
+        }
+
+        if (auto const* const texture{m.normal_texture})
+        {
+            std::tie(rv.normal_texture_index, rv.normal_sampler_index) =
+                to_private_indices(*texture);
+        }
+
+        if (auto const* const texture{m.emissive_texture})
+        {
+            std::tie(rv.emissive_texture_index, rv.emissive_sampler_index) =
+                to_private_indices(*texture);
+        }
+
+        if (auto const* const texture{m.occlusion_texture})
+        {
+            std::tie(rv.occlusion_texture_index, rv.occlusion_sampler_index) =
+                to_private_indices(*texture);
+        }
+
+        return rv;
     }
 } // namespace
 
@@ -388,21 +454,64 @@ editor::transfer_images(vkrndr::device_t const& device,
     return rv;
 }
 
-size_t editor::add_texture(entt::handle manager_entity,
-    size_t const sampler_index,
-    size_t const image_index)
+uint32_t editor::add_texture(entt::handle manager_entity,
+    uint32_t const sampler_index,
+    uint32_t const image_index)
 {
     auto& manager{manager_entity.get<material_manager_t>()};
     manager.textures.emplace_back(image_index, sampler_index);
 
-    return manager.textures.size();
+    return cppext::narrow<uint32_t>(manager.textures.size() - 1);
+}
+
+uint32_t editor::add_material(entt::handle manager_entity,
+    ngnast::material_t const& asset_material,
+    std::span<uint32_t> const& texture_remap_table)
+{
+    auto& manager{manager_entity.get<material_manager_t>()};
+    manager.materials.push_back(
+        to_gpu_material(asset_material, manager.textures, texture_remap_table));
+
+    return cppext::narrow<uint32_t>(manager.materials.size() - 1);
 }
 
 void editor::draw_material_manager(entt::handle manager_entity,
     ngnwsi::imgui_layer_t& imgui)
 {
+    auto const material_slider =
+        [](char const* const name, uint32_t& value, auto upper_limit)
+    {
+        int const ll{-1};
+        int const ul{cppext::narrow<int>(upper_limit)};
+        if (int temporary{value != std::numeric_limits<uint32_t>::max()
+                    ? cppext::narrow<int>(value)
+                    : -1};
+            ImGui::SliderInt(name, &temporary, ll, ul))
+        {
+            if (temporary < 0)
+            {
+                value = std::numeric_limits<uint32_t>::max();
+            }
+            else
+            {
+                value = cppext::narrow<uint32_t>(std::clamp(temporary, 0, ul));
+            }
+
+            return true;
+        }
+        return false;
+    };
+
     auto& ui{manager_entity.get<material_manager_ui_t>()};
     auto& manager{manager_entity.get<material_manager_t>()};
+
+    auto const texture_slider =
+        [&manager, &material_slider](char const* const name, uint32_t& value)
+    { return material_slider(name, value, manager.textures.size() - 1); };
+
+    auto const sampler_slider =
+        [&manager, &material_slider](char const* const name, uint32_t& value)
+    { return material_slider(name, value, manager.samplers.size() - 1); };
 
     for (texture_t const& texture :
         manager.textures | std::views::drop(ui.image_descriptors.size()))
@@ -412,6 +521,82 @@ void editor::draw_material_manager(entt::handle manager_entity,
     }
 
     ImGui::Begin("Material Manager");
+    if (int index{cppext::narrow<int>(ui.displayed_material_index)},
+        size{std::max(0, cppext::narrow<int>(manager.materials.size()) - 1)};
+        ImGui::SliderInt("Material Index", &index, 0, size))
+    {
+        ui.displayed_material_index =
+            cppext::narrow<size_t>(std::clamp(index, 0, size));
+    }
+
+    if (!manager.materials.empty())
+    {
+        editor::material_t material{
+            manager.materials[ui.displayed_material_index]};
+
+        [[maybe_unused]] bool modified{false};
+        modified |= ImGui::SliderFloat4("Base Color Factor",
+            glm::value_ptr(material.base_color_factor),
+            0.0f,
+            1.0f);
+        modified |= texture_slider("Base Color Texture Index",
+            material.base_color_texture_index);
+        modified |= sampler_slider("Base Color Sampler Index",
+            material.base_color_sampler_index);
+        modified |= ImGui::SliderFloat("Alpha Cutoff",
+            &material.alpha_cutoff,
+            0.0f,
+            1.0f);
+        modified |= texture_slider("Metallic-Roughness Texture Index",
+            material.metallic_roughness_texture_index);
+        modified |= sampler_slider("Metallic-Roughness Sampler Index",
+            material.metallic_roughness_sampler_index);
+        modified |= ImGui::SliderFloat("Metallic Factor",
+            &material.metallic_factor,
+            0.0f,
+            1.0f);
+        modified |= ImGui::SliderFloat("Roughness Factor",
+            &material.roughness_factor,
+            0.0f,
+            1.0f);
+        modified |= texture_slider("Normal Texture Index",
+            material.normal_texture_index);
+        modified |= sampler_slider("Normal Sampler Index",
+            material.normal_sampler_index);
+        modified |= ImGui::SliderFloat("Normal Scale",
+            &material.normal_scale,
+            0.0f,
+            1000.0f);
+        modified |= texture_slider("Emissive Texture Index",
+            material.emissive_texture_index);
+        modified |= sampler_slider("Emissive Sampler Index",
+            material.emissive_sampler_index);
+        modified |= ImGui::SliderFloat3("Emissive Factor",
+            glm::value_ptr(material.emissive_factor),
+            0.0f,
+            1.0f);
+        modified |= ImGui::SliderFloat("Emissive Strength",
+            &material.emissive_strength,
+            0.0f,
+            1000.0f);
+        modified |= texture_slider("Occlusion Texture Index",
+            material.occlusion_texture_index);
+        modified |= sampler_slider("Occlusion Sampler Index",
+            material.occlusion_sampler_index);
+        modified |= ImGui::SliderFloat("Occlusion Strength",
+            &material.occlusion_strength,
+            0.0f,
+            1.0f);
+        if (bool value{static_cast<bool>(material.double_sided)};
+            ImGui::Checkbox("Double Sided", &value))
+        {
+            material.double_sided = static_cast<uint32_t>(value);
+            modified |= true;
+        }
+    }
+    ImGui::End();
+
+    ImGui::Begin("Texture Viewer");
     if (int index{cppext::narrow<int>(ui.displayed_texture_index)},
         size{std::max(0, cppext::narrow<int>(ui.image_descriptors.size()) - 1)};
         ImGui::SliderInt("Texture Index", &index, 0, size))
