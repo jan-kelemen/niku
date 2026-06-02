@@ -3,12 +3,14 @@
 
 #include <navmesh.hpp>
 
-#include <entt/entity/fwd.hpp>
+#include <entt/entity/fwd.hpp> // IWYU pragma: keep
 
 #include <glm/vec3.hpp>
 
 // IWYU pragma: no_include <recastnavigation/DetourNavMeshQuery.h>
 // IWYU pragma: no_include <memory>
+
+// IWYU pragma: no_include <entt/entt.hpp>
 
 namespace ngnscr
 {

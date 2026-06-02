@@ -39,6 +39,7 @@
 #include <system_error>
 #include <vector>
 
+// IWYU pragma: no_include "vkrndr_sampler.hpp"
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
 // IWYU pragma: no_include <memory>

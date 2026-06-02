@@ -64,6 +64,7 @@
   { symbol: [ "std::to_underlying", private, "<utility>", public ] },
 
   # Boost aliases
+  { include: [ "<boost/container/detail/deque_impl.hpp>", private, "<boost/container/deque.hpp>", public ] },
   { symbol: [ "boost::container::deque", private, "<boost/container/deque.hpp>", public ] },
   { symbol: [ "boost::container::small_vector", private, "<boost/container/small_vector.hpp>", public ] },
 

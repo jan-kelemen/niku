@@ -1,13 +1,15 @@
 #ifndef GALILEO_CHARACTER_CONTACT_LISTENER_INCLUDED
 #define GALILEO_CHARACTER_CONTACT_LISTENER_INCLUDED
 
-#include <entt/entity/fwd.hpp>
+#include <entt/entity/fwd.hpp> // IWYU pragma: keep
 
 #include <Jolt/Jolt.h> // IWYU pragma: keep
 
 #include <Jolt/Math/MathTypes.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
+
+// IWYU pragma: no_include <entt/entity/registry.hpp>
 
 namespace ngnscr
 {

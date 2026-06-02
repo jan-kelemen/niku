@@ -34,6 +34,7 @@
 #include <random>
 
 // IWYU pragma: no_include <entt/entity/fwd.hpp>
+// IWYU pragma: no_forward_declare entt::entity
 
 namespace ngnwsi
 {

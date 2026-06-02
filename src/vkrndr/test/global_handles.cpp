@@ -57,6 +57,7 @@ namespace
                     {
                         std::print(
                             "Vulkan device doesn't have a generic queue");
+                        return;
                     }
 
                     vkrndr::feature_chain_t chain;
@@ -78,12 +79,14 @@ namespace
                             "Minimal Vulkan device can't be initialized (): {}",
                             ld.error().value(),
                             ld.error().message());
+                        return;
                     }
                 }
                 else
                 {
                     std::print(stderr,
                         "Physical Vulkan device can't be selected");
+                    return;
                 }
             }
             else
@@ -92,6 +95,7 @@ namespace
                     "Vulkan instance can't be initialized (): {}",
                     in.error().value(),
                     in.error().message());
+                return;
             }
         }
         else
@@ -100,6 +104,7 @@ namespace
                 "Vulkan can't be initialized (): {}",
                 lh.error().value(),
                 lh.error().message());
+            return;
         }
     }
 

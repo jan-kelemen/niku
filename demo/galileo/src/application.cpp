@@ -140,6 +140,7 @@ DISABLE_WARNING_POP
 // IWYU pragma: no_include <ratio>
 // IWYU pragma: no_include <set>
 // IWYU pragma: no_include <string_view>
+// IWYU pragma: no_forward_declare entt::entity
 
 namespace
 {

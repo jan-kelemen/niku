@@ -17,7 +17,6 @@
 
 #include <volk.h> // IWYU pragma: keep
 
-#include <bit>
 #include <cstddef>
 #include <expected>
 #include <ranges>
