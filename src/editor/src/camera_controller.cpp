@@ -109,11 +109,14 @@ void editor::camera_controller_t::draw_imgui()
 {
     ImGui::Begin("Camera");
 
-    if (glm::vec2 yp{camera_->yaw_pitch()};
-        ImGui::SliderFloat("Yaw", &yp.r, 0.0f, glm::two_pi<float>()) ||
-        ImGui::SliderFloat("Pitch", &yp.g, -85.0f, 85.0f))
+    glm::vec2 yaw_pitch{camera_->yaw_pitch()};
+    bool yaw_pitch_modified{
+        ImGui::SliderFloat("Yaw", &yaw_pitch.r, 0.0f, glm::two_pi<float>())};
+    yaw_pitch_modified |=
+        ImGui::SliderFloat("Pitch", &yaw_pitch.g, -85.0f, 85.0f);
+    if (yaw_pitch_modified)
     {
-        camera_->set_yaw_pitch(yp);
+        camera_->set_yaw_pitch(yaw_pitch);
     }
 
     if (glm::vec3 p{camera_->position()};
