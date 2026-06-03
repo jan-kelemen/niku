@@ -55,7 +55,7 @@ namespace
                         find_general_queue(pd->queue_families)};
                     if (!queue)
                     {
-                        std::print(
+                        std::print(stderr,
                             "Vulkan device doesn't have a generic queue");
                         return;
                     }
