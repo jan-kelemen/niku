@@ -20,14 +20,14 @@ git subtree --prefix conan/index pull --squash git@github.com:jan-kelemen/conan-
 
 ### Windows
 ```
-conan install . --profile=conan/msvc-2022-amd64-windows --profile=conan/dependencies --build=missing -s build_type=Release -r niku-remote
+conan install . --profile=conan/msvc-2026-amd64-windows --profile=conan/dependencies --build=missing -s build_type=Release --options '&:develop=True' -r niku-remote
 cmake --preset release
 cmake --build --preset multi-release --config Release
 ```
 
 ### Linux
 ```
-conan install . --profile=conan/clang-20-libstdcxx-amd64-linux --profile=conan/dependencies --profile=conan/opt/linux-native --build=missing --settings build_type=Release  -r niku-remote
+conan install . --profile=conan/clang-22-libstdcxx-amd64-linux --profile=conan/dependencies --profile=conan/opt/linux-native --build=missing --settings build_type=Release --options '&:develop=True' -r niku-remote
 cmake --preset release
 cmake --build --preset release
 ```
