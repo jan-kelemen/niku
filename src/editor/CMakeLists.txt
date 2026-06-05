@@ -53,6 +53,8 @@ add_copy_if_different_target(editor_shaders
     FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/grid.vert
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders/grid.frag
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/material_preview.vert
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/material_preview.frag
 )
 
 set_property(TARGET editor

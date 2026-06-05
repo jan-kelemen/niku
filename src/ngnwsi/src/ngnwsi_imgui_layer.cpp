@@ -16,6 +16,7 @@
 
 #include <imgui.h>
 
+#include <array>
 #include <cassert>
 #include <utility>
 
@@ -26,20 +27,27 @@ namespace
     [[nodiscard]] VkDescriptorPool create_descriptor_pool(
         vkrndr::device_t const& device)
     {
-        VkDescriptorPoolSize pool_size{};
-        pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        pool_size.descriptorCount = 1000;
+        auto const pool_sizes{std::to_array<VkDescriptorPoolSize>({
+            {.type = VK_DESCRIPTOR_TYPE_SAMPLER, .descriptorCount = 1000},
+            {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .descriptorCount = 1000},
+        })};
 
-        VkDescriptorPoolCreateInfo pool_info{};
-        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        pool_info.poolSizeCount = 1;
-        pool_info.pPoolSizes = &pool_size;
-        pool_info.maxSets = 1000;
+        VkDescriptorPoolCreateInfo pool_info{
+            .sType = vku::GetSType<VkDescriptorPoolCreateInfo>(),
+            .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+            .maxSets = 1000,
+            .poolSizeCount = vkrndr::count_cast(pool_sizes),
+            .pPoolSizes = pool_sizes.data(),
+        };
 
         VkDescriptorPool rv; // NOLINT
         vkrndr::check_result(
             vkCreateDescriptorPool(device, &pool_info, nullptr, &rv));
+
+        VKRNDR_IF_DEBUG_UTILS(object_name(device,
+            VK_OBJECT_TYPE_DESCRIPTOR_POOL,
+            vkrndr::handle_cast(rv),
+            "ImGui Descriptor Pool"));
 
         return rv;
     }

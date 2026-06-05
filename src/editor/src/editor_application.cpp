@@ -118,6 +118,7 @@ namespace
             std::to_array<VkDescriptorPoolSize>({
                 // clang-format off
                 {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = 1000},
+                {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .descriptorCount = 1000},
                 // clang-format on
             }),
             1000,
@@ -487,14 +488,12 @@ editor::application_t::application_t(
         throw std::runtime_error{message};
     }
 
-    if (std::expected<material_manager_t, std::error_code>
-            material_manager_result{
-                create_material_manager(*rendering_context_.device)})
+    if (std::expected<entt::entity, std::error_code> material_manager_result{
+            create_material_manager(registry_,
+                *rendering_context_.device,
+                execute_transfer)})
     {
-        material_manager_ = registry_.create();
-        registry_.emplace<material_manager_t>(material_manager_,
-            std::move(material_manager_result).value());
-        registry_.emplace<material_manager_ui_t>(material_manager_);
+        material_manager_ = *material_manager_result;
     }
     else
     {
@@ -533,11 +532,8 @@ editor::application_t::~application_t()
         destroy(*rendering_context_.device, *grid_shader_);
     }
 
-    if (material_manager_t const* const manager{
-            registry_.try_get<material_manager_t>(material_manager_)})
-    {
-        destroy(*rendering_context_.device, *manager);
-    }
+    destroy_material_manager({registry_, material_manager_},
+        *rendering_context_.device);
 
     std::ranges::for_each(frame_info_buffers_,
         [&d = *rendering_context_.device](vkrndr::buffer_t const& b)
@@ -893,6 +889,15 @@ void editor::application_t::render()
         spdlog::error("Failed to begin command buffer: {}", message);
         throw std::runtime_error{message};
     }
+
+    render_material_previews(
+        {
+            registry_,
+            material_manager_,
+        },
+        *rendering_context_.device,
+        *imgui_,
+        command_buffer);
 
     VkViewport const viewport{.x = 0.0f,
         .y = 0.0f,

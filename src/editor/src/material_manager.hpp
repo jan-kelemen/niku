@@ -4,9 +4,11 @@
 #include <cppext_hash_adapter.hpp>
 #include <cppext_numeric.hpp>
 
+#include <vkrndr_buffer.hpp>
 #include <vkrndr_device.hpp> // IWYU pragma: keep
 #include <vkrndr_error_code.hpp>
 #include <vkrndr_image.hpp>
+#include <vkrndr_pipeline.hpp>
 #include <vkrndr_sampler.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -109,13 +111,31 @@ namespace editor
         std::vector<std::pair<uint32_t, VkDescriptorSet>> image_descriptors;
 
         size_t displayed_material_index{};
+
+        uint32_t material_preview_geometry_resolution{10};
+        vkrndr::buffer_t material_preview_vertex_index_buffer;
+        vkrndr::buffer_t material_preview_storage_buffer;
+
+        VkDescriptorPool descriptor_pool{VK_NULL_HANDLE};
+        VkDescriptorSetLayout material_preview_descriptor_layout{
+            VK_NULL_HANDLE};
+        VkDescriptorSet material_preview_descriptor{VK_NULL_HANDLE};
+        vkrndr::pipeline_layout_t material_preview_pipeline_layout;
+        vkrndr::pipeline_t material_preview_pipeline;
+
+        std::vector<std::pair<VkDescriptorSet, vkrndr::image_t>>
+            material_previews;
     };
 
-    [[nodiscard]] std::expected<material_manager_t, std::error_code>
-    create_material_manager(vkrndr::device_t const& device);
+    [[nodiscard]] std::expected<entt::entity, std::error_code>
+    create_material_manager(entt::registry& registry,
+        vkrndr::device_t const& device,
+        std::function<std::expected<void, std::error_code>(
+            std::function<void(VkCommandBuffer)> const&)> const&
+            execute_transfer);
 
-    void destroy(vkrndr::device_t const& device,
-        material_manager_t const& materials);
+    void destroy_material_manager(entt::handle manager,
+        vkrndr::device_t const& device);
 
     [[nodiscard]] std::expected<std::vector<vkrndr::image_t>, std::error_code>
     transfer_images(vkrndr::device_t const& device,
@@ -207,6 +227,11 @@ namespace editor
     [[nodiscard]] uint32_t add_material(entt::handle manager_entity,
         ngnast::material_t const& asset_material,
         std::span<uint32_t> const& texture_remap_table);
+
+    void render_material_previews(entt::handle manager_entity,
+        vkrndr::device_t const& device,
+        ngnwsi::imgui_layer_t& imgui,
+        VkCommandBuffer command_buffer);
 
     void draw_material_manager(entt::handle manager_entity,
         ngnwsi::imgui_layer_t& imgui);
