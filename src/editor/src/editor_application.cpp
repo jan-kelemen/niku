@@ -43,6 +43,7 @@
 
 #include <entt/signal/sigh.hpp>
 
+#include <entt/entity/entity.hpp>
 #include <entt/entity/handle.hpp>
 
 #include <fmt/ranges.h>
@@ -99,6 +100,8 @@
 // IWYU pragma: no_include <SDL3/SDL_begin_code.h>
 // IWYU pragma: no_include <map>
 // IWYU pragma: no_include <set>
+//
+// IWYU pragma: no_forward_declare entt::entity
 
 namespace
 {

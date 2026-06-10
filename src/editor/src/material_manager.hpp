@@ -15,6 +15,7 @@
 #include <boost/hash2/md5.hpp>
 #include <boost/unordered/unordered_map.hpp>
 
+#include <entt/entity/entity.hpp>
 #include <entt/entity/handle.hpp>
 #include <entt/entity/registry.hpp>
 
@@ -26,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <functional>
 #include <limits>
 #include <ranges>
 #include <span>
@@ -112,7 +114,7 @@ namespace editor
 
         size_t displayed_material_index{};
 
-        uint32_t material_preview_geometry_resolution{10};
+        uint32_t material_preview_geometry_resolution{50};
         vkrndr::buffer_t material_preview_vertex_index_buffer;
         vkrndr::buffer_t material_preview_storage_buffer;
 

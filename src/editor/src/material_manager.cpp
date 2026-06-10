@@ -25,6 +25,7 @@
 #include <vkrndr_pipeline.hpp>
 #include <vkrndr_pipeline_layout_builder.hpp>
 #include <vkrndr_render_pass.hpp>
+#include <vkrndr_shader_module.hpp>
 #include <vkrndr_synchronization.hpp>
 #include <vkrndr_utility.hpp>
 
@@ -33,13 +34,19 @@
 #include <boost/scope/defer.hpp>
 #include <boost/scope/scope_exit.hpp>
 
+#include <entt/entity/entity.hpp>
+
 #include <imgui.h>
 
+#include <glm/gtc/constants.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 #include <spdlog/spdlog.h>
+
+#include <vma_impl.hpp>
 
 #include <volk.h>
 
@@ -50,6 +57,7 @@
 #include <array>
 #include <bit>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <expected>
@@ -63,8 +71,11 @@
 // IWYU pragma: no_include "vkrndr_sampler.hpp"
 // IWYU pragma: no_include <fmt/base.h>
 // IWYU pragma: no_include <fmt/format.h>
+// IWYU pragma: no_include <filesystem>
 // IWYU pragma: no_include <memory>
-// IWYU pragma: no_include <tuple>
+// IWYU pragma: no_include <optional>
+//
+// IWYU pragma: no_forward_declare entt::entity
 
 namespace
 {
@@ -243,7 +254,7 @@ namespace
     }
 
     std::expected<vkrndr::buffer_t, std::error_code> create_sphere_geometry(
-        uint32_t const resolution,
+        uint32_t const vertices_per_slice,
         vkrndr::device_t const& device,
         std::function<std::expected<void, std::error_code>(
             std::function<void(VkCommandBuffer)> const&)> const&
@@ -252,18 +263,20 @@ namespace
         std::vector<vertex_t> vertices;
         std::vector<uint32_t> indices;
 
-        for (uint32_t const i : std::views::iota(uint32_t{0}, resolution + 1))
+        for (uint32_t const i :
+            std::views::iota(uint32_t{0}, vertices_per_slice + 1))
         {
-            float const v{cppext::as_fp(i) / cppext::as_fp(resolution)};
+            float const v{cppext::as_fp(i) / cppext::as_fp(vertices_per_slice)};
             float const theta{glm::pi<float>() * v};
 
             float const sin_theta{std::sin(theta)};
             float const cos_theta{std::cos(theta)};
 
             for (uint32_t const j :
-                std::views::iota(uint32_t{0}, resolution + 1))
+                std::views::iota(uint32_t{0}, vertices_per_slice + 1))
             {
-                float const u{cppext::as_fp(j) / cppext::as_fp(resolution)};
+                float const u{
+                    cppext::as_fp(j) / cppext::as_fp(vertices_per_slice)};
                 float const phi{2.0f * glm::pi<float>() * u};
 
                 float const sin_phi{std::sin(phi)};
@@ -276,20 +289,22 @@ namespace
             }
         }
 
-        for (uint32_t const i : std::views::iota(uint32_t{0}, resolution))
+        for (uint32_t const i :
+            std::views::iota(uint32_t{0}, vertices_per_slice))
         {
-            for (uint32_t const j : std::views::iota(uint32_t{0}, resolution))
+            for (uint32_t const j :
+                std::views::iota(uint32_t{0}, vertices_per_slice))
             {
-                uint32_t const first{i * (resolution + 1) + j};
-                uint32_t const second{first + resolution + 1};
+                uint32_t const first{i * (vertices_per_slice + 1) + j};
+                uint32_t const second{first + vertices_per_slice + 1};
 
                 indices.push_back(first);
-                indices.push_back(second);
                 indices.push_back(first + 1);
+                indices.push_back(second);
 
                 indices.push_back(second);
-                indices.push_back(second + 1);
                 indices.push_back(first + 1);
+                indices.push_back(second + 1);
             }
         }
 
@@ -301,7 +316,7 @@ namespace
         {
             vkrndr::mapped_memory_t memory{map_memory(device, staging)};
 
-            std::byte* ptr = memory.as<std::byte>();
+            auto* ptr = memory.as<std::byte>();
             for (auto const& vertex : vertices)
             {
                 memcpy(ptr,
@@ -358,9 +373,9 @@ namespace
                             VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT)},
                     {});
             })
-            .transform([&vertex_index_buffer, &device, &staging]()
-                { return vertex_index_buffer; })
+            .transform([&vertex_index_buffer]() { return vertex_index_buffer; })
             .transform_error(
+                // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
                 [&vertex_index_buffer, &device](std::error_code&& error)
                 {
                     destroy(device, vertex_index_buffer);
@@ -413,7 +428,8 @@ namespace
             "Material Preview Fragment Shader"));
 
         std::expected<VkDescriptorSetLayout, std::error_code>
-            descriptor_layout_result{descriptor_set_layout(shaders, device, 0)};
+            descriptor_layout_result{
+                create_material_preview_descriptor_layout(device)};
         if (!descriptor_layout_result)
         {
             return std::unexpected{descriptor_layout_result.error()};
@@ -437,7 +453,7 @@ namespace
             pipeline_layout,
             "Material Preview Pipeline Layout"));
 
-        vkrndr::pipeline_t pipeline{
+        vkrndr::pipeline_t const pipeline{
             vkrndr::graphics_pipeline_builder_t{device, pipeline_layout}
                 .add_vertex_input(binding_description(),
                     attribute_description())
@@ -480,7 +496,7 @@ namespace
             "Material Preview Data Storage Buffer"));
         {
             ngngfx::aircraft_camera_t c;
-            c.set_position({0.0f, 0.0f, 5.f});
+            c.set_position({0.0f, 0.0f, 6.f});
             c.update();
 
             ngngfx::perspective_projection_t p;
@@ -986,11 +1002,11 @@ void editor::render_material_previews(entt::handle manager_entity,
         &ui.material_preview_vertex_index_buffer.handle,
         &zero_offset);
 
+    VkDeviceSize const slice_index_count{
+        ui.material_preview_geometry_resolution + 1};
     vkCmdBindIndexBuffer(command_buffer,
         ui.material_preview_vertex_index_buffer.handle,
-        (ui.material_preview_geometry_resolution + 1) *
-            (ui.material_preview_geometry_resolution + 1) *
-            sizeof(vertex_t),
+        slice_index_count * slice_index_count * sizeof(vertex_t),
         VK_INDEX_TYPE_UINT32);
 
     vkCmdBindDescriptorSets(command_buffer,
@@ -1180,9 +1196,9 @@ void editor::draw_material_manager(entt::handle manager_entity,
             auto const& [descriptor, image] =
                 ui.material_previews[ui.displayed_material_index];
 
+            float const view_width{ImGui::GetContentRegionAvail().x};
             ImGui::Image(std::bit_cast<ImTextureID>(descriptor),
-                ImVec2(cppext::as_fp(image.extent.width),
-                    cppext::as_fp(image.extent.height)));
+                ImVec2(view_width, view_width));
         }
     }
     ImGui::End();

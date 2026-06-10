@@ -16,6 +16,8 @@
 
 #include <imgui.h>
 
+#include <vulkan/utility/vk_struct_helper.hpp>
+
 #include <array>
 #include <cassert>
 #include <utility>
@@ -32,7 +34,7 @@ namespace
             {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .descriptorCount = 1000},
         })};
 
-        VkDescriptorPoolCreateInfo pool_info{
+        VkDescriptorPoolCreateInfo const pool_info{
             .sType = vku::GetSType<VkDescriptorPoolCreateInfo>(),
             .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
             .maxSets = 1000,

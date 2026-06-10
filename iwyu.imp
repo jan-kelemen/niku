@@ -111,6 +111,7 @@
   { include: [ "<glm/ext/matrix_clip_space.inl>", private, "<glm/gtc/matrix_transform.hpp>", public ] },
   { include: [ "<glm/ext/matrix_projection.inl>", private, "<glm/gtc/matrix_transform.hpp>", public ] },
   { include: [ "<glm/ext/matrix_transform.inl>", private, "<glm/gtc/matrix_transform.hpp>", public ] },
+  { include: [ "<glm/ext/scalar_constants.inl>", private, "<glm/gtc/constants.hpp>", public ] },
   { include: [ "<glm/ext/projection.inl>", private, "<glm/gtc/matrix_transform.hpp>", public ] },
   { include: [ "<glm/gtc/constants.inl>", private, "<glm/gtc/constants.hpp>", public ] },
   { include: [ "<glm/gtc/type_ptr.inl>", private, "<glm/gtc/type_ptr.hpp>", public ] },
